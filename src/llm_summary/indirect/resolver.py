@@ -2,41 +2,36 @@
 
 from ..db import SummaryDB
 from ..llm.base import LLMBackend
-from ..models import IndirectCallsite, IndirectCallTarget
+from ..models import AddressFlowSummary, IndirectCallsite, IndirectCallTarget
 
 
 INDIRECT_CALL_PROMPT = """You are analyzing indirect function calls in C/C++ code to determine which functions could be called.
 
 ## Indirect Call Site
 
-The following indirect call appears in function `{caller_name}`:
+Caller function: `{caller_name}`
+Expression: `{callee_expr}`
+Expected signature: `{signature}`
+Location: {file_path}:{line_number}
 
+Context:
 ```c
 {context_snippet}
 ```
 
-The indirect call expression is: `{callee_expr}`
-Expected function signature: `{signature}`
-Location: {file_path}:{line_number}
-
-## Candidate Functions
-
-These functions have matching signatures and their addresses are taken somewhere in the codebase:
+## Candidate Functions ({num_candidates} candidates with compatible signature)
 
 {candidates_section}
 
-## Address Flow Information
-
-{address_flows_section}
-
 ## Task
 
-Based on the code context and how function pointers are typically used, determine which candidate functions could realistically be called at this indirect call site.
+Match the indirect call to the most likely target function(s).
 
-For each candidate, assess:
-1. Does the naming/purpose match the call context?
-2. Is there evidence the function pointer could reach this value?
-3. What's your confidence (high/medium/low)?
+Consider:
+1. Does the flow summary indicate this function reaches the callsite context?
+2. Do naming conventions suggest a match (e.g., on_click -> click handler)?
+3. Is the struct field or variable name consistent with the callee expression?
+4. What is the semantic role of each candidate - does it fit this call context?
 
 Respond in JSON format:
 ```json
@@ -57,15 +52,35 @@ Only include functions that could realistically be called. If no candidates seem
 
 class IndirectCallResolver:
     """
-    Uses LLM to resolve indirect call targets.
+    Uses LLM to resolve indirect call targets (Pass 2).
 
     Given an indirect call site and candidate functions (address-taken with
     matching signatures), asks the LLM to determine likely targets.
+
+    This version uses flow summaries from Pass 1 to provide better context.
     """
 
-    def __init__(self, db: SummaryDB, llm: LLMBackend):
+    def __init__(
+        self,
+        db: SummaryDB,
+        llm: LLMBackend,
+        verbose: bool = False,
+        log_file: str | None = None,
+    ):
         self.db = db
         self.llm = llm
+        self.verbose = verbose
+        self.log_file = log_file
+        self._stats = {
+            "callsites_processed": 0,
+            "llm_calls": 0,
+            "cache_hits": 0,
+            "errors": 0,
+        }
+
+    @property
+    def stats(self) -> dict[str, int]:
+        return self._stats.copy()
 
     def resolve_callsite(self, callsite: IndirectCallsite) -> list[IndirectCallTarget]:
         """Resolve a single indirect call site."""
@@ -73,21 +88,14 @@ class IndirectCallResolver:
         caller = self.db.get_function(callsite.caller_function_id)
         caller_name = caller.name if caller else "unknown"
 
-        # Get candidate functions (address-taken with matching signature)
-        candidates = self.db.get_address_taken_functions(callsite.signature)
-
-        if not candidates:
-            # Try without exact signature match - let LLM filter
-            candidates = self.db.get_address_taken_functions()
+        # Get candidate functions - use signature-only filtering (no limit)
+        candidates = self._get_signature_compatible_candidates(callsite.signature)
 
         if not candidates:
             return []
 
-        # Build candidate section
-        candidates_section = self._build_candidates_section(candidates)
-
-        # Build address flows section
-        address_flows_section = self._build_address_flows_section(candidates)
+        # Build candidate section with flow summaries
+        candidates_section = self._build_candidates_section_with_flows(candidates)
 
         # Build prompt
         prompt = INDIRECT_CALL_PROMPT.format(
@@ -97,14 +105,24 @@ class IndirectCallResolver:
             signature=callsite.signature,
             file_path=callsite.file_path,
             line_number=callsite.line_number,
+            num_candidates=len(candidates),
             candidates_section=candidates_section,
-            address_flows_section=address_flows_section,
         )
 
         # Query LLM
         try:
+            if self.verbose:
+                print(f"  Resolving: {callsite.callee_expr} in {caller_name}")
+
             response = self.llm.complete(prompt)
+            self._stats["llm_calls"] += 1
+
+            # Log if requested
+            if self.log_file:
+                self._log_interaction(callsite, prompt, response)
+
             targets = self._parse_response(response, callsite, candidates)
+            self._stats["callsites_processed"] += 1
 
             # Store resolved targets
             for target in targets:
@@ -113,12 +131,63 @@ class IndirectCallResolver:
             return targets
 
         except Exception as e:
-            print(f"Warning: Failed to resolve callsite: {e}")
+            self._stats["errors"] += 1
+            if self.verbose:
+                print(f"  Error resolving callsite: {e}")
             return []
 
-    def resolve_all_callsites(self) -> dict[int, list[IndirectCallTarget]]:
-        """Resolve all unresolved indirect call sites."""
+    def _get_signature_compatible_candidates(self, signature: str) -> list:
+        """
+        Get all address-taken functions with compatible signatures.
+
+        Currently uses exact signature match. Future enhancement could
+        use more flexible signature compatibility checking.
+        """
+        # First try exact signature match
+        candidates = self.db.get_address_taken_functions(signature)
+
+        if not candidates:
+            # Fall back to all address-taken functions (let LLM filter)
+            candidates = self.db.get_address_taken_functions()
+
+        return candidates
+
+    def _log_interaction(
+        self, callsite: IndirectCallsite, prompt: str, response: str
+    ) -> None:
+        """Log LLM interaction to file."""
+        import datetime
+
+        with open(self.log_file, "a", encoding="utf-8") as f:
+            timestamp = datetime.datetime.now().isoformat()
+            f.write(f"\n{'='*80}\n")
+            f.write(f"[RESOLUTION] Callsite: {callsite.callee_expr}\n")
+            f.write(f"Location: {callsite.file_path}:{callsite.line_number}\n")
+            f.write(f"Timestamp: {timestamp}\n")
+            f.write(f"Model: {self.llm.model}\n")
+            f.write(f"{'-'*80}\n")
+            f.write("PROMPT:\n")
+            f.write(prompt)
+            f.write(f"\n{'-'*80}\n")
+            f.write("RESPONSE:\n")
+            f.write(response)
+            f.write(f"\n{'='*80}\n\n")
+
+    def resolve_all_callsites(self, force: bool = False) -> dict[int, list[IndirectCallTarget]]:
+        """
+        Resolve all indirect call sites.
+
+        Args:
+            force: If True, re-resolve even if already resolved
+
+        Returns:
+            Mapping of callsite ID to list of resolved targets
+        """
         callsites = self.db.get_indirect_callsites()
+
+        if self.verbose:
+            print(f"Pass 2: Resolving {len(callsites)} indirect call sites")
+
         results = {}
 
         for callsite in callsites:
@@ -126,47 +195,74 @@ class IndirectCallResolver:
                 continue
 
             # Check if already resolved
-            existing = self.db.get_indirect_call_targets(callsite.id)
-            if existing:
-                results[callsite.id] = existing
-                continue
+            if not force:
+                existing = self.db.get_indirect_call_targets(callsite.id)
+                if existing:
+                    results[callsite.id] = existing
+                    self._stats["cache_hits"] += 1
+                    if self.verbose:
+                        print(f"  Cached: {callsite.callee_expr}")
+                    continue
 
             targets = self.resolve_callsite(callsite)
             results[callsite.id] = targets
 
         return results
 
-    def _build_candidates_section(self, candidates: list) -> str:
-        """Build the candidates section for the prompt."""
+    def _build_candidates_section_with_flows(self, candidates: list) -> str:
+        """Build the candidates section with flow summaries from Pass 1."""
         lines = []
         for i, atf in enumerate(candidates, 1):
-            func = self.db.get_function(atf.function_id)
-            if func:
-                # Get function description from its source (first few lines or signature)
-                first_lines = func.source.split("\n")[:3] if func.source else []
-                snippet = "\n".join(first_lines)
-                lines.append(
-                    f"{i}. `{func.name}` (signature: {atf.signature})\n"
-                    f"   File: {func.file_path}\n"
-                    f"   ```c\n   {snippet}\n   ```"
-                )
-        return "\n\n".join(lines) if lines else "No candidates found."
-
-    def _build_address_flows_section(self, candidates: list) -> str:
-        """Build the address flows section for the prompt."""
-        lines = []
-        for atf in candidates:
             func = self.db.get_function(atf.function_id)
             if not func:
                 continue
 
-            flows = self.db.get_address_flows(atf.function_id)
-            if flows:
-                lines.append(f"Function `{func.name}` address flows to:")
-                for flow in flows[:5]:  # Limit to first 5 flows
-                    lines.append(f"  - {flow.flow_target} at {flow.file_path}:{flow.line_number}")
+            # Get first 10 lines of source
+            source_lines = func.source.split("\n")[:10] if func.source else []
+            source_snippet = "\n".join(source_lines)
 
-        return "\n".join(lines) if lines else "No address flow information available."
+            # Get flow summary from Pass 1
+            flow_summary = self.db.get_flow_summary(atf.function_id)
+            flow_info = self._format_flow_summary(flow_summary)
+
+            lines.append(
+                f"### Candidate {i}: `{func.name}`\n"
+                f"File: {func.file_path}:{func.line_start}-{func.line_end}\n"
+                f"Signature: {atf.signature}\n"
+                f"\n{flow_info}\n"
+                f"\nSource (first 10 lines):\n```c\n{source_snippet}\n```"
+            )
+
+        return "\n\n".join(lines) if lines else "No candidates found."
+
+    def _format_flow_summary(self, summary: AddressFlowSummary | None) -> str:
+        """Format a flow summary for inclusion in the prompt."""
+        if not summary:
+            return "Flow summary: Not available"
+
+        parts = []
+
+        if summary.semantic_role:
+            parts.append(f"**Semantic role**: {summary.semantic_role}")
+
+        if summary.flow_destinations:
+            dests = []
+            for fd in summary.flow_destinations:
+                dests.append(f"  - {fd.dest_type}: {fd.name} ({fd.confidence} confidence)")
+            parts.append("**Flow destinations**:\n" + "\n".join(dests))
+
+        if summary.likely_callers:
+            callers = ", ".join(summary.likely_callers[:5])  # Limit to 5
+            parts.append(f"**Likely callers**: {callers}")
+
+        if parts:
+            return "Flow summary:\n" + "\n".join(parts)
+        else:
+            return "Flow summary: No detailed information"
+
+    def _build_candidates_section(self, candidates: list) -> str:
+        """Build the candidates section for the prompt (legacy method)."""
+        return self._build_candidates_section_with_flows(candidates)
 
     def _parse_response(
         self,

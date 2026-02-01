@@ -12,6 +12,7 @@ from clang.cindex import (
     TypeKind,
 )
 
+from .compile_commands import CompileCommandsDB
 from .models import Function
 
 
@@ -94,6 +95,7 @@ class FunctionExtractor:
         self,
         compile_args: list[str] | None = None,
         libclang_path: str | None = None,
+        compile_commands: CompileCommandsDB | None = None,
     ):
         """
         Initialize the extractor.
@@ -101,10 +103,12 @@ class FunctionExtractor:
         Args:
             compile_args: Additional compiler arguments (e.g., ["-I/path/to/include"])
             libclang_path: Path to libclang shared library
+            compile_commands: Optional CompileCommandsDB for per-file compile flags
         """
         configure_libclang(libclang_path)
         self.index = Index.create()
         self.compile_args = compile_args or []
+        self.compile_commands = compile_commands
         self._file_contents: dict[str, str] = {}
 
     def extract_from_file(self, file_path: str | Path) -> list[Function]:
@@ -119,14 +123,8 @@ class FunctionExtractor:
         """
         file_path = Path(file_path).resolve()
 
-        # Determine language from extension
-        ext = file_path.suffix.lower()
-        args = list(self.compile_args)
-
-        if ext in (".cpp", ".cxx", ".cc", ".hpp", ".hxx"):
-            args.extend(["-x", "c++", "-std=c++17"])
-        else:
-            args.extend(["-x", "c", "-std=c11"])
+        # Get compile flags for this file
+        args = self._get_compile_args(file_path)
 
         try:
             tu = self.index.parse(
@@ -143,6 +141,27 @@ class FunctionExtractor:
         )
 
         return functions
+
+    def _get_compile_args(self, file_path: Path) -> list[str]:
+        """
+        Get compile arguments for a file.
+
+        Uses compile_commands.json if available, otherwise uses default args.
+        """
+        args = list(self.compile_args)
+
+        # Add per-file flags from compile_commands.json if available
+        if self.compile_commands and self.compile_commands.has_file(file_path):
+            args.extend(self.compile_commands.get_compile_flags(file_path))
+        else:
+            # Fall back to default language settings based on extension
+            ext = file_path.suffix.lower()
+            if ext in (".cpp", ".cxx", ".cc", ".hpp", ".hxx"):
+                args.extend(["-x", "c++", "-std=c++17"])
+            else:
+                args.extend(["-x", "c", "-std=c11"])
+
+        return args
 
     def extract_from_files(self, file_paths: list[str | Path]) -> list[Function]:
         """Extract functions from multiple files."""
@@ -289,20 +308,16 @@ class FunctionExtractorWithBodies(FunctionExtractor):
         self,
         compile_args: list[str] | None = None,
         libclang_path: str | None = None,
+        compile_commands: CompileCommandsDB | None = None,
     ):
-        super().__init__(compile_args, libclang_path)
+        super().__init__(compile_args, libclang_path, compile_commands)
 
     def extract_from_file(self, file_path: str | Path) -> list[Function]:
         """Extract functions with full body parsing."""
         file_path = Path(file_path).resolve()
 
-        ext = file_path.suffix.lower()
-        args = list(self.compile_args)
-
-        if ext in (".cpp", ".cxx", ".cc", ".hpp", ".hxx"):
-            args.extend(["-x", "c++", "-std=c++17"])
-        else:
-            args.extend(["-x", "c", "-std=c11"])
+        # Get compile flags for this file
+        args = self._get_compile_args(file_path)
 
         try:
             # Don't skip function bodies
@@ -323,13 +338,8 @@ class FunctionExtractorWithBodies(FunctionExtractor):
         """Get the translation unit for advanced analysis."""
         file_path = Path(file_path).resolve()
 
-        ext = file_path.suffix.lower()
-        args = list(self.compile_args)
-
-        if ext in (".cpp", ".cxx", ".cc", ".hpp", ".hxx"):
-            args.extend(["-x", "c++", "-std=c++17"])
-        else:
-            args.extend(["-x", "c", "-std=c11"])
+        # Get compile flags for this file
+        args = self._get_compile_args(file_path)
 
         return self.index.parse(
             str(file_path),

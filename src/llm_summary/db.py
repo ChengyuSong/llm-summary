@@ -8,11 +8,13 @@ from typing import Any
 
 from .models import (
     AddressFlow,
+    AddressFlowSummary,
     AddressTakenFunction,
     Allocation,
     AllocationSummary,
     AllocationType,
     CallEdge,
+    FlowDestination,
     Function,
     IndirectCallsite,
     IndirectCallTarget,
@@ -93,6 +95,18 @@ CREATE TABLE IF NOT EXISTS indirect_call_targets (
     PRIMARY KEY(callsite_id, target_function_id)
 );
 
+-- LLM-generated flow summaries for address-taken functions (Pass 1)
+CREATE TABLE IF NOT EXISTS address_flow_summaries (
+    id INTEGER PRIMARY KEY,
+    function_id INTEGER NOT NULL REFERENCES functions(id) ON DELETE CASCADE,
+    flow_destinations_json TEXT NOT NULL,
+    semantic_role TEXT,
+    likely_callers_json TEXT,
+    model_used TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(function_id)
+);
+
 -- Indexes for fast lookups
 CREATE INDEX IF NOT EXISTS idx_functions_name ON functions(name);
 CREATE INDEX IF NOT EXISTS idx_functions_file ON functions(file_path);
@@ -100,6 +114,7 @@ CREATE INDEX IF NOT EXISTS idx_call_edges_caller ON call_edges(caller_id);
 CREATE INDEX IF NOT EXISTS idx_call_edges_callee ON call_edges(callee_id);
 CREATE INDEX IF NOT EXISTS idx_address_flows_function ON address_flows(function_id);
 CREATE INDEX IF NOT EXISTS idx_indirect_callsites_caller ON indirect_callsites(caller_function_id);
+CREATE INDEX IF NOT EXISTS idx_flow_summaries_function ON address_flow_summaries(function_id);
 """
 
 
@@ -582,6 +597,98 @@ class SummaryDB:
             for row in rows
         ]
 
+    # ========== Address Flow Summary Operations (Pass 1 LLM) ==========
+
+    def add_flow_summary(self, summary: AddressFlowSummary) -> int:
+        """Add or update an LLM-generated flow summary for an address-taken function."""
+        flow_destinations_json = json.dumps(
+            [fd.to_dict() for fd in summary.flow_destinations]
+        )
+        likely_callers_json = json.dumps(summary.likely_callers)
+
+        cursor = self.conn.execute(
+            """
+            INSERT INTO address_flow_summaries
+            (function_id, flow_destinations_json, semantic_role, likely_callers_json, model_used)
+            VALUES (?, ?, ?, ?, ?)
+            ON CONFLICT(function_id) DO UPDATE SET
+                flow_destinations_json = excluded.flow_destinations_json,
+                semantic_role = excluded.semantic_role,
+                likely_callers_json = excluded.likely_callers_json,
+                model_used = excluded.model_used,
+                created_at = CURRENT_TIMESTAMP
+            """,
+            (
+                summary.function_id,
+                flow_destinations_json,
+                summary.semantic_role,
+                likely_callers_json,
+                summary.model_used,
+            ),
+        )
+        self.conn.commit()
+        return cursor.lastrowid
+
+    def get_flow_summary(self, function_id: int) -> AddressFlowSummary | None:
+        """Get the LLM-generated flow summary for a function."""
+        row = self.conn.execute(
+            "SELECT * FROM address_flow_summaries WHERE function_id = ?",
+            (function_id,),
+        ).fetchone()
+
+        if not row:
+            return None
+
+        # Parse flow destinations
+        flow_destinations = []
+        try:
+            destinations_data = json.loads(row["flow_destinations_json"])
+            for fd in destinations_data:
+                flow_destinations.append(
+                    FlowDestination(
+                        dest_type=fd.get("type", "unknown"),
+                        name=fd.get("name", ""),
+                        confidence=fd.get("confidence", "low"),
+                    )
+                )
+        except json.JSONDecodeError:
+            pass
+
+        # Parse likely callers
+        likely_callers = []
+        try:
+            if row["likely_callers_json"]:
+                likely_callers = json.loads(row["likely_callers_json"])
+        except json.JSONDecodeError:
+            pass
+
+        return AddressFlowSummary(
+            id=row["id"],
+            function_id=row["function_id"],
+            flow_destinations=flow_destinations,
+            semantic_role=row["semantic_role"] or "",
+            likely_callers=likely_callers,
+            model_used=row["model_used"] or "",
+        )
+
+    def get_all_flow_summaries(self) -> list[AddressFlowSummary]:
+        """Get all flow summaries from the database."""
+        rows = self.conn.execute("SELECT function_id FROM address_flow_summaries").fetchall()
+        summaries = []
+        for row in rows:
+            summary = self.get_flow_summary(row["function_id"])
+            if summary:
+                summaries.append(summary)
+        return summaries
+
+    def has_flow_summary(self, function_id: int) -> bool:
+        """Check if a function already has a flow summary."""
+        row = self.conn.execute(
+            "SELECT 1 FROM address_flow_summaries WHERE function_id = ?",
+            (function_id,),
+        ).fetchone()
+        return row is not None
+
     # ========== Utility Operations ==========
 
     def clear_all(self) -> None:
@@ -589,6 +696,7 @@ class SummaryDB:
         tables = [
             "indirect_call_targets",
             "indirect_callsites",
+            "address_flow_summaries",
             "address_flows",
             "address_taken_functions",
             "call_edges",
@@ -608,6 +716,7 @@ class SummaryDB:
             "call_edges",
             "address_taken_functions",
             "address_flows",
+            "address_flow_summaries",
             "indirect_callsites",
             "indirect_call_targets",
         ]

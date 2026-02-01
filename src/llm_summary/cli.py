@@ -9,10 +9,16 @@ from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.table import Table
 
+from .compile_commands import CompileCommandsDB
 from .db import SummaryDB
 from .extractor import FunctionExtractor
 from .callgraph import CallGraphBuilder
-from .indirect import AddressTakenScanner, IndirectCallsiteFinder, IndirectCallResolver
+from .indirect import (
+    AddressTakenScanner,
+    FlowSummarizer,
+    IndirectCallsiteFinder,
+    IndirectCallResolver,
+)
 from .llm import create_backend
 from .ordering import ProcessingOrderer
 from .summarizer import AllocationSummarizer
@@ -29,7 +35,8 @@ def main():
 
 
 @main.command()
-@click.argument("path", type=click.Path(exists=True))
+@click.argument("path_arg", type=click.Path(exists=True), required=False, default=None)
+@click.option("--path", "path_opt", type=click.Path(exists=True), default=None, help="Path to analyze")
 @click.option("--db", "db_path", default="summaries.db", help="Database file path")
 @click.option("--backend", type=click.Choice(["claude", "openai", "ollama"]), default="claude")
 @click.option("--model", default=None, help="Model name to use")
@@ -37,8 +44,14 @@ def main():
 @click.option("--include-headers/--no-include-headers", default=False, help="Include header files")
 @click.option("--verbose", "-v", is_flag=True, help="Verbose output")
 @click.option("--force", "-f", is_flag=True, help="Force re-analysis of all functions")
-def analyze(path, db_path, backend, model, recursive, include_headers, verbose, force):
+@click.option("--log-llm", type=click.Path(), default=None, help="Log all LLM prompts and responses to file")
+def analyze(path_arg, path_opt, db_path, backend, model, recursive, include_headers, verbose, force, log_llm):
     """Analyze C/C++ source files and generate allocation summaries."""
+    # Accept path as either positional argument or --path option
+    path = path_opt or path_arg
+    if not path:
+        raise click.UsageError("PATH is required (provide as argument or use --path)")
+
     path = Path(path).resolve()
 
     # Determine extensions to process
@@ -113,7 +126,7 @@ def analyze(path, db_path, backend, model, recursive, include_headers, verbose, 
 
         # Phase 4: Generate summaries
         llm = create_backend(backend, model=model)
-        summarizer = AllocationSummarizer(db, llm, verbose=verbose)
+        summarizer = AllocationSummarizer(db, llm, verbose=verbose, log_file=log_llm)
 
         console.print(f"Using {backend} backend ({llm.model})")
 
@@ -145,13 +158,37 @@ def analyze(path, db_path, backend, model, recursive, include_headers, verbose, 
 
 
 @main.command()
-@click.argument("path", type=click.Path(exists=True))
+@click.argument("path_arg", type=click.Path(exists=True), required=False, default=None)
+@click.option("--path", "path_opt", type=click.Path(exists=True), default=None, help="Path to extract from")
 @click.option("--db", "db_path", default="summaries.db", help="Database file path")
+@click.option("--compile-commands", "compile_commands_path", type=click.Path(exists=True), default=None,
+              help="Path to compile_commands.json for proper macro/include handling")
 @click.option("--recursive/--no-recursive", default=True)
-def extract(path, db_path, recursive):
+def extract(path_arg, path_opt, db_path, compile_commands_path, recursive):
     """Extract functions and build call graph (no LLM)."""
+    # Accept path as either positional argument or --path option
+    path = path_opt or path_arg
+    if not path:
+        raise click.UsageError("PATH is required (provide as argument or use --path)")
+
     path = Path(path).resolve()
-    extensions = [".c", ".cpp", ".cc", ".cxx"]
+
+    # Load compile_commands.json if provided
+    compile_commands = None
+    if compile_commands_path:
+        try:
+            compile_commands = CompileCommandsDB(compile_commands_path)
+            console.print(f"Loaded compile_commands.json ({len(compile_commands)} entries)")
+        except Exception as e:
+            console.print(f"[yellow]Warning: Failed to load compile_commands.json: {e}[/yellow]")
+
+    # Determine file extensions based on whether compile_commands is available
+    # Without compile_commands, include headers to get more complete coverage
+    if compile_commands:
+        extensions = [".c", ".cpp", ".cc", ".cxx"]
+    else:
+        extensions = [".c", ".cpp", ".cc", ".cxx", ".h", ".hpp", ".hxx"]
+        console.print("[dim]No compile_commands.json - including header files[/dim]")
 
     if path.is_file():
         files = [path]
@@ -165,10 +202,12 @@ def extract(path, db_path, recursive):
         console.print("[red]No source files found[/red]")
         return
 
+    console.print(f"Found {len(files)} source file(s)")
+
     db = SummaryDB(db_path)
 
     try:
-        extractor = FunctionExtractor()
+        extractor = FunctionExtractor(compile_commands=compile_commands)
         all_functions = []
 
         for f in files:
@@ -183,7 +222,7 @@ def extract(path, db_path, recursive):
         console.print(f"\nExtracted {len(all_functions)} functions")
 
         # Build call graph
-        cg_builder = CallGraphBuilder(db)
+        cg_builder = CallGraphBuilder(db, compile_commands=compile_commands)
         edges = cg_builder.build_from_files(files)
         console.print(f"Found {len(edges)} call edges")
 
@@ -468,6 +507,298 @@ def callgraph(db_path, output, fmt, no_header):
             console.print(f"Exported {len(edges)} call edges to {output}")
         else:
             console.print(result)
+
+    finally:
+        db.close()
+
+
+@main.command("indirect-analyze")
+@click.argument("path_arg", type=click.Path(exists=True), required=False, default=None)
+@click.option("--path", "path_opt", type=click.Path(exists=True), default=None, help="Path to analyze")
+@click.option("--db", "db_path", default="summaries.db", help="Database file path")
+@click.option("--compile-commands", "compile_commands_path", type=click.Path(exists=True), default=None,
+              help="Path to compile_commands.json for proper macro/include handling")
+@click.option("--backend", type=click.Choice(["claude", "openai", "ollama"]), default="claude")
+@click.option("--model", default=None, help="Model name to use")
+@click.option("--recursive/--no-recursive", default=True, help="Scan directories recursively")
+@click.option("--verbose", "-v", is_flag=True, help="Verbose output")
+@click.option("--force", "-f", is_flag=True, help="Force re-analysis (ignore cache)")
+@click.option("--log-llm", type=click.Path(), default=None, help="Log all LLM prompts and responses to file")
+@click.option("--pass1-only", is_flag=True, help="Only run Pass 1 (flow summarization)")
+@click.option("--pass2-only", is_flag=True, help="Only run Pass 2 (resolution), requires Pass 1 already done")
+def indirect_analyze(
+    path_arg, path_opt, db_path, compile_commands_path, backend, model,
+    recursive, verbose, force, log_llm, pass1_only, pass2_only
+):
+    """
+    Analyze indirect calls using LLM-based two-pass approach.
+
+    Pass 1: Summarize where address-taken function pointers flow.
+    Pass 2: Resolve indirect callsites using flow summaries.
+
+    Example:
+        llm-summary indirect-analyze --path src/ --db out.db --compile-commands compile_commands.json
+    """
+    # Accept path as either positional argument or --path option
+    path = path_opt or path_arg
+    if not path:
+        raise click.UsageError("PATH is required (provide as argument or use --path)")
+
+    path = Path(path).resolve()
+
+    # Load compile_commands.json if provided
+    compile_commands = None
+    if compile_commands_path:
+        try:
+            compile_commands = CompileCommandsDB(compile_commands_path)
+            console.print(f"Loaded compile_commands.json ({len(compile_commands)} entries)")
+        except Exception as e:
+            console.print(f"[yellow]Warning: Failed to load compile_commands.json: {e}[/yellow]")
+
+    # Determine file extensions based on whether compile_commands is available
+    # Without compile_commands, include headers to get more complete coverage
+    if compile_commands:
+        extensions = [".c", ".cpp", ".cc", ".cxx"]
+    else:
+        extensions = [".c", ".cpp", ".cc", ".cxx", ".h", ".hpp", ".hxx"]
+        console.print("[dim]No compile_commands.json - including header files[/dim]")
+
+    # Collect files
+    if path.is_file():
+        files = [path]
+    else:
+        if recursive:
+            files = [f for f in path.rglob("*") if f.suffix.lower() in extensions]
+        else:
+            files = [f for f in path.glob("*") if f.suffix.lower() in extensions]
+
+    if not files:
+        console.print("[red]No source files found[/red]")
+        return
+
+    console.print(f"Found {len(files)} source file(s)")
+
+    # Initialize database
+    db = SummaryDB(db_path)
+
+    try:
+        # Check if we need to extract functions first
+        existing_funcs = db.get_all_functions()
+        if not existing_funcs:
+            console.print("No functions in database. Running extraction first...")
+
+            with Progress(
+                SpinnerColumn(),
+                TextColumn("[progress.description]{task.description}"),
+                console=console,
+            ) as progress:
+                task = progress.add_task("Extracting functions...", total=None)
+
+                extractor = FunctionExtractor(compile_commands=compile_commands)
+                all_functions = []
+
+                for f in files:
+                    try:
+                        functions = extractor.extract_from_file(f)
+                        all_functions.extend(functions)
+                        if verbose:
+                            progress.console.print(f"  {f.name}: {len(functions)} functions")
+                    except Exception as e:
+                        progress.console.print(f"  [yellow]Warning: {f.name}: {e}[/yellow]")
+
+                progress.update(task, completed=True)
+
+            db.insert_functions_batch(all_functions)
+            console.print(f"Extracted {len(all_functions)} functions")
+
+        # Phase 1: Scan for address-taken functions and indirect callsites
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            console=console,
+        ) as progress:
+            task = progress.add_task("Scanning for address-taken functions...", total=None)
+
+            scanner = AddressTakenScanner(db, compile_commands=compile_commands)
+            scanner.scan_files(files)
+
+            progress.update(task, completed=True)
+
+        atf_count = len(db.get_address_taken_functions())
+        console.print(f"Found {atf_count} address-taken functions")
+
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            console=console,
+        ) as progress:
+            task = progress.add_task("Finding indirect call sites...", total=None)
+
+            finder = IndirectCallsiteFinder(db, compile_commands=compile_commands)
+            callsites = finder.find_in_files(files)
+
+            progress.update(task, completed=True)
+
+        console.print(f"Found {len(callsites)} indirect call sites")
+
+        if atf_count == 0:
+            console.print("[yellow]No address-taken functions found. Nothing to analyze.[/yellow]")
+            return
+
+        if len(callsites) == 0:
+            console.print("[yellow]No indirect call sites found. Nothing to resolve.[/yellow]")
+            return
+
+        # Initialize LLM backend
+        llm = create_backend(backend, model=model)
+        console.print(f"Using {backend} backend ({llm.model})")
+
+        # Pass 1: Flow summarization
+        if not pass2_only:
+            console.print("\n[bold]Pass 1: Flow Summarization[/bold]")
+
+            flow_summarizer = FlowSummarizer(db, llm, verbose=verbose, log_file=log_llm)
+
+            with Progress(
+                SpinnerColumn(),
+                TextColumn("[progress.description]{task.description}"),
+                console=console,
+            ) as progress:
+                task = progress.add_task("Summarizing function pointer flows...", total=None)
+
+                flow_summaries = flow_summarizer.summarize_all(force=force)
+
+                progress.update(task, completed=True)
+
+            stats1 = flow_summarizer.stats
+            console.print(f"Pass 1 complete:")
+            console.print(f"  Functions processed: {stats1['functions_processed']}")
+            console.print(f"  LLM calls: {stats1['llm_calls']}")
+            console.print(f"  Cache hits: {stats1['cache_hits']}")
+            if stats1["errors"] > 0:
+                console.print(f"  [yellow]Errors: {stats1['errors']}[/yellow]")
+
+        if pass1_only:
+            console.print("\n[green]Pass 1 complete. Use --pass2-only to run resolution.[/green]")
+            return
+
+        # Pass 2: Indirect call resolution
+        console.print("\n[bold]Pass 2: Indirect Call Resolution[/bold]")
+
+        resolver = IndirectCallResolver(db, llm, verbose=verbose, log_file=log_llm)
+
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            console=console,
+        ) as progress:
+            task = progress.add_task("Resolving indirect calls...", total=None)
+
+            resolutions = resolver.resolve_all_callsites(force=force)
+
+            progress.update(task, completed=True)
+
+        stats2 = resolver.stats
+        console.print(f"Pass 2 complete:")
+        console.print(f"  Callsites processed: {stats2['callsites_processed']}")
+        console.print(f"  LLM calls: {stats2['llm_calls']}")
+        console.print(f"  Cache hits: {stats2['cache_hits']}")
+        if stats2["errors"] > 0:
+            console.print(f"  [yellow]Errors: {stats2['errors']}[/yellow]")
+
+        # Summary
+        total_targets = sum(len(targets) for targets in resolutions.values())
+        high_conf = sum(
+            1 for targets in resolutions.values()
+            for t in targets if t.confidence == "high"
+        )
+        console.print(f"\n[green]Analysis complete![/green]")
+        console.print(f"  Total resolved targets: {total_targets}")
+        console.print(f"  High confidence matches: {high_conf}")
+
+        # Show database stats
+        stats = db.get_stats()
+        console.print("\nDatabase statistics:")
+        console.print(f"  Address-taken functions: {stats['address_taken_functions']}")
+        console.print(f"  Address flow summaries: {stats['address_flow_summaries']}")
+        console.print(f"  Indirect callsites: {stats['indirect_callsites']}")
+        console.print(f"  Resolved targets: {stats['indirect_call_targets']}")
+
+    finally:
+        db.close()
+
+
+@main.command("show-indirect")
+@click.option("--db", "db_path", default="summaries.db", help="Database file path")
+@click.option("--format", "fmt", type=click.Choice(["table", "json"]), default="table")
+def show_indirect(db_path, fmt):
+    """Show indirect call resolution results."""
+    db = SummaryDB(db_path)
+
+    try:
+        callsites = db.get_indirect_callsites()
+        functions = {f.id: f for f in db.get_all_functions()}
+
+        if fmt == "json":
+            output = []
+            for cs in callsites:
+                targets = db.get_indirect_call_targets(cs.id)
+                caller = functions.get(cs.caller_function_id)
+
+                target_list = []
+                for t in targets:
+                    target_func = functions.get(t.target_function_id)
+                    target_list.append({
+                        "function": target_func.name if target_func else f"ID:{t.target_function_id}",
+                        "confidence": t.confidence,
+                        "reasoning": t.llm_reasoning,
+                    })
+
+                output.append({
+                    "callsite": {
+                        "caller": caller.name if caller else "unknown",
+                        "expression": cs.callee_expr,
+                        "file": cs.file_path,
+                        "line": cs.line_number,
+                        "signature": cs.signature,
+                    },
+                    "targets": target_list,
+                })
+
+            console.print(json.dumps(output, indent=2))
+
+        else:
+            table = Table(title="Indirect Call Resolutions")
+            table.add_column("Caller", style="cyan")
+            table.add_column("Expression", style="yellow")
+            table.add_column("Location", style="dim")
+            table.add_column("Targets", style="green")
+            table.add_column("Confidence", style="magenta")
+
+            for cs in callsites:
+                targets = db.get_indirect_call_targets(cs.id)
+                caller = functions.get(cs.caller_function_id)
+
+                if not targets:
+                    table.add_row(
+                        caller.name if caller else "?",
+                        cs.callee_expr,
+                        f"{Path(cs.file_path).name}:{cs.line_number}",
+                        "[dim]unresolved[/dim]",
+                        "-",
+                    )
+                else:
+                    for i, t in enumerate(targets):
+                        target_func = functions.get(t.target_function_id)
+                        table.add_row(
+                            caller.name if caller and i == 0 else "",
+                            cs.callee_expr if i == 0 else "",
+                            f"{Path(cs.file_path).name}:{cs.line_number}" if i == 0 else "",
+                            target_func.name if target_func else f"ID:{t.target_function_id}",
+                            t.confidence,
+                        )
+
+            console.print(table)
 
     finally:
         db.close()

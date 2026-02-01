@@ -141,6 +141,43 @@ class IndirectCallTarget:
 
 
 @dataclass
+class FlowDestination:
+    """Describes where a function pointer flows to."""
+
+    dest_type: str  # "struct_field", "global_var", "parameter", "array"
+    name: str  # e.g., "handler_t.on_event", "g_handlers", "register_handler[0]"
+    confidence: str  # "high", "medium", "low"
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "type": self.dest_type,
+            "name": self.name,
+            "confidence": self.confidence,
+        }
+
+
+@dataclass
+class AddressFlowSummary:
+    """LLM-generated summary of where a function's address flows."""
+
+    function_id: int
+    flow_destinations: list[FlowDestination] = field(default_factory=list)
+    semantic_role: str = ""  # LLM's interpretation of callback purpose
+    likely_callers: list[str] = field(default_factory=list)  # Likely caller function names
+    model_used: str = ""
+    id: int | None = None
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "function_id": self.function_id,
+            "flow_destinations": [fd.to_dict() for fd in self.flow_destinations],
+            "semantic_role": self.semantic_role,
+            "likely_callers": self.likely_callers,
+            "model_used": self.model_used,
+        }
+
+
+@dataclass
 class CallEdge:
     """Represents a call edge in the call graph."""
 

@@ -101,10 +101,12 @@ class AllocationSummarizer:
         db: SummaryDB,
         llm: LLMBackend,
         verbose: bool = False,
+        log_file: str | None = None,
     ):
         self.db = db
         self.llm = llm
         self.verbose = verbose
+        self.log_file = log_file
         self._stats = {
             "functions_processed": 0,
             "llm_calls": 0,
@@ -153,6 +155,10 @@ class AllocationSummarizer:
 
             response = self.llm.complete(prompt)
             self._stats["llm_calls"] += 1
+
+            # Log prompt and response if requested
+            if self.log_file:
+                self._log_interaction(func.name, prompt, response)
 
             summary = self._parse_response(response, func.name)
             self._stats["functions_processed"] += 1
@@ -266,6 +272,24 @@ class AllocationSummarizer:
 
         return "\n".join(lines)
 
+    def _log_interaction(self, func_name: str, prompt: str, response: str) -> None:
+        """Log LLM interaction to file."""
+        import datetime
+
+        with open(self.log_file, "a", encoding="utf-8") as f:
+            timestamp = datetime.datetime.now().isoformat()
+            f.write(f"\n{'='*80}\n")
+            f.write(f"Function: {func_name}\n")
+            f.write(f"Timestamp: {timestamp}\n")
+            f.write(f"Model: {self.llm.model}\n")
+            f.write(f"{'-'*80}\n")
+            f.write("PROMPT:\n")
+            f.write(prompt)
+            f.write(f"\n{'-'*80}\n")
+            f.write("RESPONSE:\n")
+            f.write(response)
+            f.write(f"\n{'='*80}\n\n")
+
     def _parse_response(self, response: str, func_name: str) -> AllocationSummary:
         """Parse LLM response into AllocationSummary."""
         # Extract JSON from response
@@ -331,11 +355,12 @@ class AllocationSummarizer:
 class IncrementalSummarizer:
     """Handles incremental updates when source files change."""
 
-    def __init__(self, db: SummaryDB, llm: LLMBackend, verbose: bool = False):
+    def __init__(self, db: SummaryDB, llm: LLMBackend, verbose: bool = False, log_file: str | None = None):
         self.db = db
         self.llm = llm
         self.verbose = verbose
-        self.summarizer = AllocationSummarizer(db, llm, verbose)
+        self.log_file = log_file
+        self.summarizer = AllocationSummarizer(db, llm, verbose, log_file)
 
     def update_function(self, func: Function) -> list[int]:
         """

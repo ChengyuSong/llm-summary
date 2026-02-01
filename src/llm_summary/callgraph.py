@@ -1,6 +1,7 @@
 """Call graph construction from C/C++ source files."""
 
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from clang.cindex import (
     Cursor,
@@ -12,6 +13,9 @@ from .db import SummaryDB
 from .extractor import FunctionExtractorWithBodies
 from .models import CallEdge, Function
 
+if TYPE_CHECKING:
+    from .compile_commands import CompileCommandsDB
+
 
 class CallGraphBuilder:
     """Builds a call graph from C/C++ source files."""
@@ -21,9 +25,12 @@ class CallGraphBuilder:
         db: SummaryDB,
         compile_args: list[str] | None = None,
         libclang_path: str | None = None,
+        compile_commands: "CompileCommandsDB | None" = None,
     ):
         self.db = db
-        self.extractor = FunctionExtractorWithBodies(compile_args, libclang_path)
+        self.extractor = FunctionExtractorWithBodies(
+            compile_args, libclang_path, compile_commands
+        )
         self._function_map: dict[str, list[int]] = {}  # name -> [function_ids]
 
     def build_from_files(self, file_paths: list[str | Path]) -> list[CallEdge]:

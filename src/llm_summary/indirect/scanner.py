@@ -4,6 +4,7 @@ from pathlib import Path
 
 from clang.cindex import Cursor, CursorKind
 
+from ..compile_commands import CompileCommandsDB
 from ..db import SummaryDB
 from ..extractor import FunctionExtractorWithBodies, get_type_spelling
 from ..models import AddressFlow, AddressTakenFunction
@@ -23,9 +24,13 @@ class AddressTakenScanner:
         db: SummaryDB,
         compile_args: list[str] | None = None,
         libclang_path: str | None = None,
+        compile_commands: CompileCommandsDB | None = None,
     ):
         self.db = db
-        self.extractor = FunctionExtractorWithBodies(compile_args, libclang_path)
+        self.compile_commands = compile_commands
+        self.extractor = FunctionExtractorWithBodies(
+            compile_args, libclang_path, compile_commands
+        )
         self._function_map: dict[str, int] = {}  # name -> function_id
         self._file_contents: dict[str, list[str]] = {}
 
@@ -78,6 +83,7 @@ class AddressTakenScanner:
         cursor: Cursor,
         main_file: str,
         context: str | None = None,
+        meaningful_parent: Cursor | None = None,
     ) -> None:
         """Recursively scan for address-taken expressions."""
         for child in cursor.get_children():
@@ -91,7 +97,9 @@ class AddressTakenScanner:
 
             # Look for function references in assignments and calls
             elif child.kind == CursorKind.DECL_REF_EXPR:
-                self._check_function_reference(child, main_file, cursor)
+                # Use meaningful_parent (skipping UNEXPOSED_EXPR wrappers)
+                parent_to_check = meaningful_parent if meaningful_parent else cursor
+                self._check_function_reference(child, main_file, parent_to_check)
 
             # Track context for flow analysis
             new_context = context
@@ -105,7 +113,22 @@ class AddressTakenScanner:
                 if lhs:
                     new_context = lhs
 
-            self._scan_cursor(child, main_file, new_context)
+            # Determine the meaningful parent to pass down
+            # Skip UNEXPOSED_EXPR nodes which are implicit casts
+            new_meaningful_parent = None
+            if child.kind == CursorKind.UNEXPOSED_EXPR:
+                # Keep the previous meaningful parent
+                new_meaningful_parent = meaningful_parent if meaningful_parent else cursor
+            elif child.kind in (
+                CursorKind.CALL_EXPR,
+                CursorKind.BINARY_OPERATOR,
+                CursorKind.VAR_DECL,
+                CursorKind.INIT_LIST_EXPR,
+            ):
+                # This is a meaningful parent
+                new_meaningful_parent = child
+
+            self._scan_cursor(child, main_file, new_context, new_meaningful_parent)
 
     def _check_address_of(
         self, cursor: Cursor, file_path: str, context: str | None
@@ -131,18 +154,50 @@ class AddressTakenScanner:
         # Check if this is in a context where address is being taken
         # (assignment, initialization, argument passing)
         parent_kind = parent.kind
-        if parent_kind in (
+
+        if parent_kind == CursorKind.CALL_EXPR:
+            # For call expressions, check if this function is in the callee position
+            # or in an argument position. Only arguments have their address taken.
+            children = list(parent.get_children())
+            if children:
+                # The first child (after skipping UNEXPOSED_EXPR) is the callee
+                first_child = children[0]
+                # Check if cursor is the callee by comparing locations
+                if self._is_callee_position(cursor, first_child):
+                    return  # This is a direct call, not address-taken
+
+            # This is an argument - the function's address is being passed
+            flow_target = self._determine_flow_target(cursor, parent)
+            self._record_address_taken(
+                referenced, file_path, cursor, flow_target
+            )
+
+        elif parent_kind in (
             CursorKind.VAR_DECL,
             CursorKind.INIT_LIST_EXPR,
-            CursorKind.CALL_EXPR,
             CursorKind.BINARY_OPERATOR,
-            CursorKind.CXX_CONSTRUCT_EXPR,
         ):
             # Determine the flow target
             flow_target = self._determine_flow_target(cursor, parent)
             self._record_address_taken(
                 referenced, file_path, cursor, flow_target
             )
+
+    def _is_callee_position(self, func_ref: Cursor, first_child: Cursor) -> bool:
+        """Check if func_ref is in the callee position of a call expression."""
+        # The callee is typically an UNEXPOSED_EXPR wrapping a DECL_REF_EXPR
+        # Compare by location since cursor identity doesn't work reliably
+        if first_child.kind == CursorKind.UNEXPOSED_EXPR:
+            for child in first_child.get_children():
+                if child.kind == CursorKind.DECL_REF_EXPR:
+                    if (child.location.line == func_ref.location.line and
+                        child.location.column == func_ref.location.column):
+                        return True
+        elif first_child.kind == CursorKind.DECL_REF_EXPR:
+            if (first_child.location.line == func_ref.location.line and
+                first_child.location.column == func_ref.location.column):
+                return True
+        return False
 
     def _record_address_taken(
         self,

@@ -4,6 +4,7 @@ from pathlib import Path
 
 from clang.cindex import Cursor, CursorKind, TypeKind
 
+from ..compile_commands import CompileCommandsDB
 from ..db import SummaryDB
 from ..extractor import FunctionExtractorWithBodies
 from ..models import IndirectCallsite
@@ -24,9 +25,13 @@ class IndirectCallsiteFinder:
         db: SummaryDB,
         compile_args: list[str] | None = None,
         libclang_path: str | None = None,
+        compile_commands: CompileCommandsDB | None = None,
     ):
         self.db = db
-        self.extractor = FunctionExtractorWithBodies(compile_args, libclang_path)
+        self.compile_commands = compile_commands
+        self.extractor = FunctionExtractorWithBodies(
+            compile_args, libclang_path, compile_commands
+        )
         self._function_map: dict[tuple[str, str, int], int] = {}  # (file, name, line) -> id
         self._file_contents: dict[str, list[str]] = {}
 
@@ -123,15 +128,18 @@ class IndirectCallsiteFinder:
 
         callee = children[0]
 
+        # Unwrap UNEXPOSED_EXPR which wraps implicit casts
+        actual_callee = self._unwrap_unexposed(callee)
+
         # Direct function call - skip
-        if callee.kind == CursorKind.DECL_REF_EXPR:
-            referenced = callee.referenced
+        if actual_callee.kind == CursorKind.DECL_REF_EXPR:
+            referenced = actual_callee.referenced
             if referenced and referenced.kind == CursorKind.FUNCTION_DECL:
                 return None  # Direct call
 
         # Check if this is a call through a pointer
-        if self._is_indirect_call(callee):
-            callee_expr = self._get_callee_expr(callee)
+        if self._is_indirect_call(actual_callee):
+            callee_expr = self._get_callee_expr(actual_callee)
             signature = self._get_call_signature(call_cursor)
             context_snippet = self._get_context_snippet(
                 file_path, call_cursor.location.line
@@ -147,6 +155,15 @@ class IndirectCallsiteFinder:
             )
 
         return None
+
+    def _unwrap_unexposed(self, cursor: Cursor) -> Cursor:
+        """Unwrap UNEXPOSED_EXPR nodes to get the actual expression."""
+        while cursor.kind == CursorKind.UNEXPOSED_EXPR:
+            children = list(cursor.get_children())
+            if not children:
+                break
+            cursor = children[0]
+        return cursor
 
     def _is_indirect_call(self, callee: Cursor) -> bool:
         """Determine if the callee represents an indirect call."""
