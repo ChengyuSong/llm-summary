@@ -1,0 +1,52 @@
+Analyze this man page and identify functions that allocate memory.
+
+## Man Page Content
+
+```
+{manpage_content}
+```
+
+## Task
+
+For each function described in this man page that allocates memory (heap, mmap, etc.), provide a summary.
+
+Consider:
+- Functions that return newly allocated memory (malloc-like)
+- Functions that allocate and store to an output parameter (asprintf-like)
+- Functions that may reallocate provided buffers (getline-like)
+- Functions that open resources with internal allocations (fopen-like)
+
+For each allocating function, provide:
+```json
+{
+  "function": "function_name",
+  "allocations": [
+    {
+      "type": "heap",
+      "source": "function_name",
+      "size_expr": "expression for size (or null if unknown)",
+      "size_params": ["parameters affecting size"],
+      "returned": true,
+      "stored_to": null,
+      "may_be_null": true
+    }
+  ],
+  "parameters": {
+    "param_name": {
+      "role": "description of parameter's role",
+      "used_in_allocation": true
+    }
+  },
+  "description": "One-sentence description of the allocation behavior"
+}
+```
+
+Return a JSON array of summaries. If no functions in the man page allocate memory, return an empty array `[]`.
+
+## Response Format
+
+```json
+[
+  // summaries here
+]
+```

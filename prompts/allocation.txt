@@ -1,0 +1,75 @@
+You are analyzing C/C++ code to generate memory allocation summaries.
+
+## Function to Analyze
+
+```c
+{source}
+```
+
+Function: `{name}`
+Signature: `{signature}`
+File: {file_path}
+
+## Callee Summaries
+
+{callee_summaries}
+
+## Task
+
+Generate a memory allocation summary for this function. Identify:
+
+1. **Allocations**: Any memory allocations (malloc, calloc, realloc, new, etc.)
+   - Type: heap, stack, or static
+   - Source: The allocating function/operator
+   - Size expression: How size is computed
+   - Size parameters: Which function parameters affect size
+   - Returned: Is the allocation returned?
+   - Stored to: Is it stored to a field/global?
+   - May be null: Can allocation fail?
+
+2. **Parameters**: Role of each parameter
+   - Role: size_indicator, buffer, count, pointer_out, etc.
+   - Used in allocation: Does it affect allocation size?
+
+3. **Description**: One-sentence summary of what this function allocates
+
+Consider:
+- Wrapper functions that call allocators
+- Size calculations (n + 1, n * sizeof(T), etc.)
+- Conditional allocations
+- Allocations stored to struct fields or output parameters
+
+Respond in JSON format:
+```json
+{
+  "function": "{name}",
+  "allocations": [
+    {
+      "type": "heap|stack|static",
+      "source": "allocator function name",
+      "size_expr": "size expression or null",
+      "size_params": ["parameter names affecting size"],
+      "returned": true|false,
+      "stored_to": "field/variable name or null",
+      "may_be_null": true|false
+    }
+  ],
+  "parameters": {
+    "param_name": {
+      "role": "role description",
+      "used_in_allocation": true|false
+    }
+  },
+  "description": "One-sentence description"
+}
+```
+
+If the function does not allocate memory (directly or via callees), return:
+```json
+{
+  "function": "{name}",
+  "allocations": [],
+  "parameters": {},
+  "description": "Does not allocate memory"
+}
+```

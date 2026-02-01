@@ -1,0 +1,47 @@
+You are analyzing indirect function calls in C/C++ code to determine which functions could be called.
+
+## Indirect Call Site
+
+The following indirect call appears in function `{caller_name}`:
+
+```c
+{context_snippet}
+```
+
+The indirect call expression is: `{callee_expr}`
+Expected function signature: `{signature}`
+Location: {file_path}:{line_number}
+
+## Candidate Functions
+
+These functions have matching signatures and their addresses are taken somewhere in the codebase:
+
+{candidates_section}
+
+## Address Flow Information
+
+{address_flows_section}
+
+## Task
+
+Based on the code context and how function pointers are typically used, determine which candidate functions could realistically be called at this indirect call site.
+
+For each candidate, assess:
+1. Does the naming/purpose match the call context?
+2. Is there evidence the function pointer could reach this value?
+3. What's your confidence (high/medium/low)?
+
+Respond in JSON format:
+```json
+{
+  "targets": [
+    {
+      "function": "function_name",
+      "confidence": "high|medium|low",
+      "reasoning": "Brief explanation"
+    }
+  ]
+}
+```
+
+Only include functions that could realistically be called. If no candidates seem likely, return an empty targets array.
