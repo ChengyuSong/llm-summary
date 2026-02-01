@@ -10,6 +10,15 @@ from ..models import AddressFlowSummary, FlowDestination
 
 FLOW_SUMMARY_PROMPT = """You are analyzing where a function pointer flows in C/C++ code.
 
+## Key Insight
+
+A function can only access memory through two roots:
+1. **Arguments** - pointers/values passed as parameters
+2. **Globals** - global variables accessible from any function
+
+When a function pointer is stored, trace the full access path back to these roots.
+This determines which callers can invoke the pointer.
+
 ## Function Being Analyzed
 
 Function `{func_name}` has its address taken at the following locations:
@@ -27,33 +36,73 @@ Signature: {signature}
 
 ## Task
 
-Analyze where this function pointer flows to. Consider:
-- What struct fields or variables store this pointer?
-- What functions receive it as a parameter?
-- What is the likely purpose/role of this callback?
-- Which functions are likely to call this function pointer?
+Analyze where this function pointer flows, focusing on:
+1. **Access paths**: Trace through nested structs and dereference chains
+2. **Root identification**: Determine if the root is an argument or global
+3. **Caller requirements**: What must a caller have access to in order to invoke this?
 
-Based on the flow targets shown above, determine:
-1. The final destinations where this function pointer is stored
-2. The semantic role of this function (e.g., "event handler", "comparator", "allocator")
-3. Which functions in the codebase are likely to invoke this function pointer
+## Examples
 
-Respond in JSON format:
+**Example 1: Nested struct via argument**
+```c
+void register_handler(struct context *ctx, handler_fn fn) {{
+    ctx->events->on_click = fn;  // fn flows here
+}}
+```
+Analysis:
+- Immediate destination: `events_t.on_click` (struct field)
+- Access path: `ctx->events->on_click`
+- Root: argument `ctx` (type `struct context *`)
+- Callers need: access to a `struct context *` to call `ptr->events->on_click(...)`
+
+**Example 2: Global variable**
+```c
+static handler_fn g_error_handler;
+void set_error_handler(handler_fn fn) {{
+    g_error_handler = fn;
+}}
+```
+Analysis:
+- Immediate destination: `g_error_handler` (global)
+- Access path: `g_error_handler` (direct)
+- Root: global `g_error_handler`
+- Callers need: visibility of the global (same TU or extern)
+
+**Example 3: Array in struct**
+```c
+void add_callback(struct dispatcher *d, int idx, callback_fn cb) {{
+    d->callbacks[idx] = cb;
+}}
+```
+Analysis:
+- Immediate destination: `dispatcher.callbacks[]` (array in struct)
+- Access path: `d->callbacks[idx]`
+- Root: argument `d` (type `struct dispatcher *`)
+- Callers need: access to a `struct dispatcher *`
+
+## Response Format
+
+Respond in JSON:
 ```json
 {{
   "flow_destinations": [
     {{
       "type": "struct_field|global_var|parameter|array",
-      "name": "descriptive name (e.g., handler_t.on_event, g_handlers)",
+      "name": "type_name.field_name or global_name",
+      "access_path": "full dereference chain (e.g., ctx->events->handler)",
+      "root_type": "arg|global",
+      "root_name": "parameter name or global variable name",
+      "file_path": "source file where this flow occurs",
+      "line_number": 123,
       "confidence": "high|medium|low"
     }}
   ],
-  "semantic_role": "Brief description of the callback's purpose",
-  "likely_callers": ["function_name_1", "function_name_2"]
+  "semantic_role": "Brief description (e.g., 'error handler callback', 'comparator for sorting')",
+  "likely_callers": ["functions that have access to the root and would invoke this pointer"]
 }}
 ```
 
-If you cannot determine flow destinations, return empty arrays.
+Focus on the access path and root - these determine which functions can invoke the pointer.
 """
 
 
@@ -268,6 +317,11 @@ class FlowSummarizer:
                     dest_type=fd.get("type", "unknown"),
                     name=fd.get("name", ""),
                     confidence=fd.get("confidence", "low"),
+                    access_path=fd.get("access_path", ""),
+                    root_type=fd.get("root_type", ""),
+                    root_name=fd.get("root_name", ""),
+                    file_path=fd.get("file_path", ""),
+                    line_number=fd.get("line_number", 0),
                 )
             )
 

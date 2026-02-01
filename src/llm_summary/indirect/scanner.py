@@ -244,14 +244,15 @@ class AddressTakenScanner:
 
         elif parent.kind == CursorKind.CALL_EXPR:
             # Passed as argument
-            func_name = ""
+            func_name = self._extract_callee_name(parent)
             param_idx = -1
 
             for i, child in enumerate(parent.get_children()):
-                if child.kind == CursorKind.DECL_REF_EXPR and i == 0:
-                    func_name = child.spelling
-                elif child == cursor or self._contains_cursor(child, cursor):
-                    param_idx = i - 1  # First child is the function
+                if i == 0:
+                    continue  # Skip the callee (first child)
+                if self._cursors_match(child, cursor) or self._contains_cursor(child, cursor):
+                    param_idx = i - 1  # Subtract 1 because first child is the callee
+                    break
 
             if func_name and param_idx >= 0:
                 return f"param:{func_name}[{param_idx}]"
@@ -267,10 +268,40 @@ class AddressTakenScanner:
 
         return None
 
+    def _extract_callee_name(self, call_expr: Cursor) -> str:
+        """Extract the function name from a CALL_EXPR, handling UNEXPOSED_EXPR wrappers."""
+        children = list(call_expr.get_children())
+        if not children:
+            return ""
+
+        callee = children[0]
+
+        # Unwrap UNEXPOSED_EXPR if present
+        if callee.kind == CursorKind.UNEXPOSED_EXPR:
+            for child in callee.get_children():
+                if child.kind == CursorKind.DECL_REF_EXPR:
+                    return child.spelling
+        elif callee.kind == CursorKind.DECL_REF_EXPR:
+            return callee.spelling
+
+        return ""
+
+    def _cursors_match(self, c1: Cursor, c2: Cursor) -> bool:
+        """Check if two cursors refer to the same location."""
+        # Direct equality
+        if c1 == c2:
+            return True
+        # Compare by location (more reliable)
+        if (c1.location.file and c2.location.file and
+            c1.location.line == c2.location.line and
+            c1.location.column == c2.location.column):
+            return True
+        return False
+
     def _contains_cursor(self, parent: Cursor, target: Cursor) -> bool:
         """Check if parent contains target cursor."""
         for child in parent.get_children():
-            if child == target:
+            if self._cursors_match(child, target):
                 return True
             if self._contains_cursor(child, target):
                 return True

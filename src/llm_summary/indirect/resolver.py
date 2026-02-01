@@ -210,9 +210,11 @@ class IndirectCallResolver:
         return results
 
     def _build_candidates_section_with_flows(self, candidates: list) -> str:
-        """Build the candidates section with flow summaries from Pass 1."""
-        lines = []
-        for i, atf in enumerate(candidates, 1):
+        """Build the candidates section as structured JSON with flow summaries."""
+        import json
+
+        candidates_data = []
+        for atf in candidates:
             func = self.db.get_function(atf.function_id)
             if not func:
                 continue
@@ -223,20 +225,57 @@ class IndirectCallResolver:
 
             # Get flow summary from Pass 1
             flow_summary = self.db.get_flow_summary(atf.function_id)
-            flow_info = self._format_flow_summary(flow_summary)
 
-            lines.append(
-                f"### Candidate {i}: `{func.name}`\n"
-                f"File: {func.file_path}:{func.line_start}-{func.line_end}\n"
-                f"Signature: {atf.signature}\n"
-                f"\n{flow_info}\n"
-                f"\nSource (first 10 lines):\n```c\n{source_snippet}\n```"
-            )
+            candidate_info = {
+                "name": func.name,
+                "signature": atf.signature,
+                "source_location": {
+                    "file": func.file_path,
+                    "line_start": func.line_start,
+                    "line_end": func.line_end,
+                },
+                "source_snippet": source_snippet,
+                "flow_summary": self._format_flow_summary_json(flow_summary),
+            }
+            candidates_data.append(candidate_info)
 
-        return "\n\n".join(lines) if lines else "No candidates found."
+        if not candidates_data:
+            return "No candidates found."
+
+        return "```json\n" + json.dumps(candidates_data, indent=2) + "\n```"
+
+    def _format_flow_summary_json(self, summary: AddressFlowSummary | None) -> dict:
+        """Format a flow summary as a JSON-serializable dict."""
+        if not summary:
+            return {"available": False}
+
+        result = {"available": True}
+
+        if summary.semantic_role:
+            result["semantic_role"] = summary.semantic_role
+
+        if summary.flow_destinations:
+            result["flow_destinations"] = [
+                {
+                    "type": fd.dest_type,
+                    "name": fd.name,
+                    "access_path": fd.access_path,
+                    "root_type": fd.root_type,
+                    "root_name": fd.root_name,
+                    "file": fd.file_path,
+                    "line": fd.line_number,
+                    "confidence": fd.confidence,
+                }
+                for fd in summary.flow_destinations
+            ]
+
+        if summary.likely_callers:
+            result["likely_callers"] = summary.likely_callers[:5]  # Limit to 5
+
+        return result
 
     def _format_flow_summary(self, summary: AddressFlowSummary | None) -> str:
-        """Format a flow summary for inclusion in the prompt."""
+        """Format a flow summary for inclusion in the prompt (legacy text format)."""
         if not summary:
             return "Flow summary: Not available"
 
@@ -248,7 +287,13 @@ class IndirectCallResolver:
         if summary.flow_destinations:
             dests = []
             for fd in summary.flow_destinations:
-                dests.append(f"  - {fd.dest_type}: {fd.name} ({fd.confidence} confidence)")
+                dest_info = f"{fd.dest_type}: {fd.name}"
+                if fd.access_path:
+                    dest_info += f" (path: {fd.access_path})"
+                if fd.root_type and fd.root_name:
+                    dest_info += f" [root: {fd.root_type} '{fd.root_name}']"
+                dest_info += f" ({fd.confidence} confidence)"
+                dests.append(f"  - {dest_info}")
             parts.append("**Flow destinations**:\n" + "\n".join(dests))
 
         if summary.likely_callers:

@@ -147,13 +147,29 @@ class FlowDestination:
     dest_type: str  # "struct_field", "global_var", "parameter", "array"
     name: str  # e.g., "handler_t.on_event", "g_handlers", "register_handler[0]"
     confidence: str  # "high", "medium", "low"
+    access_path: str = ""  # Full dereference chain, e.g., "ctx->events->handler"
+    root_type: str = ""  # "arg", "global", or "return"
+    root_name: str = ""  # e.g., parameter name "ctx" or global "g_context"
+    file_path: str = ""  # Source file where flow occurs
+    line_number: int = 0  # Line number where flow occurs
 
     def to_dict(self) -> dict[str, Any]:
-        return {
+        result = {
             "type": self.dest_type,
             "name": self.name,
             "confidence": self.confidence,
         }
+        if self.access_path:
+            result["access_path"] = self.access_path
+        if self.root_type:
+            result["root_type"] = self.root_type
+        if self.root_name:
+            result["root_name"] = self.root_name
+        if self.file_path:
+            result["file_path"] = self.file_path
+        if self.line_number:
+            result["line_number"] = self.line_number
+        return result
 
 
 @dataclass

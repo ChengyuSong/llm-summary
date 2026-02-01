@@ -649,6 +649,11 @@ class SummaryDB:
                         dest_type=fd.get("type", "unknown"),
                         name=fd.get("name", ""),
                         confidence=fd.get("confidence", "low"),
+                        access_path=fd.get("access_path", ""),
+                        root_type=fd.get("root_type", ""),
+                        root_name=fd.get("root_name", ""),
+                        file_path=fd.get("file_path", ""),
+                        line_number=fd.get("line_number", 0),
                     )
                 )
         except json.JSONDecodeError:
