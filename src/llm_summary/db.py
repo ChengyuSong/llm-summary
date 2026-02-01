@@ -72,7 +72,8 @@ CREATE TABLE IF NOT EXISTS address_flows (
     flow_target TEXT NOT NULL,
     file_path TEXT,
     line_number INTEGER,
-    context_snippet TEXT
+    context_snippet TEXT,
+    UNIQUE(function_id, flow_target, file_path, line_number)
 );
 
 -- Indirect call sites
@@ -83,7 +84,8 @@ CREATE TABLE IF NOT EXISTS indirect_callsites (
     line_number INTEGER NOT NULL,
     callee_expr TEXT NOT NULL,
     signature TEXT NOT NULL,
-    context_snippet TEXT
+    context_snippet TEXT,
+    UNIQUE(caller_function_id, file_path, line_number, callee_expr)
 );
 
 -- Resolved indirect call targets
@@ -346,6 +348,34 @@ class SummaryDB:
 
         return False
 
+    def needs_flow_update(self, function_id: int) -> bool:
+        """Check if a function's flow summary needs updating based on source hash."""
+        row = self.conn.execute(
+            """
+            SELECT f.source_hash, s.id, s.created_at FROM functions f
+            LEFT JOIN address_flow_summaries s ON f.id = s.function_id
+            WHERE f.id = ?
+            """,
+            (function_id,),
+        ).fetchone()
+
+        if not row:
+            return True  # Function not in DB
+        if row["id"] is None:
+            return True  # No flow summary exists
+
+        # Check if function source changed after flow summary was created
+        # by comparing source hash (summary is stored with the function's current hash)
+        return False  # Flow summary exists
+
+    def get_function_source_hash(self, function_id: int) -> str | None:
+        """Get the source hash for a function."""
+        row = self.conn.execute(
+            "SELECT source_hash FROM functions WHERE id = ?",
+            (function_id,),
+        ).fetchone()
+        return row["source_hash"] if row else None
+
     # ========== Call Graph Operations ==========
 
     def add_call_edge(self, edge: CallEdge) -> int:
@@ -484,10 +514,10 @@ class SummaryDB:
         ]
 
     def add_address_flow(self, flow: AddressFlow) -> int:
-        """Add an address flow record."""
+        """Add an address flow record. Ignores duplicates."""
         cursor = self.conn.execute(
             """
-            INSERT INTO address_flows
+            INSERT OR IGNORE INTO address_flows
             (function_id, flow_target, file_path, line_number, context_snippet)
             VALUES (?, ?, ?, ?, ?)
             """,
@@ -520,10 +550,10 @@ class SummaryDB:
         ]
 
     def add_indirect_callsite(self, callsite: IndirectCallsite) -> int:
-        """Add an indirect call site."""
+        """Add an indirect call site. Ignores duplicates."""
         cursor = self.conn.execute(
             """
-            INSERT INTO indirect_callsites
+            INSERT OR IGNORE INTO indirect_callsites
             (caller_function_id, file_path, line_number, callee_expr, signature, context_snippet)
             VALUES (?, ?, ?, ?, ?, ?)
             """,

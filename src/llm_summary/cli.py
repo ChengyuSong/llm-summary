@@ -611,43 +611,57 @@ def indirect_analyze(
             db.insert_functions_batch(all_functions)
             console.print(f"Extracted {len(all_functions)} functions")
 
-        # Phase 1: Scan for address-taken functions and indirect callsites
-        with Progress(
-            SpinnerColumn(),
-            TextColumn("[progress.description]{task.description}"),
-            console=console,
-        ) as progress:
-            task = progress.add_task("Scanning for address-taken functions...", total=None)
+        # Scan for address-taken functions and indirect callsites
+        # Skip scanning if --pass2-only (use existing data from DB)
+        if pass2_only:
+            atf_count = len(db.get_address_taken_functions())
+            callsite_count = len(db.get_indirect_callsites())
+            console.print(f"Using existing data: {atf_count} address-taken functions, {callsite_count} indirect callsites")
 
-            scanner = AddressTakenScanner(db, compile_commands=compile_commands)
-            scanner.scan_files(files)
+            if atf_count == 0:
+                console.print("[red]No address-taken functions in database. Run without --pass2-only first.[/red]")
+                return
 
-            progress.update(task, completed=True)
+            if callsite_count == 0:
+                console.print("[red]No indirect callsites in database. Run without --pass2-only first.[/red]")
+                return
+        else:
+            with Progress(
+                SpinnerColumn(),
+                TextColumn("[progress.description]{task.description}"),
+                console=console,
+            ) as progress:
+                task = progress.add_task("Scanning for address-taken functions...", total=None)
 
-        atf_count = len(db.get_address_taken_functions())
-        console.print(f"Found {atf_count} address-taken functions")
+                scanner = AddressTakenScanner(db, compile_commands=compile_commands)
+                scanner.scan_files(files)
 
-        with Progress(
-            SpinnerColumn(),
-            TextColumn("[progress.description]{task.description}"),
-            console=console,
-        ) as progress:
-            task = progress.add_task("Finding indirect call sites...", total=None)
+                progress.update(task, completed=True)
 
-            finder = IndirectCallsiteFinder(db, compile_commands=compile_commands)
-            callsites = finder.find_in_files(files)
+            atf_count = len(db.get_address_taken_functions())
+            console.print(f"Found {atf_count} address-taken functions")
 
-            progress.update(task, completed=True)
+            with Progress(
+                SpinnerColumn(),
+                TextColumn("[progress.description]{task.description}"),
+                console=console,
+            ) as progress:
+                task = progress.add_task("Finding indirect call sites...", total=None)
 
-        console.print(f"Found {len(callsites)} indirect call sites")
+                finder = IndirectCallsiteFinder(db, compile_commands=compile_commands)
+                callsites = finder.find_in_files(files)
 
-        if atf_count == 0:
-            console.print("[yellow]No address-taken functions found. Nothing to analyze.[/yellow]")
-            return
+                progress.update(task, completed=True)
 
-        if len(callsites) == 0:
-            console.print("[yellow]No indirect call sites found. Nothing to resolve.[/yellow]")
-            return
+            console.print(f"Found {len(callsites)} indirect call sites")
+
+            if atf_count == 0:
+                console.print("[yellow]No address-taken functions found. Nothing to analyze.[/yellow]")
+                return
+
+            if len(callsites) == 0:
+                console.print("[yellow]No indirect call sites found. Nothing to resolve.[/yellow]")
+                return
 
         # Initialize LLM backend
         llm = create_backend(backend, model=model)
