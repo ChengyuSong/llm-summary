@@ -34,6 +34,9 @@ dev = [
     "mypy>=1.0.0",
     "ruff>=0.1.0",
 ]
+vertex = [
+    "google-cloud-aiplatform>=1.40.0",
+]
 
 [project.scripts]
 llm-summary = "llm_summary.cli:main"

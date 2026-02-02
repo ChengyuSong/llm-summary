@@ -4,8 +4,9 @@ from .base import LLMBackend
 from .claude import ClaudeBackend
 from .ollama import OllamaBackend
 from .openai import OpenAIBackend
+from .vertex import VertexAIBackend
 
-__all__ = ["LLMBackend", "ClaudeBackend", "OpenAIBackend", "OllamaBackend"]
+__all__ = ["LLMBackend", "ClaudeBackend", "OpenAIBackend", "OllamaBackend", "VertexAIBackend"]
 
 
 def create_backend(
@@ -17,7 +18,7 @@ def create_backend(
     Create an LLM backend instance.
 
     Args:
-        backend_type: One of "claude", "openai", "ollama"
+        backend_type: One of "claude", "openai", "ollama", "vertex"
         model: Model name (uses default if not specified)
         **kwargs: Additional backend-specific arguments
 
@@ -30,5 +31,7 @@ def create_backend(
         return OpenAIBackend(model=model, **kwargs)
     elif backend_type == "ollama":
         return OllamaBackend(model=model, **kwargs)
+    elif backend_type == "vertex":
+        return VertexAIBackend(model=model, **kwargs)
     else:
         raise ValueError(f"Unknown backend type: {backend_type}")
