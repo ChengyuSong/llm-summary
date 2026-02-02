@@ -109,6 +109,22 @@ CREATE TABLE IF NOT EXISTS address_flow_summaries (
     UNIQUE(function_id)
 );
 
+-- Build configurations table
+CREATE TABLE IF NOT EXISTS build_configs (
+    project_path TEXT PRIMARY KEY,
+    project_name TEXT NOT NULL,
+    build_system TEXT NOT NULL,
+    configuration_json TEXT,
+    script_path TEXT,
+    artifacts_dir TEXT,
+    compile_commands_path TEXT,
+    llm_backend TEXT,
+    llm_model TEXT,
+    build_attempts INTEGER,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    last_built_at TIMESTAMP
+);
+
 -- Indexes for fast lookups
 CREATE INDEX IF NOT EXISTS idx_functions_name ON functions(name);
 CREATE INDEX IF NOT EXISTS idx_functions_file ON functions(file_path);
@@ -117,6 +133,7 @@ CREATE INDEX IF NOT EXISTS idx_call_edges_callee ON call_edges(callee_id);
 CREATE INDEX IF NOT EXISTS idx_address_flows_function ON address_flows(function_id);
 CREATE INDEX IF NOT EXISTS idx_indirect_callsites_caller ON indirect_callsites(caller_function_id);
 CREATE INDEX IF NOT EXISTS idx_flow_summaries_function ON address_flow_summaries(function_id);
+CREATE INDEX IF NOT EXISTS idx_build_configs_name ON build_configs(project_name);
 """
 
 
@@ -737,6 +754,7 @@ class SummaryDB:
             "call_edges",
             "allocation_summaries",
             "functions",
+            "build_configs",
         ]
         for table in tables:
             self.conn.execute(f"DELETE FROM {table}")
@@ -754,8 +772,94 @@ class SummaryDB:
             "address_flow_summaries",
             "indirect_callsites",
             "indirect_call_targets",
+            "build_configs",
         ]
         for table in tables:
             row = self.conn.execute(f"SELECT COUNT(*) as cnt FROM {table}").fetchone()
             stats[table] = row["cnt"]
         return stats
+
+    # ========== Build Configuration Operations ==========
+
+    def add_build_config(
+        self,
+        project_path: str,
+        project_name: str,
+        build_system: str,
+        configuration: dict[str, Any] | None = None,
+        script_path: str | None = None,
+        artifacts_dir: str | None = None,
+        compile_commands_path: str | None = None,
+        llm_backend: str | None = None,
+        llm_model: str | None = None,
+        build_attempts: int = 0,
+    ) -> None:
+        """Add or update a build configuration."""
+        configuration_json = json.dumps(configuration) if configuration else None
+
+        self.conn.execute(
+            """
+            INSERT INTO build_configs
+            (project_path, project_name, build_system, configuration_json,
+             script_path, artifacts_dir, compile_commands_path,
+             llm_backend, llm_model, build_attempts, last_built_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+            ON CONFLICT(project_path) DO UPDATE SET
+                project_name = excluded.project_name,
+                build_system = excluded.build_system,
+                configuration_json = excluded.configuration_json,
+                script_path = excluded.script_path,
+                artifacts_dir = excluded.artifacts_dir,
+                compile_commands_path = excluded.compile_commands_path,
+                llm_backend = excluded.llm_backend,
+                llm_model = excluded.llm_model,
+                build_attempts = excluded.build_attempts,
+                last_built_at = CURRENT_TIMESTAMP
+            """,
+            (
+                project_path,
+                project_name,
+                build_system,
+                configuration_json,
+                script_path,
+                artifacts_dir,
+                compile_commands_path,
+                llm_backend,
+                llm_model,
+                build_attempts,
+            ),
+        )
+        self.conn.commit()
+
+    def get_build_config(self, project_path: str) -> dict[str, Any] | None:
+        """Get build configuration for a project."""
+        row = self.conn.execute(
+            "SELECT * FROM build_configs WHERE project_path = ?",
+            (project_path,),
+        ).fetchone()
+
+        if not row:
+            return None
+
+        config = dict(row)
+        if config["configuration_json"]:
+            config["configuration"] = json.loads(config["configuration_json"])
+        else:
+            config["configuration"] = None
+        del config["configuration_json"]
+
+        return config
+
+    def get_all_build_configs(self) -> list[dict[str, Any]]:
+        """Get all build configurations."""
+        rows = self.conn.execute("SELECT * FROM build_configs").fetchall()
+        configs = []
+        for row in rows:
+            config = dict(row)
+            if config["configuration_json"]:
+                config["configuration"] = json.loads(config["configuration_json"])
+            else:
+                config["configuration"] = None
+            del config["configuration_json"]
+            configs.append(config)
+        return configs
