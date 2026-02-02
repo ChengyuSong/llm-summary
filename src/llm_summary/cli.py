@@ -38,7 +38,7 @@ def main():
 @click.argument("path_arg", type=click.Path(exists=True), required=False, default=None)
 @click.option("--path", "path_opt", type=click.Path(exists=True), default=None, help="Path to analyze")
 @click.option("--db", "db_path", default="summaries.db", help="Database file path")
-@click.option("--backend", type=click.Choice(["claude", "openai", "ollama"]), default="claude")
+@click.option("--backend", type=click.Choice(["claude", "openai", "ollama", "vertex"]), default="claude")
 @click.option("--model", default=None, help="Model name to use")
 @click.option("--recursive/--no-recursive", default=True, help="Scan directories recursively")
 @click.option("--include-headers/--no-include-headers", default=False, help="Include header files")
@@ -518,7 +518,7 @@ def callgraph(db_path, output, fmt, no_header):
 @click.option("--db", "db_path", default="summaries.db", help="Database file path")
 @click.option("--compile-commands", "compile_commands_path", type=click.Path(exists=True), default=None,
               help="Path to compile_commands.json for proper macro/include handling")
-@click.option("--backend", type=click.Choice(["claude", "openai", "ollama"]), default="claude")
+@click.option("--backend", type=click.Choice(["claude", "openai", "ollama", "vertex"]), default="claude")
 @click.option("--model", default=None, help="Model name to use")
 @click.option("--recursive/--no-recursive", default=True, help="Scan directories recursively")
 @click.option("--verbose", "-v", is_flag=True, help="Verbose output")
@@ -816,6 +816,182 @@ def show_indirect(db_path, fmt):
 
     finally:
         db.close()
+
+
+@main.command("build-learn")
+@click.option("--project-path", type=click.Path(exists=True), required=True, help="Path to the project to build")
+@click.option("--build-dir", type=click.Path(), default=None, help="Custom build directory (default: <project-path>/build)")
+@click.option("--backend", type=click.Choice(["claude", "openai", "ollama", "vertex"]), default="vertex", help="LLM backend for incremental learning")
+@click.option("--model", default=None, help="Model name (default: claude-haiku-4-5@20251001 for vertex)")
+@click.option("--max-retries", default=3, help="Maximum build attempts")
+@click.option("--container-image", default="llm-summary-builder:latest", help="Docker image to use")
+@click.option("--enable-lto/--no-lto", default=True, help="Enable LLVM LTO")
+@click.option("--prefer-static/--no-static", default=True, help="Prefer static linking")
+@click.option("--generate-ir/--no-ir", default=True, help="Generate and save LLVM IR artifacts")
+@click.option("--db", "db_path", default="summaries.db", help="Database file path")
+@click.option("--verbose", "-v", is_flag=True, help="Show detailed output")
+def build_learn(
+    project_path,
+    build_dir,
+    backend,
+    model,
+    max_retries,
+    container_image,
+    enable_lto,
+    prefer_static,
+    generate_ir,
+    db_path,
+    verbose,
+):
+    """Learn how to build a CMake project and generate reusable build script."""
+    from .builder import BuildSystem, detect_build_system
+    from .builder.cmake_builder import CMakeBuilder
+    from .builder.script_generator import ScriptGenerator
+
+    project_path = Path(project_path).resolve()
+
+    console.print(f"\n[bold]Build Agent System[/bold]")
+    console.print(f"Project: {project_path}")
+    if build_dir:
+        console.print(f"Build directory: {build_dir}")
+    else:
+        console.print(f"Build directory: {project_path}/build")
+    console.print(f"Backend: {backend}")
+    if model:
+        console.print(f"Model: {model}")
+    console.print()
+
+    # Detect build system
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        console=console,
+    ) as progress:
+        task = progress.add_task("Detecting build system...", total=None)
+        build_system = detect_build_system(project_path)
+        progress.update(task, completed=True)
+
+    console.print(f"Build system: [bold]{build_system.value}[/bold]")
+
+    if build_system != BuildSystem.CMAKE:
+        console.print(f"[red]Error: Only CMake projects are supported in Phase 1[/red]")
+        console.print(f"[yellow]Detected: {build_system.value}[/yellow]")
+        sys.exit(1)
+
+    # Initialize LLM backend
+    console.print(f"\n[bold]Initializing LLM backend...[/bold]")
+    try:
+        llm = create_backend(backend, model=model)
+        console.print(f"Using model: [bold]{llm.model}[/bold]")
+    except Exception as e:
+        console.print(f"[red]Error initializing LLM backend: {e}[/red]")
+        sys.exit(1)
+
+    # Initialize CMake builder
+    builder = CMakeBuilder(
+        llm=llm,
+        container_image=container_image,
+        build_dir=Path(build_dir) if build_dir else None,
+        max_retries=max_retries,
+        enable_lto=enable_lto,
+        prefer_static=prefer_static,
+        generate_ir=generate_ir,
+        verbose=verbose,
+    )
+
+    # Learn and build
+    console.print(f"\n[bold]Learning build configuration...[/bold]")
+    try:
+        result = builder.learn_and_build(project_path)
+    except Exception as e:
+        console.print(f"[red]Error during build learning: {e}[/red]")
+        if verbose:
+            import traceback
+            console.print(traceback.format_exc())
+        sys.exit(1)
+
+    if not result["success"]:
+        console.print(f"\n[red]Build failed after {result['attempts']} attempts[/red]")
+        console.print(f"\n[bold]Error messages:[/bold]")
+        for i, error in enumerate(result["error_messages"], 1):
+            console.print(f"\n[yellow]Attempt {i}:[/yellow]")
+            console.print(error[:500] + "..." if len(error) > 500 else error)
+        sys.exit(1)
+
+    console.print(f"\n[green]Build successful after {result['attempts']} attempts![/green]")
+
+    # Extract compile_commands.json
+    console.print(f"\n[bold]Extracting compile_commands.json...[/bold]")
+    try:
+        compile_commands_path = builder.extract_compile_commands(project_path)
+        console.print(f"Extracted to: {compile_commands_path}")
+    except Exception as e:
+        console.print(f"[yellow]Warning: Failed to extract compile_commands.json: {e}[/yellow]")
+        compile_commands_path = None
+
+    # Generate build script
+    console.print(f"\n[bold]Generating reusable build script...[/bold]")
+    project_name = project_path.name
+    generator = ScriptGenerator()
+
+    try:
+        paths = generator.generate(
+            project_name=project_name,
+            project_path=project_path,
+            cmake_flags=result["cmake_flags"],
+            container_image=container_image,
+            build_system=build_system.value,
+            enable_ir=generate_ir,
+        )
+
+        console.print(f"Script: [bold]{paths['script']}[/bold]")
+        console.print(f"Config: {paths['config']}")
+        console.print(f"Artifacts: {paths['artifacts_dir']}")
+
+        # Generate README if it doesn't exist
+        readme_path = generator.scripts_base_dir / "README.md"
+        if not readme_path.exists():
+            generator.generate_readme()
+            console.print(f"README: {readme_path}")
+
+    except Exception as e:
+        console.print(f"[red]Error generating build script: {e}[/red]")
+        if verbose:
+            import traceback
+            console.print(traceback.format_exc())
+        sys.exit(1)
+
+    # Store in database
+    console.print(f"\n[bold]Storing build configuration in database...[/bold]")
+    db = SummaryDB(db_path)
+    try:
+        db.add_build_config(
+            project_path=str(project_path),
+            project_name=project_name,
+            build_system=build_system.value,
+            configuration={"cmake_flags": result["cmake_flags"]},
+            script_path=str(paths["script"]),
+            artifacts_dir=str(paths["artifacts_dir"]),
+            compile_commands_path=str(compile_commands_path) if compile_commands_path else None,
+            llm_backend=backend,
+            llm_model=llm.model,
+            build_attempts=result["attempts"],
+        )
+        console.print(f"Database: {db_path}")
+    finally:
+        db.close()
+
+    # Summary
+    console.print(f"\n[bold green]✓ Build learning complete![/bold green]")
+    console.print(f"\nNext steps:")
+    console.print(f"1. Run the build script:")
+    console.print(f"   [cyan]{paths['script']}[/cyan]")
+    console.print(f"\n2. Analyze with llm-summary:")
+    console.print(f"   [cyan]llm-summary extract --path {project_path} --db {db_path}[/cyan]")
+
+    if generate_ir:
+        console.print(f"\n3. LLVM IR artifacts will be in:")
+        console.print(f"   [cyan]{paths['artifacts_dir']}[/cyan]")
 
 
 if __name__ == "__main__":
