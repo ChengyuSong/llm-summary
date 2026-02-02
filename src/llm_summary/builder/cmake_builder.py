@@ -250,8 +250,14 @@ class CMakeBuilder:
         build_dir.mkdir(parents=True, exist_ok=True)
 
         # Construct CMake command with separate volume mounts for source and build
+        # Run as host user to avoid root-owned files
+        import os
+        uid = os.getuid()
+        gid = os.getgid()
+
         cmake_cmd = [
             "docker", "run", "--rm",
+            "-u", f"{uid}:{gid}",
             "-v", f"{project_path}:/workspace/src",
             "-v", f"{build_dir}:/workspace/build",
             "-w", "/workspace/build",

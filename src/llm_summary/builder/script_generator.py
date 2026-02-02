@@ -131,6 +131,7 @@ mkdir -p "$ARTIFACTS_DIR"
 # Run build in Docker container
 echo "Building {project_name}..."
 docker run --rm \\
+  -u $(id -u):$(id -g) \\
   -v "$PROJECT_PATH":/workspace \\
   -v "$ARTIFACTS_DIR":/artifacts \\
   -w /workspace/build \\

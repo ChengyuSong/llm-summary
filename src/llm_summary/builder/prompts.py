@@ -7,7 +7,10 @@ Goals:
 - Enable LLVM LTO (CMAKE_INTERPROCEDURAL_OPTIMIZATION=ON)
 - Prefer static linking (BUILD_SHARED_LIBS=OFF)
 - Use Clang 18 (CMAKE_C_COMPILER=clang-18, CMAKE_CXX_COMPILER=clang++-18)
-- Minimize assembly code usage where possible
+- Minimize assembly code usage:
+  - Disable hardware-specific optimizations (SIMD/SSE/AVX/NEON)
+  - Turn OFF any project-specific flags for architecture-specific code
+  - Prefer portable C/C++ code over assembly or intrinsics
 - Enable LLVM IR generation with -flto=full and -save-temps=obj
 
 CMakeLists.txt:
