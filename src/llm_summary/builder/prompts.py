@@ -1,6 +1,12 @@
 """LLM prompts for build configuration and error analysis."""
 
+# Note: INITIAL_CONFIG_PROMPT is kept for backwards compatibility with non-tool-enabled backends
+# The main hybrid workflow uses the system prompt in cmake_builder.py instead
 INITIAL_CONFIG_PROMPT = """Analyze this CMakeLists.txt and suggest initial CMake configuration flags.
+
+Project: {project_name}
+
+If you recognize this project, use your knowledge of its typical build requirements and dependencies.
 
 Goals:
 - Generate compile_commands.json (CMAKE_EXPORT_COMPILE_COMMANDS=ON)
@@ -16,16 +22,13 @@ Goals:
 CMakeLists.txt:
 {cmakelists_content}
 
-Additional context:
-- Project path: {project_path}
-- Build system detected: CMake
+Project path: {project_path}
 
 Output format (JSON):
 {{
   "cmake_flags": ["-DCMAKE_EXPORT_COMPILE_COMMANDS=ON", ...],
   "dependencies": [
-    {{"package": "zlib1g-dev", "reason": "Required for PNG compression"}},
-    {{"package": "libssl-dev", "reason": "Optional, for crypto support"}}
+    {{"package": "zlib1g-dev", "reason": "Required for PNG compression"}}
   ],
   "reasoning": "Explanation of why these flags were chosen",
   "potential_issues": ["List of possible problems"]

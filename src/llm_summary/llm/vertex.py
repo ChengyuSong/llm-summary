@@ -1,6 +1,7 @@
 """GCP Vertex AI backend for Claude models."""
 
 import os
+from typing import Any
 
 from .base import LLMBackend, LLMResponse
 
@@ -57,6 +58,43 @@ class VertexAIBackend(LLMBackend):
         """Generate a completion using Claude via Vertex AI."""
         response = self.complete_with_metadata(prompt, system)
         return response.content
+
+    def complete_with_tools(
+        self,
+        messages: list[dict],
+        tools: list[dict] | None = None,
+        system: str | None = None,
+    ) -> Any:
+        """
+        Generate a completion with tool use support.
+
+        Args:
+            messages: List of message dicts with role and content
+            tools: Optional list of tool definitions
+            system: Optional system message
+
+        Returns:
+            Raw API response object with tool_use blocks if applicable
+        """
+        kwargs = {
+            "model": self.model,
+            "max_tokens": self.max_tokens,
+            "messages": messages,
+        }
+
+        if system:
+            kwargs["system"] = system
+
+        if tools:
+            kwargs["tools"] = tools
+
+        response = self.client.messages.create(**kwargs)
+
+        if os.environ.get("VERTEX_DEBUG"):
+            print("[VERTEX DEBUG] Tool use response:")
+            print(response.model_dump_json(indent=2))
+
+        return response
 
     def complete_with_metadata(
         self, prompt: str, system: str | None = None

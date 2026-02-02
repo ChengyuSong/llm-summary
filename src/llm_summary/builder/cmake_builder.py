@@ -6,8 +6,11 @@ from pathlib import Path
 from typing import Any
 
 from ..llm.base import LLMBackend
+from .actions import CMakeActions
 from .error_analyzer import BuildError, ErrorAnalyzer
 from .prompts import INITIAL_CONFIG_PROMPT
+from .tool_definitions import ALL_TOOL_DEFINITIONS
+from .tools import BuildTools
 
 
 class CMakeBuilder:
@@ -63,7 +66,28 @@ class CMakeBuilder:
         if self.verbose:
             print(f"\n[1/3] Analyzing CMakeLists.txt with LLM...")
 
-        cmake_flags = self._get_initial_config(project_path, cmakelists_content)
+        result = self._get_initial_config(project_path, cmakelists_content)
+
+        # Handle both list[str] (simple mode) and dict (ReAct mode with metadata)
+        if isinstance(result, dict):
+            cmake_flags = result.get("cmake_flags", self._get_default_config())
+            react_build_succeeded = result.get("build_succeeded", False)
+
+            if react_build_succeeded:
+                if self.verbose:
+                    print(f"\n[ReAct] Build already succeeded in exploration phase!")
+                    print(f"[3/3] Build successful after {result.get('attempts', 1)} turns!")
+
+                return {
+                    "success": True,
+                    "cmake_flags": cmake_flags,
+                    "attempts": 1,  # Count as single attempt
+                    "build_log": "Build succeeded during ReAct exploration",
+                    "error_messages": [],
+                }
+        else:
+            cmake_flags = result
+            react_build_succeeded = False
 
         if self.verbose:
             print(f"[Initial Config] {len(cmake_flags)} flags:")
@@ -151,14 +175,141 @@ class CMakeBuilder:
     def _get_initial_config(
         self, project_path: Path, cmakelists_content: str
     ) -> list[str]:
-        """Get initial CMake configuration using LLM analysis."""
+        """Get initial CMake configuration using LLM analysis with tool support."""
+        # Check if backend supports tool use
+        if hasattr(self.llm, "complete_with_tools"):
+            return self._get_initial_config_with_tools(project_path, cmakelists_content)
+        else:
+            return self._get_initial_config_simple(project_path, cmakelists_content)
+
+    def _get_initial_config_with_tools(
+        self, project_path: Path, cmakelists_content: str
+    ) -> list[str] | dict:
+        """
+        Hybrid approach: Allow LLM to choose between simple (JSON) or ReAct (tools) mode.
+
+        Returns:
+            - list[str]: CMake flags (simple mode)
+            - dict: Full result including flags and build status (ReAct mode)
+        """
+        # Extract project name as hint for the LLM
+        project_name = project_path.name
+
+        # Initialize tools
+        file_tools = BuildTools(project_path)
+        actions = CMakeActions(
+            project_path, self.build_dir, self.container_image, self.verbose
+        )
+
+        # System prompt offering both options
+        system = f"""You are a build configuration expert. You can build this CMake project in two ways:
+
+**Option 1 - Simple (Recommended for straightforward projects):**
+If the CMakeLists.txt is straightforward and standard, immediately return JSON configuration:
+{{
+  "cmake_flags": ["-DCMAKE_EXPORT_COMPILE_COMMANDS=ON", ...],
+  "reasoning": "...",
+  "dependencies": [...]
+}}
+
+**Option 2 - ReAct (For complex projects needing exploration):**
+Use available tools to explore and build iteratively:
+- read_file: Read project files (CMake modules, configs, etc.)
+- list_dir: Explore project structure
+- cmake_configure: Run cmake configure with specific flags
+- cmake_build: Run ninja build after successful configure
+
+Requirements (both modes):
+- Generate compile_commands.json (CMAKE_EXPORT_COMPILE_COMMANDS=ON)
+- Enable LLVM LTO (CMAKE_INTERPROCEDURAL_OPTIMIZATION=ON)
+- Use Clang 18 (CMAKE_C_COMPILER=clang-18, CMAKE_CXX_COMPILER=clang++-18)
+- Prefer static linking (BUILD_SHARED_LIBS=OFF)
+- Disable SIMD/hardware optimizations to minimize assembly code
+- Enable LLVM IR generation (CMAKE_C_FLAGS=-flto=full -save-temps=obj)
+
+You are working on the project: {project_name}
+If you recognize this project, leverage your knowledge of its typical build requirements.
+
+Choose based on project complexity. Standard CMakeLists.txt → Option 1. Complex/unusual builds → Option 2."""
+
+        # Initial user message
+        messages = [{
+            "role": "user",
+            "content": f"""Build this CMake project: {project_name}
+
+Project path: {project_path}
+
+CMakeLists.txt:
+```
+{cmakelists_content[:5000]}
+```
+
+If you recognize this project ({project_name}), use your knowledge to inform the build configuration.
+
+Choose your approach (simple JSON or ReAct with tools) and proceed."""
+        }]
+
+        if self.verbose:
+            print(f"[LLM] Requesting initial configuration (hybrid mode)...")
+            print(f"[LLM] Project: {project_name}")
+            print(f"[LLM] Available tools: read_file, list_dir, cmake_configure, cmake_build")
+
+        # First turn: LLM decides mode
+        response = self.llm.complete_with_tools(
+            messages=messages,
+            tools=ALL_TOOL_DEFINITIONS,
+            system=system,
+        )
+
+        if response.stop_reason == "end_turn":
+            # Simple mode: LLM returned text (likely JSON config)
+            if self.verbose:
+                print("[Mode] Simple workflow (LLM provided config directly)")
+
+            text = self._extract_text(response)
+            config = self._parse_config_response(text)
+
+            if config:
+                return config
+            else:
+                # Failed to parse, use default
+                if self.verbose:
+                    print("[Mode] Failed to parse JSON, using default config")
+                return self._get_default_config()
+
+        elif response.stop_reason == "tool_use":
+            # ReAct mode: LLM chose to use tools
+            if self.verbose:
+                print("[Mode] ReAct workflow (LLM exploring with tools)")
+
+            result = self._execute_react_loop(
+                messages, response, file_tools, actions, system
+            )
+
+            # Return the full result dict (includes build status)
+            return result
+
+        else:
+            # Unexpected
+            if self.verbose:
+                print(f"[Mode] Unexpected stop_reason: {response.stop_reason}, using default")
+            return self._get_default_config()
+
+    def _get_initial_config_simple(
+        self, project_path: Path, cmakelists_content: str
+    ) -> list[str]:
+        """Get initial config without tool support (fallback)."""
+        project_name = project_path.name
+
         prompt = INITIAL_CONFIG_PROMPT.format(
+            project_name=project_name,
             cmakelists_content=cmakelists_content,
             project_path=str(project_path),
         )
 
         if self.verbose:
             print(f"[LLM] Requesting initial configuration...")
+            print(f"[LLM] Project: {project_name}")
             print(f"[LLM] Prompt length: {len(prompt)} chars")
 
         response = self.llm.complete(prompt)
@@ -166,6 +317,10 @@ class CMakeBuilder:
         if self.verbose:
             print(f"[LLM] Response length: {len(response)} chars")
 
+        return self._parse_config_response(response)
+
+    def _parse_config_response(self, response: str) -> list[str]:
+        """Parse LLM response to extract CMake configuration."""
         try:
             # Try to parse JSON response, stripping markdown code blocks if present
             json_str = response.strip()
@@ -204,6 +359,167 @@ class CMakeBuilder:
 
             # Fall back to default configuration
             return self._get_default_config()
+
+    def _extract_text(self, response) -> str:
+        """Extract all text blocks from response."""
+        text = ""
+        for block in response.content:
+            if hasattr(block, "text"):
+                text += block.text
+        return text
+
+    def _execute_react_loop(
+        self,
+        messages: list,
+        initial_response,
+        file_tools: BuildTools,
+        actions: CMakeActions,
+        system: str,
+    ) -> dict:
+        """
+        ReAct-style build loop where LLM uses tools iteratively.
+
+        Returns:
+            Dict with 'success', 'cmake_flags', 'attempts', 'configure_succeeded', 'build_succeeded'
+        """
+        # Track state
+        max_turns = 15
+        configure_succeeded = False
+        build_succeeded = False
+        final_flags = []
+
+        # Process initial response (already has tool_use)
+        response = initial_response
+
+        for turn in range(max_turns):
+            if response.stop_reason == "end_turn":
+                # LLM finished - extract final flags if available
+                if self.verbose:
+                    print(f"[ReAct] LLM finished after {turn + 1} turns")
+                break
+
+            elif response.stop_reason == "tool_use":
+                # Execute tools
+                assistant_content = []
+                tool_results = []
+
+                for block in response.content:
+                    if hasattr(block, "text"):
+                        assistant_content.append({"type": "text", "text": block.text})
+                        if self.verbose:
+                            print(f"[LLM] {block.text}")
+
+                    elif block.type == "tool_use":
+                        assistant_content.append({
+                            "type": "tool_use",
+                            "id": block.id,
+                            "name": block.name,
+                            "input": block.input,
+                        })
+
+                        # Execute tool with security validation
+                        result = self._execute_tool_safe(
+                            file_tools, actions, block.name, block.input
+                        )
+
+                        if self.verbose:
+                            print(f"[Tool] {block.name}({json.dumps(block.input)})")
+                            if "success" in result:
+                                print(f"  Success: {result['success']}")
+                            if "error" in result and result["error"]:
+                                print(f"  Error: {result['error'][:200]}")
+
+                        # Track configure/build status
+                        if block.name == "cmake_configure" and result.get("success"):
+                            configure_succeeded = True
+                            final_flags = block.input.get("cmake_flags", [])
+                        if block.name == "cmake_build" and result.get("success"):
+                            build_succeeded = True
+
+                        tool_results.append({
+                            "type": "tool_result",
+                            "tool_use_id": block.id,
+                            "content": json.dumps(result),
+                        })
+
+                messages.append({"role": "assistant", "content": assistant_content})
+                messages.append({"role": "user", "content": tool_results})
+
+                # Get next response
+                if turn < max_turns - 1:  # Don't make another call on last turn
+                    response = self.llm.complete_with_tools(
+                        messages=messages,
+                        tools=ALL_TOOL_DEFINITIONS,
+                        system=system,
+                    )
+                else:
+                    break
+
+            else:
+                # Unexpected stop reason
+                if self.verbose:
+                    print(f"[ReAct] Unexpected stop reason: {response.stop_reason}")
+                break
+
+        # If we don't have final_flags, use default
+        if not final_flags:
+            final_flags = self._get_default_config()
+
+        return {
+            "success": build_succeeded,
+            "cmake_flags": final_flags,
+            "attempts": turn + 1,
+            "configure_succeeded": configure_succeeded,
+            "build_succeeded": build_succeeded,
+        }
+
+    def _execute_tool_safe(
+        self,
+        file_tools: BuildTools,
+        actions: CMakeActions,
+        tool_name: str,
+        tool_input: dict,
+    ) -> dict:
+        """Execute tool with security checks."""
+        try:
+            if tool_name == "read_file":
+                return file_tools.read_file(
+                    file_path=tool_input.get("file_path"),
+                    max_lines=tool_input.get("max_lines", 200),
+                )
+            elif tool_name == "list_dir":
+                return file_tools.list_dir(
+                    dir_path=tool_input.get("dir_path", "."),
+                    pattern=tool_input.get("pattern"),
+                )
+            elif tool_name == "cmake_configure":
+                return actions.cmake_configure(
+                    cmake_flags=tool_input.get("cmake_flags", [])
+                )
+            elif tool_name == "cmake_build":
+                return actions.cmake_build()
+            else:
+                return {"error": f"Unknown tool: {tool_name}"}
+        except ValueError as e:
+            # Security violation
+            return {"error": f"Security error: {str(e)}"}
+        except Exception as e:
+            return {"error": f"Tool error: {str(e)}"}
+
+    def _execute_tool(self, tools: BuildTools, tool_name: str, tool_input: dict) -> dict:
+        """Execute a tool and return the result (legacy method for backwards compatibility)."""
+        if tool_name == "read_file":
+            return tools.read_file(
+                file_path=tool_input.get("file_path"),
+                max_lines=tool_input.get("max_lines", 200),
+            )
+        elif tool_name == "list_dir":
+            return tools.list_dir(
+                dir_path=tool_input.get("dir_path", "."),
+                pattern=tool_input.get("pattern"),
+            )
+        else:
+            return {"error": f"Unknown tool: {tool_name}"}
 
     def _get_default_config(self) -> list[str]:
         """Get default CMake configuration (fallback if LLM fails)."""
