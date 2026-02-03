@@ -38,14 +38,17 @@ def main():
 @click.argument("path_arg", type=click.Path(exists=True), required=False, default=None)
 @click.option("--path", "path_opt", type=click.Path(exists=True), default=None, help="Path to analyze")
 @click.option("--db", "db_path", default="summaries.db", help="Database file path")
-@click.option("--backend", type=click.Choice(["claude", "openai", "ollama", "vertex"]), default="claude")
+@click.option("--backend", type=click.Choice(["claude", "openai", "ollama", "llamacpp", "vertex"]), default="claude")
 @click.option("--model", default=None, help="Model name to use")
+@click.option("--llm-host", default="localhost", help="Hostname for local LLM backends (llamacpp, ollama)")
+@click.option("--llm-port", default=None, type=int, help="Port for local LLM backends (llamacpp: 8080, ollama: 11434)")
+@click.option("--disable-thinking", is_flag=True, help="Disable thinking/reasoning mode for llamacpp (useful for structured output)")
 @click.option("--recursive/--no-recursive", default=True, help="Scan directories recursively")
 @click.option("--include-headers/--no-include-headers", default=False, help="Include header files")
 @click.option("--verbose", "-v", is_flag=True, help="Verbose output")
 @click.option("--force", "-f", is_flag=True, help="Force re-analysis of all functions")
 @click.option("--log-llm", type=click.Path(), default=None, help="Log all LLM prompts and responses to file")
-def analyze(path_arg, path_opt, db_path, backend, model, recursive, include_headers, verbose, force, log_llm):
+def analyze(path_arg, path_opt, db_path, backend, model, llm_host, llm_port, disable_thinking, recursive, include_headers, verbose, force, log_llm):
     """Analyze C/C++ source files and generate allocation summaries."""
     # Accept path as either positional argument or --path option
     path = path_opt or path_arg
@@ -125,7 +128,21 @@ def analyze(path_arg, path_opt, db_path, backend, model, recursive, include_head
         # TODO: Add --analyze-indirect flag
 
         # Phase 4: Generate summaries
-        llm = create_backend(backend, model=model)
+        # Build backend kwargs for local LLM servers
+        backend_kwargs = {}
+        if backend == "llamacpp":
+            backend_kwargs["host"] = llm_host
+            backend_kwargs["port"] = llm_port if llm_port is not None else 8080
+        elif backend == "ollama":
+            if llm_port is None:
+                llm_port = 11434
+            backend_kwargs["base_url"] = f"http://{llm_host}:{llm_port}"
+
+        # Apply thinking mode control to backends that support it
+        if disable_thinking:
+            backend_kwargs["enable_thinking"] = False
+
+        llm = create_backend(backend, model=model, **backend_kwargs)
         summarizer = AllocationSummarizer(db, llm, verbose=verbose, log_file=log_llm)
 
         console.print(f"Using {backend} backend ({llm.model})")
@@ -518,8 +535,11 @@ def callgraph(db_path, output, fmt, no_header):
 @click.option("--db", "db_path", default="summaries.db", help="Database file path")
 @click.option("--compile-commands", "compile_commands_path", type=click.Path(exists=True), default=None,
               help="Path to compile_commands.json for proper macro/include handling")
-@click.option("--backend", type=click.Choice(["claude", "openai", "ollama", "vertex"]), default="claude")
+@click.option("--backend", type=click.Choice(["claude", "openai", "ollama", "llamacpp", "vertex"]), default="claude")
 @click.option("--model", default=None, help="Model name to use")
+@click.option("--llm-host", default="localhost", help="Hostname for local LLM backends (llamacpp, ollama)")
+@click.option("--llm-port", default=None, type=int, help="Port for local LLM backends (llamacpp: 8080, ollama: 11434)")
+@click.option("--disable-thinking", is_flag=True, help="Disable thinking/reasoning mode for llamacpp (useful for structured output)")
 @click.option("--recursive/--no-recursive", default=True, help="Scan directories recursively")
 @click.option("--verbose", "-v", is_flag=True, help="Verbose output")
 @click.option("--force", "-f", is_flag=True, help="Force re-analysis (ignore cache)")
@@ -527,7 +547,7 @@ def callgraph(db_path, output, fmt, no_header):
 @click.option("--pass1-only", is_flag=True, help="Only run Pass 1 (flow summarization)")
 @click.option("--pass2-only", is_flag=True, help="Only run Pass 2 (resolution), requires Pass 1 already done")
 def indirect_analyze(
-    path_arg, path_opt, db_path, compile_commands_path, backend, model,
+    path_arg, path_opt, db_path, compile_commands_path, backend, model, llm_host, llm_port, disable_thinking,
     recursive, verbose, force, log_llm, pass1_only, pass2_only
 ):
     """
@@ -664,7 +684,21 @@ def indirect_analyze(
                 return
 
         # Initialize LLM backend
-        llm = create_backend(backend, model=model)
+        # Build backend kwargs for local LLM servers
+        backend_kwargs = {}
+        if backend == "llamacpp":
+            backend_kwargs["host"] = llm_host
+            backend_kwargs["port"] = llm_port if llm_port is not None else 8080
+        elif backend == "ollama":
+            if llm_port is None:
+                llm_port = 11434
+            backend_kwargs["base_url"] = f"http://{llm_host}:{llm_port}"
+
+        # Apply thinking mode control to backends that support it
+        if disable_thinking:
+            backend_kwargs["enable_thinking"] = False
+
+        llm = create_backend(backend, model=model, **backend_kwargs)
         console.print(f"Using {backend} backend ({llm.model})")
 
         # Pass 1: Flow summarization
@@ -821,26 +855,34 @@ def show_indirect(db_path, fmt):
 @main.command("build-learn")
 @click.option("--project-path", type=click.Path(exists=True), required=True, help="Path to the project to build")
 @click.option("--build-dir", type=click.Path(), default=None, help="Custom build directory (default: <project-path>/build)")
-@click.option("--backend", type=click.Choice(["claude", "openai", "ollama", "vertex"]), default="vertex", help="LLM backend for incremental learning")
+@click.option("--backend", type=click.Choice(["claude", "openai", "ollama", "llamacpp", "vertex"]), default="vertex", help="LLM backend for incremental learning")
 @click.option("--model", default=None, help="Model name (default: claude-haiku-4-5@20251001 for vertex)")
+@click.option("--llm-host", default="localhost", help="Hostname for local LLM backends (llamacpp, ollama)")
+@click.option("--llm-port", default=None, type=int, help="Port for local LLM backends (llamacpp: 8080, ollama: 11434)")
+@click.option("--disable-thinking", is_flag=True, help="Disable thinking/reasoning mode for llamacpp (useful for structured output)")
 @click.option("--max-retries", default=3, help="Maximum build attempts")
 @click.option("--container-image", default="llm-summary-builder:latest", help="Docker image to use")
 @click.option("--enable-lto/--no-lto", default=True, help="Enable LLVM LTO")
 @click.option("--prefer-static/--no-static", default=True, help="Prefer static linking")
 @click.option("--generate-ir/--no-ir", default=True, help="Generate and save LLVM IR artifacts")
 @click.option("--db", "db_path", default="summaries.db", help="Database file path")
+@click.option("--log-llm", type=click.Path(), default=None, help="Log all LLM prompts and responses to file")
 @click.option("--verbose", "-v", is_flag=True, help="Show detailed output")
 def build_learn(
     project_path,
     build_dir,
     backend,
     model,
+    llm_host,
+    llm_port,
+    disable_thinking,
     max_retries,
     container_image,
     enable_lto,
     prefer_static,
     generate_ir,
     db_path,
+    log_llm,
     verbose,
 ):
     """Learn how to build a CMake project and generate reusable build script."""
@@ -881,7 +923,21 @@ def build_learn(
     # Initialize LLM backend
     console.print(f"\n[bold]Initializing LLM backend...[/bold]")
     try:
-        llm = create_backend(backend, model=model)
+        # Build backend kwargs for local LLM servers
+        backend_kwargs = {}
+        if backend == "llamacpp":
+            backend_kwargs["host"] = llm_host
+            backend_kwargs["port"] = llm_port if llm_port is not None else 8080
+        elif backend == "ollama":
+            if llm_port is None:
+                llm_port = 11434
+            backend_kwargs["base_url"] = f"http://{llm_host}:{llm_port}"
+
+        # Apply thinking mode control to backends that support it
+        if disable_thinking:
+            backend_kwargs["enable_thinking"] = False
+
+        llm = create_backend(backend, model=model, **backend_kwargs)
         console.print(f"Using model: [bold]{llm.model}[/bold]")
     except Exception as e:
         console.print(f"[red]Error initializing LLM backend: {e}[/red]")
@@ -897,6 +953,7 @@ def build_learn(
         prefer_static=prefer_static,
         generate_ir=generate_ir,
         verbose=verbose,
+        log_file=log_llm,
     )
 
     # Learn and build

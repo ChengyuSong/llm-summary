@@ -26,6 +26,7 @@ class CMakeBuilder:
         prefer_static: bool = True,
         generate_ir: bool = True,
         verbose: bool = False,
+        log_file: str | None = None,
     ):
         self.llm = llm
         self.container_image = container_image
@@ -35,7 +36,8 @@ class CMakeBuilder:
         self.prefer_static = prefer_static
         self.generate_ir = generate_ir
         self.verbose = verbose
-        self.error_analyzer = ErrorAnalyzer(llm, verbose)
+        self.log_file = log_file
+        self.error_analyzer = ErrorAnalyzer(llm, verbose, log_file=log_file)
 
     def learn_and_build(
         self, project_path: Path
@@ -219,6 +221,8 @@ Use available tools to explore and build iteratively:
 - cmake_configure: Run cmake configure with specific flags
 - cmake_build: Run ninja build after successful configure
 
+**IMPORTANT**: All file/directory paths in tools must be RELATIVE to project root (e.g., ".", "cmake/", "src/config.h"). Absolute paths are not allowed.
+
 Requirements (both modes):
 - Generate compile_commands.json (CMAKE_EXPORT_COMPILE_COMMANDS=ON)
 - Enable LLVM LTO (CMAKE_INTERPROCEDURAL_OPTIMIZATION=ON)
@@ -237,14 +241,14 @@ Choose based on project complexity. Standard CMakeLists.txt → Option 1. Comple
             "role": "user",
             "content": f"""Build this CMake project: {project_name}
 
-Project path: {project_path}
-
 CMakeLists.txt:
 ```
 {cmakelists_content[:5000]}
 ```
 
 If you recognize this project ({project_name}), use your knowledge to inform the build configuration.
+
+Note: If using tools, all file paths must be relative to the project root (e.g., "." for root directory, "cmake/FindZLIB.cmake" for a file in the cmake subdirectory).
 
 Choose your approach (simple JSON or ReAct with tools) and proceed."""
         }]
@@ -254,6 +258,17 @@ Choose your approach (simple JSON or ReAct with tools) and proceed."""
             print(f"[LLM] Project: {project_name}")
             print(f"[LLM] Available tools: read_file, list_dir, cmake_configure, cmake_build")
 
+        if self.log_file:
+            with open(self.log_file, "a") as f:
+                f.write(f"\n{'='*80}\n")
+                f.write(f"BUILD-LEARN HYBRID MODE - INITIAL REQUEST\n")
+                f.write(f"Project: {project_name}\n")
+                f.write(f"{'='*80}\n\n")
+                f.write(f"SYSTEM PROMPT:\n{system}\n\n")
+                f.write(f"USER MESSAGE:\n{messages[0]['content']}\n\n")
+                import json as json_module
+                f.write(f"TOOLS:\n{json_module.dumps(ALL_TOOL_DEFINITIONS, indent=2)}\n\n")
+
         # First turn: LLM decides mode
         response = self.llm.complete_with_tools(
             messages=messages,
@@ -261,7 +276,19 @@ Choose your approach (simple JSON or ReAct with tools) and proceed."""
             system=system,
         )
 
-        if response.stop_reason == "end_turn":
+        if self.log_file:
+            with open(self.log_file, "a") as f:
+                f.write(f"RESPONSE:\n")
+                f.write(f"Stop reason: {response.stop_reason}\n")
+                for i, block in enumerate(response.content):
+                    if hasattr(block, 'text'):
+                        f.write(f"[Block {i}] Text: {block.text}\n")
+                    elif hasattr(block, 'name'):
+                        f.write(f"[Block {i}] Tool use: {block.name}({block.input})\n")
+                f.write("\n")
+
+        # OpenAI format returns "stop", Anthropic returns "end_turn"
+        if response.stop_reason in ("end_turn", "stop"):
             # Simple mode: LLM returned text (likely JSON config)
             if self.verbose:
                 print("[Mode] Simple workflow (LLM provided config directly)")
@@ -312,7 +339,19 @@ Choose your approach (simple JSON or ReAct with tools) and proceed."""
             print(f"[LLM] Project: {project_name}")
             print(f"[LLM] Prompt length: {len(prompt)} chars")
 
+        if self.log_file:
+            with open(self.log_file, "a") as f:
+                f.write(f"\n{'='*80}\n")
+                f.write(f"BUILD-LEARN INITIAL CONFIG REQUEST\n")
+                f.write(f"Project: {project_name}\n")
+                f.write(f"{'='*80}\n\n")
+                f.write(f"PROMPT:\n{prompt}\n\n")
+
         response = self.llm.complete(prompt)
+
+        if self.log_file:
+            with open(self.log_file, "a") as f:
+                f.write(f"RESPONSE:\n{response}\n\n")
 
         if self.verbose:
             print(f"[LLM] Response length: {len(response)} chars")
@@ -392,7 +431,8 @@ Choose your approach (simple JSON or ReAct with tools) and proceed."""
         response = initial_response
 
         for turn in range(max_turns):
-            if response.stop_reason == "end_turn":
+            # OpenAI format returns "stop", Anthropic returns "end_turn"
+            if response.stop_reason in ("end_turn", "stop"):
                 # LLM finished - extract final flags if available
                 if self.verbose:
                     print(f"[ReAct] LLM finished after {turn + 1} turns")
@@ -445,6 +485,15 @@ Choose your approach (simple JSON or ReAct with tools) and proceed."""
                 messages.append({"role": "assistant", "content": assistant_content})
                 messages.append({"role": "user", "content": tool_results})
 
+                if self.log_file:
+                    with open(self.log_file, "a") as f:
+                        f.write(f"\n{'='*80}\n")
+                        f.write(f"REACT TURN {turn + 1} - TOOL RESULTS\n")
+                        f.write(f"{'='*80}\n\n")
+                        for tr in tool_results:
+                            f.write(f"Tool result for {tr.get('tool_use_id')}:\n")
+                            f.write(f"{tr.get('content')}\n\n")
+
                 # Get next response
                 if turn < max_turns - 1:  # Don't make another call on last turn
                     response = self.llm.complete_with_tools(
@@ -452,6 +501,17 @@ Choose your approach (simple JSON or ReAct with tools) and proceed."""
                         tools=ALL_TOOL_DEFINITIONS,
                         system=system,
                     )
+
+                    if self.log_file:
+                        with open(self.log_file, "a") as f:
+                            f.write(f"NEXT RESPONSE:\n")
+                            f.write(f"Stop reason: {response.stop_reason}\n")
+                            for i, block in enumerate(response.content):
+                                if hasattr(block, 'text'):
+                                    f.write(f"[Block {i}] Text: {block.text}\n")
+                                elif hasattr(block, 'name'):
+                                    f.write(f"[Block {i}] Tool use: {block.name}({block.input})\n")
+                            f.write("\n")
                 else:
                     break
 

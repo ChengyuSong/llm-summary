@@ -16,9 +16,10 @@ class BuildError(Exception):
 class ErrorAnalyzer:
     """Analyzes build errors and suggests fixes using LLM."""
 
-    def __init__(self, llm: LLMBackend, verbose: bool = False):
+    def __init__(self, llm: LLMBackend, verbose: bool = False, log_file: str | None = None):
         self.llm = llm
         self.verbose = verbose
+        self.log_file = log_file
 
     def analyze_cmake_error(
         self,
@@ -54,7 +55,18 @@ class ErrorAnalyzer:
             print(f"\n[LLM] Analyzing CMake error...")
             print(f"[LLM] Prompt length: {len(prompt)} chars")
 
+        if self.log_file:
+            with open(self.log_file, "a") as f:
+                f.write(f"\n{'='*80}\n")
+                f.write(f"CMAKE ERROR ANALYSIS\n")
+                f.write(f"{'='*80}\n\n")
+                f.write(f"PROMPT:\n{prompt}\n\n")
+
         response = self.llm.complete(prompt)
+
+        if self.log_file:
+            with open(self.log_file, "a") as f:
+                f.write(f"RESPONSE:\n{response}\n\n")
 
         if self.verbose:
             print(f"[LLM] Response: {response[:500]}...")
@@ -114,7 +126,18 @@ class ErrorAnalyzer:
             print(f"\n[LLM] Analyzing build error...")
             print(f"[LLM] Prompt length: {len(prompt)} chars")
 
+        if self.log_file:
+            with open(self.log_file, "a") as f:
+                f.write(f"\n{'='*80}\n")
+                f.write(f"BUILD ERROR ANALYSIS\n")
+                f.write(f"{'='*80}\n\n")
+                f.write(f"PROMPT:\n{prompt}\n\n")
+
         response = self.llm.complete(prompt)
+
+        if self.log_file:
+            with open(self.log_file, "a") as f:
+                f.write(f"RESPONSE:\n{response}\n\n")
 
         if self.verbose:
             print(f"[LLM] Response: {response[:500]}...")
