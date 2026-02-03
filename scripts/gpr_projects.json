@@ -25,7 +25,7 @@
   },
   {
     "name": "zlib",
-    "url": "https://zlib.net/",
+    "url": "https://github.com/madler/zlib",
     "tier": 1,
     "area": "Core infrastructure data parsers"
   },
@@ -85,7 +85,7 @@
   },
   {
     "name": "libtiff",
-    "url": "https://libtiff.gitlab.io/libtiff/",
+    "url": "https://gitlab.com/libtiff/libtiff.git",
     "tier": 1,
     "area": "Core infrastructure data parsers"
   },
@@ -97,7 +97,7 @@
   },
   {
     "name": "libvpx",
-    "url": "https://www.webmproject.org/code/",
+    "url": "https://chromium.googlesource.com/webm/libvpx",
     "tier": 1,
     "area": "Core infrastructure data parsers"
   },
@@ -121,7 +121,7 @@
   },
   {
     "name": "Envoy proxy",
-    "url": "https://www.envoyproxy.io/",
+    "url": "https://github.com/envoyproxy/envoy",
     "tier": 1,
     "area": "Critical software used for cloud computing"
   },
@@ -157,7 +157,7 @@
   },
   {
     "name": "Postfix",
-    "url": "https://www.postfix.org/",
+    "url": "https://github.com/vdukhovni/postfix",
     "tier": 1,
     "area": "High-profile web and mail servers"
   },
@@ -193,7 +193,7 @@
   },
   {
     "name": "OpenSSL",
-    "url": "https://www.openssl.org/",
+    "url": "https://github.com/openssl/openssl",
     "tier": 1,
     "area": "Other essential libraries"
   },
@@ -205,7 +205,7 @@
   },
   {
     "name": "Tink",
-    "url": "https://developers.google.com/tink",
+    "url": "https://github.com/tink-crypto/tink-cc",
     "tier": 1,
     "area": "Other essential libraries"
   },
@@ -265,13 +265,13 @@
   },
   {
     "name": "OpenSSH",
-    "url": "https://www.openssh.com/",
+    "url": "https://github.com/openssh/openssh-portable.git",
     "tier": 1,
     "area": "Other high-impact network services"
   },
   {
     "name": "OpenVPN",
-    "url": "https://openvpn.net/source-code/",
+    "url": "https://github.com/OpenVPN/openvpn",
     "tier": 1,
     "area": "Other high-impact network services"
   },
@@ -457,19 +457,19 @@
   },
   {
     "name": "libcap",
-    "url": "https://git.kernel.org/pub/scm/libs/libcap/libcap.git/",
+    "url": "git://git.kernel.org/pub/scm/libs/libcap/libcap.git",
     "tier": 1,
     "area": "Security-critical, commonly used components of the Linux kernel (including KVM)"
   },
   {
     "name": "yum",
-    "url": "http://yum.baseurl.org/",
-    "tier": 1,
+    "url": "git://yum.baseurl.org/yum.git",
+    "tier": 2,
     "area": "Security-relevant bits of common package managers"
   },
   {
     "name": "apt",
-    "url": "https://salsa.debian.org/apt-team/apt",
+    "url": "https://salsa.debian.org/apt-team/apt.git",
     "tier": 1,
     "area": "Security-relevant bits of common package managers"
   },
@@ -487,19 +487,19 @@
   },
   {
     "name": "GCC",
-    "url": "https://gcc.gnu.org/",
+    "url": "https://gcc.gnu.org/git/gcc.git",
     "tier": 1,
     "area": "Toolchain security improvements"
   },
   {
     "name": "binutils",
-    "url": "https://www.gnu.org/software/binutils/",
+    "url": "git://sourceware.org/git/binutils-gdb.git",
     "tier": 1,
     "area": "Toolchain security improvements"
   },
   {
-    "name": "llvm",
-    "url": "https://llvm.org/",
+    "name": "llvm-project",
+    "url": "https://github.com/llvm/llvm-project",
     "tier": 1,
     "area": "Toolchain security improvements"
   },
@@ -511,19 +511,19 @@
   },
   {
     "name": "tar",
-    "url": "https://www.gnu.org/software/tar/",
+    "url": "https://git.savannah.gnu.org/git/tar.git",
     "tier": 1,
     "area": "Widespread decompression libraries"
   },
   {
     "name": "gzip",
-    "url": "https://www.gnu.org/software/gzip/",
+    "url": "https://git.savannah.gnu.org/git/gzip.git",
     "tier": 1,
     "area": "Widespread decompression libraries"
   },
   {
     "name": "cpio",
-    "url": "https://www.gnu.org/software/cpio/",
+    "url": "https://git.savannah.gnu.org/git/cpio.git",
     "tier": 1,
     "area": "Widespread decompression libraries"
   },
@@ -535,7 +535,7 @@
   },
   {
     "name": "7z",
-    "url": "https://www.7-zip.org/",
+    "url": "https://github.com/mcmilk/7-Zip",
     "tier": 1,
     "area": "Widespread decompression libraries"
   },
@@ -547,7 +547,7 @@
   },
   {
     "name": "ncompress",
-    "url": "https://vapier.github.io/ncompress/",
+    "url": "https://github.com/vapier/ncompress",
     "tier": 1,
     "area": "Widespread decompression libraries"
   },
@@ -568,5 +568,11 @@
     "url": "https://sourceware.org/git/bzip2.git",
     "tier": 1,
     "area": "Widespread decompression libraries"
+  },
+  {
+    "name": "sqlite3",
+    "url": "https://github.com/sqlite/sqlite",
+    "tier": 1,
+    "area": "Widespread database"
   }
 ]
