@@ -3,7 +3,6 @@
 import json
 from datetime import datetime
 from pathlib import Path
-from typing import Any
 
 
 class ScriptGenerator:
@@ -150,7 +149,7 @@ docker run --rm \\
             script_content += '''"'''
 
         # Add post-build steps
-        script_content += f'''
+        script_content += '''
 
 # Copy compile_commands.json to project root
 if [ -f "$PROJECT_PATH/build/compile_commands.json" ]; then
@@ -174,7 +173,8 @@ fi
 
         script_path = project_dir / "build.sh"
         script_path.write_text(script_content)
-        script_path.chmod(0o755)  # Make executable
+        # NOTE: Intentionally NOT making executable to prevent accidental execution
+        # Users must explicitly run: bash build.sh
 
         return script_path
 
@@ -205,11 +205,13 @@ build-scripts/
 
 ```bash
 # Use default project path (from when script was generated)
-./libpng/build.sh
+bash libpng/build.sh
 
 # Or specify custom paths
-./libpng/build.sh /path/to/libpng /path/to/artifacts
+bash libpng/build.sh /path/to/libpng /path/to/artifacts
 ```
+
+**Note:** Scripts are intentionally not executable. Use `bash <script>` to run them.
 
 ### Script Parameters
 

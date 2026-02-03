@@ -22,8 +22,6 @@ Goals:
 CMakeLists.txt:
 {cmakelists_content}
 
-Project path: {project_path}
-
 Output format (JSON):
 {{
   "cmake_flags": ["-DCMAKE_EXPORT_COMPILE_COMMANDS=ON", ...],
@@ -53,7 +51,10 @@ Error output:
 CMakeLists.txt excerpt (if relevant):
 {cmakelists_excerpt}
 
-Project path: {project_path}
+Note: The build runs in a Docker container where:
+- Source files are mounted at: /workspace/src
+- Build directory is at: /workspace/build
+- Error messages will reference these container paths
 
 Analyze the error and suggest:
 1. What went wrong

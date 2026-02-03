@@ -41,13 +41,14 @@ class BuildTools:
 
         return full_path
 
-    def read_file(self, file_path: str, max_lines: int = 200) -> dict[str, Any]:
+    def read_file(self, file_path: str, max_lines: int = 200, start_line: int = 1) -> dict[str, Any]:
         """
         Read a file from the project directory.
 
         Args:
             file_path: Relative path from project root
             max_lines: Maximum lines to read (default: 200)
+            start_line: Line number to start reading from (1-indexed, default: 1)
 
         Returns:
             Dict with 'content' (file contents) or 'error' (error message)
@@ -61,24 +62,49 @@ class BuildTools:
             if not full_path.is_file():
                 return {"error": f"Not a file: {file_path}"}
 
-            # Read file with line limit
+            # Validate start_line
+            if start_line < 1:
+                return {"error": f"start_line must be >= 1, got {start_line}"}
+
+            # Read file with line limit and offset
             with open(full_path, "r", encoding="utf-8", errors="replace") as f:
                 lines = []
-                for i, line in enumerate(f):
-                    if i >= max_lines:
+                current_line = 0
+                lines_read = 0
+
+                for line in f:
+                    current_line += 1
+
+                    # Skip lines before start_line
+                    if current_line < start_line:
+                        continue
+
+                    # Check if we've read enough lines
+                    if lines_read >= max_lines:
                         lines.append(
-                            f"\n... (truncated after {max_lines} lines, use smaller chunks if needed)"
+                            f"\n... (truncated after {max_lines} lines, use start_line={current_line} to continue)"
                         )
                         break
-                    lines.append(line.rstrip())
+
+                    # Add line number prefix for easier reference
+                    lines.append(f"{current_line:4d}: {line.rstrip()}")
+                    lines_read += 1
 
                 content = "\n".join(lines)
+
+                # Check if we skipped past the end
+                if current_line < start_line:
+                    return {
+                        "error": f"start_line {start_line} exceeds file length ({current_line} lines)"
+                    }
 
             return {
                 "content": content,
                 "path": file_path,
-                "lines": min(i + 1, max_lines),
-                "truncated": i >= max_lines,
+                "start_line": start_line,
+                "end_line": start_line + lines_read - 1,
+                "lines_read": lines_read,
+                "truncated": lines_read >= max_lines,
             }
 
         except ValueError as e:
@@ -154,7 +180,8 @@ TOOL_DEFINITIONS = [
         "description": (
             "Read a file from the project directory. Use this to examine CMake files, "
             "included modules, source files, configuration files, or any other project files "
-            "that might help understand the build configuration or debug errors."
+            "that might help understand the build configuration or debug errors. "
+            "If errors reference specific line numbers, use start_line to jump to that section."
         ),
         "input_schema": {
             "type": "object",
@@ -167,6 +194,11 @@ TOOL_DEFINITIONS = [
                     "type": "integer",
                     "description": "Maximum number of lines to read (default: 200)",
                     "default": 200,
+                },
+                "start_line": {
+                    "type": "integer",
+                    "description": "Line number to start reading from (1-indexed, default: 1). Use this to jump to specific sections when errors mention line numbers.",
+                    "default": 1,
                 },
             },
             "required": ["file_path"],

@@ -1,7 +1,7 @@
 """CMake builder with LLM-powered incremental learning."""
 
 import json
-import subprocess
+import shutil
 from pathlib import Path
 from typing import Any
 
@@ -57,6 +57,14 @@ class CMakeBuilder:
         if not project_path.exists():
             raise ValueError(f"Project path does not exist: {project_path}")
 
+        # Clean build directory to ensure fresh build
+        build_dir = Path(self.build_dir) if self.build_dir else project_path / "build"
+        if build_dir.exists():
+            if self.verbose:
+                print(f"[Cleanup] Removing existing build directory: {build_dir}")
+            shutil.rmtree(build_dir)
+        build_dir.mkdir(parents=True, exist_ok=True)
+
         # Read CMakeLists.txt for LLM analysis
         cmakelists_path = project_path / "CMakeLists.txt"
         if not cmakelists_path.exists():
@@ -66,7 +74,7 @@ class CMakeBuilder:
 
         # Get initial configuration from LLM
         if self.verbose:
-            print(f"\n[1/3] Analyzing CMakeLists.txt with LLM...")
+            print("\n[1/3] Analyzing CMakeLists.txt with LLM...")
 
         result = self._get_initial_config(project_path, cmakelists_content)
 
@@ -77,7 +85,7 @@ class CMakeBuilder:
 
             if react_build_succeeded:
                 if self.verbose:
-                    print(f"\n[ReAct] Build already succeeded in exploration phase!")
+                    print("\n[ReAct] Build already succeeded in exploration phase!")
                     print(f"[3/3] Build successful after {result.get('attempts', 1)} turns!")
 
                 return {
@@ -139,21 +147,35 @@ class CMakeBuilder:
 
                 # Analyze error and adjust configuration
                 if self.verbose:
-                    print(f"\n[LLM] Analyzing error to adjust configuration...")
+                    print("\n[LLM] Analyzing error to adjust configuration...")
 
                 # Determine if this is a CMake config error or build error
-                if "CMake Error" in error_msg or "cmake" in error_msg.lower():
-                    analysis = self.error_analyzer.analyze_cmake_error(
+                is_cmake_error = "CMake Error" in error_msg or "cmake" in error_msg.lower()
+
+                # Use ReAct-enabled error analysis if backend supports tools
+                if hasattr(self.llm, "complete_with_tools"):
+                    file_tools = BuildTools(project_path)
+                    analysis = self.error_analyzer.analyze_error_with_tools(
                         error_msg,
                         cmake_flags,
                         project_path,
-                        cmakelists_content,
+                        file_tools,
+                        is_cmake_error=is_cmake_error,
                     )
                 else:
-                    analysis = self.error_analyzer.analyze_build_error(
-                        error_msg,
-                        cmake_flags,
-                    )
+                    # Fall back to simple analysis
+                    if is_cmake_error:
+                        analysis = self.error_analyzer.analyze_cmake_error(
+                            error_msg,
+                            cmake_flags,
+                            project_path,
+                            cmakelists_content,
+                        )
+                    else:
+                        analysis = self.error_analyzer.analyze_build_error(
+                            error_msg,
+                            cmake_flags,
+                        )
 
                 if self.verbose:
                     print(f"[Analysis] {analysis['diagnosis']}")
@@ -254,14 +276,14 @@ Choose your approach (simple JSON or ReAct with tools) and proceed."""
         }]
 
         if self.verbose:
-            print(f"[LLM] Requesting initial configuration (hybrid mode)...")
+            print("[LLM] Requesting initial configuration (hybrid mode)...")
             print(f"[LLM] Project: {project_name}")
-            print(f"[LLM] Available tools: read_file, list_dir, cmake_configure, cmake_build")
+            print("[LLM] Available tools: read_file, list_dir, cmake_configure, cmake_build")
 
         if self.log_file:
             with open(self.log_file, "a") as f:
                 f.write(f"\n{'='*80}\n")
-                f.write(f"BUILD-LEARN HYBRID MODE - INITIAL REQUEST\n")
+                f.write("BUILD-LEARN HYBRID MODE - INITIAL REQUEST\n")
                 f.write(f"Project: {project_name}\n")
                 f.write(f"{'='*80}\n\n")
                 f.write(f"SYSTEM PROMPT:\n{system}\n\n")
@@ -278,7 +300,7 @@ Choose your approach (simple JSON or ReAct with tools) and proceed."""
 
         if self.log_file:
             with open(self.log_file, "a") as f:
-                f.write(f"RESPONSE:\n")
+                f.write("RESPONSE:\n")
                 f.write(f"Stop reason: {response.stop_reason}\n")
                 for i, block in enumerate(response.content):
                     if hasattr(block, 'text'):
@@ -331,18 +353,17 @@ Choose your approach (simple JSON or ReAct with tools) and proceed."""
         prompt = INITIAL_CONFIG_PROMPT.format(
             project_name=project_name,
             cmakelists_content=cmakelists_content,
-            project_path=str(project_path),
         )
 
         if self.verbose:
-            print(f"[LLM] Requesting initial configuration...")
+            print("[LLM] Requesting initial configuration...")
             print(f"[LLM] Project: {project_name}")
             print(f"[LLM] Prompt length: {len(prompt)} chars")
 
         if self.log_file:
             with open(self.log_file, "a") as f:
                 f.write(f"\n{'='*80}\n")
-                f.write(f"BUILD-LEARN INITIAL CONFIG REQUEST\n")
+                f.write("BUILD-LEARN INITIAL CONFIG REQUEST\n")
                 f.write(f"Project: {project_name}\n")
                 f.write(f"{'='*80}\n\n")
                 f.write(f"PROMPT:\n{prompt}\n\n")
@@ -380,13 +401,19 @@ Choose your approach (simple JSON or ReAct with tools) and proceed."""
             if result.get("dependencies"):
                 print(f"[Dependencies] LLM identified {len(result['dependencies'])} dependencies:")
                 for dep in result["dependencies"]:
-                    pkg = dep.get("package", "unknown")
-                    reason = dep.get("reason", "")
-                    print(f"  - {pkg}: {reason}")
-                print(f"[Note] Ensure these are installed in the Docker image or build may fail")
+                    # Handle both string format ["zlib"] and dict format [{"package": "zlib", "reason": "..."}]
+                    if isinstance(dep, str):
+                        print(f"  - {dep}")
+                    elif isinstance(dep, dict):
+                        pkg = dep.get("package", "unknown")
+                        reason = dep.get("reason", "")
+                        print(f"  - {pkg}: {reason}")
+                    else:
+                        print(f"  - {dep}")  # Fallback for unexpected format
+                print("[Note] Ensure these are installed in the Docker image or build may fail")
 
             if self.verbose and result.get("potential_issues"):
-                print(f"[Potential Issues]")
+                print("[Potential Issues]")
                 for issue in result["potential_issues"]:
                     print(f"  - {issue}")
 
@@ -504,7 +531,7 @@ Choose your approach (simple JSON or ReAct with tools) and proceed."""
 
                     if self.log_file:
                         with open(self.log_file, "a") as f:
-                            f.write(f"NEXT RESPONSE:\n")
+                            f.write("NEXT RESPONSE:\n")
                             f.write(f"Stop reason: {response.stop_reason}\n")
                             for i, block in enumerate(response.content):
                                 if hasattr(block, 'text'):
@@ -546,6 +573,7 @@ Choose your approach (simple JSON or ReAct with tools) and proceed."""
                 return file_tools.read_file(
                     file_path=tool_input.get("file_path"),
                     max_lines=tool_input.get("max_lines", 200),
+                    start_line=tool_input.get("start_line", 1),
                 )
             elif tool_name == "list_dir":
                 return file_tools.list_dir(
@@ -565,21 +593,6 @@ Choose your approach (simple JSON or ReAct with tools) and proceed."""
             return {"error": f"Security error: {str(e)}"}
         except Exception as e:
             return {"error": f"Tool error: {str(e)}"}
-
-    def _execute_tool(self, tools: BuildTools, tool_name: str, tool_input: dict) -> dict:
-        """Execute a tool and return the result (legacy method for backwards compatibility)."""
-        if tool_name == "read_file":
-            return tools.read_file(
-                file_path=tool_input.get("file_path"),
-                max_lines=tool_input.get("max_lines", 200),
-            )
-        elif tool_name == "list_dir":
-            return tools.list_dir(
-                dir_path=tool_input.get("dir_path", "."),
-                pattern=tool_input.get("pattern"),
-            )
-        else:
-            return {"error": f"Unknown tool: {tool_name}"}
 
     def _get_default_config(self) -> list[str]:
         """Get default CMake configuration (fallback if LLM fails)."""
@@ -614,8 +627,9 @@ Choose your approach (simple JSON or ReAct with tools) and proceed."""
         """
         Attempt to build the project with given CMake flags.
 
-        Raises BuildError if the build fails.
-        Returns build log on success.
+        Uses two-phase approach: configure then build.
+        Raises BuildError if either phase fails.
+        Returns combined log on success.
         """
         # Use custom build_dir if provided, otherwise default to project_path/build
         if self.build_dir:
@@ -623,67 +637,40 @@ Choose your approach (simple JSON or ReAct with tools) and proceed."""
         else:
             build_dir = project_path / "build"
 
-        build_dir.mkdir(parents=True, exist_ok=True)
+        # Create CMakeActions instance for two-phase build
+        actions = CMakeActions(project_path, build_dir, self.container_image, self.verbose)
 
-        # Construct CMake command with separate volume mounts for source and build
-        # Run as host user to avoid root-owned files
-        import os
-        uid = os.getuid()
-        gid = os.getgid()
-
-        cmake_cmd = [
-            "docker", "run", "--rm",
-            "-u", f"{uid}:{gid}",
-            "-v", f"{project_path}:/workspace/src",
-            "-v", f"{build_dir}:/workspace/build",
-            "-w", "/workspace/build",
-            self.container_image,
-            "bash", "-c",
-        ]
-
-        # CMake configure command pointing to source directory
-        # Quote flags that contain spaces to prevent shell splitting
-        quoted_flags = []
-        for flag in cmake_flags:
-            if ' ' in flag:
-                # Use single quotes to protect the flag from shell splitting
-                quoted_flags.append(f"'{flag}'")
-            else:
-                quoted_flags.append(flag)
-
-        configure_cmd = f"cmake -G Ninja {' '.join(quoted_flags)} /workspace/src"
-
-        # Build command
-        build_cmd = "ninja -j$(nproc)"
-
-        # Combined command
-        full_cmd = f"{configure_cmd} && {build_cmd}"
-
+        # Phase 1: Configure
         if self.verbose:
             print(f"[Docker] Build directory: {build_dir}")
-            print(f"[Docker] Running: {full_cmd}")
+            print("[Phase 1/2] Running CMake configure...")
 
-        cmake_cmd.append(full_cmd)
+        configure_result = actions.cmake_configure(cmake_flags)
 
-        try:
-            result = subprocess.run(
-                cmake_cmd,
-                capture_output=True,
-                text=True,
-                timeout=600,  # 10 minute timeout
-            )
+        if not configure_result["success"]:
+            # Configure failed - raise error with clear message
+            error_msg = configure_result.get("error", "Unknown configure error")
+            output = configure_result.get("output", "")
+            raise BuildError(f"{error_msg}\n{output}")
 
-            output = result.stdout + result.stderr
+        configure_output = configure_result["output"]
 
-            if result.returncode != 0:
-                raise BuildError(output)
+        # Phase 2: Build
+        if self.verbose:
+            print("[Phase 2/2] Running ninja build...")
 
-            return output
+        build_result = actions.cmake_build()
 
-        except subprocess.TimeoutExpired:
-            raise BuildError("Build timed out after 10 minutes")
-        except Exception as e:
-            raise BuildError(f"Build failed with exception: {e}")
+        if not build_result["success"]:
+            # Build failed - raise error with clear message
+            error_msg = build_result.get("error", "Unknown build error")
+            output = build_result.get("output", "")
+            raise BuildError(f"{error_msg}\n{output}")
+
+        build_output = build_result["output"]
+
+        # Combine outputs
+        return f"=== Configure Output ===\n{configure_output}\n\n=== Build Output ===\n{build_output}"
 
     def _apply_suggestions(
         self, current_flags: list[str], analysis: dict
@@ -711,10 +698,10 @@ Choose your approach (simple JSON or ReAct with tools) and proceed."""
         # Execute install commands (if any)
         install_commands = analysis.get("install_commands", [])
         if install_commands and self.verbose:
-            print(f"[Note] The following packages may need to be installed:")
+            print("[Note] The following packages may need to be installed:")
             for cmd in install_commands:
                 print(f"  {cmd}")
-            print(f"[Note] Consider updating the Dockerfile to include these dependencies")
+            print("[Note] Consider updating the Dockerfile to include these dependencies")
 
         return flags
 

@@ -2,9 +2,13 @@
 
 import json
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from ..llm.base import LLMBackend
 from .prompts import BUILD_FAILURE_PROMPT, ERROR_ANALYSIS_PROMPT
+
+if TYPE_CHECKING:
+    from .tools import BuildTools
 
 
 class BuildError(Exception):
@@ -48,17 +52,16 @@ class ErrorAnalyzer:
             current_flags="\n".join(current_flags),
             error_output=error_output,
             cmakelists_excerpt=cmakelists_excerpt,
-            project_path=str(project_path),
         )
 
         if self.verbose:
-            print(f"\n[LLM] Analyzing CMake error...")
+            print("\n[LLM] Analyzing CMake error...")
             print(f"[LLM] Prompt length: {len(prompt)} chars")
 
         if self.log_file:
             with open(self.log_file, "a") as f:
                 f.write(f"\n{'='*80}\n")
-                f.write(f"CMAKE ERROR ANALYSIS\n")
+                f.write("CMAKE ERROR ANALYSIS\n")
                 f.write(f"{'='*80}\n\n")
                 f.write(f"PROMPT:\n{prompt}\n\n")
 
@@ -123,13 +126,13 @@ class ErrorAnalyzer:
         )
 
         if self.verbose:
-            print(f"\n[LLM] Analyzing build error...")
+            print("\n[LLM] Analyzing build error...")
             print(f"[LLM] Prompt length: {len(prompt)} chars")
 
         if self.log_file:
             with open(self.log_file, "a") as f:
                 f.write(f"\n{'='*80}\n")
-                f.write(f"BUILD ERROR ANALYSIS\n")
+                f.write("BUILD ERROR ANALYSIS\n")
                 f.write(f"{'='*80}\n\n")
                 f.write(f"PROMPT:\n{prompt}\n\n")
 
@@ -172,4 +175,236 @@ class ErrorAnalyzer:
                 "compiler_flag_changes": {},
                 "confidence": "low",
                 "notes": "",
+            }
+
+    def analyze_error_with_tools(
+        self,
+        error_output: str,
+        current_flags: list[str],
+        project_path: Path,
+        build_tools: "BuildTools",
+        is_cmake_error: bool = True,
+    ) -> dict:
+        """
+        Analyze an error using ReAct approach with tools.
+
+        The model can explore files, read specific sections, and iteratively
+        investigate the error before suggesting fixes.
+
+        Returns a dict with:
+        - diagnosis: str
+        - suggested_flags: list[str]
+        - install_commands: list[str]
+        - confidence: str
+        """
+        # Check if backend supports tools
+        if not hasattr(self.llm, "complete_with_tools"):
+            # Fall back to simple analysis
+            if is_cmake_error:
+                return self.analyze_cmake_error(
+                    error_output, current_flags, project_path, None
+                )
+            else:
+                return self.analyze_build_error(error_output, current_flags)
+
+        # Tool definitions for error analysis
+        from .tool_definitions import TOOL_DEFINITIONS_READ_ONLY
+
+        error_type = "CMake configuration" if is_cmake_error else "build/compilation"
+
+        system = f"""You are a build error diagnostic expert. Analyze the {error_type} error and suggest fixes.
+
+You have tools to explore the project:
+- read_file: Read any project file (CMakeLists.txt, source files, config files, etc.)
+- list_dir: Explore project structure
+
+**IMPORTANT**: All file/directory paths must be RELATIVE to project root (e.g., ".", "CMakeLists.txt", "cmake/FindZLIB.cmake").
+
+Context:
+- Build runs in Docker container (source at /workspace/src, build at /workspace/build)
+- Error messages reference container paths
+- Using Clang 18, LTO enabled, static linking preferred
+
+Your task:
+1. Read the error output carefully
+2. Use tools to investigate (read relevant CMakeLists.txt sections, config files, etc.)
+3. Identify the root cause
+4. Return a JSON fix suggestion
+
+When done investigating, return ONLY valid JSON:
+{{
+  "diagnosis": "Brief description of the problem",
+  "suggested_flags": ["-DFLAG=VALUE", ...],
+  "install_commands": ["apt install package", ...],
+  "confidence": "high|medium|low"
+}}"""
+
+        messages = [{
+            "role": "user",
+            "content": f"""A {error_type} error occurred. Please investigate and suggest fixes.
+
+Current CMake flags:
+{chr(10).join(current_flags)}
+
+Error output:
+{error_output}
+
+Use the available tools to explore the project and understand the error.
+When ready, return your analysis as JSON."""
+        }]
+
+        if self.verbose:
+            print("[LLM] Starting ReAct error analysis...")
+            print(f"[LLM] Error type: {error_type}")
+            print("[LLM] Available tools: read_file, list_dir")
+
+        if self.log_file:
+            with open(self.log_file, "a") as f:
+                f.write(f"\n{'='*80}\n")
+                f.write(f"REACT ERROR ANALYSIS - {error_type.upper()}\n")
+                f.write(f"{'='*80}\n\n")
+                f.write(f"SYSTEM PROMPT:\n{system}\n\n")
+                f.write(f"USER MESSAGE:\n{messages[0]['content']}\n\n")
+
+        # ReAct loop
+        max_turns = 10
+        for turn in range(max_turns):
+            response = self.llm.complete_with_tools(
+                messages=messages,
+                tools=TOOL_DEFINITIONS_READ_ONLY,
+                system=system,
+            )
+
+            if self.log_file:
+                with open(self.log_file, "a") as f:
+                    f.write(f"\nTURN {turn + 1} RESPONSE:\n")
+                    f.write(f"Stop reason: {response.stop_reason}\n")
+                    for i, block in enumerate(response.content):
+                        if hasattr(block, 'text'):
+                            f.write(f"[Block {i}] Text: {block.text}\n")
+                        elif hasattr(block, 'name'):
+                            f.write(f"[Block {i}] Tool: {block.name}({block.input})\n")
+                    f.write("\n")
+
+            # Check if done
+            if response.stop_reason in ("end_turn", "stop"):
+                # Extract text and try to parse JSON
+                text = ""
+                for block in response.content:
+                    if hasattr(block, "text"):
+                        text += block.text
+
+                if self.verbose:
+                    print(f"[LLM] Analysis complete after {turn + 1} turns")
+
+                return self._parse_analysis_json(text)
+
+            elif response.stop_reason == "tool_use":
+                # Execute tools
+                assistant_content = []
+                tool_results = []
+
+                for block in response.content:
+                    if hasattr(block, "text"):
+                        assistant_content.append({"type": "text", "text": block.text})
+                        if self.verbose:
+                            print(f"[LLM] {block.text}")
+
+                    elif block.type == "tool_use":
+                        assistant_content.append({
+                            "type": "tool_use",
+                            "id": block.id,
+                            "name": block.name,
+                            "input": block.input,
+                        })
+
+                        # Execute tool
+                        result = self._execute_tool_safe(
+                            build_tools, block.name, block.input
+                        )
+
+                        if self.verbose:
+                            print(f"[Tool] {block.name}({json.dumps(block.input)})")
+                            if "error" in result and result["error"]:
+                                print(f"  Error: {result['error'][:200]}")
+
+                        tool_results.append({
+                            "type": "tool_result",
+                            "tool_use_id": block.id,
+                            "content": json.dumps(result),
+                        })
+
+                messages.append({"role": "assistant", "content": assistant_content})
+                messages.append({"role": "user", "content": tool_results})
+
+            else:
+                if self.verbose:
+                    print(f"[LLM] Unexpected stop reason: {response.stop_reason}")
+                break
+
+        # Max turns reached without JSON response
+        if self.verbose:
+            print("[LLM] Max turns reached without analysis")
+
+        return {
+            "diagnosis": "Error analysis did not complete",
+            "suggested_flags": [],
+            "install_commands": [],
+            "confidence": "low",
+        }
+
+    def _execute_tool_safe(
+        self, build_tools: "BuildTools", tool_name: str, tool_input: dict
+    ) -> dict:
+        """Execute tool with security checks."""
+        try:
+            if tool_name == "read_file":
+                return build_tools.read_file(
+                    file_path=tool_input.get("file_path"),
+                    max_lines=tool_input.get("max_lines", 200),
+                    start_line=tool_input.get("start_line", 1),
+                )
+            elif tool_name == "list_dir":
+                return build_tools.list_dir(
+                    dir_path=tool_input.get("dir_path", "."),
+                    pattern=tool_input.get("pattern"),
+                )
+            else:
+                return {"error": f"Unknown tool: {tool_name}"}
+        except ValueError as e:
+            # Security violation
+            return {"error": f"Security error: {str(e)}"}
+        except Exception as e:
+            return {"error": f"Tool error: {str(e)}"}
+
+    def _parse_analysis_json(self, text: str) -> dict:
+        """Parse analysis JSON from LLM response."""
+        try:
+            # Strip markdown code blocks
+            json_str = text.strip()
+            if json_str.startswith("```json"):
+                json_str = json_str[7:]
+            if json_str.startswith("```"):
+                json_str = json_str[3:]
+            if json_str.endswith("```"):
+                json_str = json_str[:-3]
+            json_str = json_str.strip()
+
+            result = json.loads(json_str)
+            return {
+                "diagnosis": result.get("diagnosis", "Unknown error"),
+                "suggested_flags": result.get("suggested_flags", []),
+                "install_commands": result.get("install_commands", []),
+                "confidence": result.get("confidence", "low"),
+            }
+        except json.JSONDecodeError as e:
+            if self.verbose:
+                print(f"[ERROR] Failed to parse analysis JSON: {e}")
+                print(f"[ERROR] Text: {text[:500]}...")
+
+            return {
+                "diagnosis": "Failed to parse LLM analysis",
+                "suggested_flags": [],
+                "install_commands": [],
+                "confidence": "low",
             }

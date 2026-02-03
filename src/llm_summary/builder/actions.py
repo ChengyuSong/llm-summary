@@ -138,7 +138,7 @@ class CMakeActions:
             ]
 
             if self.verbose:
-                print(f"[cmake_build] Running: ninja -j$(nproc)")
+                print("[cmake_build] Running: ninja -j$(nproc)")
 
             result = subprocess.run(
                 docker_cmd,
