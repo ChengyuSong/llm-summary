@@ -705,10 +705,14 @@ Choose your approach (simple JSON or ReAct with tools) and proceed."""
 
         return flags
 
-    def extract_compile_commands(self, project_path: Path) -> Path:
+    def extract_compile_commands(self, project_path: Path, output_dir: Path | None = None) -> Path:
         """
-        Extract compile_commands.json from build directory to project root.
+        Extract compile_commands.json from build directory to output directory.
         Fixes Docker container paths to host paths.
+
+        Args:
+            project_path: Path to the project source
+            output_dir: Directory to save compile_commands.json (default: build-scripts/<project>/)
 
         Returns the path to the extracted file.
         """
@@ -719,7 +723,13 @@ Choose your approach (simple JSON or ReAct with tools) and proceed."""
             build_dir = project_path / "build"
 
         compile_commands_src = build_dir / "compile_commands.json"
-        compile_commands_dst = project_path / "compile_commands.json"
+
+        # Default output to build-scripts/<project>/compile_commands.json
+        if output_dir is None:
+            output_dir = Path("build-scripts") / project_path.name
+            output_dir.mkdir(parents=True, exist_ok=True)
+
+        compile_commands_dst = output_dir / "compile_commands.json"
 
         if not compile_commands_src.exists():
             raise FileNotFoundError(

@@ -977,15 +977,6 @@ def build_learn(
 
     console.print(f"\n[green]Build successful after {result['attempts']} attempts![/green]")
 
-    # Extract compile_commands.json
-    console.print(f"\n[bold]Extracting compile_commands.json...[/bold]")
-    try:
-        compile_commands_path = builder.extract_compile_commands(project_path)
-        console.print(f"Extracted to: {compile_commands_path}")
-    except Exception as e:
-        console.print(f"[yellow]Warning: Failed to extract compile_commands.json: {e}[/yellow]")
-        compile_commands_path = None
-
     # Generate build script
     console.print(f"\n[bold]Generating reusable build script...[/bold]")
     project_name = project_path.name
@@ -1004,6 +995,17 @@ def build_learn(
         console.print(f"Script: [bold]{paths['script']}[/bold]")
         console.print(f"Config: {paths['config']}")
         console.print(f"Artifacts: {paths['artifacts_dir']}")
+
+        # Extract compile_commands.json to build-scripts/<project>/
+        console.print(f"\n[bold]Extracting compile_commands.json...[/bold]")
+        try:
+            # Use the project directory created by the script generator
+            project_dir = paths['script'].parent
+            compile_commands_path = builder.extract_compile_commands(project_path, output_dir=project_dir)
+            console.print(f"Extracted to: {compile_commands_path}")
+        except Exception as e:
+            console.print(f"[yellow]Warning: Failed to extract compile_commands.json: {e}[/yellow]")
+            compile_commands_path = None
 
         # Generate README if it doesn't exist
         readme_path = generator.scripts_base_dir / "README.md"

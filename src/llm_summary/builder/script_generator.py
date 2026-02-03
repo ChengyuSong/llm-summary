@@ -115,8 +115,11 @@ class ScriptGenerator:
 
 set -e
 
+# Determine script directory (where compile_commands.json will be saved)
+SCRIPT_DIR="$(cd "$(dirname "${{BASH_SOURCE[0]}}")" && pwd)"
+
 PROJECT_PATH="${{1:-{project_path}}}"
-ARTIFACTS_DIR="${{2:-{project_dir.resolve()}/artifacts}}"
+ARTIFACTS_DIR="${{2:-$SCRIPT_DIR/artifacts}}"
 
 # Validate project path
 if [ ! -d "$PROJECT_PATH" ]; then
@@ -151,12 +154,12 @@ docker run --rm \\
         # Add post-build steps
         script_content += '''
 
-# Copy compile_commands.json to project root
+# Copy compile_commands.json to script directory (build-scripts/<project>/)
 if [ -f "$PROJECT_PATH/build/compile_commands.json" ]; then
-    cp "$PROJECT_PATH/build/compile_commands.json" "$PROJECT_PATH/"
+    cp "$PROJECT_PATH/build/compile_commands.json" "$SCRIPT_DIR/"
     echo ""
     echo "Build complete."
-    echo "  - compile_commands.json: $PROJECT_PATH/compile_commands.json"
+    echo "  - compile_commands.json: $SCRIPT_DIR/compile_commands.json"
 
     # Count IR artifacts if they were generated
     if [ -d "$ARTIFACTS_DIR" ]; then
@@ -190,12 +193,12 @@ Each project has its own subdirectory:
 
 ```
 build-scripts/
-├── README.md           # This file
+├── README.md               # This file
 ├── libpng/
-│   ├── build.sh        # Reusable build script
-│   ├── config.json     # Build configuration metadata
-│   ├── build.log       # Last build output (if saved)
-│   └── artifacts/      # LLVM IR files (.bc, .ll)
+│   ├── build.sh            # Reusable build script
+│   ├── config.json         # Build configuration metadata
+│   ├── compile_commands.json  # Compilation database
+│   └── artifacts/          # LLVM IR files (.bc, .ll)
 └── ...
 ```
 
@@ -228,7 +231,7 @@ bash libpng/build.sh /path/to/libpng /path/to/artifacts
 3. Runs CMake configuration in Docker with learned flags
 4. Builds the project with Ninja
 5. Collects LLVM IR artifacts (`.bc` and `.ll` files)
-6. Copies `compile_commands.json` to project root
+6. Copies `compile_commands.json` to `build-scripts/<project>/`
 
 ## Configuration Files
 
