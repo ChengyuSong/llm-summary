@@ -19,7 +19,7 @@ The `build-learn` command uses LLM-powered incremental learning to automatically
 
 ```bash
 cd docker/build-env
-./build.sh
+bash build.sh
 ```
 
 ### 2. Run Build Learning
@@ -74,16 +74,21 @@ The build agent automatically chooses between two modes based on project complex
 │  (Project)      │     │                                        │
 └─────────────────┘     │ Tools available:                       │
                         │ • read_file: Read project files        │
+                        │   (with pagination via start_line)     │
                         │ • list_dir: Explore structure          │
                         │ • cmake_configure: Test config         │
                         │ • cmake_build: Run build               │
                         │                                        │
                         │ Loop (max 15 turns):                   │
-                        │ 1. Explore project                     │
-                        │ 2. Try cmake configure                 │
-                        │ 3. See results, adjust                 │
-                        │ 4. Try build                           │
-                        │ 5. On success: done                    │
+                        │ 1. Explore project structure           │
+                        │ 2. Read CMake modules/configs          │
+                        │ 3. Try cmake configure with flags      │
+                        │ 4. See results, adjust if needed       │
+                        │ 5. Try cmake build                     │
+                        │ 6. On success: return flags            │
+                        │                                        │
+                        │ On build success in ReAct phase:       │
+                        │ → Skip retry loop (already built!)     │
                         └────────────────────────────────────────┘
                                         │
                                         ▼
@@ -118,43 +123,93 @@ Identifies the build system used by a project:
 **Hybrid Workflow:**
 
 **Simple Mode (for standard projects):**
-1. LLM reads CMakeLists.txt
+1. `_get_initial_config_simple()`: LLM reads CMakeLists.txt
 2. Returns JSON with cmake_flags immediately
-3. Build executes with retry loop (max 3 attempts)
-4. On failure: error analysis and flag adjustment
+3. Build executes with retry loop (max 3 attempts via `learn_and_build()`)
+4. On failure: error analysis via `ErrorAnalyzer` and flag adjustment
 
 **ReAct Mode (for complex projects):**
-1. LLM explores project with tools (read_file, list_dir)
-2. Iteratively tries cmake_configure with different flags
-3. Sees configure output, adjusts based on errors
-4. Once configure succeeds, tries cmake_build
-5. Adjusts and retries build if needed
-6. Returns flags on successful build
+1. `_get_initial_config_with_tools()`: LLM receives hybrid system prompt
+2. If stop_reason = "tool_use", enters `_execute_react_loop()` (max 15 turns)
+3. LLM explores project with tools (read_file, list_dir)
+4. Iteratively tries cmake_configure with different flags
+5. Sees configure output, adjusts based on errors
+6. Once configure succeeds, tries cmake_build
+7. On successful build: Returns dict with `build_succeeded=True`, `cmake_flags`, `attempts`
+8. If build succeeded in ReAct phase: Skip retry loop entirely!
+
+**Mode Selection Logic:**
+- Check `response.stop_reason` from first LLM turn:
+  - `"end_turn"` or `"stop"` → Simple mode (parse JSON config)
+  - `"tool_use"` → ReAct mode (enter tool execution loop)
+- LLM decides automatically based on project complexity
+
+**Retry Loop (Simple Mode or ReAct Build Failure):**
+- Max retries configurable (default: 3)
+- On failure: `ErrorAnalyzer` suggests fixes
+- Tool-enabled backends: Error analysis can use ReAct mode too (max 10 turns)
+- Applies suggestions via `_apply_suggestions()` and retries build
 
 **Features:**
-- **Hybrid mode selection**: LLM chooses simple or ReAct automatically
-- **Sandboxed file access**: All file operations restricted to project directory
-- **Separate configure/build steps**: ReAct mode can iterate on configure before building
-- **Docker isolation**: All builds run in containers with LLVM 18
-- **Path fixing**: Container paths automatically mapped to host paths
-- **Tool-based exploration**: Can read cmake modules, explore directories
-- **Security**: Path traversal and absolute paths blocked
+- **Hybrid mode selection**: LLM chooses simple or ReAct automatically based on stop_reason
+- **Sandboxed file access**: All file operations restricted to project directory via `_validate_path()`
+- **Separate configure/build steps**: `CMakeActions.cmake_configure()` and `cmake_build()` can run independently
+- **Docker isolation**: All builds run in containers with LLVM 18, user permissions preserved
+- **Path fixing**: Container paths (`/workspace/src`, `/workspace/build`) mapped to host paths via `extract_compile_commands()`
+- **Tool-based exploration**: Can read cmake modules, explore directories with pagination
+- **Security**: Path traversal and absolute paths blocked by `BuildTools._validate_path()`
+- **Early exit optimization**: If ReAct mode succeeds in building, skip retry loop
 
 **Key class:** `CMakeBuilder`
 
+**Constructor:**
+```python
+CMakeBuilder(
+    llm: LLMBackend,
+    container_image: str = "llm-summary-builder:latest",
+    build_dir: Path | None = None,
+    max_retries: int = 3,
+    enable_lto: bool = True,
+    prefer_static: bool = True,
+    generate_ir: bool = True,
+    verbose: bool = False,
+    log_file: str | None = None,  # Optional: Log all LLM interactions
+)
+```
+
+**Key methods:**
+- `learn_and_build()`: Main entry point, orchestrates entire workflow
+- `_get_initial_config()`: Routes to tool-enabled or simple workflow
+- `_get_initial_config_with_tools()`: Hybrid prompt for tool-enabled backends
+- `_get_initial_config_simple()`: Simple JSON prompt for non-tool backends
+- `_execute_react_loop()`: ReAct tool execution loop (max 15 turns)
+- `_attempt_build()`: Two-phase build (configure + build) via CMakeActions
+- `_apply_suggestions()`: Apply error analysis suggestions to flags
+- `extract_compile_commands()`: Fix Docker paths in compile_commands.json
+
 ### 3. Error Analyzer (`builder/error_analyzer.py`)
 
-Uses LLM to diagnose build failures and suggest fixes:
+Uses LLM to diagnose build failures and suggest fixes with optional ReAct mode:
 
-**CMake Configuration Errors:**
-- Missing dependencies
-- Invalid flags
-- Incompatible options
+**Error Analysis Modes:**
 
-**Build/Compilation Errors:**
-- Compiler flag issues
-- LTO conflicts
-- Assembly code problems
+**ReAct Mode (tool-enabled backends):**
+- Uses `analyze_error_with_tools()` method
+- Can explore project files to investigate errors
+- Available tools: `read_file`, `list_dir`
+- Iteratively investigates before suggesting fixes
+- Max 10 turns for exploration
+- Returns JSON with diagnosis and suggested fixes
+
+**Simple Mode (fallback):**
+- Direct LLM prompt with error output
+- CMake errors: `analyze_cmake_error()`
+- Build errors: `analyze_build_error()`
+- Single-turn analysis
+
+**Error Types Handled:**
+- **CMake Configuration Errors:** Missing dependencies, invalid flags, incompatible options
+- **Build/Compilation Errors:** Compiler flag issues, LTO conflicts, assembly code problems
 
 **Key class:** `ErrorAnalyzer`
 
@@ -170,52 +225,92 @@ Generates reusable build scripts in `build-scripts/<project>/`:
 
 **Key class:** `ScriptGenerator`
 
-### 5. Build Agent Tools (`builder/tools.py`, `builder/actions.py`)
+### 5. Build Agent Tools (`builder/tools.py`, `builder/actions.py`, `builder/tool_definitions.py`)
 
 The LLM agent has access to four tools for exploring and building projects:
 
+#### Tool Definitions (`builder/tool_definitions.py`)
+
+Centralizes all tool definitions in Anthropic format:
+
+- **TOOL_DEFINITIONS_READ_ONLY**: File exploration tools only (for error analysis)
+- **ALL_TOOL_DEFINITIONS**: File tools + action tools (for initial config phase)
+
+Tool definitions are automatically converted to OpenAI format for backends that require it (e.g., llama.cpp).
+
 #### File Exploration Tools (`builder/tools.py`)
 
-**read_file(file_path, max_lines=200)**
-- Reads project files (CMakeLists.txt, cmake modules, configs)
+**read_file(file_path, max_lines=200, start_line=1)**
+- Reads project files (CMakeLists.txt, cmake modules, configs, source files)
 - Path must be relative to project root
-- Returns file content or error message
+- `max_lines`: Maximum lines to read (default: 200)
+- `start_line`: Line number to start reading from (1-indexed, default: 1)
+- Returns dict with: `content`, `path`, `start_line`, `end_line`, `lines_read`, `truncated`
+- Line-numbered output format: `{line_num:4d}: {line_content}`
+- Use `start_line` to jump to specific sections when errors mention line numbers
 - Security: Blocks absolute paths and path traversal
 
 **list_dir(dir_path=".", pattern=None)**
 - Lists files and directories in project
-- Optional glob pattern filtering (e.g., "*.cmake")
-- Returns files, directories, and metadata
+- `dir_path`: Relative path from project root (default: ".")
+- `pattern`: Optional glob pattern filtering (e.g., "*.cmake", "CMake*")
+- Returns dict with: `path`, `files` (with name/path/size), `directories` (with name/path), `total`
 - Security: Restricted to project directory tree
 
 #### Build Action Tools (`builder/actions.py`)
 
 **cmake_configure(cmake_flags)**
-- Runs CMake configuration step only in Docker
-- Tests flags without triggering full build
-- Returns success status and output
-- Allows iterative flag refinement
+- Runs CMake configuration step in Docker container
+- `cmake_flags`: List of CMake flags (e.g., `["-DCMAKE_BUILD_TYPE=Release", "-DBUILD_SHARED_LIBS=OFF"]`)
+- Flags with spaces are automatically quoted for shell execution
+- Returns dict with: `success` (bool), `output` (stdout+stderr), `error` (error message)
+- Container config: `-G Ninja`, source at `/workspace/src`, build at `/workspace/build`
+- Timeout: 5 minutes
+- Allows iterative flag refinement without full build
 
 **cmake_build()**
-- Runs ninja build after successful configure
-- Requires CMakeCache.txt to exist
-- Returns build output and status
-- Separate from configure for targeted debugging
+- Runs ninja build (`ninja -j$(nproc)`) after successful configure
+- No parameters required
+- Requires CMakeCache.txt to exist (from successful configure)
+- Returns dict with: `success` (bool), `output` (stdout+stderr), `error` (error message)
+- Timeout: 10 minutes
+- Separate from configure for targeted debugging and faster iteration
 
 #### Security Sandboxing
 
-All file tools enforce strict path validation:
-- **Absolute paths blocked**: `/etc/passwd` → Error
-- **Path traversal blocked**: `../../../etc/passwd` → Error
-- **Symlinks validated**: Links outside project → Error
-- **Resolution check**: Resolved path must be within project root
+All file tools enforce strict path validation via `BuildTools._validate_path()`:
 
-Example security validation:
+**Validation Steps:**
+1. **Reject absolute paths**: Paths like `/etc/passwd` are blocked immediately
+2. **Resolve relative to project root**: All paths resolved against `self.project_path`
+3. **Check containment**: Use `Path.relative_to()` to ensure resolved path is within project
+4. **Raise ValueError**: Any security violation raises `ValueError` which is caught and returned as error
+
+**Implementation Details:**
+```python
+def _validate_path(self, path: str) -> Path:
+    requested = Path(path)
+    if requested.is_absolute():
+        raise ValueError(f"Absolute paths not allowed: {path}")
+
+    full_path = (self.project_path / requested).resolve()
+
+    try:
+        full_path.relative_to(self.project_path)
+    except ValueError:
+        raise ValueError(f"Path escapes project directory: {path}")
+
+    return full_path
+```
+
+**Example Security Validation:**
 ```python
 # Valid (within project)
 read_file("CMakeLists.txt")              ✓
 read_file("cmake/FindZLIB.cmake")        ✓
+read_file("src/config.h.in")             ✓
 list_dir("src")                          ✓
+list_dir(".", pattern="*.cmake")         ✓
 
 # Invalid (blocked by security)
 read_file("/etc/passwd")                 ✗ Absolute path
@@ -223,20 +318,33 @@ read_file("../../../etc/passwd")         ✗ Path traversal
 list_dir("../../")                       ✗ Escapes project
 ```
 
-**Key classes:** `BuildTools`, `CMakeActions`
+**Key classes:** `BuildTools` (file exploration), `CMakeActions` (build execution)
 
-### 6. LLM Backends (`llm/vertex.py`)
+### 6. LLM Backends (`llm/`)
 
-**Vertex AI Backend:**
-- Uses Anthropic Claude via GCP Vertex AI
-- Default model: `claude-haiku-4-5@20251001`
-- Environment variables checked (in order):
-  1. `VERTEX_AI_PROJECT`
-  2. `ANTHROPIC_VERTEX_PROJECT_ID`
-  3. `GOOGLE_CLOUD_PROJECT`
-  4. `CLOUD_ML_PROJECT_ID`
+Multiple LLM backends are supported with varying capabilities:
 
-**Debug mode:** Set `VERTEX_DEBUG=1` to see full API responses
+**Tool-Enabled Backends (Support ReAct Mode):**
+- **Vertex AI** (`llm/vertex.py`): Anthropic Claude via GCP Vertex AI
+  - Default model: `claude-haiku-4-5@20251001`
+  - Environment variables (in order): `VERTEX_AI_PROJECT`, `ANTHROPIC_VERTEX_PROJECT_ID`, `GOOGLE_CLOUD_PROJECT`, `CLOUD_ML_PROJECT_ID`
+  - Debug: Set `VERTEX_DEBUG=1` for full API responses
+- **Claude/Anthropic** (`llm/claude.py`): Direct Anthropic API
+  - Default model: `claude-sonnet-4-5@20250929`
+  - Requires: `ANTHROPIC_API_KEY` environment variable
+- **llama.cpp** (`llm/llamacpp.py`): Local model server with tool calling
+  - Default: Uses model served by llama.cpp server
+  - OpenAI-compatible /v1/chat/completions endpoint
+  - Supports thinking mode control for Nemotron models
+  - Tool format conversion: Anthropic → OpenAI
+
+**Simple Mode Only Backends:**
+- **Ollama** (`llm/ollama.py`): Local Ollama server
+  - Default model: `qwen3-coder:30b`
+  - Falls back to simple workflow (no tool support)
+- **OpenAI** (`llm/openai.py`): OpenAI API
+  - Default model: `gpt-4`
+  - Falls back to simple workflow
 
 ## Usage
 
@@ -251,7 +359,9 @@ llm-summary build-learn [OPTIONS]
 
 **Optional:**
 - `--build-dir PATH`: Custom build directory (default: `<project-path>/build`)
-- `--backend {claude|openai|ollama|vertex}`: LLM backend (default: `vertex`)
+- `--backend {claude|openai|ollama|vertex|llamacpp}`: LLM backend (default: `vertex`)
+  - Tool-enabled (ReAct mode): `claude`, `vertex`, `llamacpp`
+  - Simple mode only: `ollama`, `openai`
 - `--model NAME`: Model name (default varies by backend)
 - `--max-retries N`: Maximum build attempts (default: `3`)
 - `--container-image NAME`: Docker image (default: `llm-summary-builder:latest`)
@@ -260,6 +370,7 @@ llm-summary build-learn [OPTIONS]
 - `--generate-ir / --no-ir`: Generate LLVM IR (default: `true`)
 - `--db PATH`: Database file (default: `summaries.db`)
 - `--verbose, -v`: Show detailed output
+- `--log-file PATH`: Optional log file to record all LLM interactions (prompts, responses, tool calls)
 
 ### Examples
 
@@ -283,6 +394,16 @@ llm-summary build-learn \
   --project-path /path/to/project \
   --backend ollama \
   --model qwen3-coder:30b
+```
+
+**Using llama.cpp (local model with tool support):**
+```bash
+# Start llama.cpp server first (see llama.cpp docs for setup)
+# Then run build-learn:
+llm-summary build-learn \
+  --project-path /path/to/project \
+  --backend llamacpp \
+  --verbose
 ```
 
 **Disable IR generation (faster builds):**
@@ -402,11 +523,15 @@ Result: Success! Build complete in 25.3 seconds
 - `/workspace/build`: Build directory (read-write)
 - `/artifacts`: LLVM IR output (read-write)
 
-## LLM Prompts
+## LLM Prompts (`builder/prompts.py`, `builder/cmake_builder.py`)
+
+The build agent uses different prompts depending on the backend capabilities and workflow mode.
 
 ### Hybrid System Prompt (Tool-Enabled Backends)
 
-For backends supporting tool use (Vertex AI, Anthropic API), the agent receives a hybrid system prompt offering both modes:
+Defined in `cmake_builder.py:_get_initial_config_with_tools()`.
+
+For backends supporting tool use (Vertex AI, Anthropic API, llama.cpp), the agent receives a hybrid system prompt offering both modes:
 
 **Option 1 - Simple Mode:**
 - Return JSON configuration immediately for straightforward projects
@@ -447,8 +572,17 @@ Analyzes CMakeLists.txt and generates:
 - Minimize assembly code
 - Generate LLVM IR
 
-### Error Analysis Prompt
+### Error Analysis Prompts
 
+Defined in `prompts.py`: `ERROR_ANALYSIS_PROMPT`, `BUILD_FAILURE_PROMPT`
+System prompt in `error_analyzer.py:analyze_error_with_tools()` for ReAct mode.
+
+**ReAct Mode (tool-enabled backends):**
+- Can use read_file and list_dir to investigate errors
+- Max 10 turns for exploration
+- Returns JSON with diagnosis and fixes
+
+**Simple Mode (all backends):**
 On build failure in retry loop, analyzes:
 - Error output
 - Current configuration
@@ -459,7 +593,9 @@ On build failure in retry loop, analyzes:
 - Missing packages
 - Compatibility fixes
 
-**Note:** ReAct mode may not reach this prompt if it builds successfully in exploration phase
+**Note:**
+- In ReAct mode during initial config, the agent may resolve build issues in exploration phase without needing error analysis
+- Error analysis runs separately in retry loop if initial build attempt fails
 
 ## Database Schema
 
@@ -532,6 +668,37 @@ CREATE TABLE build_configs (
 
 **Generated by:** `-save-temps=obj` compiler flag
 
+## Debugging and Logging
+
+### Log File Output
+
+The `--log-file` option enables comprehensive logging of all LLM interactions:
+
+**What's logged:**
+- System prompts for each phase (initial config, error analysis)
+- User messages with full context
+- Tool definitions (JSON format)
+- LLM responses including stop_reason
+- Tool calls with parameters and results
+- Each turn in ReAct loops
+
+**Use cases:**
+- Debug why LLM chose specific flags
+- Understand ReAct exploration behavior
+- Troubleshoot tool call failures
+- Analyze error diagnosis reasoning
+- Review full conversation history
+
+**Example:**
+```bash
+llm-summary build-learn \
+  --project-path /path/to/project \
+  --log-file build-debug.log \
+  --verbose
+```
+
+The log file is append-mode, so multiple runs accumulate in the same file with clear separators.
+
 ## Troubleshooting
 
 ### Build Fails: "Unknown argument -save-temps=obj"
@@ -585,6 +752,9 @@ export GOOGLE_CLOUD_PROJECT="your-project-id"
 - [x] **Completed:** Separate cmake_configure and cmake_build steps
 - [x] **Completed:** Path sandboxing and security validation
 - [x] **Completed:** Project exploration with read_file/list_dir
+- [x] **Completed:** ReAct error analysis with file exploration tools
+- [x] **Completed:** llama.cpp backend with tool calling support
+- [x] **Completed:** Pagination support for reading large files (start_line parameter)
 - [ ] Assembly code avoidance strategies
   - [ ] Detect assembly files in project
   - [ ] Add compiler flags to minimize asm usage
@@ -648,7 +818,7 @@ export GOOGLE_CLOUD_PROJECT="your-project-id"
 4. **Basic Assembly Handling**: No advanced asm avoidance strategies beyond disabling SIMD
 5. **English Only**: LLM prompts assume English CMakeLists.txt comments
 6. **Single Architecture**: Builds for host architecture only (x86_64)
-7. **Tool-Use Backend Required**: ReAct mode requires Vertex AI or Anthropic API (Ollama/OpenAI fall back to simple mode)
+7. **Tool-Use Backend Required**: ReAct mode requires tool-enabled backends (Vertex AI, Anthropic API, or llama.cpp). Ollama and OpenAI fall back to simple mode.
 
 ## New Capabilities (Recently Added)
 
@@ -659,6 +829,10 @@ export GOOGLE_CLOUD_PROJECT="your-project-id"
 5. **Separate Build Steps**: cmake_configure and cmake_build can be run independently
 6. **Tool-Based Debugging**: LLM can see configure output and adjust flags iteratively
 7. **Project Name Hints**: LLM receives project name (e.g., "libpng", "zlib") to leverage its knowledge of common projects
+8. **ReAct Error Analysis**: Error analyzer can explore files to investigate build failures (max 10 turns)
+9. **llama.cpp Backend**: Local model support with full tool calling capabilities
+10. **File Pagination**: read_file supports start_line parameter for reading specific sections of large files
+11. **Tool Format Conversion**: Automatic conversion between Anthropic and OpenAI tool formats
 
 ## Performance Characteristics
 
