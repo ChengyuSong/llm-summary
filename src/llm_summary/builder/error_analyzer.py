@@ -38,7 +38,7 @@ class ErrorAnalyzer:
         Returns a dict with:
         - diagnosis: str
         - suggested_flags: list[str]
-        - install_commands: list[str]
+        - missing_dependencies: list[str]
         - confidence: str
         """
         # Extract relevant excerpt from CMakeLists.txt if available
@@ -89,7 +89,7 @@ class ErrorAnalyzer:
             return {
                 "diagnosis": result.get("diagnosis", "Unknown error"),
                 "suggested_flags": result.get("suggested_flags", []),
-                "install_commands": result.get("install_commands", []),
+                "missing_dependencies": result.get("missing_dependencies", []),
                 "confidence": result.get("confidence", "low"),
             }
         except json.JSONDecodeError as e:
@@ -101,7 +101,7 @@ class ErrorAnalyzer:
             return {
                 "diagnosis": "Failed to parse LLM response",
                 "suggested_flags": [],
-                "install_commands": [],
+                "missing_dependencies": [],
                 "confidence": "low",
             }
 
@@ -194,7 +194,7 @@ class ErrorAnalyzer:
         Returns a dict with:
         - diagnosis: str
         - suggested_flags: list[str]
-        - install_commands: list[str]
+        - missing_dependencies: list[str]
         - confidence: str
         """
         # Check if backend supports tools
@@ -220,6 +220,11 @@ You have tools to explore the project:
 
 **IMPORTANT**: All file/directory paths must be RELATIVE to project root (e.g., ".", "CMakeLists.txt", "cmake/FindZLIB.cmake").
 
+**CRITICAL - No install tool available**:
+- You CANNOT install packages or dependencies
+- If the error is due to missing system dependencies (libraries, headers, packages), you MUST stop and report this
+- Dependencies can only be fixed by updating the Docker image, which you cannot do
+
 Context:
 - Build runs in Docker container (source at /workspace/src, build at /workspace/build)
 - Error messages reference container paths
@@ -229,15 +234,18 @@ Your task:
 1. Read the error output carefully
 2. Use tools to investigate (read relevant CMakeLists.txt sections, config files, etc.)
 3. Identify the root cause
-4. Return a JSON fix suggestion
+4. If the issue can be fixed with CMake flags → suggest them
+5. If the issue requires missing dependencies → report them and STOP (no further investigation needed)
 
 When done investigating, return ONLY valid JSON:
 {{
   "diagnosis": "Brief description of the problem",
   "suggested_flags": ["-DFLAG=VALUE", ...],
-  "install_commands": ["apt install package", ...],
+  "missing_dependencies": ["package-name", ...],
   "confidence": "high|medium|low"
-}}"""
+}}
+
+If missing_dependencies is non-empty, the error CANNOT be fixed with available tools."""
 
         messages = [{
             "role": "user",
@@ -360,7 +368,7 @@ When ready, return your analysis as JSON."""
         return {
             "diagnosis": "Error analysis did not complete",
             "suggested_flags": [],
-            "install_commands": [],
+            "missing_dependencies": [],
             "confidence": "low",
         }
 
@@ -405,7 +413,7 @@ When ready, return your analysis as JSON."""
             return {
                 "diagnosis": result.get("diagnosis", "Unknown error"),
                 "suggested_flags": result.get("suggested_flags", []),
-                "install_commands": result.get("install_commands", []),
+                "missing_dependencies": result.get("missing_dependencies", []),
                 "confidence": result.get("confidence", "low"),
             }
         except json.JSONDecodeError as e:
@@ -416,6 +424,6 @@ When ready, return your analysis as JSON."""
             return {
                 "diagnosis": "Failed to parse LLM analysis",
                 "suggested_flags": [],
-                "install_commands": [],
+                "missing_dependencies": [],
                 "confidence": "low",
             }

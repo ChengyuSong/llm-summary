@@ -259,6 +259,12 @@ Use available tools to explore and build iteratively:
 
 **IMPORTANT**: All file/directory paths in tools must be RELATIVE to project root (e.g., ".", "cmake/", "src/config.h"). Absolute paths are not allowed.
 
+**CRITICAL - When to STOP the ReAct loop**:
+- You CANNOT install packages or dependencies (no install tool available)
+- If you identify that the build requires missing system dependencies (libraries, headers, packages that aren't in the Docker image), you MUST stop the ReAct loop immediately
+- Missing dependencies can only be fixed by updating the Docker image, which you cannot do
+- When you encounter missing dependencies, stop exploring and return your findings without continuing to call tools
+
 Requirements (both modes):
 - Generate compile_commands.json (CMAKE_EXPORT_COMPILE_COMMANDS=ON)
 - Enable LLVM LTO (CMAKE_INTERPROCEDURAL_OPTIMIZATION=ON)
@@ -883,13 +889,13 @@ Choose your approach (simple JSON or ReAct with tools) and proceed."""
             # Add new setting
             flags.append(f"{cmake_var}={new_value}")
 
-        # Execute install commands (if any)
-        install_commands = analysis.get("install_commands", [])
-        if install_commands and self.verbose:
-            print("[Note] The following packages may need to be installed:")
-            for cmd in install_commands:
-                print(f"  {cmd}")
-            print("[Note] Consider updating the Dockerfile to include these dependencies")
+        # Report missing dependencies (if any)
+        missing_deps = analysis.get("missing_dependencies", [])
+        if missing_deps and self.verbose:
+            print("[Note] The following dependencies are missing from the Docker image:")
+            for dep in missing_deps:
+                print(f"  - {dep}")
+            print("[Note] Update the Dockerfile to include these dependencies and rebuild the image")
 
         return flags
 

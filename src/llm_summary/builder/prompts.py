@@ -55,24 +55,25 @@ Note: The build runs in a Docker container where:
 - Source files are mounted at: /workspace/src
 - Build directory is at: /workspace/build
 - Error messages will reference these container paths
+- Dependencies CANNOT be installed at runtime - the Docker image must be updated
 
 Analyze the error and suggest:
 1. What went wrong
-2. Specific flag changes or commands to fix it
-3. Whether this is a dependency issue (if so, which package)
+2. Specific flag changes to fix it (if possible with available tools)
+3. Whether this requires missing dependencies (if so, list them for the user)
 
 Output format (JSON):
 {{
   "diagnosis": "Brief description of the problem",
   "suggested_flags": ["-DFLAG=VALUE", ...],
-  "install_commands": ["apt install package", ...],
+  "missing_dependencies": ["package-name", ...],
   "confidence": "high|medium|low"
 }}
 
 Important:
 - Return ONLY valid JSON, no additional text
 - Be specific about which flags to add, remove, or change
-- If dependencies are missing, provide exact apt install commands
+- If dependencies are missing, list them in "missing_dependencies" - these CANNOT be installed, only reported
 - Consider that we're using Clang 18 in a Docker container
 """
 
