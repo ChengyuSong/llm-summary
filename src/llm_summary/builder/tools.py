@@ -7,18 +7,19 @@ from typing import Any
 class BuildTools:
     """Tools available to the build agent for exploring projects."""
 
-    def __init__(self, project_path: Path):
+    def __init__(self, project_path: Path, build_dir: Path | None = None):
         self.project_path = Path(project_path).resolve()
+        self.build_dir = Path(build_dir).resolve() if build_dir else None
 
     def _validate_path(self, path: str) -> Path:
         """
-        Validate and resolve path, ensuring it's within project directory.
+        Validate and resolve path, ensuring it's within project or build directory.
 
         Args:
-            path: Requested path (should be relative to project root)
+            path: Requested path (should be relative to project root or "build/..." for build dir)
 
         Returns:
-            Resolved absolute path within project directory
+            Resolved absolute path within allowed directories
 
         Raises:
             ValueError: If path escapes sandbox or is invalid
@@ -30,16 +31,30 @@ class BuildTools:
         if requested.is_absolute():
             raise ValueError(f"Absolute paths not allowed: {path}")
 
-        # Resolve relative to project root
+        # Special handling for build directory paths
+        # If path starts with "build/" and we have a separate build_dir, use it
+        parts = requested.parts
+        if parts and parts[0] == "build" and self.build_dir:
+            # Strip "build/" prefix and resolve relative to build_dir
+            relative_to_build = Path(*parts[1:]) if len(parts) > 1 else Path(".")
+            full_path = (self.build_dir / relative_to_build).resolve()
+
+            # Security: ensure resolved path is within build directory
+            try:
+                full_path.relative_to(self.build_dir)
+                return full_path
+            except ValueError:
+                raise ValueError(f"Path escapes build directory: {path}")
+
+        # Otherwise, resolve relative to project root
         full_path = (self.project_path / requested).resolve()
 
-        # Security: ensure resolved path is within project
+        # Security: ensure resolved path is within project directory
         try:
             full_path.relative_to(self.project_path)
+            return full_path
         except ValueError:
             raise ValueError(f"Path escapes project directory: {path}")
-
-        return full_path
 
     def read_file(self, file_path: str, max_lines: int = 200, start_line: int = 1) -> dict[str, Any]:
         """
@@ -178,9 +193,9 @@ TOOL_DEFINITIONS = [
     {
         "name": "read_file",
         "description": (
-            "Read a file from the project directory. Use this to examine CMake files, "
-            "included modules, source files, configuration files, or any other project files "
-            "that might help understand the build configuration or debug errors. "
+            "Read a file from the project or build directory. Use this to examine CMake files, "
+            "included modules, source files, configuration files, or build artifacts (like compile_commands.json). "
+            "The build directory is available at 'build/' relative path. "
             "If errors reference specific line numbers, use start_line to jump to that section."
         ),
         "input_schema": {
@@ -188,7 +203,7 @@ TOOL_DEFINITIONS = [
             "properties": {
                 "file_path": {
                     "type": "string",
-                    "description": "Relative path from project root (e.g., 'cmake/FindZLIB.cmake', 'src/config.h.in')",
+                    "description": "Relative path from project root (e.g., 'cmake/FindZLIB.cmake', 'build/compile_commands.json')",
                 },
                 "max_lines": {
                     "type": "integer",
@@ -207,16 +222,16 @@ TOOL_DEFINITIONS = [
     {
         "name": "list_dir",
         "description": (
-            "List files and directories in a project directory. Use this to explore the "
-            "project structure, find CMake modules, discover included files, or understand "
-            "the layout of the codebase."
+            "List files and directories in the project or build directory. Use this to explore the "
+            "project structure, find CMake modules, discover included files, inspect build artifacts, "
+            "or understand the layout of the codebase. Build directory is accessible at 'build/'."
         ),
         "input_schema": {
             "type": "object",
             "properties": {
                 "dir_path": {
                     "type": "string",
-                    "description": "Relative path from project root (default: '.' for root)",
+                    "description": "Relative path from project root (e.g., '.' for root, 'build' for build directory)",
                     "default": ".",
                 },
                 "pattern": {

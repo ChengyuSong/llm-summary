@@ -168,7 +168,7 @@ class CMakeBuilder:
 
                 # Use ReAct-enabled error analysis if backend supports tools
                 if hasattr(self.llm, "complete_with_tools"):
-                    file_tools = BuildTools(project_path)
+                    file_tools = BuildTools(project_path, build_dir)
                     analysis = self.error_analyzer.analyze_error_with_tools(
                         error_msg,
                         cmake_flags,
@@ -233,8 +233,11 @@ class CMakeBuilder:
         # Extract project name as hint for the LLM
         project_name = project_path.name
 
+        # Determine build directory (same logic as learn_and_build)
+        build_dir = Path(self.build_dir) if self.build_dir else project_path / "build"
+
         # Initialize tools
-        file_tools = BuildTools(project_path)
+        file_tools = BuildTools(project_path, build_dir)
         actions = CMakeActions(
             project_path, self.build_dir, self.container_image, self.verbose
         )
@@ -252,12 +255,12 @@ If the CMakeLists.txt is straightforward and standard, immediately return JSON c
 
 **Option 2 - ReAct (For complex projects needing exploration):**
 Use available tools to explore and build iteratively:
-- read_file: Read project files (CMake modules, configs, etc.)
-- list_dir: Explore project structure
+- read_file: Read project files (CMake modules, configs, etc.) and build artifacts
+- list_dir: Explore project structure and build directory
 - cmake_configure: Run cmake configure with specific flags
 - cmake_build: Run ninja build after successful configure
 
-**IMPORTANT**: All file/directory paths in tools must be RELATIVE to project root (e.g., ".", "cmake/", "src/config.h"). Absolute paths are not allowed.
+**IMPORTANT**: All file/directory paths in tools must be RELATIVE to project root (e.g., ".", "cmake/", "src/config.h", "build/compile_commands.json"). The build directory is accessible at "build/". Absolute paths are not allowed.
 
 **CRITICAL - When to STOP the ReAct loop**:
 - You CANNOT install packages or dependencies (no install tool available)
@@ -290,7 +293,7 @@ CMakeLists.txt:
 
 If you recognize this project ({project_name}), use your knowledge to inform the build configuration.
 
-Note: If using tools, all file paths must be relative to the project root (e.g., "." for root directory, "cmake/FindZLIB.cmake" for a file in the cmake subdirectory).
+Note: If using tools, all file paths must be relative to the project root (e.g., "." for root directory, "cmake/FindZLIB.cmake" for a file in the cmake subdirectory, "build/" for the build directory).
 
 Choose your approach (simple JSON or ReAct with tools) and proceed."""
         }]

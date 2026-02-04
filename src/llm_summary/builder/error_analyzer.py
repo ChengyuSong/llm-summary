@@ -215,10 +215,10 @@ class ErrorAnalyzer:
         system = f"""You are a build error diagnostic expert. Analyze the {error_type} error and suggest fixes.
 
 You have tools to explore the project:
-- read_file: Read any project file (CMakeLists.txt, source files, config files, etc.)
-- list_dir: Explore project structure
+- read_file: Read any project file (CMakeLists.txt, source files, config files, etc.) or build artifact
+- list_dir: Explore project structure and build directory
 
-**IMPORTANT**: All file/directory paths must be RELATIVE to project root (e.g., ".", "CMakeLists.txt", "cmake/FindZLIB.cmake").
+**IMPORTANT**: All file/directory paths must be RELATIVE to project root (e.g., ".", "CMakeLists.txt", "cmake/FindZLIB.cmake", "build/compile_commands.json"). The build directory is accessible at "build/".
 
 **CRITICAL - No install tool available**:
 - You CANNOT install packages or dependencies
