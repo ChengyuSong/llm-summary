@@ -82,6 +82,7 @@ class CMakeBuilder:
         if isinstance(result, dict):
             cmake_flags = result.get("cmake_flags", self._get_default_config())
             react_build_succeeded = result.get("build_succeeded", False)
+            react_terminated = result.get("react_terminated", False)
 
             if react_build_succeeded:
                 if self.verbose:
@@ -94,6 +95,19 @@ class CMakeBuilder:
                     "attempts": 1,  # Count as single attempt
                     "build_log": "Build succeeded during ReAct exploration",
                     "error_messages": [],
+                }
+
+            if react_terminated:
+                if self.verbose:
+                    print("\n[ReAct] Build terminated - LLM identified unresolvable blockers")
+                    print("[FAILED] Cannot proceed with available tools")
+
+                return {
+                    "success": False,
+                    "cmake_flags": cmake_flags,
+                    "attempts": 1,  # Count as single attempt
+                    "build_log": "ReAct loop terminated without successful build",
+                    "error_messages": ["LLM identified blockers that cannot be resolved with available tools (e.g., missing dependencies)"],
                 }
         else:
             cmake_flags = result
@@ -572,12 +586,13 @@ Choose your approach (simple JSON or ReAct with tools) and proceed."""
         ReAct-style build loop where LLM uses tools iteratively.
 
         Returns:
-            Dict with 'success', 'cmake_flags', 'attempts', 'configure_succeeded', 'build_succeeded'
+            Dict with 'success', 'cmake_flags', 'attempts', 'configure_succeeded', 'build_succeeded', 'react_terminated'
         """
         # Track state
         max_turns = 15
         configure_succeeded = False
         build_succeeded = False
+        react_terminated = False
         final_flags = []
         seen_tools = set()  # For deduplication
 
@@ -587,9 +602,15 @@ Choose your approach (simple JSON or ReAct with tools) and proceed."""
         for turn in range(max_turns):
             # OpenAI format returns "stop", Anthropic returns "end_turn"
             if response.stop_reason in ("end_turn", "stop"):
-                # LLM finished - extract final flags if available
-                if self.verbose:
-                    print(f"[ReAct] LLM finished after {turn + 1} turns")
+                # LLM finished - check if it terminated without building
+                if not build_succeeded:
+                    react_terminated = True
+                    if self.verbose:
+                        print(f"[ReAct] LLM terminated without successful build after {turn + 1} turns")
+                        print(f"[ReAct] This typically means the LLM identified blockers it cannot resolve with available tools")
+                else:
+                    if self.verbose:
+                        print(f"[ReAct] LLM finished after {turn + 1} turns")
                 break
 
             elif response.stop_reason == "tool_use":
@@ -724,6 +745,7 @@ Choose your approach (simple JSON or ReAct with tools) and proceed."""
             "attempts": turn + 1,
             "configure_succeeded": configure_succeeded,
             "build_succeeded": build_succeeded,
+            "react_terminated": react_terminated,
         }
 
     def _execute_tool_safe(
