@@ -12,6 +12,7 @@ import argparse
 import shutil
 from pathlib import Path
 from urllib.parse import urlparse
+from gpr_utils import get_remote_url, normalize_url, store_project_dir
 
 
 def extract_git_url(url):
@@ -66,41 +67,12 @@ def extract_git_url(url):
     return None, True
 
 
-def get_remote_url(repo_path):
-    """Get the remote origin URL of a git repo."""
-    try:
-        result = subprocess.run(
-            ['git', '-C', repo_path, 'remote', 'get-url', 'origin'],
-            capture_output=True,
-            text=True,
-            check=True
-        )
-        return result.stdout.strip()
-    except subprocess.CalledProcessError:
-        return None
-
-
-def normalize_url(url):
-    """Normalize git URLs for comparison."""
-    if not url:
-        return None
-
-    # Remove .git suffix
-    url = url.rstrip('/')
-    if url.endswith('.git'):
-        url = url[:-4]
-
-    # Normalize protocol
-    url = url.replace('git://', 'https://')
-    url = url.replace('http://', 'https://')
-
-    return url.lower()
-
-
 def clone_project(project, base_dir, dry_run=False, verbose=False, interactive=False):
     """
     Clone a project or verify existing clone.
-    Returns: ('cloned'|'skipped'|'skipped_non_git'|'error'|'replaced', message)
+    Returns: (status, message, target_dir)
+    where status is: 'cloned'|'skipped'|'skipped_non_git'|'error'|'replaced'
+    and target_dir is the directory path (or None)
     """
     name = project['name']
     url = project['url']
@@ -109,8 +81,8 @@ def clone_project(project, base_dir, dry_run=False, verbose=False, interactive=F
 
     if needs_manual or not git_url:
         if verbose:
-            return 'skipped_non_git', f"Skipping non-git URL: {name} ({url})"
-        return 'skipped_non_git', f"Skipping: {name} (non-git URL)"
+            return 'skipped_non_git', f"Skipping non-git URL: {name} ({url})", None
+        return 'skipped_non_git', f"Skipping: {name} (non-git URL)", None
 
     # Determine target directory name
     # Use the repo name from the URL
@@ -131,22 +103,22 @@ def clone_project(project, base_dir, dry_run=False, verbose=False, interactive=F
     # Check if directory exists
     if os.path.exists(target_dir):
         if not os.path.isdir(target_dir):
-            return 'error', f"Path exists but is not a directory: {target_dir}"
+            return 'error', f"Path exists but is not a directory: {target_dir}", None
 
         # Check if it's a git repo
         if not os.path.exists(os.path.join(target_dir, '.git')):
-            return 'error', f"Directory exists but is not a git repo: {target_dir}"
+            return 'error', f"Directory exists but is not a git repo: {target_dir}", None
 
         # Get existing remote URL
         existing_url = get_remote_url(target_dir)
         if not existing_url:
-            return 'error', f"Cannot get remote URL for: {target_dir}"
+            return 'error', f"Cannot get remote URL for: {target_dir}", None
 
         # Compare URLs
         if normalize_url(existing_url) == normalize_url(git_url):
             if verbose:
-                return 'skipped', f"Already cloned: {target_name} ({git_url})"
-            return 'skipped', f"Already exists: {target_name}"
+                return 'skipped', f"Already cloned: {target_name} ({git_url})", target_dir
+            return 'skipped', f"Already exists: {target_name}", target_dir
         else:
             # URL mismatch - ask user what to do
             mismatch_msg = (
@@ -156,7 +128,7 @@ def clone_project(project, base_dir, dry_run=False, verbose=False, interactive=F
             )
 
             if dry_run:
-                return 'error', f"[DRY RUN] {mismatch_msg}"
+                return 'error', f"[DRY RUN] {mismatch_msg}", None
 
             if interactive:
                 print(f"\n{mismatch_msg}")
@@ -174,17 +146,17 @@ def clone_project(project, base_dir, dry_run=False, verbose=False, interactive=F
                             check=True,
                             capture_output=not verbose
                         )
-                        return 'replaced', f"Replaced: {target_name}"
+                        return 'replaced', f"Replaced: {target_name}", target_dir
                     except Exception as e:
-                        return 'error', f"Failed to replace {name}: {e}"
+                        return 'error', f"Failed to replace {name}: {e}", None
                 else:
-                    return 'skipped', f"Keeping existing: {target_name}"
+                    return 'skipped', f"Keeping existing: {target_name}", target_dir
             else:
-                return 'error', mismatch_msg
+                return 'error', mismatch_msg, None
 
     # Clone the repo
     if dry_run:
-        return 'dry-run', f"Would clone: {git_url} -> {target_dir}"
+        return 'dry-run', f"Would clone: {git_url} -> {target_dir}", None
 
     try:
         if verbose:
@@ -195,9 +167,9 @@ def clone_project(project, base_dir, dry_run=False, verbose=False, interactive=F
             check=True,
             capture_output=not verbose
         )
-        return 'cloned', f"Cloned: {target_name}"
+        return 'cloned', f"Cloned: {target_name}", target_dir
     except subprocess.CalledProcessError as e:
-        return 'error', f"Failed to clone {name}: {e}"
+        return 'error', f"Failed to clone {name}: {e}", None
 
 
 def main():
@@ -265,9 +237,12 @@ def main():
         'dry-run': []
     }
 
+    # Track whether we need to update the JSON
+    json_modified = False
+
     # Process each project
     for project in projects:
-        status, message = clone_project(
+        status, message, target_dir = clone_project(
             project,
             args.target_dir,
             dry_run=args.dry_run,
@@ -275,6 +250,13 @@ def main():
             interactive=args.interactive
         )
         results[status].append(message)
+
+        # Update project_dir in the JSON if cloned/skipped/replaced
+        if target_dir and status in ('cloned', 'skipped', 'replaced'):
+            stored_path = store_project_dir(Path(target_dir), Path(args.target_dir))
+            if project.get('project_dir') != stored_path:
+                project['project_dir'] = stored_path
+                json_modified = True
 
         # Print as we go
         if status == 'error':
@@ -290,6 +272,15 @@ def main():
                 print(f"⊘ {message}")
         elif args.verbose and status == 'skipped':
             print(f"- {message}")
+
+    # Update JSON file if modified
+    if json_modified and not args.dry_run:
+        try:
+            with open(args.projects_file, 'w') as f:
+                json.dump(projects, f, indent=2)
+            print(f"\n✓ Updated {args.projects_file} with project_dir fields")
+        except Exception as e:
+            print(f"\n✗ Failed to update {args.projects_file}: {e}", file=sys.stderr)
 
     # Summary
     print("\n" + "="*70)

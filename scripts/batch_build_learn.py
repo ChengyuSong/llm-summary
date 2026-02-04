@@ -7,6 +7,7 @@ import subprocess
 import sys
 from pathlib import Path
 from datetime import datetime
+from gpr_utils import find_project_dir
 
 
 def run_build_learn(
@@ -112,24 +113,6 @@ def run_build_learn(
     except Exception as e:
         duration = (datetime.now() - start_time).total_seconds()
         return False, f"Exception: {str(e)}", duration, False
-
-
-def get_repo_dir_name(url: str) -> str:
-    """
-    Extract the repository directory name from a git URL.
-
-    Examples:
-        https://github.com/owner/repo.git -> repo
-        https://github.com/owner/repo -> repo
-    """
-    # Get last part after /
-    repo_name = url.rstrip('/').split('/')[-1]
-
-    # Remove .git extension if present
-    if repo_name.endswith('.git'):
-        repo_name = repo_name[:-4]
-
-    return repo_name
 
 
 def main():
@@ -290,71 +273,39 @@ def main():
     # Process each project
     for i, project in enumerate(projects, 1):
         project_name = project["name"]
-        project_url = project.get("url", "")
 
         print(f"\n[{i}/{len(projects)}] Processing: {project_name}")
 
-        # Try multiple directory name variations
-        dir_name = None
-        url_derived_name = get_repo_dir_name(project_url) if project_url else None
+        # Find the project directory
+        project_path = find_project_dir(project, args.source_dir)
 
-        # Build list of names to try (with lowercase variants)
-        names_to_try = [
-            (project_name, "project name"),
-        ]
-        if url_derived_name and url_derived_name != project_name:
-            names_to_try.append((url_derived_name, "URL-derived name"))
+        if project_path:
+            print(f"  Directory: {project_path.name}")
 
-        # Add lowercase variants
-        if project_name.lower() != project_name:
-            names_to_try.append((project_name.lower(), "project name (lowercase)"))
-        if url_derived_name and url_derived_name.lower() != url_derived_name:
-            if url_derived_name.lower() not in [name for name, _ in names_to_try]:
-                names_to_try.append((url_derived_name.lower(), "URL-derived name (lowercase)"))
-
-        # Try each name
-        for candidate_name, description in names_to_try:
-            if (args.source_dir / candidate_name).exists():
-                dir_name = candidate_name
-                print(f"  Directory: {dir_name} (using {description})")
-                break
-
-        # Check skip list (try all name variations)
-        skip_list_names = [project_name]
-        if url_derived_name:
-            skip_list_names.append(url_derived_name)
-        if dir_name and dir_name not in skip_list_names:
-            skip_list_names.append(dir_name)
-
-        if any(name in skip_set for name in skip_list_names):
+        # Check skip list
+        if project_path and project_path.name in skip_set:
             print(f"  ⏭️  Skipping (in skip list)")
             results["skipped"] += 1
             results["projects"].append({
                 "name": project_name,
                 "status": "skipped",
                 "reason": "in_skip_list",
-                "path": str(args.source_dir / (dir_name or project_name)),
+                "path": str(project_path),
             })
             continue
 
-        # If directory not found with either name
-        if not dir_name:
-            tried_paths = [str(args.source_dir / project_name)]
-            if url_derived_name and url_derived_name != project_name:
-                tried_paths.append(str(args.source_dir / url_derived_name))
-            print(f"  ⚠️  Project directory not found. Tried: {', '.join(tried_paths)}")
+        # If directory not found
+        if not project_path:
+            print(f"  ⚠️  Project directory not found")
             print(f"  Skipping...")
             results["skipped"] += 1
             results["projects"].append({
                 "name": project_name,
                 "status": "skipped",
                 "reason": "directory_not_found",
-                "path": tried_paths[0],
+                "path": str(args.source_dir / project_name),
             })
             continue
-
-        # Use the found directory
-        project_path = args.source_dir / dir_name
 
         # Check for CMakeLists.txt
         if not (project_path / "CMakeLists.txt").exists():
