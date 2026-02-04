@@ -73,8 +73,8 @@ The build agent automatically chooses between two modes based on project complex
 │  CMakeLists.txt │────▶│ LLM Agent with Tools (iterative)       │
 │  (Project)      │     │                                        │
 └─────────────────┘     │ Tools available:                       │
-                        │ • read_file: Read project files        │
-                        │   (with pagination via start_line)     │
+                        │ • read_file: Read project & build      │
+                        │   files (with pagination)              │
                         │ • list_dir: Explore structure          │
                         │ • cmake_configure: Test config         │
                         │ • cmake_build: Run build               │
@@ -85,10 +85,13 @@ The build agent automatically chooses between two modes based on project complex
                         │ 3. Try cmake configure with flags      │
                         │ 4. See results, adjust if needed       │
                         │ 5. Try cmake build                     │
-                        │ 6. On success: return flags            │
+                        │ 6. Inspect build artifacts if needed   │
+                        │ 7. On success: return flags            │
                         │                                        │
-                        │ On build success in ReAct phase:       │
-                        │ → Skip retry loop (already built!)     │
+                        │ Termination conditions:                │
+                        │ • Build succeeds → return flags        │
+                        │ • Missing dependencies identified →    │
+                        │   STOP (cannot install at runtime)     │
                         └────────────────────────────────────────┘
                                         │
                                         ▼
@@ -196,10 +199,11 @@ Uses LLM to diagnose build failures and suggest fixes with optional ReAct mode:
 **ReAct Mode (tool-enabled backends):**
 - Uses `analyze_error_with_tools()` method
 - Can explore project files to investigate errors
-- Available tools: `read_file`, `list_dir`
+- Available tools: `read_file`, `list_dir` (build directory accessible via `"build/"`)
 - Iteratively investigates before suggesting fixes
 - Max 10 turns for exploration
 - Returns JSON with diagnosis and suggested fixes
+- **Critical**: Stops immediately if missing dependencies are identified (cannot install at runtime)
 
 **Simple Mode (fallback):**
 - Direct LLM prompt with error output
@@ -210,6 +214,12 @@ Uses LLM to diagnose build failures and suggest fixes with optional ReAct mode:
 **Error Types Handled:**
 - **CMake Configuration Errors:** Missing dependencies, invalid flags, incompatible options
 - **Build/Compilation Errors:** Compiler flag issues, LTO conflicts, assembly code problems
+
+**Dependency Handling:**
+- Missing dependencies are reported in `missing_dependencies` list
+- Dependencies **cannot** be installed at runtime (Docker container is immutable)
+- User must update `docker/build-env/Dockerfile` and rebuild image to add missing packages
+- Agent stops exploration when it identifies unresolvable dependency issues
 
 **Key class:** `ErrorAnalyzer`
 
@@ -241,21 +251,22 @@ Tool definitions are automatically converted to OpenAI format for backends that 
 #### File Exploration Tools (`builder/tools.py`)
 
 **read_file(file_path, max_lines=200, start_line=1)**
-- Reads project files (CMakeLists.txt, cmake modules, configs, source files)
-- Path must be relative to project root
+- Reads project files (CMakeLists.txt, cmake modules, configs, source files) and build artifacts
+- Path must be relative to project root or use `"build/"` prefix for build directory
+- Build directory access: `"build/compile_commands.json"` → maps to actual build directory
 - `max_lines`: Maximum lines to read (default: 200)
 - `start_line`: Line number to start reading from (1-indexed, default: 1)
 - Returns dict with: `content`, `path`, `start_line`, `end_line`, `lines_read`, `truncated`
 - Line-numbered output format: `{line_num:4d}: {line_content}`
 - Use `start_line` to jump to specific sections when errors mention line numbers
-- Security: Blocks absolute paths and path traversal
+- Security: Blocks absolute paths and path traversal, allows project and build directories only
 
 **list_dir(dir_path=".", pattern=None)**
-- Lists files and directories in project
-- `dir_path`: Relative path from project root (default: ".")
+- Lists files and directories in project or build directory
+- `dir_path`: Relative path from project root (default: "."), use `"build"` for build directory
 - `pattern`: Optional glob pattern filtering (e.g., "*.cmake", "CMake*")
 - Returns dict with: `path`, `files` (with name/path/size), `directories` (with name/path), `total`
-- Security: Restricted to project directory tree
+- Security: Restricted to project and build directory trees
 
 #### Build Action Tools (`builder/actions.py`)
 
@@ -282,9 +293,10 @@ All file tools enforce strict path validation via `BuildTools._validate_path()`:
 
 **Validation Steps:**
 1. **Reject absolute paths**: Paths like `/etc/passwd` are blocked immediately
-2. **Resolve relative to project root**: All paths resolved against `self.project_path`
-3. **Check containment**: Use `Path.relative_to()` to ensure resolved path is within project
-4. **Raise ValueError**: Any security violation raises `ValueError` which is caught and returned as error
+2. **Handle build directory paths**: Paths starting with `"build/"` are mapped to the separate build directory mount
+3. **Resolve relative to allowed directories**: Paths resolved against `self.project_path` or `self.build_dir`
+4. **Check containment**: Use `Path.relative_to()` to ensure resolved path is within allowed directories
+5. **Raise ValueError**: Any security violation raises `ValueError` which is caught and returned as error
 
 **Implementation Details:**
 ```python
@@ -293,14 +305,28 @@ def _validate_path(self, path: str) -> Path:
     if requested.is_absolute():
         raise ValueError(f"Absolute paths not allowed: {path}")
 
+    # Special handling for build directory paths
+    parts = requested.parts
+    if parts and parts[0] == "build" and self.build_dir:
+        # Strip "build/" prefix and resolve relative to build_dir
+        relative_to_build = Path(*parts[1:]) if len(parts) > 1 else Path(".")
+        full_path = (self.build_dir / relative_to_build).resolve()
+
+        # Security: ensure resolved path is within build directory
+        try:
+            full_path.relative_to(self.build_dir)
+            return full_path
+        except ValueError:
+            raise ValueError(f"Path escapes build directory: {path}")
+
+    # Otherwise, resolve relative to project root
     full_path = (self.project_path / requested).resolve()
 
     try:
         full_path.relative_to(self.project_path)
+        return full_path
     except ValueError:
         raise ValueError(f"Path escapes project directory: {path}")
-
-    return full_path
 ```
 
 **Example Security Validation:**
@@ -311,6 +337,12 @@ read_file("cmake/FindZLIB.cmake")        ✓
 read_file("src/config.h.in")             ✓
 list_dir("src")                          ✓
 list_dir(".", pattern="*.cmake")         ✓
+
+# Valid (within build directory)
+read_file("build/compile_commands.json") ✓
+read_file("build/CMakeCache.txt")        ✓
+list_dir("build")                        ✓
+list_dir("build/CMakeFiles")             ✓
 
 # Invalid (blocked by security)
 read_file("/etc/passwd")                 ✗ Absolute path
@@ -519,9 +551,14 @@ Result: Success! Build complete in 25.3 seconds
 - `RANLIB=llvm-ranlib-18`
 
 **Volume Mounts:**
-- `/workspace/src`: Project source (read-only)
-- `/workspace/build`: Build directory (read-write)
+- `/workspace/src`: Project source (read-only) - Maps to host project directory
+- `/workspace/build`: Build directory (read-write) - Maps to host build directory (can be separate from project)
 - `/artifacts`: LLVM IR output (read-write)
+
+**Note on Build Directory Access:**
+- The build directory is mounted separately and can be on a different host path than the project
+- Agent tools can access build artifacts using `"build/"` prefix (e.g., `"build/compile_commands.json"`)
+- This allows inspection of CMakeCache.txt, compile_commands.json, and other generated files during ReAct exploration
 
 ## LLM Prompts (`builder/prompts.py`, `builder/cmake_builder.py`)
 
@@ -814,7 +851,7 @@ export GOOGLE_CLOUD_PROJECT="your-project-id"
 
 1. **CMake Only**: Only CMake projects supported (Autotools/Meson planned for Phase 2)
 2. **No Fuzzing**: Fuzzing harness detection not implemented
-3. **No Dependency Fetch**: Manual dependency installation required (dependencies must be in Docker image)
+3. **No Runtime Dependency Installation**: Dependencies cannot be installed at runtime; they must be pre-installed in the Docker image. Agent will identify missing dependencies and stop, requiring user to update `docker/build-env/Dockerfile` and rebuild the image.
 4. **Basic Assembly Handling**: No advanced asm avoidance strategies beyond disabling SIMD
 5. **English Only**: LLM prompts assume English CMakeLists.txt comments
 6. **Single Architecture**: Builds for host architecture only (x86_64)
@@ -833,6 +870,8 @@ export GOOGLE_CLOUD_PROJECT="your-project-id"
 9. **llama.cpp Backend**: Local model support with full tool calling capabilities
 10. **File Pagination**: read_file supports start_line parameter for reading specific sections of large files
 11. **Tool Format Conversion**: Automatic conversion between Anthropic and OpenAI tool formats
+12. **Build Directory Access**: Agent can access both project and build directories; paths starting with `"build/"` map to separate build directory mount
+13. **Smart Termination**: Agent stops ReAct loop when it identifies missing dependencies that cannot be installed at runtime; reports them as `missing_dependencies` for Docker image updates
 
 ## Performance Characteristics
 
