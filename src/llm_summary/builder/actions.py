@@ -126,6 +126,7 @@ class CMakeActions:
             uid = os.getuid()
             gid = os.getgid()
 
+            # Try parallel build first
             docker_cmd = [
                 "docker", "run", "--rm",
                 "-u", f"{uid}:{gid}",
@@ -156,10 +157,34 @@ class CMakeActions:
                     "error": "",
                 }
             else:
+                # Parallel build failed - retry with -j1 for clearer error output
+                if self.verbose:
+                    print("[cmake_build] Parallel build failed, retrying with ninja -j1 for clearer errors")
+
+                docker_cmd_j1 = [
+                    "docker", "run", "--rm",
+                    "-u", f"{uid}:{gid}",
+                    "-v", f"{self.project_path}:/workspace/src",
+                    "-v", f"{self.build_dir}:/workspace/build",
+                    "-w", "/workspace/build",
+                    self.container_image,
+                    "bash", "-c",
+                    "ninja -j1",
+                ]
+
+                result_j1 = subprocess.run(
+                    docker_cmd_j1,
+                    capture_output=True,
+                    text=True,
+                    timeout=600,
+                )
+
+                output_j1 = result_j1.stdout + result_j1.stderr
+
                 return {
                     "success": False,
-                    "output": output,
-                    "error": f"Build failed with exit code {result.returncode}",
+                    "output": output_j1,  # Use j1 output - clearer errors
+                    "error": f"Build failed with exit code {result_j1.returncode}",
                 }
 
         except subprocess.TimeoutExpired:

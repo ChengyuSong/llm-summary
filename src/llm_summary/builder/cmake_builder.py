@@ -434,6 +434,132 @@ Choose your approach (simple JSON or ReAct with tools) and proceed."""
                 text += block.text
         return text
 
+    def _estimate_tokens(self, text: str) -> int:
+        """Rough token count estimate (4 chars per token)."""
+        return len(text) // 4
+
+    def _filter_warnings(self, output: str) -> str:
+        """Filter out warnings, keep only errors when output is large."""
+        lines = output.split('\n')
+
+        # If output is small, keep everything
+        if len(output) < 10000:
+            return output
+
+        # Otherwise, keep only error lines and some context
+        error_keywords = ['error:', 'Error:', 'ERROR:', 'failed', 'Failed', 'FAILED']
+        error_ranges = []
+
+        for i, line in enumerate(lines):
+            # Keep errors
+            if any(kw in line for kw in error_keywords):
+                # Include 2 lines before and after for context
+                start = max(0, i - 2)
+                end = min(len(lines), i + 3)
+                error_ranges.append((start, end))
+
+        if not error_ranges:
+            # No errors found, keep first 20 and last 30 lines
+            if len(lines) <= 50:
+                return output
+            return '\n'.join(lines[:20] + ['...'] + lines[-30:])
+
+        # Merge overlapping ranges
+        merged_ranges = []
+        error_ranges.sort()
+        current_start, current_end = error_ranges[0]
+
+        for start, end in error_ranges[1:]:
+            if start <= current_end:
+                # Overlapping, merge
+                current_end = max(current_end, end)
+            else:
+                # Non-overlapping, save current and start new
+                merged_ranges.append((current_start, current_end))
+                current_start, current_end = start, end
+
+        merged_ranges.append((current_start, current_end))
+
+        # Extract lines from merged ranges
+        filtered = []
+        for start, end in merged_ranges:
+            filtered.extend(lines[start:end])
+            filtered.append('---')
+
+        return '\n'.join(filtered)
+
+    def _deduplicate_tool_result(self, tool_name: str, tool_input: dict, result: dict, seen_tools: set) -> dict:
+        """Deduplicate tool results to avoid sending same content repeatedly."""
+        # Create key for deduplication
+        if tool_name == "read_file":
+            key = f"read:{tool_input.get('file_path')}:{tool_input.get('start_line', 1)}"
+            if key in seen_tools:
+                # Already read this file, return short reference
+                return {
+                    "cached": True,
+                    "message": f"File {tool_input.get('file_path')} already read (see earlier output)"
+                }
+            seen_tools.add(key)
+
+        # Filter large outputs
+        if "output" in result and isinstance(result["output"], str):
+            if self._estimate_tokens(result["output"]) > 1000:
+                result = result.copy()
+                result["output"] = self._filter_warnings(result["output"])
+
+        if "content" in result and isinstance(result["content"], str):
+            if self._estimate_tokens(result["content"]) > 1000:
+                result = result.copy()
+                result["content"] = self._filter_warnings(result["content"])
+
+        return result
+
+    def _estimate_messages_tokens(self, messages: list) -> int:
+        """Estimate total tokens in messages array."""
+        total = 0
+        for msg in messages:
+            content = msg.get("content", "")
+            if isinstance(content, str):
+                total += self._estimate_tokens(content)
+            elif isinstance(content, list):
+                for item in content:
+                    if isinstance(item, dict):
+                        total += self._estimate_tokens(json.dumps(item))
+                    elif isinstance(item, str):
+                        total += self._estimate_tokens(item)
+        return total
+
+    def _truncate_messages(self, messages: list, max_tokens: int = 100000) -> list:
+        """Truncate old messages to stay under token limit."""
+        current_tokens = self._estimate_messages_tokens(messages)
+
+        if current_tokens <= max_tokens:
+            return messages
+
+        # Keep first message (initial request) and recent messages
+        if len(messages) <= 3:
+            return messages
+
+        # Keep first message and last N messages
+        truncated = [messages[0]]
+
+        # Add recent messages from the end
+        for msg in reversed(messages[1:]):
+            msg_tokens = self._estimate_tokens(json.dumps(msg.get("content", "")))
+            if current_tokens - msg_tokens < max_tokens:
+                truncated.insert(1, msg)
+            else:
+                current_tokens -= msg_tokens
+
+        if len(truncated) < len(messages):
+            # Add a marker that we truncated
+            truncated.insert(1, {
+                "role": "user",
+                "content": f"[{len(messages) - len(truncated)} earlier messages truncated to save context]"
+            })
+
+        return truncated
+
     def _execute_react_loop(
         self,
         messages: list,
@@ -453,6 +579,7 @@ Choose your approach (simple JSON or ReAct with tools) and proceed."""
         configure_succeeded = False
         build_succeeded = False
         final_flags = []
+        seen_tools = set()  # For deduplication
 
         # Process initial response (already has tool_use)
         response = initial_response
@@ -489,12 +616,19 @@ Choose your approach (simple JSON or ReAct with tools) and proceed."""
                             file_tools, actions, block.name, block.input
                         )
 
+                        # Apply deduplication and filtering
+                        result = self._deduplicate_tool_result(
+                            block.name, block.input, result, seen_tools
+                        )
+
                         if self.verbose:
                             print(f"[Tool] {block.name}({json.dumps(block.input)})")
                             if "success" in result:
                                 print(f"  Success: {result['success']}")
                             if "error" in result and result["error"]:
                                 print(f"  Error: {result['error'][:200]}")
+                            if "cached" in result:
+                                print(f"  Cached: {result['message']}")
 
                         # Track configure/build status
                         if block.name == "cmake_configure" and result.get("success"):
@@ -523,15 +657,47 @@ Choose your approach (simple JSON or ReAct with tools) and proceed."""
 
                 # Get next response
                 if turn < max_turns - 1:  # Don't make another call on last turn
+                    # Truncate messages to stay under context limit (100k tokens ~= 128k with system prompt)
+                    truncated_messages = self._truncate_messages(messages, max_tokens=100000)
+
+                    if self.verbose and len(truncated_messages) < len(messages):
+                        print(f"[Context] Truncated {len(messages) - len(truncated_messages)} messages")
+                        print(f"[Context] Estimated tokens: {self._estimate_messages_tokens(truncated_messages)}")
+
+                    # Log the request being sent
+                    if self.log_file:
+                        with open(self.log_file, "a") as f:
+                            f.write(f"\n{'='*80}\n")
+                            f.write(f"REACT TURN {turn + 1} - LLM REQUEST\n")
+                            f.write(f"{'='*80}\n\n")
+                            f.write(f"Messages count: {len(truncated_messages)}\n")
+                            f.write(f"Estimated tokens: {self._estimate_messages_tokens(truncated_messages)}\n")
+                            f.write(f"System prompt length: {len(system)} chars\n")
+                            f.write(f"Tools: {len(ALL_TOOL_DEFINITIONS)} available\n\n")
+                            f.write("MESSAGES:\n")
+                            for i, msg in enumerate(truncated_messages):
+                                f.write(f"[Message {i}] Role: {msg.get('role')}\n")
+                                content = msg.get('content', '')
+                                if isinstance(content, str):
+                                    preview = content[:200] + '...' if len(content) > 200 else content
+                                    f.write(f"  Content (preview): {preview}\n")
+                                elif isinstance(content, list):
+                                    f.write(f"  Content blocks: {len(content)}\n")
+                                    for j, block in enumerate(content[:3]):  # Show first 3 blocks
+                                        if isinstance(block, dict):
+                                            block_type = block.get('type', 'unknown')
+                                            f.write(f"    Block {j}: type={block_type}\n")
+                            f.write("\n")
+
                     response = self.llm.complete_with_tools(
-                        messages=messages,
+                        messages=truncated_messages,
                         tools=ALL_TOOL_DEFINITIONS,
                         system=system,
                     )
 
                     if self.log_file:
                         with open(self.log_file, "a") as f:
-                            f.write("NEXT RESPONSE:\n")
+                            f.write("LLM RESPONSE:\n")
                             f.write(f"Stop reason: {response.stop_reason}\n")
                             for i, block in enumerate(response.content):
                                 if hasattr(block, 'text'):

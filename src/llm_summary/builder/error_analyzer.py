@@ -269,6 +269,17 @@ When ready, return your analysis as JSON."""
         # ReAct loop
         max_turns = 10
         for turn in range(max_turns):
+            # Log the request
+            if self.log_file:
+                with open(self.log_file, "a") as f:
+                    f.write(f"\nTURN {turn + 1} REQUEST:\n")
+                    f.write(f"Messages count: {len(messages)}\n")
+                    # Estimate tokens (rough: 4 chars per token)
+                    msg_text = str(messages)
+                    estimated_tokens = len(msg_text) // 4
+                    f.write(f"Estimated tokens: ~{estimated_tokens}\n")
+                    f.write(f"System prompt: {len(system)} chars\n\n")
+
             response = self.llm.complete_with_tools(
                 messages=messages,
                 tools=TOOL_DEFINITIONS_READ_ONLY,
@@ -277,7 +288,7 @@ When ready, return your analysis as JSON."""
 
             if self.log_file:
                 with open(self.log_file, "a") as f:
-                    f.write(f"\nTURN {turn + 1} RESPONSE:\n")
+                    f.write(f"TURN {turn + 1} RESPONSE:\n")
                     f.write(f"Stop reason: {response.stop_reason}\n")
                     for i, block in enumerate(response.content):
                         if hasattr(block, 'text'):
