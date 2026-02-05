@@ -27,11 +27,17 @@ RUN apt-get update && apt-get install -y \
     pkg-config \
     # Version control
     git \
-    # Common dependencies
-    zlib1g-dev \
-    libssl-dev \
-    libpng-dev \
-    libjpeg-dev \
+    # Essential build tools
+    build-essential \
+    flex \
+    bison \
+    m4 \
+    patch \
+    python3 \
+    perl \
+    texinfo \
+    gettext \
+    nasm \
     # Build speedup
     ccache \
     # Utilities
