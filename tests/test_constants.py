@@ -6,8 +6,7 @@ from llm_summary.builder.constants import (
     DOCKER_WORKSPACE_SRC,
     LARGE_OUTPUT_TOKEN_THRESHOLD,
     MAX_CONTEXT_TOKENS,
-    MAX_TURNS_AUTOTOOLS,
-    MAX_TURNS_CMAKE,
+    MAX_TURNS,
     MAX_TURNS_ERROR_ANALYSIS,
     TIMEOUT_BUILD,
     TIMEOUT_CONFIGURE,
@@ -53,15 +52,10 @@ class TestTimeoutConstants:
 class TestReActConstants:
     """Tests for ReAct loop parameters."""
 
-    def test_max_turns_cmake(self):
-        """Test MAX_TURNS_CMAKE value."""
-        assert MAX_TURNS_CMAKE == 15
-        assert isinstance(MAX_TURNS_CMAKE, int)
-
-    def test_max_turns_autotools(self):
-        """Test MAX_TURNS_AUTOTOOLS value."""
-        assert MAX_TURNS_AUTOTOOLS == 20
-        assert isinstance(MAX_TURNS_AUTOTOOLS, int)
+    def test_max_turns(self):
+        """Test MAX_TURNS value."""
+        assert MAX_TURNS == 20
+        assert isinstance(MAX_TURNS, int)
 
     def test_max_turns_error_analysis(self):
         """Test MAX_TURNS_ERROR_ANALYSIS value."""
@@ -69,9 +63,8 @@ class TestReActConstants:
         assert isinstance(MAX_TURNS_ERROR_ANALYSIS, int)
 
     def test_max_turns_ordering(self):
-        """Test that max turns for error analysis is less than build loops."""
-        assert MAX_TURNS_ERROR_ANALYSIS < MAX_TURNS_CMAKE
-        assert MAX_TURNS_ERROR_ANALYSIS < MAX_TURNS_AUTOTOOLS
+        """Test that max turns for error analysis is less than build loop."""
+        assert MAX_TURNS_ERROR_ANALYSIS < MAX_TURNS
 
 
 class TestTokenConstants:

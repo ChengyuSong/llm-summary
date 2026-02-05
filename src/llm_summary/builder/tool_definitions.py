@@ -1,18 +1,12 @@
 """Centralized tool definitions for the build agent."""
 
 from .actions import CMAKE_TOOL_DEFINITIONS as CMAKE_ACTION_TOOLS
-from .actions import AUTOTOOLS_TOOL_DEFINITIONS as AUTOTOOLS_ACTION_TOOLS
+from .actions import CONFIGURE_MAKE_TOOL_DEFINITIONS as CONFIGURE_MAKE_ACTION_TOOLS
+from .actions import FINISH_TOOL_DEFINITION
 from .tools import TOOL_DEFINITIONS as FILE_TOOLS
 
-# Read-only tools for error analysis (no cmake_configure/cmake_build)
+# Read-only tools for error analysis (no build tools)
 TOOL_DEFINITIONS_READ_ONLY = FILE_TOOLS
 
-# CMake tool definitions (for CMakeBuilder)
-CMAKE_TOOL_DEFINITIONS = FILE_TOOLS + CMAKE_ACTION_TOOLS
-
-# Autotools tool definitions (for AutotoolsBuilder)
-AUTOTOOLS_TOOL_DEFINITIONS = FILE_TOOLS + AUTOTOOLS_ACTION_TOOLS
-
-# Combine all tool definitions for the LLM (initial config phase)
-# Note: ALL_TOOL_DEFINITIONS is kept for backwards compatibility (CMake)
-ALL_TOOL_DEFINITIONS = CMAKE_TOOL_DEFINITIONS
+# Unified tool definitions: file tools + all build tools + finish
+UNIFIED_TOOL_DEFINITIONS = FILE_TOOLS + CMAKE_ACTION_TOOLS + CONFIGURE_MAKE_ACTION_TOOLS + [FINISH_TOOL_DEFINITION]

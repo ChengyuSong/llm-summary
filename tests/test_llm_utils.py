@@ -187,23 +187,23 @@ class TestTrackToolResult:
         deduplicate_tool_result("cmake_configure", {}, {"success": True}, history, current_turn=0)
         deduplicate_tool_result("cmake_build", {}, {"success": True}, history, current_turn=1)
 
-        # Autotools tools
+        # Configure/Make tools
         deduplicate_tool_result("bootstrap", {}, {"success": True}, history, current_turn=2)
         deduplicate_tool_result("autoreconf", {}, {"success": True}, history, current_turn=3)
-        deduplicate_tool_result("autotools_configure", {}, {"success": True}, history, current_turn=4)
-        deduplicate_tool_result("autotools_build", {}, {"success": True}, history, current_turn=5)
-        deduplicate_tool_result("autotools_clean", {}, {"success": True}, history, current_turn=6)
-        deduplicate_tool_result("autotools_distclean", {}, {"success": True}, history, current_turn=7)
+        deduplicate_tool_result("run_configure", {}, {"success": True}, history, current_turn=4)
+        deduplicate_tool_result("make_build", {}, {"success": True}, history, current_turn=5)
+        deduplicate_tool_result("make_clean", {}, {"success": True}, history, current_turn=6)
+        deduplicate_tool_result("make_distclean", {}, {"success": True}, history, current_turn=7)
 
         # All should be tracked
         assert history["builds"]["cmake_configure"] == 0
         assert history["builds"]["cmake_build"] == 1
         assert history["builds"]["bootstrap"] == 2
         assert history["builds"]["autoreconf"] == 3
-        assert history["builds"]["autotools_configure"] == 4
-        assert history["builds"]["autotools_build"] == 5
-        assert history["builds"]["autotools_clean"] == 6
-        assert history["builds"]["autotools_distclean"] == 7
+        assert history["builds"]["run_configure"] == 4
+        assert history["builds"]["make_build"] == 5
+        assert history["builds"]["make_clean"] == 6
+        assert history["builds"]["make_distclean"] == 7
 
     def test_large_output_filtered(self):
         """Test that large output field is filtered."""

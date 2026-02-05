@@ -400,7 +400,7 @@ class AutotoolsActions:
                 "error": f"autoreconf failed: {str(e)}",
             }
 
-    def autotools_configure(
+    def run_configure(
         self,
         configure_flags: list[str],
         use_build_dir: bool = True,
@@ -462,7 +462,7 @@ class AutotoolsActions:
             configure_cmd = f"{env_str} {configure_path} {' '.join(quoted_flags)}"
 
             if self.verbose:
-                print(f"[autotools_configure] Running: {configure_cmd}")
+                print(f"[run_configure] Running: {configure_cmd}")
 
             docker_cmd.append(configure_cmd)
 
@@ -502,7 +502,7 @@ class AutotoolsActions:
                 "error": f"configure failed: {str(e)}",
             }
 
-    def autotools_build(
+    def make_build(
         self,
         make_target: str = "",
         use_build_dir: bool = True,
@@ -528,7 +528,7 @@ class AutotoolsActions:
                 return {
                     "success": False,
                     "output": "",
-                    "error": f"Work directory does not exist: {work_dir}. Run autotools_configure first.",
+                    "error": f"Work directory does not exist: {work_dir}. Run run_configure first.",
                 }
 
             # Check if Makefile exists (indicates successful configure)
@@ -536,7 +536,7 @@ class AutotoolsActions:
                 return {
                     "success": False,
                     "output": "",
-                    "error": "Makefile not found. Run autotools_configure successfully first.",
+                    "error": "Makefile not found. Run run_configure successfully first.",
                 }
 
             # Run as host user
@@ -564,7 +564,7 @@ class AutotoolsActions:
             make_cmd = f"bear -- make -j$(nproc) {target_str}".strip()
 
             if self.verbose:
-                print(f"[autotools_build] Running: {make_cmd}")
+                print(f"[make_build] Running: {make_cmd}")
 
             docker_cmd.append(make_cmd)
 
@@ -589,7 +589,7 @@ class AutotoolsActions:
             else:
                 # Parallel build failed - retry with -j1 for clearer error output
                 if self.verbose:
-                    print("[autotools_build] Parallel build failed, retrying with make -j1 for clearer errors")
+                    print("[make_build] Parallel build failed, retrying with make -j1 for clearer errors")
 
                 docker_cmd_j1 = docker_cmd[:-1]  # Remove the old command
                 make_cmd_j1 = f"bear -- make -j1 {target_str}".strip()
@@ -623,7 +623,7 @@ class AutotoolsActions:
                 "error": f"Build failed: {str(e)}",
             }
 
-    def autotools_clean(
+    def make_clean(
         self,
         use_build_dir: bool = True,
     ) -> dict[str, Any]:
@@ -638,7 +638,7 @@ class AutotoolsActions:
         """
         return self._run_make_target("clean", use_build_dir)
 
-    def autotools_distclean(
+    def make_distclean(
         self,
         use_build_dir: bool = True,
     ) -> dict[str, Any]:
@@ -713,7 +713,7 @@ class AutotoolsActions:
             make_cmd = f"make {target}"
 
             if self.verbose:
-                print(f"[autotools_{target}] Running: {make_cmd}")
+                print(f"[make_{target}] Running: {make_cmd}")
 
             docker_cmd.append(make_cmd)
 
@@ -767,7 +767,7 @@ class AutotoolsActions:
             project_path=self.project_path,
             unavoidable_asm_path=self.unavoidable_asm_path,
             verbose=self.verbose,
-            log_prefix="[autotools_build]",
+            log_prefix="[make_build]",
         )
 
 
@@ -814,8 +814,8 @@ CMAKE_TOOL_DEFINITIONS = [
     },
 ]
 
-# Autotools tools
-AUTOTOOLS_TOOL_DEFINITIONS = [
+# Configure/Make tools
+CONFIGURE_MAKE_TOOL_DEFINITIONS = [
     {
         "name": "bootstrap",
         "description": (
@@ -853,7 +853,7 @@ AUTOTOOLS_TOOL_DEFINITIONS = [
         },
     },
     {
-        "name": "autotools_configure",
+        "name": "run_configure",
         "description": (
             "Run ./configure with flags. This generates Makefile but does not compile. "
             "Environment variables CC, CXX, CFLAGS, CXXFLAGS, LD, AR, NM, RANLIB are "
@@ -886,10 +886,11 @@ AUTOTOOLS_TOOL_DEFINITIONS = [
         },
     },
     {
-        "name": "autotools_build",
+        "name": "make_build",
         "description": (
             "Run 'bear -- make' to build and capture compile commands. Only call this after "
-            "a successful autotools_configure. Bear wraps make to generate compile_commands.json. "
+            "a successful run_configure, or directly if only a Makefile exists. Bear wraps "
+            "make to generate compile_commands.json. "
             "On success, returns an assembly_check result showing if any assembly code (.s files, "
             "inline asm) was compiled. If assembly is detected, try different configure flags "
             "to avoid it (e.g., --disable-asm, --disable-simd)."
@@ -907,7 +908,8 @@ AUTOTOOLS_TOOL_DEFINITIONS = [
                 "use_build_dir": {
                     "type": "boolean",
                     "description": (
-                        "Must match the use_build_dir setting from autotools_configure."
+                        "Must match the use_build_dir setting from run_configure. "
+                        "Set to false if building directly with Makefile in source directory."
                     ),
                     "default": True,
                 },
@@ -915,7 +917,7 @@ AUTOTOOLS_TOOL_DEFINITIONS = [
         },
     },
     {
-        "name": "autotools_clean",
+        "name": "make_clean",
         "description": (
             "Run 'make clean' to remove compiled object files. Use this before retrying a build "
             "with different flags, or to clean up after a failed build. Does not remove Makefile "
@@ -927,7 +929,7 @@ AUTOTOOLS_TOOL_DEFINITIONS = [
                 "use_build_dir": {
                     "type": "boolean",
                     "description": (
-                        "Must match the use_build_dir setting from autotools_configure."
+                        "Must match the use_build_dir setting from run_configure."
                     ),
                     "default": True,
                 },
@@ -935,11 +937,11 @@ AUTOTOOLS_TOOL_DEFINITIONS = [
         },
     },
     {
-        "name": "autotools_distclean",
+        "name": "make_distclean",
         "description": (
             "Run 'make distclean' to remove all generated files including Makefile and "
             "configuration cache. Use this before reconfiguring with completely different flags. "
-            "After distclean, you must run autotools_configure again before building."
+            "After distclean, you must run run_configure again before building."
         ),
         "input_schema": {
             "type": "object",
@@ -947,7 +949,7 @@ AUTOTOOLS_TOOL_DEFINITIONS = [
                 "use_build_dir": {
                     "type": "boolean",
                     "description": (
-                        "Must match the use_build_dir setting from autotools_configure."
+                        "Must match the use_build_dir setting from run_configure."
                     ),
                     "default": True,
                 },
@@ -983,6 +985,3 @@ FINISH_TOOL_DEFINITION = {
     },
 }
 
-# Add finish tool to both tool sets
-CMAKE_TOOL_DEFINITIONS = CMAKE_TOOL_DEFINITIONS + [FINISH_TOOL_DEFINITION]
-AUTOTOOLS_TOOL_DEFINITIONS = AUTOTOOLS_TOOL_DEFINITIONS + [FINISH_TOOL_DEFINITION]

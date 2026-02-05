@@ -57,7 +57,7 @@ class ScriptGenerator:
         )
 
         # Generate build.sh based on build system
-        if build_system == "autotools":
+        if build_system in ("autotools", "configure_make", "make"):
             script_path = self._generate_autotools_script(
                 project_dir,
                 project_name,
@@ -101,7 +101,7 @@ class ScriptGenerator:
         }
 
         # Add flags with appropriate key based on build system
-        if build_system == "autotools":
+        if build_system in ("autotools", "configure_make", "make"):
             config["configure_flags"] = flags
             config["use_build_dir"] = use_build_dir
         else:

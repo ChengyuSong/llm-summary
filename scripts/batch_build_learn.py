@@ -307,25 +307,6 @@ def main():
             })
             continue
 
-        # Check for supported build system (CMake or autotools)
-        has_cmake = (project_path / "CMakeLists.txt").exists()
-        has_autotools = (project_path / "configure").exists() or (project_path / "configure.ac").exists()
-
-        if not has_cmake and not has_autotools:
-            print(f"  ⚠️  No CMakeLists.txt, configure, or configure.ac found in {project_path}")
-            print(f"  Skipping (unsupported build system)...")
-            results["skipped"] += 1
-            results["projects"].append({
-                "name": project_name,
-                "status": "skipped",
-                "reason": "unsupported_build_system",
-                "path": str(project_path),
-            })
-            continue
-
-        build_system = "cmake" if has_cmake else "autotools"
-        print(f"  Build system: {build_system}")
-
         # Setup build directory (use directory name, not project name from JSON)
         build_dir = args.build_root / project_path.name
         build_dir.mkdir(parents=True, exist_ok=True)

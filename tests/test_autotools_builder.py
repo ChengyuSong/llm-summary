@@ -1,4 +1,4 @@
-"""Tests for the AutotoolsBuilder class."""
+"""Tests for the unified Builder class (configure/make paths)."""
 
 import json
 from pathlib import Path
@@ -6,7 +6,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from llm_summary.builder.autotools_builder import AutotoolsBuilder, AUTOTOOLS_TOOL_DEFINITIONS
+from llm_summary.builder.builder import Builder
+from llm_summary.builder.tool_definitions import UNIFIED_TOOL_DEFINITIONS
 from llm_summary.builder.llm_utils import (
     deduplicate_tool_result,
     filter_warnings,
@@ -14,33 +15,38 @@ from llm_summary.builder.llm_utils import (
 )
 
 
-class TestAutotoolsBuilderToolDefinitions:
-    """Tests for autotools tool definitions in the builder."""
+class TestUnifiedToolDefinitions:
+    """Tests for unified tool definitions."""
 
     def test_file_tools_included(self):
         """Test that file tools are included in tool definitions."""
-        tool_names = [t["name"] for t in AUTOTOOLS_TOOL_DEFINITIONS]
+        tool_names = [t["name"] for t in UNIFIED_TOOL_DEFINITIONS]
         assert "read_file" in tool_names
         assert "list_dir" in tool_names
 
-    def test_autotools_tools_included(self):
-        """Test that autotools action tools are included."""
-        tool_names = [t["name"] for t in AUTOTOOLS_TOOL_DEFINITIONS]
+    def test_cmake_tools_included(self):
+        """Test that CMake action tools are included."""
+        tool_names = [t["name"] for t in UNIFIED_TOOL_DEFINITIONS]
+        assert "cmake_configure" in tool_names
+        assert "cmake_build" in tool_names
+
+    def test_configure_make_tools_included(self):
+        """Test that configure/make action tools are included."""
+        tool_names = [t["name"] for t in UNIFIED_TOOL_DEFINITIONS]
         assert "autoreconf" in tool_names
-        assert "autotools_configure" in tool_names
-        assert "autotools_build" in tool_names
-        assert "autotools_clean" in tool_names
-        assert "autotools_distclean" in tool_names
+        assert "run_configure" in tool_names
+        assert "make_build" in tool_names
+        assert "make_clean" in tool_names
+        assert "make_distclean" in tool_names
 
-    def test_cmake_tools_not_included(self):
-        """Test that CMake tools are NOT included."""
-        tool_names = [t["name"] for t in AUTOTOOLS_TOOL_DEFINITIONS]
-        assert "cmake_configure" not in tool_names
-        assert "cmake_build" not in tool_names
+    def test_finish_tool_included(self):
+        """Test that finish tool is included exactly once."""
+        finish_tools = [t for t in UNIFIED_TOOL_DEFINITIONS if t["name"] == "finish"]
+        assert len(finish_tools) == 1
 
 
-class TestAutotoolsBuilder:
-    """Tests for AutotoolsBuilder class."""
+class TestBuilder:
+    """Tests for unified Builder class."""
 
     @pytest.fixture
     def mock_llm(self):
@@ -78,7 +84,7 @@ AC_OUTPUT
 
     def test_builder_initialization(self, mock_llm):
         """Test builder initializes with correct defaults."""
-        builder = AutotoolsBuilder(
+        builder = Builder(
             llm=mock_llm,
             verbose=True,
         )
@@ -88,49 +94,29 @@ AC_OUTPUT
         assert builder.prefer_static is True
         assert builder.max_retries == 3
 
-    def test_get_default_config(self, mock_llm):
-        """Test default configuration includes static linking."""
-        builder = AutotoolsBuilder(
+    def test_get_default_cmake_config(self, mock_llm):
+        """Test default cmake configuration includes expected flags."""
+        builder = Builder(
             llm=mock_llm,
             prefer_static=True,
         )
 
-        flags = builder._get_default_config()
-        assert "--disable-shared" in flags
-        assert "--enable-static" in flags
-
-    def test_get_default_config_no_static(self, mock_llm):
-        """Test default configuration without static preference."""
-        builder = AutotoolsBuilder(
-            llm=mock_llm,
-            prefer_static=False,
-        )
-
-        flags = builder._get_default_config()
-        assert "--disable-shared" not in flags
-        assert "--enable-static" not in flags
-
-    def test_learn_and_build_no_configure(self, mock_llm, tmp_path):
-        """Test that missing configure.ac raises error."""
-        empty_project = tmp_path / "empty"
-        empty_project.mkdir()
-
-        builder = AutotoolsBuilder(llm=mock_llm)
-
-        with pytest.raises(ValueError, match="Neither configure nor configure.ac"):
-            builder.learn_and_build(empty_project)
+        flags = builder._get_default_cmake_config()
+        assert "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON" in flags
+        assert "-DBUILD_SHARED_LIBS=OFF" in flags
 
     def test_execute_tool_safe_read_file(self, mock_llm, temp_project):
         """Test _execute_tool_safe routes read_file correctly."""
         from llm_summary.builder.tools import BuildTools
-        from llm_summary.builder.actions import AutotoolsActions
+        from llm_summary.builder.actions import AutotoolsActions, CMakeActions
 
-        builder = AutotoolsBuilder(llm=mock_llm)
+        builder = Builder(llm=mock_llm)
         file_tools = BuildTools(temp_project, temp_project / "build")
-        actions = AutotoolsActions(temp_project, temp_project / "build")
+        cmake_actions = CMakeActions(temp_project, temp_project / "build")
+        autotools_actions = AutotoolsActions(temp_project, temp_project / "build")
 
         result = builder._execute_tool_safe(
-            file_tools, actions, "read_file",
+            file_tools, cmake_actions, autotools_actions, "read_file",
             {"file_path": "configure.ac"}
         )
 
@@ -140,14 +126,15 @@ AC_OUTPUT
     def test_execute_tool_safe_list_dir(self, mock_llm, temp_project):
         """Test _execute_tool_safe routes list_dir correctly."""
         from llm_summary.builder.tools import BuildTools
-        from llm_summary.builder.actions import AutotoolsActions
+        from llm_summary.builder.actions import AutotoolsActions, CMakeActions
 
-        builder = AutotoolsBuilder(llm=mock_llm)
+        builder = Builder(llm=mock_llm)
         file_tools = BuildTools(temp_project, temp_project / "build")
-        actions = AutotoolsActions(temp_project, temp_project / "build")
+        cmake_actions = CMakeActions(temp_project, temp_project / "build")
+        autotools_actions = AutotoolsActions(temp_project, temp_project / "build")
 
         result = builder._execute_tool_safe(
-            file_tools, actions, "list_dir",
+            file_tools, cmake_actions, autotools_actions, "list_dir",
             {"dir_path": "."}
         )
 
@@ -160,34 +147,36 @@ AC_OUTPUT
     def test_execute_tool_safe_autoreconf(self, mock_run, mock_llm, temp_project):
         """Test _execute_tool_safe routes autoreconf correctly."""
         from llm_summary.builder.tools import BuildTools
-        from llm_summary.builder.actions import AutotoolsActions
+        from llm_summary.builder.actions import AutotoolsActions, CMakeActions
 
         mock_run.return_value = MagicMock(returncode=0, stdout="ok", stderr="")
 
-        builder = AutotoolsBuilder(llm=mock_llm)
+        builder = Builder(llm=mock_llm)
         file_tools = BuildTools(temp_project, temp_project / "build")
-        actions = AutotoolsActions(temp_project, temp_project / "build")
+        cmake_actions = CMakeActions(temp_project, temp_project / "build")
+        autotools_actions = AutotoolsActions(temp_project, temp_project / "build")
 
         result = builder._execute_tool_safe(
-            file_tools, actions, "autoreconf", {}
+            file_tools, cmake_actions, autotools_actions, "autoreconf", {}
         )
 
         assert result["success"] is True
 
     @patch("subprocess.run")
-    def test_execute_tool_safe_configure(self, mock_run, mock_llm, temp_project):
-        """Test _execute_tool_safe routes autotools_configure correctly."""
+    def test_execute_tool_safe_run_configure(self, mock_run, mock_llm, temp_project):
+        """Test _execute_tool_safe routes run_configure correctly."""
         from llm_summary.builder.tools import BuildTools
-        from llm_summary.builder.actions import AutotoolsActions
+        from llm_summary.builder.actions import AutotoolsActions, CMakeActions
 
         mock_run.return_value = MagicMock(returncode=0, stdout="ok", stderr="")
 
-        builder = AutotoolsBuilder(llm=mock_llm)
+        builder = Builder(llm=mock_llm)
         file_tools = BuildTools(temp_project, temp_project / "build")
-        actions = AutotoolsActions(temp_project, temp_project / "build")
+        cmake_actions = CMakeActions(temp_project, temp_project / "build")
+        autotools_actions = AutotoolsActions(temp_project, temp_project / "build")
 
         result = builder._execute_tool_safe(
-            file_tools, actions, "autotools_configure",
+            file_tools, cmake_actions, autotools_actions, "run_configure",
             {"configure_flags": ["--disable-shared"], "use_build_dir": True}
         )
 
@@ -196,14 +185,15 @@ AC_OUTPUT
     def test_execute_tool_safe_unknown_tool(self, mock_llm, temp_project):
         """Test _execute_tool_safe returns error for unknown tool."""
         from llm_summary.builder.tools import BuildTools
-        from llm_summary.builder.actions import AutotoolsActions
+        from llm_summary.builder.actions import AutotoolsActions, CMakeActions
 
-        builder = AutotoolsBuilder(llm=mock_llm)
+        builder = Builder(llm=mock_llm)
         file_tools = BuildTools(temp_project, temp_project / "build")
-        actions = AutotoolsActions(temp_project, temp_project / "build")
+        cmake_actions = CMakeActions(temp_project, temp_project / "build")
+        autotools_actions = AutotoolsActions(temp_project, temp_project / "build")
 
         result = builder._execute_tool_safe(
-            file_tools, actions, "unknown_tool", {}
+            file_tools, cmake_actions, autotools_actions, "unknown_tool", {}
         )
 
         assert "error" in result
@@ -212,14 +202,15 @@ AC_OUTPUT
     def test_execute_tool_safe_finish(self, mock_llm, temp_project):
         """Test _execute_tool_safe handles finish tool correctly."""
         from llm_summary.builder.tools import BuildTools
-        from llm_summary.builder.actions import AutotoolsActions
+        from llm_summary.builder.actions import AutotoolsActions, CMakeActions
 
-        builder = AutotoolsBuilder(llm=mock_llm)
+        builder = Builder(llm=mock_llm)
         file_tools = BuildTools(temp_project, temp_project / "build")
-        actions = AutotoolsActions(temp_project, temp_project / "build")
+        cmake_actions = CMakeActions(temp_project, temp_project / "build")
+        autotools_actions = AutotoolsActions(temp_project, temp_project / "build")
 
         result = builder._execute_tool_safe(
-            file_tools, actions, "finish",
+            file_tools, cmake_actions, autotools_actions, "finish",
             {"status": "success", "summary": "Build completed successfully"}
         )
 
@@ -319,7 +310,7 @@ class TestExtractCompileCommands:
         ]
         (build_dir / "compile_commands.json").write_text(json.dumps(compile_commands))
 
-        builder = AutotoolsBuilder(
+        builder = Builder(
             llm=mock_llm,
             build_dir=build_dir,
             verbose=True,
@@ -357,7 +348,7 @@ class TestExtractCompileCommands:
         ]
         (project_dir / "compile_commands.json").write_text(json.dumps(compile_commands))
 
-        builder = AutotoolsBuilder(
+        builder = Builder(
             llm=mock_llm,
             build_dir=project_dir,  # Same as project dir for in-source
             verbose=True,
@@ -381,7 +372,7 @@ class TestExtractCompileCommands:
         build_dir = tmp_path / "build"
         build_dir.mkdir()
 
-        builder = AutotoolsBuilder(
+        builder = Builder(
             llm=mock_llm,
             build_dir=build_dir,
         )

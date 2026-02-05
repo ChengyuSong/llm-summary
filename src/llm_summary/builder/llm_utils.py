@@ -81,13 +81,13 @@ BUILD_TOOLS = {
     # CMake (from actions.py)
     "cmake_configure",
     "cmake_build",
-    # Autotools (from actions.py)
+    # Configure/Make (from actions.py)
     "bootstrap",
     "autoreconf",
-    "autotools_configure",
-    "autotools_build",
-    "autotools_clean",
-    "autotools_distclean",
+    "run_configure",
+    "make_build",
+    "make_clean",
+    "make_distclean",
 }
 
 

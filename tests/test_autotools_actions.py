@@ -7,7 +7,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from llm_summary.builder.actions import AutotoolsActions, AUTOTOOLS_TOOL_DEFINITIONS as TOOL_DEFINITIONS
+from llm_summary.builder.actions import AutotoolsActions, CONFIGURE_MAKE_TOOL_DEFINITIONS as TOOL_DEFINITIONS
 
 
 class TestAutotoolsActionsMocked:
@@ -102,7 +102,7 @@ class TestAutotoolsActionsMocked:
         )
 
         actions = AutotoolsActions(src_dir, build_dir)
-        result = actions.autotools_configure(
+        result = actions.run_configure(
             configure_flags=["--disable-shared", "--enable-static"],
             use_build_dir=True,
         )
@@ -137,7 +137,7 @@ class TestAutotoolsActionsMocked:
         )
 
         actions = AutotoolsActions(src_dir, build_dir)
-        result = actions.autotools_configure(
+        result = actions.run_configure(
             configure_flags=["--prefix=/usr"],
             use_build_dir=False,
         )
@@ -167,7 +167,7 @@ class TestAutotoolsActionsMocked:
         )
 
         actions = AutotoolsActions(src_dir, build_dir)
-        result = actions.autotools_build(use_build_dir=True)
+        result = actions.make_build(use_build_dir=True)
 
         assert result["success"] is True
 
@@ -193,7 +193,7 @@ class TestAutotoolsActionsMocked:
         )
 
         actions = AutotoolsActions(src_dir, build_dir)
-        result = actions.autotools_build(make_target="lib", use_build_dir=True)
+        result = actions.make_build(make_target="lib", use_build_dir=True)
 
         assert result["success"] is True
 
@@ -218,7 +218,7 @@ class TestAutotoolsActionsMocked:
         ]
 
         actions = AutotoolsActions(src_dir, build_dir, verbose=True)
-        result = actions.autotools_build(use_build_dir=True)
+        result = actions.make_build(use_build_dir=True)
 
         assert result["success"] is False
         assert "undefined reference" in result["output"]
@@ -234,7 +234,7 @@ class TestAutotoolsActionsMocked:
 
         # Don't create Makefile
         actions = AutotoolsActions(src_dir, build_dir)
-        result = actions.autotools_build(use_build_dir=True)
+        result = actions.make_build(use_build_dir=True)
 
         assert result["success"] is False
         assert "Makefile not found" in result["error"]
@@ -254,7 +254,7 @@ class TestAutotoolsActionsMocked:
         )
 
         actions = AutotoolsActions(src_dir, build_dir)
-        result = actions.autotools_clean(use_build_dir=True)
+        result = actions.make_clean(use_build_dir=True)
 
         assert result["success"] is True
 
@@ -278,7 +278,7 @@ class TestAutotoolsActionsMocked:
         )
 
         actions = AutotoolsActions(src_dir, build_dir)
-        result = actions.autotools_distclean(use_build_dir=True)
+        result = actions.make_distclean(use_build_dir=True)
 
         assert result["success"] is True
 
@@ -292,7 +292,7 @@ class TestAutotoolsActionsMocked:
         src_dir, build_dir = temp_project
 
         actions = AutotoolsActions(src_dir, build_dir)
-        result = actions.autotools_clean(use_build_dir=True)
+        result = actions.make_clean(use_build_dir=True)
 
         assert result["success"] is False
         assert "Makefile not found" in result["error"]
@@ -309,16 +309,16 @@ class TestToolDefinitions:
         assert "configure.ac" in tool["description"]
 
     def test_configure_tool_exists(self):
-        """Test autotools_configure tool is defined."""
-        tool = next((t for t in TOOL_DEFINITIONS if t["name"] == "autotools_configure"), None)
+        """Test run_configure tool is defined."""
+        tool = next((t for t in TOOL_DEFINITIONS if t["name"] == "run_configure"), None)
         assert tool is not None
         assert "configure_flags" in tool["input_schema"]["properties"]
         assert "use_build_dir" in tool["input_schema"]["properties"]
         assert tool["input_schema"]["properties"]["use_build_dir"]["default"] is True
 
     def test_build_tool_exists(self):
-        """Test autotools_build tool is defined."""
-        tool = next((t for t in TOOL_DEFINITIONS if t["name"] == "autotools_build"), None)
+        """Test make_build tool is defined."""
+        tool = next((t for t in TOOL_DEFINITIONS if t["name"] == "make_build"), None)
         assert tool is not None
         assert "bear" in tool["description"]
         assert "compile_commands" in tool["description"]
@@ -326,23 +326,16 @@ class TestToolDefinitions:
 
     def test_tool_count(self):
         """Test correct number of tools are defined."""
-        assert len(TOOL_DEFINITIONS) == 7  # bootstrap, autoreconf, configure, build, clean, distclean, finish
+        assert len(TOOL_DEFINITIONS) == 6  # bootstrap, autoreconf, run_configure, make_build, make_clean, make_distclean
 
     def test_clean_tool_exists(self):
-        """Test autotools_clean tool is defined."""
-        tool = next((t for t in TOOL_DEFINITIONS if t["name"] == "autotools_clean"), None)
+        """Test make_clean tool is defined."""
+        tool = next((t for t in TOOL_DEFINITIONS if t["name"] == "make_clean"), None)
         assert tool is not None
         assert "make clean" in tool["description"]
 
     def test_distclean_tool_exists(self):
-        """Test autotools_distclean tool is defined."""
-        tool = next((t for t in TOOL_DEFINITIONS if t["name"] == "autotools_distclean"), None)
+        """Test make_distclean tool is defined."""
+        tool = next((t for t in TOOL_DEFINITIONS if t["name"] == "make_distclean"), None)
         assert tool is not None
         assert "make distclean" in tool["description"]
-
-    def test_finish_tool_exists(self):
-        """Test finish tool is defined."""
-        tool = next((t for t in TOOL_DEFINITIONS if t["name"] == "finish"), None)
-        assert tool is not None
-        assert "completion" in tool["description"].lower() or "complete" in tool["description"].lower()
-        assert tool["input_schema"]["required"] == ["status", "summary"]
