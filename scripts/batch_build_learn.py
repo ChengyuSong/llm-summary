@@ -60,7 +60,7 @@ def run_build_learn(
             cmd,
             capture_output=True,
             text=True,
-            timeout=600,  # 10 minute timeout per project
+            timeout=1200,  # 10 minute timeout per project
         )
 
         duration = (datetime.now() - start_time).total_seconds()
@@ -326,8 +326,8 @@ def main():
         build_system = "cmake" if has_cmake else "autotools"
         print(f"  Build system: {build_system}")
 
-        # Setup build directory
-        build_dir = args.build_root / project_name
+        # Setup build directory (use directory name, not project name from JSON)
+        build_dir = args.build_root / project_path.name
         build_dir.mkdir(parents=True, exist_ok=True)
 
         # Setup log file if requested
