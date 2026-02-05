@@ -37,6 +37,7 @@ RUN apt-get update && apt-get install -y \
     perl \
     texinfo \
     gettext \
+    autopoint \
     nasm \
     # Utilities
     wget \
