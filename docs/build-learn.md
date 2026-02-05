@@ -4,7 +4,7 @@ This document describes the automated build agent system that learns how to buil
 
 ## Overview
 
-The `build-learn` command uses LLM-powered incremental learning to automatically configure and build CMake projects with optimal settings for static analysis:
+The `build-learn` command uses LLM-powered incremental learning to automatically configure and build CMake and autotools projects with optimal settings for static analysis:
 
 - **Containerized Builds**: Isolated Docker environment with LLVM 18 toolchain
 - **LTO Support**: Link-Time Optimization with `-flto=full`
@@ -115,11 +115,11 @@ The build agent automatically chooses between two modes based on project complex
 
 Identifies the build system used by a project:
 - CMake (CMakeLists.txt)
+- Autotools (configure.ac, configure.in, or configure script)
 - Meson (meson.build)
-- Autotools (configure.ac)
 - Make (Makefile)
 
-**Current support:** CMake only (Phase 1)
+**Current support:** CMake and Autotools
 
 ### 2. CMake Builder (`builder/cmake_builder.py`)
 
@@ -190,6 +190,57 @@ CMakeBuilder(
 - `_attempt_build()`: Two-phase build (configure + build) via CMakeActions
 - `_apply_suggestions()`: Apply error analysis suggestions to flags
 - `extract_compile_commands()`: Fix Docker paths in compile_commands.json
+
+### 2b. Autotools Builder (`builder/autotools_builder.py`)
+
+Builds autotools projects using `./configure` and `bear -- make` for compile database generation.
+
+**ReAct Mode Workflow:**
+1. `_get_initial_config_with_tools()`: LLM receives autotools system prompt
+2. Enters `_execute_react_loop()` (max 20 turns)
+3. LLM explores project with tools (read_file, list_dir)
+4. If needed, runs `autoreconf` to regenerate configure script
+5. Runs `autotools_configure` with flags
+6. Runs `autotools_build` (uses Bear to capture compile commands)
+7. Can use `autotools_clean` or `autotools_distclean` to retry with different flags
+8. On success: Returns dict with `build_succeeded=True`, `configure_flags`
+
+**Default Environment Variables (auto-injected):**
+```bash
+CC=clang-18
+CXX=clang++-18
+CFLAGS="-flto=full -save-temps=obj"
+CXXFLAGS="-flto=full -save-temps=obj"
+LDFLAGS="-flto=full -fuse-ld=lld"
+LD=ld.lld-18
+AR=llvm-ar-18
+NM=llvm-nm-18
+RANLIB=llvm-ranlib-18
+```
+
+**Key class:** `AutotoolsBuilder`
+
+**Constructor:**
+```python
+AutotoolsBuilder(
+    llm: LLMBackend,
+    container_image: str = "llm-summary-builder:latest",
+    build_dir: Path | None = None,
+    build_scripts_dir: Path | None = None,
+    max_retries: int = 3,
+    enable_lto: bool = True,
+    prefer_static: bool = True,
+    generate_ir: bool = True,
+    verbose: bool = False,
+    log_file: str | None = None,
+)
+```
+
+**Key methods:**
+- `learn_and_build()`: Main entry point
+- `_execute_react_loop()`: ReAct tool execution loop (max 20 turns)
+- `_execute_tool_safe()`: Routes tools to appropriate handlers
+- `extract_compile_commands()`: Fix Docker paths, supports both in-source and out-of-source builds
 
 ### 3. Error Analyzer (`builder/error_analyzer.py`)
 
@@ -288,7 +339,9 @@ The LLM agent has access to four tools for exploring and building projects:
 Centralizes all tool definitions in Anthropic format:
 
 - **TOOL_DEFINITIONS_READ_ONLY**: File exploration tools only (for error analysis)
-- **ALL_TOOL_DEFINITIONS**: File tools + action tools (for initial config phase)
+- **CMAKE_TOOL_DEFINITIONS**: File tools + CMake action tools (cmake_configure, cmake_build)
+- **AUTOTOOLS_TOOL_DEFINITIONS**: File tools + autotools action tools (autoreconf, autotools_configure, autotools_build, autotools_clean, autotools_distclean)
+- **ALL_TOOL_DEFINITIONS**: Alias for CMAKE_TOOL_DEFINITIONS (backwards compatibility)
 
 Tool definitions are automatically converted to OpenAI format for backends that require it (e.g., llama.cpp).
 
@@ -401,7 +454,42 @@ read_file("../../../etc/passwd")         ✗ Path traversal
 list_dir("../../")                       ✗ Escapes project
 ```
 
-**Key classes:** `BuildTools` (file exploration), `CMakeActions` (build execution)
+**Key classes:** `BuildTools` (file exploration), `CMakeActions` (CMake build execution), `AutotoolsActions` (autotools build execution)
+
+#### Autotools Action Tools (`builder/autotools_actions.py`)
+
+**autoreconf()**
+- Runs `autoreconf -fi` to regenerate configure script from configure.ac
+- Use when project has configure.ac but no configure script
+- Returns dict with: `success` (bool), `output` (stdout+stderr), `error` (error message)
+- Timeout: 5 minutes
+
+**autotools_configure(configure_flags, use_build_dir=True)**
+- Runs `./configure` with specified flags
+- `configure_flags`: List of flags (e.g., `["--disable-shared", "--enable-static"]`)
+- `use_build_dir`: If True, out-of-source build in /workspace/build; if False, in-source build
+- Auto-injects CC, CXX, CFLAGS, CXXFLAGS, LDFLAGS, LD, AR, NM, RANLIB for clang-18 with LTO
+- Returns dict with: `success` (bool), `output`, `error`, `use_build_dir`
+- Timeout: 10 minutes
+
+**autotools_build(make_target="", use_build_dir=True)**
+- Runs `bear -- make -j$(nproc)` to build and capture compile commands
+- Bear intercepts compiler calls to generate compile_commands.json
+- `make_target`: Optional target (e.g., "all", "lib")
+- Returns dict with: `success` (bool), `output`, `error`, `assembly_check` (assembly detection results)
+- On failure: Retries with `make -j1` for clearer error output
+- Timeout: 20 minutes
+
+**autotools_clean(use_build_dir=True)**
+- Runs `make clean` to remove compiled object files
+- Use before retrying build with different flags
+- Returns dict with: `success` (bool), `output`, `error`
+
+**autotools_distclean(use_build_dir=True)**
+- Runs `make distclean` to remove all generated files including Makefile
+- Use before reconfiguring with completely different flags
+- After distclean, must run autotools_configure again
+- Returns dict with: `success` (bool), `output`, `error`
 
 ### 7. LLM Backends (`llm/`)
 
@@ -486,6 +574,16 @@ llm-summary build-learn \
 llm-summary build-learn \
   --project-path /path/to/project \
   --backend llamacpp \
+  --verbose
+```
+
+**Building an autotools project (e.g., libvpx):**
+```bash
+# Autotools projects are automatically detected
+llm-summary build-learn \
+  --project-path /path/to/libvpx \
+  --build-dir /tmp/libvpx-build \
+  --backend vertex \
   --verbose
 ```
 
@@ -590,7 +688,9 @@ Result: Success! Build complete in 25.3 seconds
 - LLVM 18 toolchain (clang-18, clang++, lld-18)
 - libc++-18-dev, libc++abi-18-dev
 - CMake 3.28+, Ninja, Make
-- Git, ccache
+- Autotools (autoconf, automake, libtool)
+- Bear (for compile_commands.json generation with make)
+- Git
 - Common dependencies (zlib, libssl, libpng, libjpeg)
 
 **Environment Variables:**
@@ -837,7 +937,11 @@ export GOOGLE_CLOUD_PROJECT="your-project-id"
 ## TODOs / Future Work
 
 ### Phase 2: Non-CMake Support
-- [ ] Autotools support (`./configure`)
+- [x] **Completed:** Autotools support (`./configure` with Bear)
+  - [x] autoreconf, autotools_configure, autotools_build tools
+  - [x] autotools_clean, autotools_distclean for iterative builds
+  - [x] Out-of-source and in-source build support
+  - [x] Auto-injected LDFLAGS for proper LTO linking
 - [ ] Meson support (`meson setup`)
 - [ ] Plain Make support (intercept with Bear)
 - [ ] Custom build script detection
@@ -909,7 +1013,7 @@ export GOOGLE_CLOUD_PROJECT="your-project-id"
 
 ## Known Limitations
 
-1. **CMake Only**: Only CMake projects supported (Autotools/Meson planned for Phase 2)
+1. **CMake and Autotools Only**: Meson and plain Make projects not yet supported
 2. **No Fuzzing**: Fuzzing harness detection not implemented
 3. **No Runtime Dependency Installation**: Dependencies cannot be installed at runtime; they must be pre-installed in the Docker image. Agent will identify missing dependencies and stop, requiring user to update `docker/build-env/Dockerfile` and rebuild the image.
 4. **Assembly from Dependencies**: While the agent can minimize assembly in the project itself through CMake flags, inline assembly from third-party dependencies (e.g., BoringSSL crypto functions) cannot be eliminated. These are tracked as unavoidable.
@@ -934,6 +1038,9 @@ export GOOGLE_CLOUD_PROJECT="your-project-id"
 13. **Smart Termination**: Agent stops ReAct loop when it identifies missing dependencies that cannot be installed at runtime; reports them as `missing_dependencies` for Docker image updates
 14. **Assembly Code Detection**: Automatic verification after successful builds detects standalone .s/.S/.asm files, inline assembly in C/C++ sources, and inline assembly in LLVM bitcode
 15. **Unavoidable Assembly Filtering**: Known unavoidable assembly findings (from dependencies) are saved to `build-scripts/<project>/unavoidable_asm.json` and filtered from future results, preventing agent from wasting turns trying to remove them
+16. **Autotools Support**: Full support for autotools projects with Bear for compile_commands.json generation
+17. **Autotools Tools**: autoreconf, autotools_configure, autotools_build, autotools_clean, autotools_distclean
+18. **LTO Linking**: LDFLAGS with `-flto=full -fuse-ld=lld` ensures proper linking of LTO bitcode objects
 
 ## Performance Characteristics
 
