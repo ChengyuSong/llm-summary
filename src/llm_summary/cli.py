@@ -885,9 +885,10 @@ def build_learn(
     log_llm,
     verbose,
 ):
-    """Learn how to build a CMake project and generate reusable build script."""
+    """Learn how to build a CMake or autotools project and generate reusable build script."""
     from .builder import BuildSystem, detect_build_system
     from .builder.cmake_builder import CMakeBuilder
+    from .builder.autotools_builder import AutotoolsBuilder
     from .builder.script_generator import ScriptGenerator
 
     project_path = Path(project_path).resolve()
@@ -915,8 +916,8 @@ def build_learn(
 
     console.print(f"Build system: [bold]{build_system.value}[/bold]")
 
-    if build_system != BuildSystem.CMAKE:
-        console.print(f"[red]Error: Only CMake projects are supported in Phase 1[/red]")
+    if build_system not in (BuildSystem.CMAKE, BuildSystem.AUTOTOOLS):
+        console.print(f"[red]Error: Only CMake and autotools projects are supported[/red]")
         console.print(f"[yellow]Detected: {build_system.value}[/yellow]")
         sys.exit(1)
 
@@ -943,18 +944,31 @@ def build_learn(
         console.print(f"[red]Error initializing LLM backend: {e}[/red]")
         sys.exit(1)
 
-    # Initialize CMake builder
-    builder = CMakeBuilder(
-        llm=llm,
-        container_image=container_image,
-        build_dir=Path(build_dir) if build_dir else None,
-        max_retries=max_retries,
-        enable_lto=enable_lto,
-        prefer_static=prefer_static,
-        generate_ir=generate_ir,
-        verbose=verbose,
-        log_file=log_llm,
-    )
+    # Initialize builder based on build system
+    if build_system == BuildSystem.CMAKE:
+        builder = CMakeBuilder(
+            llm=llm,
+            container_image=container_image,
+            build_dir=Path(build_dir) if build_dir else None,
+            max_retries=max_retries,
+            enable_lto=enable_lto,
+            prefer_static=prefer_static,
+            generate_ir=generate_ir,
+            verbose=verbose,
+            log_file=log_llm,
+        )
+    elif build_system == BuildSystem.AUTOTOOLS:
+        builder = AutotoolsBuilder(
+            llm=llm,
+            container_image=container_image,
+            build_dir=Path(build_dir) if build_dir else None,
+            max_retries=max_retries,
+            enable_lto=enable_lto,
+            prefer_static=prefer_static,
+            generate_ir=generate_ir,
+            verbose=verbose,
+            log_file=log_llm,
+        )
 
     # Learn and build
     console.print(f"\n[bold]Learning build configuration...[/bold]")
@@ -982,11 +996,17 @@ def build_learn(
     project_name = project_path.name
     generator = ScriptGenerator()
 
+    # Get flags based on build system
+    if build_system == BuildSystem.CMAKE:
+        flags = result.get("cmake_flags", [])
+    else:
+        flags = result.get("configure_flags", [])
+
     try:
         paths = generator.generate(
             project_name=project_name,
             project_path=project_path,
-            cmake_flags=result["cmake_flags"],
+            flags=flags,
             container_image=container_image,
             build_system=build_system.value,
             enable_ir=generate_ir,
@@ -1001,7 +1021,14 @@ def build_learn(
         try:
             # Use the project directory created by the script generator
             project_dir = paths['script'].parent
-            compile_commands_path = builder.extract_compile_commands(project_path, output_dir=project_dir)
+            # For autotools, we need to pass use_build_dir from the result
+            if build_system == BuildSystem.AUTOTOOLS:
+                use_build_dir = result.get("use_build_dir", True)
+                compile_commands_path = builder.extract_compile_commands(
+                    project_path, output_dir=project_dir, use_build_dir=use_build_dir
+                )
+            else:
+                compile_commands_path = builder.extract_compile_commands(project_path, output_dir=project_dir)
             console.print(f"Extracted to: {compile_commands_path}")
         except Exception as e:
             console.print(f"[yellow]Warning: Failed to extract compile_commands.json: {e}[/yellow]")
@@ -1024,11 +1051,20 @@ def build_learn(
     console.print(f"\n[bold]Storing build configuration in database...[/bold]")
     db = SummaryDB(db_path)
     try:
+        # Build configuration dict based on build system
+        if build_system == BuildSystem.CMAKE:
+            config_dict = {"cmake_flags": result.get("cmake_flags", [])}
+        else:
+            config_dict = {
+                "configure_flags": result.get("configure_flags", []),
+                "use_build_dir": result.get("use_build_dir", True),
+            }
+
         db.add_build_config(
             project_path=str(project_path),
             project_name=project_name,
             build_system=build_system.value,
-            configuration={"cmake_flags": result["cmake_flags"]},
+            configuration=config_dict,
             script_path=str(paths["script"]),
             artifacts_dir=str(paths["artifacts_dir"]),
             compile_commands_path=str(compile_commands_path) if compile_commands_path else None,

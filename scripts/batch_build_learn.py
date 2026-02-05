@@ -307,18 +307,24 @@ def main():
             })
             continue
 
-        # Check for CMakeLists.txt
-        if not (project_path / "CMakeLists.txt").exists():
-            print(f"  ⚠️  No CMakeLists.txt found in {project_path}")
-            print(f"  Skipping (not a CMake project)...")
+        # Check for supported build system (CMake or autotools)
+        has_cmake = (project_path / "CMakeLists.txt").exists()
+        has_autotools = (project_path / "configure").exists() or (project_path / "configure.ac").exists()
+
+        if not has_cmake and not has_autotools:
+            print(f"  ⚠️  No CMakeLists.txt, configure, or configure.ac found in {project_path}")
+            print(f"  Skipping (unsupported build system)...")
             results["skipped"] += 1
             results["projects"].append({
                 "name": project_name,
                 "status": "skipped",
-                "reason": "no_cmake",
+                "reason": "unsupported_build_system",
                 "path": str(project_path),
             })
             continue
+
+        build_system = "cmake" if has_cmake else "autotools"
+        print(f"  Build system: {build_system}")
 
         # Setup build directory
         build_dir = args.build_root / project_name
@@ -347,6 +353,7 @@ def main():
             results["projects"].append({
                 "name": project_name,
                 "status": "success",
+                "build_system": build_system,
                 "duration": duration,
                 "path": str(project_path),
                 "build_dir": str(build_dir),
@@ -358,6 +365,7 @@ def main():
             results["projects"].append({
                 "name": project_name,
                 "status": "failed",
+                "build_system": build_system,
                 "duration": duration,
                 "error": error_msg,
                 "path": str(project_path),

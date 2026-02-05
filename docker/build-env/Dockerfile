@@ -38,13 +38,12 @@ RUN apt-get update && apt-get install -y \
     texinfo \
     gettext \
     nasm \
-    # Build speedup
-    ccache \
     # Utilities
     wget \
     curl \
     file \
     vim \
+    bear \
     && rm -rf /var/lib/apt/lists/*
 
 # Set clang-18 as default compiler
@@ -54,10 +53,6 @@ RUN update-alternatives --install /usr/bin/clang clang /usr/bin/clang-18 100 && 
     update-alternatives --install /usr/bin/llvm-ar llvm-ar /usr/bin/llvm-ar-18 100 && \
     update-alternatives --install /usr/bin/llvm-nm llvm-nm /usr/bin/llvm-nm-18 100 && \
     update-alternatives --install /usr/bin/opt opt /usr/bin/opt-18 100
-
-# Set up ccache for faster rebuilds
-ENV PATH="/usr/lib/ccache:${PATH}"
-ENV CCACHE_DIR="/workspace/.ccache"
 
 # Default compiler environment variables
 ENV CC=clang-18
