@@ -123,7 +123,7 @@ AC_OUTPUT
     def test_execute_tool_safe_read_file(self, mock_llm, temp_project):
         """Test _execute_tool_safe routes read_file correctly."""
         from llm_summary.builder.tools import BuildTools
-        from llm_summary.builder.autotools_actions import AutotoolsActions
+        from llm_summary.builder.actions import AutotoolsActions
 
         builder = AutotoolsBuilder(llm=mock_llm)
         file_tools = BuildTools(temp_project, temp_project / "build")
@@ -140,7 +140,7 @@ AC_OUTPUT
     def test_execute_tool_safe_list_dir(self, mock_llm, temp_project):
         """Test _execute_tool_safe routes list_dir correctly."""
         from llm_summary.builder.tools import BuildTools
-        from llm_summary.builder.autotools_actions import AutotoolsActions
+        from llm_summary.builder.actions import AutotoolsActions
 
         builder = AutotoolsBuilder(llm=mock_llm)
         file_tools = BuildTools(temp_project, temp_project / "build")
@@ -160,7 +160,7 @@ AC_OUTPUT
     def test_execute_tool_safe_autoreconf(self, mock_run, mock_llm, temp_project):
         """Test _execute_tool_safe routes autoreconf correctly."""
         from llm_summary.builder.tools import BuildTools
-        from llm_summary.builder.autotools_actions import AutotoolsActions
+        from llm_summary.builder.actions import AutotoolsActions
 
         mock_run.return_value = MagicMock(returncode=0, stdout="ok", stderr="")
 
@@ -178,7 +178,7 @@ AC_OUTPUT
     def test_execute_tool_safe_configure(self, mock_run, mock_llm, temp_project):
         """Test _execute_tool_safe routes autotools_configure correctly."""
         from llm_summary.builder.tools import BuildTools
-        from llm_summary.builder.autotools_actions import AutotoolsActions
+        from llm_summary.builder.actions import AutotoolsActions
 
         mock_run.return_value = MagicMock(returncode=0, stdout="ok", stderr="")
 
@@ -196,7 +196,7 @@ AC_OUTPUT
     def test_execute_tool_safe_unknown_tool(self, mock_llm, temp_project):
         """Test _execute_tool_safe returns error for unknown tool."""
         from llm_summary.builder.tools import BuildTools
-        from llm_summary.builder.autotools_actions import AutotoolsActions
+        from llm_summary.builder.actions import AutotoolsActions
 
         builder = AutotoolsBuilder(llm=mock_llm)
         file_tools = BuildTools(temp_project, temp_project / "build")
@@ -208,6 +208,24 @@ AC_OUTPUT
 
         assert "error" in result
         assert "Unknown tool" in result["error"]
+
+    def test_execute_tool_safe_finish(self, mock_llm, temp_project):
+        """Test _execute_tool_safe handles finish tool correctly."""
+        from llm_summary.builder.tools import BuildTools
+        from llm_summary.builder.actions import AutotoolsActions
+
+        builder = AutotoolsBuilder(llm=mock_llm)
+        file_tools = BuildTools(temp_project, temp_project / "build")
+        actions = AutotoolsActions(temp_project, temp_project / "build")
+
+        result = builder._execute_tool_safe(
+            file_tools, actions, "finish",
+            {"status": "success", "summary": "Build completed successfully"}
+        )
+
+        assert result["acknowledged"] is True
+        assert result["status"] == "success"
+        assert result["summary"] == "Build completed successfully"
 
     def test_truncate_messages(self, mock_llm):
         """Test message truncation for large contexts."""
@@ -226,23 +244,26 @@ AC_OUTPUT
         assert len(truncated) < len(messages)
         assert truncated[0]["content"] == "Initial request"
 
-    def test_deduplicate_tool_result_cached(self, mock_llm):
-        """Test deduplication of repeated file reads."""
-        seen = set()
-        result1 = {"content": "file contents"}
-        result2 = {"content": "file contents"}
+    def test_deduplicate_tool_result_tracks_reads(self, mock_llm):
+        """Test that file reads are tracked (compression happens separately)."""
+        history = {}
+        result1 = {"content": "file contents", "path": "test.c", "start_line": 1, "end_line": 50}
+        result2 = {"content": "file contents", "path": "test.c", "start_line": 1, "end_line": 50}
 
-        # First read - not cached
+        # First read - tracked and returned unchanged
         deduped1 = deduplicate_tool_result(
-            "read_file", {"file_path": "test.c"}, result1, seen
+            "read_file", {"file_path": "test.c"}, result1, history, current_turn=0
         )
-        assert "cached" not in deduped1
+        assert deduped1["content"] == "file contents"
 
-        # Second read - cached
+        # Second read - also returned unchanged (compression is separate)
         deduped2 = deduplicate_tool_result(
-            "read_file", {"file_path": "test.c"}, result2, seen
+            "read_file", {"file_path": "test.c"}, result2, history, current_turn=1
         )
-        assert deduped2.get("cached") is True
+        assert deduped2["content"] == "file contents"
+
+        # Both reads should be tracked
+        assert len(history["reads"]["test.c"]) == 2
 
     def test_filter_warnings_small_output(self, mock_llm):
         """Test that small outputs are not filtered."""

@@ -7,7 +7,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from llm_summary.builder.autotools_actions import AutotoolsActions, TOOL_DEFINITIONS
+from llm_summary.builder.actions import AutotoolsActions, AUTOTOOLS_TOOL_DEFINITIONS as TOOL_DEFINITIONS
 
 
 class TestAutotoolsActionsMocked:
@@ -326,7 +326,7 @@ class TestToolDefinitions:
 
     def test_tool_count(self):
         """Test correct number of tools are defined."""
-        assert len(TOOL_DEFINITIONS) == 6  # bootstrap, autoreconf, configure, build, clean, distclean
+        assert len(TOOL_DEFINITIONS) == 7  # bootstrap, autoreconf, configure, build, clean, distclean, finish
 
     def test_clean_tool_exists(self):
         """Test autotools_clean tool is defined."""
@@ -339,3 +339,10 @@ class TestToolDefinitions:
         tool = next((t for t in TOOL_DEFINITIONS if t["name"] == "autotools_distclean"), None)
         assert tool is not None
         assert "make distclean" in tool["description"]
+
+    def test_finish_tool_exists(self):
+        """Test finish tool is defined."""
+        tool = next((t for t in TOOL_DEFINITIONS if t["name"] == "finish"), None)
+        assert tool is not None
+        assert "completion" in tool["description"].lower() or "complete" in tool["description"].lower()
+        assert tool["input_schema"]["required"] == ["status", "summary"]

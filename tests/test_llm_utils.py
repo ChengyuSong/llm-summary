@@ -5,6 +5,7 @@ import json
 import pytest
 
 from llm_summary.builder.llm_utils import (
+    compress_stale_reads,
     deduplicate_tool_result,
     estimate_messages_tokens,
     estimate_tokens,
@@ -136,78 +137,91 @@ class TestFilterWarnings:
         assert "error at line 100" in filtered
 
 
-class TestDeduplicateToolResult:
-    """Tests for deduplicate_tool_result function."""
+class TestTrackToolResult:
+    """Tests for track_tool_result / deduplicate_tool_result function."""
 
-    def test_first_read_not_cached(self):
-        """Test that first file read is not cached."""
-        seen = set()
-        result = {"content": "file contents"}
+    def test_first_read_tracked(self):
+        """Test that first file read is tracked and returned unchanged."""
+        history = {}
+        result = {"content": "file contents", "path": "test.c", "start_line": 1, "end_line": 10}
 
         deduped = deduplicate_tool_result(
-            "read_file", {"file_path": "test.c"}, result, seen
+            "read_file", {"file_path": "test.c"}, result, history, current_turn=0
         )
 
-        assert "cached" not in deduped
+        # Result should be returned unchanged
         assert deduped["content"] == "file contents"
+        # Should be tracked in history
+        assert "test.c" in history["reads"]
+        assert history["reads"]["test.c"] == [(0, 1, 10)]
 
-    def test_second_read_cached(self):
-        """Test that second read of same file is cached."""
-        seen = set()
-        result1 = {"content": "contents"}
-        result2 = {"content": "contents"}
+    def test_multiple_reads_tracked(self):
+        """Test that multiple reads are all tracked."""
+        history = {}
+        result1 = {"content": "1", "path": "test.c", "start_line": 1, "end_line": 50}
+        result2 = {"content": "2", "path": "test.c", "start_line": 100, "end_line": 150}
 
-        deduplicate_tool_result("read_file", {"file_path": "test.c"}, result1, seen)
-        deduped2 = deduplicate_tool_result("read_file", {"file_path": "test.c"}, result2, seen)
+        deduplicate_tool_result("read_file", {"file_path": "test.c"}, result1, history, current_turn=0)
+        deduplicate_tool_result("read_file", {"file_path": "test.c"}, result2, history, current_turn=1)
 
-        assert deduped2.get("cached") is True
-        assert "already read" in deduped2.get("message", "")
+        # Both should be tracked
+        assert len(history["reads"]["test.c"]) == 2
+        assert (0, 1, 50) in history["reads"]["test.c"]
+        assert (1, 100, 150) in history["reads"]["test.c"]
 
-    def test_different_files_not_cached(self):
-        """Test that different files are not cached."""
-        seen = set()
+    def test_build_tools_tracked(self):
+        """Test that build tools are tracked with latest turn."""
+        history = {}
 
-        deduped1 = deduplicate_tool_result(
-            "read_file", {"file_path": "test1.c"}, {"content": "1"}, seen
-        )
-        deduped2 = deduplicate_tool_result(
-            "read_file", {"file_path": "test2.c"}, {"content": "2"}, seen
-        )
+        deduplicate_tool_result("cmake_configure", {}, {"success": False}, history, current_turn=0)
+        deduplicate_tool_result("cmake_configure", {}, {"success": True}, history, current_turn=2)
 
-        assert "cached" not in deduped1
-        assert "cached" not in deduped2
+        # Should track latest turn
+        assert history["builds"]["cmake_configure"] == 2
 
-    def test_different_start_lines_not_cached(self):
-        """Test that different start lines of same file are not cached."""
-        seen = set()
+    def test_all_build_tools_tracked(self):
+        """Test that all build tools (CMake and Autotools) are tracked."""
+        history = {}
 
-        deduped1 = deduplicate_tool_result(
-            "read_file", {"file_path": "test.c", "start_line": 1}, {"content": "1"}, seen
-        )
-        deduped2 = deduplicate_tool_result(
-            "read_file", {"file_path": "test.c", "start_line": 100}, {"content": "2"}, seen
-        )
+        # CMake tools
+        deduplicate_tool_result("cmake_configure", {}, {"success": True}, history, current_turn=0)
+        deduplicate_tool_result("cmake_build", {}, {"success": True}, history, current_turn=1)
 
-        assert "cached" not in deduped1
-        assert "cached" not in deduped2
+        # Autotools tools
+        deduplicate_tool_result("bootstrap", {}, {"success": True}, history, current_turn=2)
+        deduplicate_tool_result("autoreconf", {}, {"success": True}, history, current_turn=3)
+        deduplicate_tool_result("autotools_configure", {}, {"success": True}, history, current_turn=4)
+        deduplicate_tool_result("autotools_build", {}, {"success": True}, history, current_turn=5)
+        deduplicate_tool_result("autotools_clean", {}, {"success": True}, history, current_turn=6)
+        deduplicate_tool_result("autotools_distclean", {}, {"success": True}, history, current_turn=7)
+
+        # All should be tracked
+        assert history["builds"]["cmake_configure"] == 0
+        assert history["builds"]["cmake_build"] == 1
+        assert history["builds"]["bootstrap"] == 2
+        assert history["builds"]["autoreconf"] == 3
+        assert history["builds"]["autotools_configure"] == 4
+        assert history["builds"]["autotools_build"] == 5
+        assert history["builds"]["autotools_clean"] == 6
+        assert history["builds"]["autotools_distclean"] == 7
 
     def test_large_output_filtered(self):
         """Test that large output field is filtered."""
-        result = {"output": "x" * 50000}  # >1000 tokens, but <10000 chars so not filtered
+        history = {}
+        result = {"output": "x" * 50000}  # >1000 tokens
         original_len = len(result["output"])
-        deduped = deduplicate_tool_result("cmake_build", {}, result, set())
+        deduped = deduplicate_tool_result("cmake_build", {}, result, history)
 
         # Original result should not be modified
         assert len(result["output"]) == original_len
-        # Note: filter_warnings only filters if len(output) >= 10000, not token count
-        # So this won't actually be filtered. Let's make it larger.
 
     def test_large_content_filtered(self):
         """Test that large content field is filtered."""
+        history = {}
         # Create content that's both >1000 tokens AND >10000 chars
-        result = {"content": "warning: something\n" * 1000}  # >10000 chars
+        result = {"content": "warning: something\n" * 1000, "path": "new.c", "start_line": 1, "end_line": 100}
         original_len = len(result["content"])
-        deduped = deduplicate_tool_result("read_file", {"file_path": "new.c"}, result, set())
+        deduped = deduplicate_tool_result("read_file", {"file_path": "new.c"}, result, history)
 
         # Should be filtered (creates copy, doesn't modify original)
         assert len(result["content"]) == original_len
@@ -215,22 +229,94 @@ class TestDeduplicateToolResult:
 
     def test_small_output_not_filtered(self):
         """Test that small output is not filtered."""
+        history = {}
         result = {"output": "small output"}
-        deduped = deduplicate_tool_result("cmake_build", {}, result, set())
+        deduped = deduplicate_tool_result("cmake_build", {}, result, history)
 
         assert deduped["output"] == "small output"
 
-    def test_non_read_file_tools_not_cached(self):
-        """Test that non-read_file tools are not cached."""
-        seen = set()
-        result1 = {"success": True}
-        result2 = {"success": True}
+    def test_error_results_not_tracked(self):
+        """Test that error results are not tracked."""
+        history = {}
+        result = {"error": "file not found"}
 
-        deduped1 = deduplicate_tool_result("cmake_build", {}, result1, seen)
-        deduped2 = deduplicate_tool_result("cmake_build", {}, result2, seen)
+        deduped = deduplicate_tool_result("read_file", {"file_path": "missing.c"}, result, history)
 
-        assert "cached" not in deduped1
-        assert "cached" not in deduped2
+        assert deduped == result
+        assert "reads" not in history or "missing.c" not in history.get("reads", {})
+
+
+class TestCompressStaleResults:
+    """Tests for compress_stale_results function."""
+
+    def test_no_compression_single_read(self):
+        """Test that single read is not compressed."""
+        messages = [
+            {"role": "user", "content": [
+                {"type": "tool_result", "tool_use_id": "1", "content": json.dumps({
+                    "path": "test.c", "start_line": 1, "end_line": 50, "content": "..."
+                })}
+            ]}
+        ]
+        history = {"reads": {"test.c": [(0, 1, 50)]}, "builds": {}}
+
+        compressed = compress_stale_reads(messages, history)
+
+        # Should not be compressed
+        result = json.loads(compressed[0]["content"][0]["content"])
+        assert "compressed" not in result
+
+    def test_older_overlapping_read_compressed(self):
+        """Test that older overlapping read is compressed."""
+        messages = [
+            {"role": "user", "content": [
+                {"type": "tool_result", "tool_use_id": "1", "content": json.dumps({
+                    "path": "test.c", "start_line": 1, "end_line": 50, "content": "old content"
+                })}
+            ]},
+            {"role": "user", "content": [
+                {"type": "tool_result", "tool_use_id": "2", "content": json.dumps({
+                    "path": "test.c", "start_line": 1, "end_line": 100, "content": "new content"
+                })}
+            ]}
+        ]
+        # Second read (turn 1) overlaps and is newer
+        history = {"reads": {"test.c": [(0, 1, 50), (1, 1, 100)]}, "builds": {}}
+
+        compressed = compress_stale_reads(messages, history)
+
+        # First read should be compressed
+        result1 = json.loads(compressed[0]["content"][0]["content"])
+        assert result1.get("compressed") is True
+
+        # Second read should not be compressed
+        result2 = json.loads(compressed[1]["content"][0]["content"])
+        assert "compressed" not in result2
+
+    def test_non_overlapping_reads_not_compressed(self):
+        """Test that non-overlapping reads are not compressed."""
+        messages = [
+            {"role": "user", "content": [
+                {"type": "tool_result", "tool_use_id": "1", "content": json.dumps({
+                    "path": "test.c", "start_line": 1, "end_line": 50, "content": "first part"
+                })}
+            ]},
+            {"role": "user", "content": [
+                {"type": "tool_result", "tool_use_id": "2", "content": json.dumps({
+                    "path": "test.c", "start_line": 100, "end_line": 150, "content": "second part"
+                })}
+            ]}
+        ]
+        # Non-overlapping reads
+        history = {"reads": {"test.c": [(0, 1, 50), (1, 100, 150)]}, "builds": {}}
+
+        compressed = compress_stale_reads(messages, history)
+
+        # Neither should be compressed
+        result1 = json.loads(compressed[0]["content"][0]["content"])
+        result2 = json.loads(compressed[1]["content"][0]["content"])
+        assert "compressed" not in result1
+        assert "compressed" not in result2
 
 
 class TestEstimateMessagesTokens:

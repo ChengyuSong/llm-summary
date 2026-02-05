@@ -6,8 +6,8 @@ from pathlib import Path
 from typing import Any
 
 from ..llm.base import LLMBackend
-from .autotools_actions import AutotoolsActions
-from .autotools_actions import TOOL_DEFINITIONS as AUTOTOOLS_ACTION_TOOLS
+from .actions import AutotoolsActions
+from .actions import AUTOTOOLS_TOOL_DEFINITIONS as AUTOTOOLS_ACTION_TOOLS
 from .constants import (
     DOCKER_WORKSPACE_BUILD,
     DOCKER_WORKSPACE_SRC,
@@ -15,10 +15,8 @@ from .constants import (
     MAX_TURNS_AUTOTOOLS,
 )
 from .llm_utils import (
+    compress_stale_reads,
     deduplicate_tool_result,
-    estimate_messages_tokens,
-    estimate_tokens,
-    filter_warnings,
     truncate_messages,
 )
 from .tools import BuildTools
@@ -199,6 +197,7 @@ class AutotoolsBuilder:
 - autoreconf: Run autoreconf -fi to regenerate configure script (only if configure doesn't exist)
 - autotools_configure: Run ./configure with flags
 - autotools_build: Run bear -- make to build and capture compile commands
+- finish: Signal completion (MUST call this when done instead of calling build tools again)
 
 **IMPORTANT**: All file/directory paths in tools must be RELATIVE to project root (e.g., ".", "src/", "configure.ac"). The build directory is accessible at "build/". Absolute paths are not allowed.
 
@@ -222,8 +221,9 @@ After each successful autotools_build(), an assembly check runs automatically. T
 
 **CRITICAL - When to STOP:**
 - You CANNOT install packages or dependencies
-- If missing system dependencies are identified, stop immediately
-- Once build succeeds (or is unresolvable), return final configuration
+- If missing system dependencies are identified, call finish(status="failure", summary="...") immediately
+- Once build succeeds with acceptable assembly results, call finish(status="success", summary="...")
+- Do NOT call autotools_build again after a successful build - call finish instead
 
 You are working on: {project_name}
 {configure_exists_msg}
@@ -317,9 +317,12 @@ Proceed with the build using the available tools."""
         configure_succeeded = False
         build_succeeded = False
         react_terminated = False
+        finished = False  # Set when LLM calls finish tool
+        finish_status = None
+        finish_summary = None
         final_flags = []
         use_build_dir = True
-        seen_tools = set()
+        seen_reads = {}  # Track file reads for context compression
 
         response = initial_response
 
@@ -356,8 +359,9 @@ Proceed with the build using the available tools."""
                             file_tools, actions, block.name, block.input
                         )
 
+                        # Track file reads for context compression
                         result = deduplicate_tool_result(
-                            block.name, block.input, result, seen_tools
+                            block.name, block.input, result, seen_reads, turn
                         )
 
                         if self.verbose:
@@ -366,8 +370,6 @@ Proceed with the build using the available tools."""
                                 print(f"  Success: {result['success']}")
                             if "error" in result and result["error"]:
                                 print(f"  Error: {result['error'][:200]}")
-                            if "cached" in result:
-                                print(f"  Cached: {result['message']}")
 
                         # Track configure/build status
                         if block.name == "autotools_configure" and result.get("success"):
@@ -376,6 +378,13 @@ Proceed with the build using the available tools."""
                             use_build_dir = block.input.get("use_build_dir", True)
                         if block.name == "autotools_build" and result.get("success"):
                             build_succeeded = True
+                        if block.name == "finish":
+                            finished = True
+                            finish_status = block.input.get("status")
+                            finish_summary = block.input.get("summary")
+                            if self.verbose:
+                                print(f"[ReAct] LLM called finish: status={finish_status}")
+                                print(f"[ReAct] Summary: {finish_summary}")
 
                         tool_results.append({
                             "type": "tool_result",
@@ -385,6 +394,12 @@ Proceed with the build using the available tools."""
 
                 messages.append({"role": "assistant", "content": assistant_content})
                 messages.append({"role": "user", "content": tool_results})
+
+                # Check if LLM called finish tool
+                if finished:
+                    if self.verbose:
+                        print(f"[ReAct] Finished after {turn + 1} turns")
+                    break
 
                 if self.log_file:
                     with open(self.log_file, "a") as f:
@@ -396,10 +411,13 @@ Proceed with the build using the available tools."""
                             f.write(f"{tr.get('content')}\n\n")
 
                 if turn < max_turns - 1:
-                    truncated_messages = truncate_messages(messages, max_tokens=MAX_CONTEXT_TOKENS)
+                    # Compress stale file reads (replace with forward refs to newer reads)
+                    compressed_messages = compress_stale_reads(messages, seen_reads)
 
-                    if self.verbose and len(truncated_messages) < len(messages):
-                        print(f"[Context] Truncated {len(messages) - len(truncated_messages)} messages")
+                    truncated_messages = truncate_messages(compressed_messages, max_tokens=MAX_CONTEXT_TOKENS)
+
+                    if self.verbose and len(truncated_messages) < len(compressed_messages):
+                        print(f"[Context] Truncated {len(compressed_messages) - len(truncated_messages)} messages")
 
                     response = self.llm.complete_with_tools(
                         messages=truncated_messages,
@@ -481,6 +499,13 @@ Proceed with the build using the available tools."""
                 return actions.autotools_distclean(
                     use_build_dir=tool_input.get("use_build_dir", True),
                 )
+            elif tool_name == "finish":
+                # Finish tool is handled in the ReAct loop, just return acknowledgement
+                return {
+                    "acknowledged": True,
+                    "status": tool_input.get("status"),
+                    "summary": tool_input.get("summary"),
+                }
             else:
                 return {"error": f"Unknown tool: {tool_name}"}
         except ValueError as e:

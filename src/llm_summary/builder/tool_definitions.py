@@ -1,7 +1,7 @@
 """Centralized tool definitions for the build agent."""
 
-from .actions import TOOL_DEFINITIONS as CMAKE_ACTION_TOOLS
-from .autotools_actions import TOOL_DEFINITIONS as AUTOTOOLS_ACTION_TOOLS
+from .actions import CMAKE_TOOL_DEFINITIONS as CMAKE_ACTION_TOOLS
+from .actions import AUTOTOOLS_TOOL_DEFINITIONS as AUTOTOOLS_ACTION_TOOLS
 from .tools import TOOL_DEFINITIONS as FILE_TOOLS
 
 # Read-only tools for error analysis (no cmake_configure/cmake_build)

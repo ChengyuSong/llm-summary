@@ -16,10 +16,9 @@ from .constants import (
 from .error_analyzer import BuildError, ErrorAnalyzer
 from .json_utils import parse_llm_json
 from .llm_utils import (
+    compress_stale_reads,
     deduplicate_tool_result,
     estimate_messages_tokens,
-    estimate_tokens,
-    filter_warnings,
     truncate_messages,
 )
 from .prompts import INITIAL_CONFIG_PROMPT
@@ -283,14 +282,15 @@ Use available tools to explore and build iteratively:
 - list_dir: Explore project structure and build directory
 - cmake_configure: Run cmake configure with specific flags
 - cmake_build: Run ninja build after successful configure
+- finish: Signal completion (MUST call this when done instead of calling build tools again)
 
 **IMPORTANT**: All file/directory paths in tools must be RELATIVE to project root (e.g., ".", "cmake/", "src/config.h", "build/compile_commands.json"). The build directory is accessible at "build/". Absolute paths are not allowed.
 
 **CRITICAL - When to STOP the ReAct loop**:
 - You CANNOT install packages or dependencies (no install tool available)
-- If you identify that the build requires missing system dependencies (libraries, headers, packages that aren't in the Docker image), you MUST stop the ReAct loop immediately
-- Missing dependencies can only be fixed by updating the Docker image, which you cannot do
-- When you encounter missing dependencies, stop exploring and return your findings without continuing to call tools
+- If you identify that the build requires missing system dependencies, call finish(status="failure", summary="...") immediately
+- Once build succeeds with acceptable assembly results, call finish(status="success", summary="...")
+- Do NOT call cmake_build again after a successful build - call finish instead
 
 Requirements (both modes):
 - Generate compile_commands.json (CMAKE_EXPORT_COMPILE_COMMANDS=ON)
@@ -502,8 +502,11 @@ Choose your approach (simple JSON or ReAct with tools) and proceed."""
         configure_succeeded = False
         build_succeeded = False
         react_terminated = False
+        finished = False  # Set when LLM calls finish tool
+        finish_status = None
+        finish_summary = None
         final_flags = []
-        seen_tools = set()  # For deduplication
+        seen_reads = {}  # Track file reads for context compression
 
         # Process initial response (already has tool_use)
         response = initial_response
@@ -546,9 +549,9 @@ Choose your approach (simple JSON or ReAct with tools) and proceed."""
                             file_tools, actions, block.name, block.input
                         )
 
-                        # Apply deduplication and filtering
+                        # Track file reads for context compression
                         result = deduplicate_tool_result(
-                            block.name, block.input, result, seen_tools
+                            block.name, block.input, result, seen_reads, turn
                         )
 
                         if self.verbose:
@@ -557,8 +560,6 @@ Choose your approach (simple JSON or ReAct with tools) and proceed."""
                                 print(f"  Success: {result['success']}")
                             if "error" in result and result["error"]:
                                 print(f"  Error: {result['error'][:200]}")
-                            if "cached" in result:
-                                print(f"  Cached: {result['message']}")
 
                         # Track configure/build status
                         if block.name == "cmake_configure" and result.get("success"):
@@ -566,6 +567,13 @@ Choose your approach (simple JSON or ReAct with tools) and proceed."""
                             final_flags = block.input.get("cmake_flags", [])
                         if block.name == "cmake_build" and result.get("success"):
                             build_succeeded = True
+                        if block.name == "finish":
+                            finished = True
+                            finish_status = block.input.get("status")
+                            finish_summary = block.input.get("summary")
+                            if self.verbose:
+                                print(f"[ReAct] LLM called finish: status={finish_status}")
+                                print(f"[ReAct] Summary: {finish_summary}")
 
                         tool_results.append({
                             "type": "tool_result",
@@ -575,6 +583,12 @@ Choose your approach (simple JSON or ReAct with tools) and proceed."""
 
                 messages.append({"role": "assistant", "content": assistant_content})
                 messages.append({"role": "user", "content": tool_results})
+
+                # Check if LLM called finish tool
+                if finished:
+                    if self.verbose:
+                        print(f"[ReAct] Finished after {turn + 1} turns")
+                    break
 
                 if self.log_file:
                     with open(self.log_file, "a") as f:
@@ -587,8 +601,11 @@ Choose your approach (simple JSON or ReAct with tools) and proceed."""
 
                 # Get next response
                 if turn < max_turns - 1:  # Don't make another call on last turn
+                    # Compress stale file reads (replace with forward refs to newer reads)
+                    compressed_messages = compress_stale_reads(messages, seen_reads)
+
                     # Truncate messages to stay under context limit (100k tokens ~= 128k with system prompt)
-                    truncated_messages = truncate_messages(messages, max_tokens=MAX_CONTEXT_TOKENS)
+                    truncated_messages = truncate_messages(compressed_messages, max_tokens=MAX_CONTEXT_TOKENS)
 
                     if self.verbose and len(truncated_messages) < len(messages):
                         print(f"[Context] Truncated {len(messages) - len(truncated_messages)} messages")
@@ -683,6 +700,13 @@ Choose your approach (simple JSON or ReAct with tools) and proceed."""
                 )
             elif tool_name == "cmake_build":
                 return actions.cmake_build()
+            elif tool_name == "finish":
+                # Finish tool is handled in the ReAct loop, just return acknowledgement
+                return {
+                    "acknowledged": True,
+                    "status": tool_input.get("status"),
+                    "summary": tool_input.get("summary"),
+                }
             else:
                 return {"error": f"Unknown tool: {tool_name}"}
         except ValueError as e:
