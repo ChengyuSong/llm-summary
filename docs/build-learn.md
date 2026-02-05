@@ -456,7 +456,7 @@ list_dir("../../")                       ✗ Escapes project
 
 **Key classes:** `BuildTools` (file exploration), `CMakeActions` (CMake build execution), `AutotoolsActions` (autotools build execution)
 
-#### Autotools Action Tools (`builder/autotools_actions.py`)
+#### Autotools Action Tools (in `builder/actions.py`)
 
 **bootstrap(script_path="bootstrap")**
 - Runs a bootstrap script (e.g., `bootstrap`, `autogen.sh`, `buildconf`) to prepare the build system
@@ -497,6 +497,19 @@ list_dir("../../")                       ✗ Escapes project
 - Use before reconfiguring with completely different flags
 - After distclean, must run autotools_configure again
 - Returns dict with: `success` (bool), `output`, `error`
+
+#### Finish Tool (both CMake and Autotools)
+
+**finish(status, summary)**
+- Signals that the build task is complete
+- `status`: Either `"success"` or `"failure"`
+- `summary`: Brief description of what was accomplished or why it failed
+- **When to call:**
+  - Build succeeded with acceptable assembly results
+  - Identified unresolvable blockers (missing dependencies)
+  - Exhausted all reasonable options
+- **Important:** Must call this instead of calling build tools again after success
+- Prevents the agent from repeatedly calling build tools in a loop
 
 ### 7. LLM Backends (`llm/`)
 
@@ -1048,6 +1061,8 @@ export GOOGLE_CLOUD_PROJECT="your-project-id"
 16. **Autotools Support**: Full support for autotools projects with Bear for compile_commands.json generation
 17. **Autotools Tools**: bootstrap, autoreconf, autotools_configure, autotools_build, autotools_clean, autotools_distclean
 18. **LTO Linking**: LDFLAGS with `-flto=full -fuse-ld=lld` ensures proper linking of LTO bitcode objects
+19. **Finish Tool**: Explicit tool for signaling task completion, preventing repeated build calls after success
+20. **Consolidated Actions Module**: CMakeActions and AutotoolsActions unified in `builder/actions.py`
 
 ## Performance Characteristics
 
