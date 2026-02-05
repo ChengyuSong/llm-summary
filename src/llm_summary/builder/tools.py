@@ -37,24 +37,58 @@ class BuildTools:
         if parts and parts[0] == "build" and self.build_dir:
             # Strip "build/" prefix and resolve relative to build_dir
             relative_to_build = Path(*parts[1:]) if len(parts) > 1 else Path(".")
-            full_path = (self.build_dir / relative_to_build).resolve()
+            base_dir = self.build_dir
+            full_path = (base_dir / relative_to_build).resolve()
+            dir_name = "build directory"
+        else:
+            base_dir = self.project_path
+            full_path = (base_dir / requested).resolve()
+            dir_name = "project directory"
 
-            # Security: ensure resolved path is within build directory
-            try:
-                full_path.relative_to(self.build_dir)
-                return full_path
-            except ValueError:
-                raise ValueError(f"Path escapes build directory: {path}")
+        # Security: check for symlink escape attacks
+        # Walk through path components and ensure no symlink points outside sandbox
+        self._check_symlink_escape(base_dir, requested, dir_name)
 
-        # Otherwise, resolve relative to project root
-        full_path = (self.project_path / requested).resolve()
-
-        # Security: ensure resolved path is within project directory
+        # Security: ensure resolved path is within allowed directory
         try:
-            full_path.relative_to(self.project_path)
+            full_path.relative_to(base_dir)
             return full_path
         except ValueError:
-            raise ValueError(f"Path escapes project directory: {path}")
+            raise ValueError(f"Path escapes {dir_name}: {path}")
+
+    def _check_symlink_escape(self, base_dir: Path, relative_path: Path, dir_name: str) -> None:
+        """
+        Check that no symlink in the path points outside the sandbox.
+
+        This prevents attacks where a symlink inside the project points to
+        sensitive files outside the sandbox (e.g., /etc/passwd).
+
+        Args:
+            base_dir: The sandbox root directory (project or build dir)
+            relative_path: The relative path being accessed
+            dir_name: Name of the directory for error messages
+
+        Raises:
+            ValueError: If a symlink escape is detected
+        """
+        current = base_dir
+        for part in relative_path.parts:
+            current = current / part
+
+            # Skip if path doesn't exist yet (will be caught later)
+            if not current.exists():
+                break
+
+            # Check if this component is a symlink
+            if current.is_symlink():
+                # Resolve just this symlink and check if it escapes
+                resolved = current.resolve()
+                try:
+                    resolved.relative_to(base_dir)
+                except ValueError:
+                    raise ValueError(
+                        f"Symlink escape detected: {part} points outside {dir_name}"
+                    )
 
     def read_file(self, file_path: str, max_lines: int = 200, start_line: int = 1) -> dict[str, Any]:
         """

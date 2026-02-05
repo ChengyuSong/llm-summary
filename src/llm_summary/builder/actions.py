@@ -5,6 +5,7 @@ import subprocess
 from pathlib import Path
 from typing import Any
 
+from .assembly_utils import check_assembly
 from .constants import (
     DOCKER_WORKSPACE_BUILD,
     DOCKER_WORKSPACE_SRC,
@@ -213,33 +214,15 @@ class CMakeActions:
             }
 
     def _check_assembly(self):
-        """
-        Run assembly verification after successful build.
-
-        Returns:
-            AssemblyCheckResult or None if check could not be performed
-        """
-        try:
-            from .assembly_checker import AssemblyChecker
-
-            compile_commands = self.build_dir / "compile_commands.json"
-            if not compile_commands.exists():
-                if self.verbose:
-                    print("[cmake_build] No compile_commands.json, skipping assembly check")
-                return None
-
-            checker = AssemblyChecker(
-                compile_commands_path=compile_commands,
-                build_dir=self.build_dir,
-                project_path=self.project_path,
-                unavoidable_asm_path=self.unavoidable_asm_path,
-                verbose=self.verbose,
-            )
-            return checker.check(scan_ir=True)
-        except Exception as e:
-            if self.verbose:
-                print(f"[cmake_build] Assembly check failed: {e}")
-            return None
+        """Run assembly verification after successful build."""
+        return check_assembly(
+            compile_commands_path=self.build_dir / "compile_commands.json",
+            build_dir=self.build_dir,
+            project_path=self.project_path,
+            unavoidable_asm_path=self.unavoidable_asm_path,
+            verbose=self.verbose,
+            log_prefix="[cmake_build]",
+        )
 
 
 # Tool definitions for LLM (Anthropic tool use format)

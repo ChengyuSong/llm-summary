@@ -5,6 +5,7 @@ import subprocess
 from pathlib import Path
 from typing import Any
 
+from .assembly_utils import check_assembly
 from .constants import (
     DOCKER_WORKSPACE_BUILD,
     DOCKER_WORKSPACE_SRC,
@@ -541,38 +542,22 @@ class AutotoolsActions:
             }
 
     def _check_assembly(self, use_build_dir: bool = True):
-        """
-        Run assembly verification after successful build.
+        """Run assembly verification after successful build."""
+        if use_build_dir:
+            compile_commands_path = self.build_dir / "compile_commands.json"
+            build_dir = self.build_dir
+        else:
+            compile_commands_path = self.project_path / "compile_commands.json"
+            build_dir = self.project_path
 
-        Returns:
-            AssemblyCheckResult or None if check could not be performed
-        """
-        try:
-            from .assembly_checker import AssemblyChecker
-
-            # compile_commands.json is generated in the working directory
-            if use_build_dir:
-                compile_commands = self.build_dir / "compile_commands.json"
-            else:
-                compile_commands = self.project_path / "compile_commands.json"
-
-            if not compile_commands.exists():
-                if self.verbose:
-                    print("[autotools_build] No compile_commands.json, skipping assembly check")
-                return None
-
-            checker = AssemblyChecker(
-                compile_commands_path=compile_commands,
-                build_dir=self.build_dir if use_build_dir else self.project_path,
-                project_path=self.project_path,
-                unavoidable_asm_path=self.unavoidable_asm_path,
-                verbose=self.verbose,
-            )
-            return checker.check(scan_ir=True)
-        except Exception as e:
-            if self.verbose:
-                print(f"[autotools_build] Assembly check failed: {e}")
-            return None
+        return check_assembly(
+            compile_commands_path=compile_commands_path,
+            build_dir=build_dir,
+            project_path=self.project_path,
+            unavoidable_asm_path=self.unavoidable_asm_path,
+            verbose=self.verbose,
+            log_prefix="[autotools_build]",
+        )
 
 
 # Tool definitions for LLM (Anthropic tool use format)
