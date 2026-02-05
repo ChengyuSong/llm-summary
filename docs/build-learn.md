@@ -199,7 +199,7 @@ Builds autotools projects using `./configure` and `bear -- make` for compile dat
 1. `_get_initial_config_with_tools()`: LLM receives autotools system prompt
 2. Enters `_execute_react_loop()` (max 20 turns)
 3. LLM explores project with tools (read_file, list_dir)
-4. If needed, runs `autoreconf` to regenerate configure script
+4. If needed, runs `bootstrap` (for projects with bootstrap/autogen.sh scripts) or `autoreconf` to regenerate configure script
 5. Runs `autotools_configure` with flags
 6. Runs `autotools_build` (uses Bear to capture compile commands)
 7. Can use `autotools_clean` or `autotools_distclean` to retry with different flags
@@ -340,7 +340,7 @@ Centralizes all tool definitions in Anthropic format:
 
 - **TOOL_DEFINITIONS_READ_ONLY**: File exploration tools only (for error analysis)
 - **CMAKE_TOOL_DEFINITIONS**: File tools + CMake action tools (cmake_configure, cmake_build)
-- **AUTOTOOLS_TOOL_DEFINITIONS**: File tools + autotools action tools (autoreconf, autotools_configure, autotools_build, autotools_clean, autotools_distclean)
+- **AUTOTOOLS_TOOL_DEFINITIONS**: File tools + autotools action tools (bootstrap, autoreconf, autotools_configure, autotools_build, autotools_clean, autotools_distclean)
 - **ALL_TOOL_DEFINITIONS**: Alias for CMAKE_TOOL_DEFINITIONS (backwards compatibility)
 
 Tool definitions are automatically converted to OpenAI format for backends that require it (e.g., llama.cpp).
@@ -457,6 +457,13 @@ list_dir("../../")                       ✗ Escapes project
 **Key classes:** `BuildTools` (file exploration), `CMakeActions` (CMake build execution), `AutotoolsActions` (autotools build execution)
 
 #### Autotools Action Tools (`builder/autotools_actions.py`)
+
+**bootstrap(script_path="bootstrap")**
+- Runs a bootstrap script (e.g., `bootstrap`, `autogen.sh`, `buildconf`) to prepare the build system
+- `script_path`: Relative path to script in project directory (NOT build directory)
+- Security: Validates script path is within project directory; absolute paths rejected
+- Returns dict with: `success` (bool), `output` (stdout+stderr), `error` (error message)
+- Timeout: 5 minutes
 
 **autoreconf()**
 - Runs `autoreconf -fi` to regenerate configure script from configure.ac
@@ -1039,7 +1046,7 @@ export GOOGLE_CLOUD_PROJECT="your-project-id"
 14. **Assembly Code Detection**: Automatic verification after successful builds detects standalone .s/.S/.asm files, inline assembly in C/C++ sources, and inline assembly in LLVM bitcode
 15. **Unavoidable Assembly Filtering**: Known unavoidable assembly findings (from dependencies) are saved to `build-scripts/<project>/unavoidable_asm.json` and filtered from future results, preventing agent from wasting turns trying to remove them
 16. **Autotools Support**: Full support for autotools projects with Bear for compile_commands.json generation
-17. **Autotools Tools**: autoreconf, autotools_configure, autotools_build, autotools_clean, autotools_distclean
+17. **Autotools Tools**: bootstrap, autoreconf, autotools_configure, autotools_build, autotools_clean, autotools_distclean
 18. **LTO Linking**: LDFLAGS with `-flto=full -fuse-ld=lld` ensures proper linking of LTO bitcode objects
 
 ## Performance Characteristics
