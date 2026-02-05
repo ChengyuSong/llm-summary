@@ -182,6 +182,7 @@ class AutotoolsBuilder:
 **Available Tools:**
 - read_file: Read project files (configure.ac, Makefile.am, etc.) and build artifacts
 - list_dir: Explore project structure and build directory
+- bootstrap: Run bootstrap/autogen.sh script to prepare build system (if project has one)
 - autoreconf: Run autoreconf -fi to regenerate configure script (only if configure doesn't exist)
 - autotools_configure: Run ./configure with flags
 - autotools_build: Run bear -- make to build and capture compile commands
@@ -234,7 +235,7 @@ Proceed with the build using the available tools."""
         if self.verbose:
             print("[LLM] Requesting initial configuration (ReAct mode)...")
             print(f"[LLM] Project: {project_name}")
-            print("[LLM] Available tools: read_file, list_dir, autoreconf, autotools_configure, autotools_build")
+            print("[LLM] Available tools: read_file, list_dir, bootstrap, autoreconf, autotools_configure, autotools_build")
 
         if self.log_file:
             with open(self.log_file, "a") as f:
@@ -442,6 +443,10 @@ Proceed with the build using the available tools."""
                 return file_tools.list_dir(
                     dir_path=tool_input.get("dir_path", "."),
                     pattern=tool_input.get("pattern"),
+                )
+            elif tool_name == "bootstrap":
+                return actions.bootstrap(
+                    script_path=tool_input.get("script_path", "bootstrap"),
                 )
             elif tool_name == "autoreconf":
                 return actions.autoreconf()

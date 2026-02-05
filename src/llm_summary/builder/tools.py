@@ -162,8 +162,28 @@ class BuildTools:
             files = []
             directories = []
 
+            # Determine which base path to use for relative paths
+            # Check if we're listing inside build_dir or project_path
+            if self.build_dir:
+                try:
+                    full_path.relative_to(self.build_dir)
+                    base_path = self.build_dir
+                    path_prefix = "build"
+                except ValueError:
+                    base_path = self.project_path
+                    path_prefix = None
+            else:
+                base_path = self.project_path
+                path_prefix = None
+
             for item in sorted(items):
-                rel_path = item.relative_to(self.project_path)
+                try:
+                    rel_path = item.relative_to(base_path)
+                    if path_prefix:
+                        rel_path = Path(path_prefix) / rel_path
+                except ValueError:
+                    # Fallback: just use the name
+                    rel_path = Path(item.name)
                 name = item.name
 
                 if item.is_file():
@@ -193,9 +213,9 @@ TOOL_DEFINITIONS = [
     {
         "name": "read_file",
         "description": (
-            "Read a file from the project or build directory. Use this to examine CMake files, "
-            "included modules, source files, configuration files, or build artifacts (like compile_commands.json). "
-            "The build directory is available at 'build/' relative path. "
+            "Read a file from the project or build directory. Use this to examine build scripts, "
+            "source files, configuration files, or build artifacts (like compile_commands.json). "
+            "Paths must be RELATIVE to project root. Use 'build/' prefix to access build directory. "
             "If errors reference specific line numbers, use start_line to jump to that section."
         ),
         "input_schema": {
@@ -203,7 +223,7 @@ TOOL_DEFINITIONS = [
             "properties": {
                 "file_path": {
                     "type": "string",
-                    "description": "Relative path from project root (e.g., 'cmake/FindZLIB.cmake', 'build/compile_commands.json')",
+                    "description": "Relative path from project root. Use 'build/' prefix for build artifacts. Examples: 'configure.ac', 'src/main.c', 'build/compile_commands.json'. Absolute paths are NOT allowed.",
                 },
                 "max_lines": {
                     "type": "integer",
@@ -223,15 +243,15 @@ TOOL_DEFINITIONS = [
         "name": "list_dir",
         "description": (
             "List files and directories in the project or build directory. Use this to explore the "
-            "project structure, find CMake modules, discover included files, inspect build artifacts, "
-            "or understand the layout of the codebase. Build directory is accessible at 'build/'."
+            "project structure, discover source files, inspect build artifacts, or understand the "
+            "layout of the codebase. Paths must be RELATIVE. Use 'build/' prefix for build directory."
         ),
         "input_schema": {
             "type": "object",
             "properties": {
                 "dir_path": {
                     "type": "string",
-                    "description": "Relative path from project root (e.g., '.' for root, 'build' for build directory)",
+                    "description": "Relative path from project root. Use 'build/' prefix for build directory. Examples: '.', 'src', 'build', 'build/src'. Absolute paths are NOT allowed.",
                     "default": ".",
                 },
                 "pattern": {

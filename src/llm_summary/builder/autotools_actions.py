@@ -37,6 +37,89 @@ class AutotoolsActions:
             "RANLIB": "llvm-ranlib-18",
         }
 
+    def bootstrap(self, script_path: str = "bootstrap") -> dict[str, Any]:
+        """
+        Run a bootstrap script to prepare the build system.
+
+        Args:
+            script_path: Path to the bootstrap script relative to project root
+                        (e.g., "bootstrap", "autogen.sh", "scripts/bootstrap.sh")
+
+        Returns:
+            Dict with 'success' (bool), 'output' (str), 'error' (str)
+        """
+        try:
+            # Validate script path is within project directory
+            script_full_path = (self.project_path / script_path).resolve()
+            if not script_full_path.is_relative_to(self.project_path):
+                return {
+                    "success": False,
+                    "output": "",
+                    "error": f"Script path {script_path} is outside project directory",
+                }
+
+            if not script_full_path.exists():
+                return {
+                    "success": False,
+                    "output": "",
+                    "error": f"Bootstrap script not found: {script_path}",
+                }
+
+            # Get relative path from project root for docker execution
+            script_rel = script_full_path.relative_to(self.project_path)
+
+            # Run as host user to avoid root-owned files
+            uid = os.getuid()
+            gid = os.getgid()
+
+            docker_cmd = [
+                "docker", "run", "--rm",
+                "-u", f"{uid}:{gid}",
+                "-v", f"{self.project_path}:/workspace/src",
+                "-w", "/workspace/src",
+                self.container_image,
+                "bash", "-c",
+                f"chmod +x {script_rel} && ./{script_rel}",
+            ]
+
+            if self.verbose:
+                print(f"[bootstrap] Running: {script_rel}")
+
+            result = subprocess.run(
+                docker_cmd,
+                capture_output=True,
+                text=True,
+                timeout=300,  # 5 minute timeout
+            )
+
+            output = result.stdout + result.stderr
+
+            if result.returncode == 0:
+                return {
+                    "success": True,
+                    "output": output,
+                    "error": "",
+                }
+            else:
+                return {
+                    "success": False,
+                    "output": output,
+                    "error": f"bootstrap script failed with exit code {result.returncode}",
+                }
+
+        except subprocess.TimeoutExpired:
+            return {
+                "success": False,
+                "output": "",
+                "error": "bootstrap script timed out after 5 minutes",
+            }
+        except Exception as e:
+            return {
+                "success": False,
+                "output": "",
+                "error": f"bootstrap script failed: {str(e)}",
+            }
+
     def autoreconf(self) -> dict[str, Any]:
         """
         Run autoreconf -fi to regenerate configure script.
@@ -486,6 +569,29 @@ class AutotoolsActions:
 
 # Tool definitions for LLM (Anthropic tool use format)
 TOOL_DEFINITIONS = [
+    {
+        "name": "bootstrap",
+        "description": (
+            "Run a bootstrap script to prepare the build system before configure. "
+            "Many autotools projects provide a bootstrap script (bootstrap, autogen.sh, buildconf) "
+            "that must be run before ./configure. Use this if the project has such a script. "
+            "The script must be in the PROJECT directory (NOT 'build/'). Absolute paths are NOT allowed."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "script_path": {
+                    "type": "string",
+                    "description": (
+                        "Relative path to bootstrap script in project directory. "
+                        "Examples: 'bootstrap', 'autogen.sh', 'buildconf', 'scripts/bootstrap.sh'. "
+                        "Do NOT use 'build/' prefix. Default is 'bootstrap'."
+                    ),
+                    "default": "bootstrap",
+                },
+            },
+        },
+    },
     {
         "name": "autoreconf",
         "description": (
