@@ -21,6 +21,7 @@ class CMakeBuilder:
         llm: LLMBackend,
         container_image: str = "llm-summary-builder:latest",
         build_dir: Path | None = None,
+        build_scripts_dir: Path | None = None,
         max_retries: int = 3,
         enable_lto: bool = True,
         prefer_static: bool = True,
@@ -31,6 +32,7 @@ class CMakeBuilder:
         self.llm = llm
         self.container_image = container_image
         self.build_dir = build_dir
+        self.build_scripts_dir = Path(build_scripts_dir) if build_scripts_dir else None
         self.max_retries = max_retries
         self.enable_lto = enable_lto
         self.prefer_static = prefer_static
@@ -38,6 +40,12 @@ class CMakeBuilder:
         self.verbose = verbose
         self.log_file = log_file
         self.error_analyzer = ErrorAnalyzer(llm, verbose, log_file=log_file)
+
+    def _get_unavoidable_asm_path(self, project_name: str) -> Path | None:
+        """Get path to unavoidable_asm.json for a project."""
+        if not self.build_scripts_dir:
+            return None
+        return self.build_scripts_dir / project_name.lower() / "unavoidable_asm.json"
 
     def learn_and_build(
         self, project_path: Path
@@ -238,8 +246,10 @@ class CMakeBuilder:
 
         # Initialize tools
         file_tools = BuildTools(project_path, build_dir)
+        unavoidable_asm_path = self._get_unavoidable_asm_path(project_name)
         actions = CMakeActions(
-            project_path, self.build_dir, self.container_image, self.verbose
+            project_path, self.build_dir, self.container_image,
+            unavoidable_asm_path=unavoidable_asm_path, verbose=self.verbose
         )
 
         # System prompt offering both options
@@ -275,6 +285,21 @@ Requirements (both modes):
 - Prefer static linking (BUILD_SHARED_LIBS=OFF)
 - Disable SIMD/hardware optimizations to minimize assembly code
 - Enable LLVM IR generation (CMAKE_C_FLAGS=-flto=full -save-temps=obj)
+
+**Assembly Verification**:
+After each successful cmake_build(), an assembly check runs automatically. The result includes:
+- `assembly_check.has_assembly`: true if any assembly code was detected
+- `assembly_check.standalone_asm_files`: List of .s/.S/.asm files that were compiled
+- `assembly_check.inline_asm_sources`: List of C/C++ files with inline assembly (__asm__, asm())
+- `assembly_check.inline_asm_ir`: List of LLVM IR files with inline assembly
+
+**If assembly is detected after a successful build**:
+1. Review the findings to understand the source of assembly
+2. Look for CMake options to disable assembly (e.g., -DDISABLE_ASM=ON, -DENABLE_SIMD=OFF, -DUSE_GENERIC=ON)
+3. Try cmake_configure with new flags and cmake_build again
+4. If assembly is unavoidable (e.g., critical startup code), note it and continue
+
+Goal: Minimize or eliminate assembly code where possible through build configuration.
 
 You are working on the project: {project_name}
 If you recognize this project, leverage your knowledge of its typical build requirements.
@@ -835,7 +860,11 @@ Choose your approach (simple JSON or ReAct with tools) and proceed."""
             build_dir = project_path / "build"
 
         # Create CMakeActions instance for two-phase build
-        actions = CMakeActions(project_path, build_dir, self.container_image, self.verbose)
+        unavoidable_asm_path = self._get_unavoidable_asm_path(project_path.name)
+        actions = CMakeActions(
+            project_path, build_dir, self.container_image,
+            unavoidable_asm_path=unavoidable_asm_path, verbose=self.verbose
+        )
 
         # Phase 1: Configure
         if self.verbose:

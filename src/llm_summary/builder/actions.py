@@ -14,11 +14,13 @@ class CMakeActions:
         project_path: Path,
         build_dir: Path | None = None,
         container_image: str = "llm-summary-builder:latest",
+        unavoidable_asm_path: Path | str | None = None,
         verbose: bool = False,
     ):
         self.project_path = Path(project_path).resolve()
         self.build_dir = Path(build_dir) if build_dir else self.project_path / "build"
         self.container_image = container_image
+        self.unavoidable_asm_path = Path(unavoidable_asm_path) if unavoidable_asm_path else None
         self.verbose = verbose
 
     def cmake_configure(self, cmake_flags: list[str]) -> dict[str, Any]:
@@ -151,10 +153,13 @@ class CMakeActions:
             output = result.stdout + result.stderr
 
             if result.returncode == 0:
+                # Build succeeded - run assembly check
+                asm_result = self._check_assembly()
                 return {
                     "success": True,
                     "output": output,
                     "error": "",
+                    "assembly_check": asm_result.to_dict() if asm_result else None,
                 }
             else:
                 # Parallel build failed - retry with -j1 for clearer error output
@@ -200,6 +205,35 @@ class CMakeActions:
                 "error": f"Build failed: {str(e)}",
             }
 
+    def _check_assembly(self):
+        """
+        Run assembly verification after successful build.
+
+        Returns:
+            AssemblyCheckResult or None if check could not be performed
+        """
+        try:
+            from .assembly_checker import AssemblyChecker
+
+            compile_commands = self.build_dir / "compile_commands.json"
+            if not compile_commands.exists():
+                if self.verbose:
+                    print("[cmake_build] No compile_commands.json, skipping assembly check")
+                return None
+
+            checker = AssemblyChecker(
+                compile_commands_path=compile_commands,
+                build_dir=self.build_dir,
+                project_path=self.project_path,
+                unavoidable_asm_path=self.unavoidable_asm_path,
+                verbose=self.verbose,
+            )
+            return checker.check(scan_ir=True)
+        except Exception as e:
+            if self.verbose:
+                print(f"[cmake_build] Assembly check failed: {e}")
+            return None
+
 
 # Tool definitions for LLM (Anthropic tool use format)
 TOOL_DEFINITIONS = [
@@ -231,7 +265,10 @@ TOOL_DEFINITIONS = [
         "name": "cmake_build",
         "description": (
             "Run the build step (ninja) after cmake configure has succeeded. "
-            "Only call this after a successful cmake_configure. The build runs in a Docker container."
+            "Only call this after a successful cmake_configure. The build runs in a Docker container. "
+            "On success, returns an assembly_check result showing if any assembly code (.s files, "
+            "inline asm) was compiled. If assembly is detected, try different cmake_configure flags "
+            "to avoid it (e.g., -DDISABLE_ASM=ON, -DENABLE_SIMD=OFF)."
         ),
         "input_schema": {
             "type": "object",

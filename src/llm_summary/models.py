@@ -211,3 +211,106 @@ class CallEdge:
                 return f"{self.file_path}:{self.line}:{self.column}"
             return f"{self.file_path}:{self.line}"
         return ""
+
+
+class AssemblyType(str, Enum):
+    """Type of assembly code detected."""
+
+    STANDALONE_FILE = "standalone_file"
+    INLINE_SOURCE = "inline_source"
+    INLINE_LLVM_IR = "inline_llvm_ir"
+
+
+@dataclass
+class AssemblyFinding:
+    """Single assembly detection with location info."""
+
+    asm_type: AssemblyType
+    file_path: str
+    line_number: int | None = None
+    snippet: str | None = None
+    pattern_matched: str | None = None
+
+    def stable_key(self) -> str:
+        """
+        Generate a stable key for identifying this finding across builds.
+
+        Uses file path + pattern (not line number, which can change).
+        """
+        return f"{self.asm_type.value}:{self.file_path}:{self.pattern_matched or ''}"
+
+    def to_dict(self) -> dict[str, Any]:
+        """Convert to dictionary representation."""
+        result: dict[str, Any] = {
+            "type": self.asm_type.value,
+            "file_path": self.file_path,
+        }
+        if self.line_number is not None:
+            result["line_number"] = self.line_number
+        if self.snippet:
+            result["snippet"] = self.snippet
+        if self.pattern_matched:
+            result["pattern_matched"] = self.pattern_matched
+        return result
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> "AssemblyFinding":
+        """Create from dictionary representation."""
+        return cls(
+            asm_type=AssemblyType(data["type"]),
+            file_path=data["file_path"],
+            line_number=data.get("line_number"),
+            snippet=data.get("snippet"),
+            pattern_matched=data.get("pattern_matched"),
+        )
+
+
+@dataclass
+class AssemblyCheckResult:
+    """Complete assembly verification result."""
+
+    has_assembly: bool
+    standalone_asm_files: list[AssemblyFinding] = field(default_factory=list)
+    inline_asm_sources: list[AssemblyFinding] = field(default_factory=list)
+    inline_asm_ir: list[AssemblyFinding] = field(default_factory=list)
+    # Known unavoidable findings (filtered from above lists)
+    known_unavoidable: list[AssemblyFinding] = field(default_factory=list)
+
+    @property
+    def has_new_assembly(self) -> bool:
+        """True if there are new (not known unavoidable) assembly findings."""
+        return bool(self.standalone_asm_files or self.inline_asm_sources or self.inline_asm_ir)
+
+    def summary(self) -> str:
+        """Return human-readable summary of assembly findings."""
+        if not self.has_assembly:
+            return "No assembly code detected."
+
+        parts = []
+        if self.standalone_asm_files:
+            files = [f.file_path for f in self.standalone_asm_files]
+            parts.append(f"{len(self.standalone_asm_files)} standalone .s/.S/.asm file(s): {', '.join(files[:3])}")
+            if len(files) > 3:
+                parts[-1] += f" (+{len(files) - 3} more)"
+        if self.inline_asm_sources:
+            parts.append(f"{len(self.inline_asm_sources)} C/C++ file(s) with inline asm")
+        if self.inline_asm_ir:
+            parts.append(f"{len(self.inline_asm_ir)} LLVM IR file(s) with inline asm")
+
+        summary = "Assembly detected: " + "; ".join(parts) if parts else "No new assembly"
+        if self.known_unavoidable:
+            summary += f" ({len(self.known_unavoidable)} known unavoidable filtered)"
+        return summary
+
+    def to_dict(self) -> dict[str, Any]:
+        """Convert to dictionary representation."""
+        result = {
+            "has_assembly": self.has_assembly,
+            "has_new_assembly": self.has_new_assembly,
+            "standalone_asm_files": [f.to_dict() for f in self.standalone_asm_files],
+            "inline_asm_sources": [f.to_dict() for f in self.inline_asm_sources],
+            "inline_asm_ir": [f.to_dict() for f in self.inline_asm_ir],
+        }
+        if self.known_unavoidable:
+            result["known_unavoidable_count"] = len(self.known_unavoidable)
+        return result
