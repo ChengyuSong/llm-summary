@@ -5,6 +5,14 @@ import subprocess
 from pathlib import Path
 from typing import Any
 
+from .constants import (
+    DOCKER_WORKSPACE_BUILD,
+    DOCKER_WORKSPACE_SRC,
+    TIMEOUT_BUILD,
+    TIMEOUT_CONFIGURE,
+    TIMEOUT_LONG_BUILD,
+)
+
 
 class AutotoolsActions:
     """Autotools configure and build actions for the agent."""
@@ -76,7 +84,7 @@ class AutotoolsActions:
                 "docker", "run", "--rm",
                 "-u", f"{uid}:{gid}",
                 "-v", f"{self.project_path}:/workspace/src",
-                "-w", "/workspace/src",
+                "-w", DOCKER_WORKSPACE_SRC,
                 self.container_image,
                 "bash", "-c",
                 f"chmod +x {script_rel} && ./{script_rel}",
@@ -89,7 +97,7 @@ class AutotoolsActions:
                 docker_cmd,
                 capture_output=True,
                 text=True,
-                timeout=300,  # 5 minute timeout
+                timeout=TIMEOUT_CONFIGURE,  # 5 minute timeout
             )
 
             output = result.stdout + result.stderr
@@ -136,7 +144,7 @@ class AutotoolsActions:
                 "docker", "run", "--rm",
                 "-u", f"{uid}:{gid}",
                 "-v", f"{self.project_path}:/workspace/src",
-                "-w", "/workspace/src",
+                "-w", DOCKER_WORKSPACE_SRC,
                 self.container_image,
                 "bash", "-c",
                 "autoreconf -fi",
@@ -149,7 +157,7 @@ class AutotoolsActions:
                 docker_cmd,
                 capture_output=True,
                 text=True,
-                timeout=300,  # 5 minute timeout
+                timeout=TIMEOUT_CONFIGURE,  # 5 minute timeout
             )
 
             output = result.stdout + result.stderr
@@ -214,10 +222,10 @@ class AutotoolsActions:
             if use_build_dir:
                 docker_cmd.extend([
                     "-v", f"{self.build_dir}:/workspace/build",
-                    "-w", "/workspace/build",
+                    "-w", DOCKER_WORKSPACE_BUILD,
                 ])
             else:
-                docker_cmd.extend(["-w", "/workspace/src"])
+                docker_cmd.extend(["-w", DOCKER_WORKSPACE_SRC])
 
             docker_cmd.extend([self.container_image, "bash", "-c"])
 
@@ -250,7 +258,7 @@ class AutotoolsActions:
                 docker_cmd,
                 capture_output=True,
                 text=True,
-                timeout=600,  # 10 minute timeout for configure
+                timeout=TIMEOUT_BUILD,  # 10 minute timeout for configure
             )
 
             output = result.stdout + result.stderr
@@ -332,10 +340,10 @@ class AutotoolsActions:
             if use_build_dir:
                 docker_cmd.extend([
                     "-v", f"{self.build_dir}:/workspace/build",
-                    "-w", "/workspace/build",
+                    "-w", DOCKER_WORKSPACE_BUILD,
                 ])
             else:
-                docker_cmd.extend(["-w", "/workspace/src"])
+                docker_cmd.extend(["-w", DOCKER_WORKSPACE_SRC])
 
             docker_cmd.extend([self.container_image, "bash", "-c"])
 
@@ -352,7 +360,7 @@ class AutotoolsActions:
                 docker_cmd,
                 capture_output=True,
                 text=True,
-                timeout=1200,  # 20 minute timeout for build
+                timeout=TIMEOUT_LONG_BUILD,  # 20 minute timeout for build
             )
 
             output = result.stdout + result.stderr
@@ -379,7 +387,7 @@ class AutotoolsActions:
                     docker_cmd_j1,
                     capture_output=True,
                     text=True,
-                    timeout=1200,
+                    timeout=TIMEOUT_LONG_BUILD,
                 )
 
                 output_j1 = result_j1.stdout + result_j1.stderr
@@ -483,10 +491,10 @@ class AutotoolsActions:
             if use_build_dir:
                 docker_cmd.extend([
                     "-v", f"{self.build_dir}:/workspace/build",
-                    "-w", "/workspace/build",
+                    "-w", DOCKER_WORKSPACE_BUILD,
                 ])
             else:
-                docker_cmd.extend(["-w", "/workspace/src"])
+                docker_cmd.extend(["-w", DOCKER_WORKSPACE_SRC])
 
             docker_cmd.extend([self.container_image, "bash", "-c"])
 
@@ -501,7 +509,7 @@ class AutotoolsActions:
                 docker_cmd,
                 capture_output=True,
                 text=True,
-                timeout=300,  # 5 minute timeout
+                timeout=TIMEOUT_CONFIGURE,  # 5 minute timeout
             )
 
             output = result.stdout + result.stderr

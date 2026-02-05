@@ -7,6 +7,11 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from llm_summary.builder.autotools_builder import AutotoolsBuilder, AUTOTOOLS_TOOL_DEFINITIONS
+from llm_summary.builder.llm_utils import (
+    deduplicate_tool_result,
+    filter_warnings,
+    truncate_messages,
+)
 
 
 class TestAutotoolsBuilderToolDefinitions:
@@ -206,8 +211,6 @@ AC_OUTPUT
 
     def test_truncate_messages(self, mock_llm):
         """Test message truncation for large contexts."""
-        builder = AutotoolsBuilder(llm=mock_llm)
-
         # Create messages that exceed token limit
         messages = [
             {"role": "user", "content": "Initial request"},
@@ -217,7 +220,7 @@ AC_OUTPUT
             {"role": "user", "content": "Final"},
         ]
 
-        truncated = builder._truncate_messages(messages, max_tokens=10000)
+        truncated = truncate_messages(messages, max_tokens=10000)
 
         # Should keep first and some recent messages
         assert len(truncated) < len(messages)
@@ -225,37 +228,31 @@ AC_OUTPUT
 
     def test_deduplicate_tool_result_cached(self, mock_llm):
         """Test deduplication of repeated file reads."""
-        builder = AutotoolsBuilder(llm=mock_llm)
-
         seen = set()
         result1 = {"content": "file contents"}
         result2 = {"content": "file contents"}
 
         # First read - not cached
-        deduped1 = builder._deduplicate_tool_result(
+        deduped1 = deduplicate_tool_result(
             "read_file", {"file_path": "test.c"}, result1, seen
         )
         assert "cached" not in deduped1
 
         # Second read - cached
-        deduped2 = builder._deduplicate_tool_result(
+        deduped2 = deduplicate_tool_result(
             "read_file", {"file_path": "test.c"}, result2, seen
         )
         assert deduped2.get("cached") is True
 
     def test_filter_warnings_small_output(self, mock_llm):
         """Test that small outputs are not filtered."""
-        builder = AutotoolsBuilder(llm=mock_llm)
-
         output = "Building...\nCompiling foo.c\nDone."
-        filtered = builder._filter_warnings(output)
+        filtered = filter_warnings(output)
 
         assert filtered == output
 
     def test_filter_warnings_large_output(self, mock_llm):
         """Test that large outputs are filtered to show errors."""
-        builder = AutotoolsBuilder(llm=mock_llm)
-
         # Create large output with warnings and errors (>10000 chars)
         lines = ["warning: unused variable 'x' in function 'some_long_function_name'"] * 200
         lines.append("error: undefined reference to 'foo'")
@@ -265,7 +262,7 @@ AC_OUTPUT
         # Ensure output is large enough to trigger filtering
         assert len(output) > 10000
 
-        filtered = builder._filter_warnings(output)
+        filtered = filter_warnings(output)
 
         # Should contain the error
         assert "undefined reference" in filtered

@@ -5,6 +5,8 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from ..llm.base import LLMBackend
+from .constants import MAX_TURNS_ERROR_ANALYSIS
+from .json_utils import parse_llm_json
 from .prompts import BUILD_FAILURE_PROMPT, ERROR_ANALYSIS_PROMPT
 
 if TYPE_CHECKING:
@@ -74,36 +76,22 @@ class ErrorAnalyzer:
         if self.verbose:
             print(f"[LLM] Response: {response[:500]}...")
 
-        try:
-            # Try to parse JSON response, stripping markdown code blocks if present
-            json_str = response.strip()
-            if json_str.startswith("```json"):
-                json_str = json_str[7:]  # Remove ```json
-            if json_str.startswith("```"):
-                json_str = json_str[3:]  # Remove ```
-            if json_str.endswith("```"):
-                json_str = json_str[:-3]  # Remove trailing ```
-            json_str = json_str.strip()
-
-            result = json.loads(json_str)
-            return {
-                "diagnosis": result.get("diagnosis", "Unknown error"),
-                "suggested_flags": result.get("suggested_flags", []),
-                "missing_dependencies": result.get("missing_dependencies", []),
-                "confidence": result.get("confidence", "low"),
-            }
-        except json.JSONDecodeError as e:
-            if self.verbose:
-                print(f"[ERROR] Failed to parse LLM response as JSON: {e}")
-                print(f"[ERROR] Response: {response[:500]}...")
-
-            # Return a best-effort result
-            return {
+        result = parse_llm_json(
+            response,
+            default_response={
                 "diagnosis": "Failed to parse LLM response",
                 "suggested_flags": [],
                 "missing_dependencies": [],
                 "confidence": "low",
-            }
+            },
+            verbose=self.verbose,
+        )
+        return {
+            "diagnosis": result.get("diagnosis", "Unknown error"),
+            "suggested_flags": result.get("suggested_flags", []),
+            "missing_dependencies": result.get("missing_dependencies", []),
+            "confidence": result.get("confidence", "low"),
+        }
 
     def analyze_build_error(
         self,
@@ -145,37 +133,24 @@ class ErrorAnalyzer:
         if self.verbose:
             print(f"[LLM] Response: {response[:500]}...")
 
-        try:
-            # Try to parse JSON response, stripping markdown code blocks if present
-            json_str = response.strip()
-            if json_str.startswith("```json"):
-                json_str = json_str[7:]  # Remove ```json
-            if json_str.startswith("```"):
-                json_str = json_str[3:]  # Remove ```
-            if json_str.endswith("```"):
-                json_str = json_str[:-3]  # Remove trailing ```
-            json_str = json_str.strip()
-
-            result = json.loads(json_str)
-            return {
-                "diagnosis": result.get("diagnosis", "Unknown build error"),
-                "suggested_flags": result.get("suggested_flags", []),
-                "compiler_flag_changes": result.get("compiler_flag_changes", {}),
-                "confidence": result.get("confidence", "low"),
-                "notes": result.get("notes", ""),
-            }
-        except json.JSONDecodeError as e:
-            if self.verbose:
-                print(f"[ERROR] Failed to parse LLM response as JSON: {e}")
-                print(f"[ERROR] Response: {response[:500]}...")
-
-            return {
+        result = parse_llm_json(
+            response,
+            default_response={
                 "diagnosis": "Failed to parse LLM response",
                 "suggested_flags": [],
                 "compiler_flag_changes": {},
                 "confidence": "low",
                 "notes": "",
-            }
+            },
+            verbose=self.verbose,
+        )
+        return {
+            "diagnosis": result.get("diagnosis", "Unknown build error"),
+            "suggested_flags": result.get("suggested_flags", []),
+            "compiler_flag_changes": result.get("compiler_flag_changes", {}),
+            "confidence": result.get("confidence", "low"),
+            "notes": result.get("notes", ""),
+        }
 
     def analyze_error_with_tools(
         self,
@@ -275,7 +250,7 @@ When ready, return your analysis as JSON."""
                 f.write(f"USER MESSAGE:\n{messages[0]['content']}\n\n")
 
         # ReAct loop
-        max_turns = 10
+        max_turns = MAX_TURNS_ERROR_ANALYSIS
         for turn in range(max_turns):
             # Log the request
             if self.log_file:
@@ -398,32 +373,19 @@ When ready, return your analysis as JSON."""
 
     def _parse_analysis_json(self, text: str) -> dict:
         """Parse analysis JSON from LLM response."""
-        try:
-            # Strip markdown code blocks
-            json_str = text.strip()
-            if json_str.startswith("```json"):
-                json_str = json_str[7:]
-            if json_str.startswith("```"):
-                json_str = json_str[3:]
-            if json_str.endswith("```"):
-                json_str = json_str[:-3]
-            json_str = json_str.strip()
-
-            result = json.loads(json_str)
-            return {
-                "diagnosis": result.get("diagnosis", "Unknown error"),
-                "suggested_flags": result.get("suggested_flags", []),
-                "missing_dependencies": result.get("missing_dependencies", []),
-                "confidence": result.get("confidence", "low"),
-            }
-        except json.JSONDecodeError as e:
-            if self.verbose:
-                print(f"[ERROR] Failed to parse analysis JSON: {e}")
-                print(f"[ERROR] Text: {text[:500]}...")
-
-            return {
+        result = parse_llm_json(
+            text,
+            default_response={
                 "diagnosis": "Failed to parse LLM analysis",
                 "suggested_flags": [],
                 "missing_dependencies": [],
                 "confidence": "low",
-            }
+            },
+            verbose=self.verbose,
+        )
+        return {
+            "diagnosis": result.get("diagnosis", "Unknown error"),
+            "suggested_flags": result.get("suggested_flags", []),
+            "missing_dependencies": result.get("missing_dependencies", []),
+            "confidence": result.get("confidence", "low"),
+        }

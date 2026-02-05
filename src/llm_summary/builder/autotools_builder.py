@@ -8,6 +8,19 @@ from typing import Any
 from ..llm.base import LLMBackend
 from .autotools_actions import AutotoolsActions
 from .autotools_actions import TOOL_DEFINITIONS as AUTOTOOLS_ACTION_TOOLS
+from .constants import (
+    DOCKER_WORKSPACE_BUILD,
+    DOCKER_WORKSPACE_SRC,
+    MAX_CONTEXT_TOKENS,
+    MAX_TURNS_AUTOTOOLS,
+)
+from .llm_utils import (
+    deduplicate_tool_result,
+    estimate_messages_tokens,
+    estimate_tokens,
+    filter_warnings,
+    truncate_messages,
+)
 from .tools import BuildTools
 from .tools import TOOL_DEFINITIONS as FILE_TOOLS
 
@@ -300,7 +313,7 @@ Proceed with the build using the available tools."""
         Returns:
             Dict with 'success', 'configure_flags', 'attempts', 'configure_succeeded', 'build_succeeded', 'react_terminated'
         """
-        max_turns = 20
+        max_turns = MAX_TURNS_AUTOTOOLS
         configure_succeeded = False
         build_succeeded = False
         react_terminated = False
@@ -343,7 +356,7 @@ Proceed with the build using the available tools."""
                             file_tools, actions, block.name, block.input
                         )
 
-                        result = self._deduplicate_tool_result(
+                        result = deduplicate_tool_result(
                             block.name, block.input, result, seen_tools
                         )
 
@@ -383,7 +396,7 @@ Proceed with the build using the available tools."""
                             f.write(f"{tr.get('content')}\n\n")
 
                 if turn < max_turns - 1:
-                    truncated_messages = self._truncate_messages(messages, max_tokens=100000)
+                    truncated_messages = truncate_messages(messages, max_tokens=MAX_CONTEXT_TOKENS)
 
                     if self.verbose and len(truncated_messages) < len(messages):
                         print(f"[Context] Truncated {len(messages) - len(truncated_messages)} messages")
@@ -484,116 +497,6 @@ Proceed with the build using the available tools."""
 
         return flags
 
-    def _estimate_tokens(self, text: str) -> int:
-        """Rough token count estimate (4 chars per token)."""
-        return len(text) // 4
-
-    def _filter_warnings(self, output: str) -> str:
-        """Filter out warnings, keep only errors when output is large."""
-        lines = output.split('\n')
-
-        if len(output) < 10000:
-            return output
-
-        error_keywords = ['error:', 'Error:', 'ERROR:', 'failed', 'Failed', 'FAILED']
-        error_ranges = []
-
-        for i, line in enumerate(lines):
-            if any(kw in line for kw in error_keywords):
-                start = max(0, i - 2)
-                end = min(len(lines), i + 3)
-                error_ranges.append((start, end))
-
-        if not error_ranges:
-            if len(lines) <= 50:
-                return output
-            return '\n'.join(lines[:20] + ['...'] + lines[-30:])
-
-        merged_ranges = []
-        error_ranges.sort()
-        current_start, current_end = error_ranges[0]
-
-        for start, end in error_ranges[1:]:
-            if start <= current_end:
-                current_end = max(current_end, end)
-            else:
-                merged_ranges.append((current_start, current_end))
-                current_start, current_end = start, end
-
-        merged_ranges.append((current_start, current_end))
-
-        filtered = []
-        for start, end in merged_ranges:
-            filtered.extend(lines[start:end])
-            filtered.append('---')
-
-        return '\n'.join(filtered)
-
-    def _deduplicate_tool_result(self, tool_name: str, tool_input: dict, result: dict, seen_tools: set) -> dict:
-        """Deduplicate tool results to avoid sending same content repeatedly."""
-        if tool_name == "read_file":
-            key = f"read:{tool_input.get('file_path')}:{tool_input.get('start_line', 1)}"
-            if key in seen_tools:
-                return {
-                    "cached": True,
-                    "message": f"File {tool_input.get('file_path')} already read (see earlier output)"
-                }
-            seen_tools.add(key)
-
-        if "output" in result and isinstance(result["output"], str):
-            if self._estimate_tokens(result["output"]) > 1000:
-                result = result.copy()
-                result["output"] = self._filter_warnings(result["output"])
-
-        if "content" in result and isinstance(result["content"], str):
-            if self._estimate_tokens(result["content"]) > 1000:
-                result = result.copy()
-                result["content"] = self._filter_warnings(result["content"])
-
-        return result
-
-    def _estimate_messages_tokens(self, messages: list) -> int:
-        """Estimate total tokens in messages array."""
-        total = 0
-        for msg in messages:
-            content = msg.get("content", "")
-            if isinstance(content, str):
-                total += self._estimate_tokens(content)
-            elif isinstance(content, list):
-                for item in content:
-                    if isinstance(item, dict):
-                        total += self._estimate_tokens(json.dumps(item))
-                    elif isinstance(item, str):
-                        total += self._estimate_tokens(item)
-        return total
-
-    def _truncate_messages(self, messages: list, max_tokens: int = 100000) -> list:
-        """Truncate old messages to stay under token limit."""
-        current_tokens = self._estimate_messages_tokens(messages)
-
-        if current_tokens <= max_tokens:
-            return messages
-
-        if len(messages) <= 3:
-            return messages
-
-        truncated = [messages[0]]
-
-        for msg in reversed(messages[1:]):
-            msg_tokens = self._estimate_tokens(json.dumps(msg.get("content", "")))
-            if current_tokens - msg_tokens < max_tokens:
-                truncated.insert(1, msg)
-            else:
-                current_tokens -= msg_tokens
-
-        if len(truncated) < len(messages):
-            truncated.insert(1, {
-                "role": "user",
-                "content": f"[{len(messages) - len(truncated)} earlier messages truncated to save context]"
-            })
-
-        return truncated
-
     def extract_compile_commands(self, project_path: Path, output_dir: Path | None = None, use_build_dir: bool = True) -> Path:
         """
         Extract compile_commands.json from build directory to output directory.
@@ -633,17 +536,17 @@ Proceed with the build using the available tools."""
         # Replace Docker container paths with host paths
         for entry in compile_commands:
             if "file" in entry:
-                entry["file"] = entry["file"].replace("/workspace/src", str(project_path))
-                entry["file"] = entry["file"].replace("/workspace/build", str(build_dir))
+                entry["file"] = entry["file"].replace(DOCKER_WORKSPACE_SRC, str(project_path))
+                entry["file"] = entry["file"].replace(DOCKER_WORKSPACE_BUILD, str(build_dir))
             if "directory" in entry:
-                entry["directory"] = entry["directory"].replace("/workspace/build", str(build_dir))
-                entry["directory"] = entry["directory"].replace("/workspace/src", str(project_path))
+                entry["directory"] = entry["directory"].replace(DOCKER_WORKSPACE_BUILD, str(build_dir))
+                entry["directory"] = entry["directory"].replace(DOCKER_WORKSPACE_SRC, str(project_path))
             if "command" in entry:
-                entry["command"] = entry["command"].replace("/workspace/src", str(project_path))
-                entry["command"] = entry["command"].replace("/workspace/build", str(build_dir))
+                entry["command"] = entry["command"].replace(DOCKER_WORKSPACE_SRC, str(project_path))
+                entry["command"] = entry["command"].replace(DOCKER_WORKSPACE_BUILD, str(build_dir))
             if "arguments" in entry:
                 entry["arguments"] = [
-                    arg.replace("/workspace/src", str(project_path)).replace("/workspace/build", str(build_dir))
+                    arg.replace(DOCKER_WORKSPACE_SRC, str(project_path)).replace(DOCKER_WORKSPACE_BUILD, str(build_dir))
                     for arg in entry["arguments"]
                 ]
 
@@ -652,7 +555,7 @@ Proceed with the build using the available tools."""
 
         if self.verbose:
             print(f"[Extract] Copied and fixed compile_commands.json to {compile_commands_dst}")
-            print(f"[Extract] Fixed Docker paths: /workspace/src -> {project_path}")
-            print(f"[Extract] Fixed Docker paths: /workspace/build -> {build_dir}")
+            print(f"[Extract] Fixed Docker paths: {DOCKER_WORKSPACE_SRC} -> {project_path}")
+            print(f"[Extract] Fixed Docker paths: {DOCKER_WORKSPACE_BUILD} -> {build_dir}")
 
         return compile_commands_dst

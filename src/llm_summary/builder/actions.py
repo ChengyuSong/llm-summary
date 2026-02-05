@@ -5,6 +5,13 @@ import subprocess
 from pathlib import Path
 from typing import Any
 
+from .constants import (
+    DOCKER_WORKSPACE_BUILD,
+    DOCKER_WORKSPACE_SRC,
+    TIMEOUT_BUILD,
+    TIMEOUT_CONFIGURE,
+)
+
 
 class CMakeActions:
     """CMake configure and build actions for the agent."""
@@ -44,9 +51,9 @@ class CMakeActions:
             docker_cmd = [
                 "docker", "run", "--rm",
                 "-u", f"{uid}:{gid}",
-                "-v", f"{self.project_path}:/workspace/src",
-                "-v", f"{self.build_dir}:/workspace/build",
-                "-w", "/workspace/build",
+                "-v", f"{self.project_path}:{DOCKER_WORKSPACE_SRC}",
+                "-v", f"{self.build_dir}:{DOCKER_WORKSPACE_BUILD}",
+                "-w", DOCKER_WORKSPACE_BUILD,
                 self.container_image,
                 "bash", "-c",
             ]
@@ -59,7 +66,7 @@ class CMakeActions:
                 else:
                     quoted_flags.append(flag)
 
-            cmake_cmd = f"cmake -G Ninja {' '.join(quoted_flags)} /workspace/src"
+            cmake_cmd = f"cmake -G Ninja {' '.join(quoted_flags)} {DOCKER_WORKSPACE_SRC}"
 
             if self.verbose:
                 print(f"[cmake_configure] Running: {cmake_cmd}")
@@ -70,7 +77,7 @@ class CMakeActions:
                 docker_cmd,
                 capture_output=True,
                 text=True,
-                timeout=300,  # 5 minute timeout
+                timeout=TIMEOUT_CONFIGURE,
             )
 
             output = result.stdout + result.stderr
@@ -92,7 +99,7 @@ class CMakeActions:
             return {
                 "success": False,
                 "output": "",
-                "error": "CMake configure timed out after 5 minutes",
+                "error": f"CMake configure timed out after {TIMEOUT_CONFIGURE} seconds",
             }
         except Exception as e:
             return {
@@ -132,9 +139,9 @@ class CMakeActions:
             docker_cmd = [
                 "docker", "run", "--rm",
                 "-u", f"{uid}:{gid}",
-                "-v", f"{self.project_path}:/workspace/src",
-                "-v", f"{self.build_dir}:/workspace/build",
-                "-w", "/workspace/build",
+                "-v", f"{self.project_path}:{DOCKER_WORKSPACE_SRC}",
+                "-v", f"{self.build_dir}:{DOCKER_WORKSPACE_BUILD}",
+                "-w", DOCKER_WORKSPACE_BUILD,
                 self.container_image,
                 "bash", "-c",
                 "ninja -j$(nproc)",
@@ -147,7 +154,7 @@ class CMakeActions:
                 docker_cmd,
                 capture_output=True,
                 text=True,
-                timeout=600,  # 10 minute timeout
+                timeout=TIMEOUT_BUILD,
             )
 
             output = result.stdout + result.stderr
@@ -169,9 +176,9 @@ class CMakeActions:
                 docker_cmd_j1 = [
                     "docker", "run", "--rm",
                     "-u", f"{uid}:{gid}",
-                    "-v", f"{self.project_path}:/workspace/src",
-                    "-v", f"{self.build_dir}:/workspace/build",
-                    "-w", "/workspace/build",
+                    "-v", f"{self.project_path}:{DOCKER_WORKSPACE_SRC}",
+                    "-v", f"{self.build_dir}:{DOCKER_WORKSPACE_BUILD}",
+                    "-w", DOCKER_WORKSPACE_BUILD,
                     self.container_image,
                     "bash", "-c",
                     "ninja -j1",
@@ -181,7 +188,7 @@ class CMakeActions:
                     docker_cmd_j1,
                     capture_output=True,
                     text=True,
-                    timeout=600,
+                    timeout=TIMEOUT_BUILD,
                 )
 
                 output_j1 = result_j1.stdout + result_j1.stderr
@@ -196,7 +203,7 @@ class CMakeActions:
             return {
                 "success": False,
                 "output": "",
-                "error": "Build timed out after 10 minutes",
+                "error": f"Build timed out after {TIMEOUT_BUILD} seconds",
             }
         except Exception as e:
             return {

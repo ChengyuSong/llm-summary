@@ -326,7 +326,7 @@ class TestToolDefinitions:
 
     def test_tool_count(self):
         """Test correct number of tools are defined."""
-        assert len(TOOL_DEFINITIONS) == 5  # autoreconf, configure, build, clean, distclean
+        assert len(TOOL_DEFINITIONS) == 6  # bootstrap, autoreconf, configure, build, clean, distclean
 
     def test_clean_tool_exists(self):
         """Test autotools_clean tool is defined."""

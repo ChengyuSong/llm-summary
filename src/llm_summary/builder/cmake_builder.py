@@ -7,7 +7,21 @@ from typing import Any
 
 from ..llm.base import LLMBackend
 from .actions import CMakeActions
+from .constants import (
+    DOCKER_WORKSPACE_BUILD,
+    DOCKER_WORKSPACE_SRC,
+    MAX_CONTEXT_TOKENS,
+    MAX_TURNS_CMAKE,
+)
 from .error_analyzer import BuildError, ErrorAnalyzer
+from .json_utils import parse_llm_json
+from .llm_utils import (
+    deduplicate_tool_result,
+    estimate_messages_tokens,
+    estimate_tokens,
+    filter_warnings,
+    truncate_messages,
+)
 from .prompts import INITIAL_CONFIG_PROMPT
 from .tool_definitions import ALL_TOOL_DEFINITIONS
 from .tools import BuildTools
@@ -429,18 +443,9 @@ Choose your approach (simple JSON or ReAct with tools) and proceed."""
 
     def _parse_config_response(self, response: str) -> list[str]:
         """Parse LLM response to extract CMake configuration."""
-        try:
-            # Try to parse JSON response, stripping markdown code blocks if present
-            json_str = response.strip()
-            if json_str.startswith("```json"):
-                json_str = json_str[7:]  # Remove ```json
-            if json_str.startswith("```"):
-                json_str = json_str[3:]  # Remove ```
-            if json_str.endswith("```"):
-                json_str = json_str[:-3]  # Remove trailing ```
-            json_str = json_str.strip()
+        result = parse_llm_json(response, default_response={}, verbose=self.verbose)
 
-            result = json.loads(json_str)
+        if result:
             flags = result.get("cmake_flags", [])
 
             if self.verbose and result.get("reasoning"):
@@ -466,11 +471,7 @@ Choose your approach (simple JSON or ReAct with tools) and proceed."""
                     print(f"  - {issue}")
 
             return flags
-        except json.JSONDecodeError as e:
-            if self.verbose:
-                print(f"[ERROR] Failed to parse LLM response: {e}")
-                print(f"[ERROR] Response: {response[:500]}...")
-
+        else:
             # Fall back to default configuration
             return self._get_default_config()
 
@@ -481,132 +482,6 @@ Choose your approach (simple JSON or ReAct with tools) and proceed."""
             if hasattr(block, "text"):
                 text += block.text
         return text
-
-    def _estimate_tokens(self, text: str) -> int:
-        """Rough token count estimate (4 chars per token)."""
-        return len(text) // 4
-
-    def _filter_warnings(self, output: str) -> str:
-        """Filter out warnings, keep only errors when output is large."""
-        lines = output.split('\n')
-
-        # If output is small, keep everything
-        if len(output) < 10000:
-            return output
-
-        # Otherwise, keep only error lines and some context
-        error_keywords = ['error:', 'Error:', 'ERROR:', 'failed', 'Failed', 'FAILED']
-        error_ranges = []
-
-        for i, line in enumerate(lines):
-            # Keep errors
-            if any(kw in line for kw in error_keywords):
-                # Include 2 lines before and after for context
-                start = max(0, i - 2)
-                end = min(len(lines), i + 3)
-                error_ranges.append((start, end))
-
-        if not error_ranges:
-            # No errors found, keep first 20 and last 30 lines
-            if len(lines) <= 50:
-                return output
-            return '\n'.join(lines[:20] + ['...'] + lines[-30:])
-
-        # Merge overlapping ranges
-        merged_ranges = []
-        error_ranges.sort()
-        current_start, current_end = error_ranges[0]
-
-        for start, end in error_ranges[1:]:
-            if start <= current_end:
-                # Overlapping, merge
-                current_end = max(current_end, end)
-            else:
-                # Non-overlapping, save current and start new
-                merged_ranges.append((current_start, current_end))
-                current_start, current_end = start, end
-
-        merged_ranges.append((current_start, current_end))
-
-        # Extract lines from merged ranges
-        filtered = []
-        for start, end in merged_ranges:
-            filtered.extend(lines[start:end])
-            filtered.append('---')
-
-        return '\n'.join(filtered)
-
-    def _deduplicate_tool_result(self, tool_name: str, tool_input: dict, result: dict, seen_tools: set) -> dict:
-        """Deduplicate tool results to avoid sending same content repeatedly."""
-        # Create key for deduplication
-        if tool_name == "read_file":
-            key = f"read:{tool_input.get('file_path')}:{tool_input.get('start_line', 1)}"
-            if key in seen_tools:
-                # Already read this file, return short reference
-                return {
-                    "cached": True,
-                    "message": f"File {tool_input.get('file_path')} already read (see earlier output)"
-                }
-            seen_tools.add(key)
-
-        # Filter large outputs
-        if "output" in result and isinstance(result["output"], str):
-            if self._estimate_tokens(result["output"]) > 1000:
-                result = result.copy()
-                result["output"] = self._filter_warnings(result["output"])
-
-        if "content" in result and isinstance(result["content"], str):
-            if self._estimate_tokens(result["content"]) > 1000:
-                result = result.copy()
-                result["content"] = self._filter_warnings(result["content"])
-
-        return result
-
-    def _estimate_messages_tokens(self, messages: list) -> int:
-        """Estimate total tokens in messages array."""
-        total = 0
-        for msg in messages:
-            content = msg.get("content", "")
-            if isinstance(content, str):
-                total += self._estimate_tokens(content)
-            elif isinstance(content, list):
-                for item in content:
-                    if isinstance(item, dict):
-                        total += self._estimate_tokens(json.dumps(item))
-                    elif isinstance(item, str):
-                        total += self._estimate_tokens(item)
-        return total
-
-    def _truncate_messages(self, messages: list, max_tokens: int = 100000) -> list:
-        """Truncate old messages to stay under token limit."""
-        current_tokens = self._estimate_messages_tokens(messages)
-
-        if current_tokens <= max_tokens:
-            return messages
-
-        # Keep first message (initial request) and recent messages
-        if len(messages) <= 3:
-            return messages
-
-        # Keep first message and last N messages
-        truncated = [messages[0]]
-
-        # Add recent messages from the end
-        for msg in reversed(messages[1:]):
-            msg_tokens = self._estimate_tokens(json.dumps(msg.get("content", "")))
-            if current_tokens - msg_tokens < max_tokens:
-                truncated.insert(1, msg)
-            else:
-                current_tokens -= msg_tokens
-
-        if len(truncated) < len(messages):
-            # Add a marker that we truncated
-            truncated.insert(1, {
-                "role": "user",
-                "content": f"[{len(messages) - len(truncated)} earlier messages truncated to save context]"
-            })
-
-        return truncated
 
     def _execute_react_loop(
         self,
@@ -623,7 +498,7 @@ Choose your approach (simple JSON or ReAct with tools) and proceed."""
             Dict with 'success', 'cmake_flags', 'attempts', 'configure_succeeded', 'build_succeeded', 'react_terminated'
         """
         # Track state
-        max_turns = 15
+        max_turns = MAX_TURNS_CMAKE
         configure_succeeded = False
         build_succeeded = False
         react_terminated = False
@@ -672,7 +547,7 @@ Choose your approach (simple JSON or ReAct with tools) and proceed."""
                         )
 
                         # Apply deduplication and filtering
-                        result = self._deduplicate_tool_result(
+                        result = deduplicate_tool_result(
                             block.name, block.input, result, seen_tools
                         )
 
@@ -713,11 +588,11 @@ Choose your approach (simple JSON or ReAct with tools) and proceed."""
                 # Get next response
                 if turn < max_turns - 1:  # Don't make another call on last turn
                     # Truncate messages to stay under context limit (100k tokens ~= 128k with system prompt)
-                    truncated_messages = self._truncate_messages(messages, max_tokens=100000)
+                    truncated_messages = truncate_messages(messages, max_tokens=MAX_CONTEXT_TOKENS)
 
                     if self.verbose and len(truncated_messages) < len(messages):
                         print(f"[Context] Truncated {len(messages) - len(truncated_messages)} messages")
-                        print(f"[Context] Estimated tokens: {self._estimate_messages_tokens(truncated_messages)}")
+                        print(f"[Context] Estimated tokens: {estimate_messages_tokens(truncated_messages)}")
 
                     # Log the request being sent
                     if self.log_file:
@@ -969,20 +844,18 @@ Choose your approach (simple JSON or ReAct with tools) and proceed."""
             compile_commands = json.load(f)
 
         # Replace Docker container paths with host paths
-        # /workspace/src -> actual project path
-        # /workspace/build -> actual build path
         for entry in compile_commands:
             if "file" in entry:
-                entry["file"] = entry["file"].replace("/workspace/src", str(project_path))
-                entry["file"] = entry["file"].replace("/workspace/build", str(build_dir))
+                entry["file"] = entry["file"].replace(DOCKER_WORKSPACE_SRC, str(project_path))
+                entry["file"] = entry["file"].replace(DOCKER_WORKSPACE_BUILD, str(build_dir))
             if "directory" in entry:
-                entry["directory"] = entry["directory"].replace("/workspace/build", str(build_dir))
+                entry["directory"] = entry["directory"].replace(DOCKER_WORKSPACE_BUILD, str(build_dir))
             if "command" in entry:
-                entry["command"] = entry["command"].replace("/workspace/src", str(project_path))
-                entry["command"] = entry["command"].replace("/workspace/build", str(build_dir))
+                entry["command"] = entry["command"].replace(DOCKER_WORKSPACE_SRC, str(project_path))
+                entry["command"] = entry["command"].replace(DOCKER_WORKSPACE_BUILD, str(build_dir))
             if "arguments" in entry:
                 entry["arguments"] = [
-                    arg.replace("/workspace/src", str(project_path)).replace("/workspace/build", str(build_dir))
+                    arg.replace(DOCKER_WORKSPACE_SRC, str(project_path)).replace(DOCKER_WORKSPACE_BUILD, str(build_dir))
                     for arg in entry["arguments"]
                 ]
 
@@ -992,7 +865,7 @@ Choose your approach (simple JSON or ReAct with tools) and proceed."""
 
         if self.verbose:
             print(f"[Extract] Copied and fixed compile_commands.json to {compile_commands_dst}")
-            print(f"[Extract] Fixed Docker paths: /workspace/src -> {project_path}")
-            print(f"[Extract] Fixed Docker paths: /workspace/build -> {build_dir}")
+            print(f"[Extract] Fixed Docker paths: {DOCKER_WORKSPACE_SRC} -> {project_path}")
+            print(f"[Extract] Fixed Docker paths: {DOCKER_WORKSPACE_BUILD} -> {build_dir}")
 
         return compile_commands_dst
