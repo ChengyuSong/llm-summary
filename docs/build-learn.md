@@ -171,6 +171,7 @@ CMakeBuilder(
     llm: LLMBackend,
     container_image: str = "llm-summary-builder:latest",
     build_dir: Path | None = None,
+    build_scripts_dir: Path | None = None,  # For unavoidable assembly tracking
     max_retries: int = 3,
     enable_lto: bool = True,
     prefer_static: bool = True,
@@ -235,7 +236,50 @@ Generates reusable build scripts in `build-scripts/<project>/`:
 
 **Key class:** `ScriptGenerator`
 
-### 5. Build Agent Tools (`builder/tools.py`, `builder/actions.py`, `builder/tool_definitions.py`)
+### 5. Assembly Checker (`builder/assembly_checker.py`)
+
+Detects assembly code in build artifacts and filters out known unavoidable findings:
+
+**Detection Methods:**
+1. **Standalone assembly files**: Scans compile_commands.json for `.s`, `.S`, `.asm` files
+2. **Inline assembly in sources**: Pattern matching in C/C++ files for `__asm__`, `asm()`, `__asm__ __volatile__`, etc.
+3. **Inline assembly in LLVM IR**: Uses `llvm-dis` to disassemble `.bc` files and searches for `call asm`, `asm sideeffect`, `module asm`
+
+**Path Translation:**
+- Automatically translates Docker paths (`/workspace/src`, `/workspace/build`) to host paths
+- Enables source file scanning even when compile_commands.json contains container paths
+
+**Unavoidable Assembly Tracking:**
+- Loads known unavoidable findings from `build-scripts/<project>/unavoidable_asm.json`
+- Filters these from results so agent only sees new/actionable assembly
+- Findings identified by stable key: `{type}:{file_path}:{pattern}`
+- Prevents agent from repeatedly trying to remove unavoidable inline assembly from dependencies
+
+**Integration:**
+- Runs automatically after successful `cmake_build()`
+- Results included in build tool response as `assembly_check` field
+- Agent can iteratively try different CMake flags (e.g., `-DDISABLE_ASM=ON`, `-DENABLE_SIMD=OFF`) to minimize assembly
+
+**Example Result:**
+```json
+{
+  "has_assembly": true,
+  "has_new_assembly": false,  // No action needed
+  "standalone_asm_files": [],
+  "inline_asm_sources": [],
+  "inline_asm_ir": [],
+  "known_unavoidable_count": 26  // From dependencies
+}
+```
+
+**Key class:** `AssemblyChecker`
+
+**Methods:**
+- `check(scan_ir=True)`: Run full assembly detection with filtering
+- `save_unavoidable(findings)`: Save findings to unavoidable_asm.json
+- `_filter_unavoidable()`: Separate new findings from known unavoidable
+
+### 6. Build Agent Tools (`builder/tools.py`, `builder/actions.py`, `builder/tool_definitions.py`)
 
 The LLM agent has access to four tools for exploring and building projects:
 
@@ -283,9 +327,16 @@ Tool definitions are automatically converted to OpenAI format for backends that 
 - Runs ninja build (`ninja -j$(nproc)`) after successful configure
 - No parameters required
 - Requires CMakeCache.txt to exist (from successful configure)
-- Returns dict with: `success` (bool), `output` (stdout+stderr), `error` (error message)
+- Returns dict with: `success` (bool), `output` (stdout+stderr), `error` (error message), `assembly_check` (assembly detection results)
 - Timeout: 10 minutes
 - Separate from configure for targeted debugging and faster iteration
+- **Assembly Verification**: On successful build, automatically scans for assembly code:
+  - Standalone .s/.S/.asm files in compile_commands.json
+  - Inline assembly in C/C++ sources (`__asm__`, `asm()`, etc.)
+  - Inline assembly in LLVM bitcode (.bc) using llvm-dis
+  - Filters out known unavoidable assembly from `build-scripts/<project>/unavoidable_asm.json`
+  - Returns `has_new_assembly` flag to indicate if action is needed
+  - Agent can iterate on CMake flags to minimize/eliminate assembly
 
 #### Security Sandboxing
 
@@ -352,7 +403,7 @@ list_dir("../../")                       ✗ Escapes project
 
 **Key classes:** `BuildTools` (file exploration), `CMakeActions` (build execution)
 
-### 6. LLM Backends (`llm/`)
+### 7. LLM Backends (`llm/`)
 
 Multiple LLM backends are supported with varying capabilities:
 
@@ -584,8 +635,15 @@ For backends supporting tool use (Vertex AI, Anthropic API, llama.cpp), the agen
 - CMAKE_INTERPROCEDURAL_OPTIMIZATION=ON (LTO)
 - CMAKE_C_COMPILER=clang-18, CMAKE_CXX_COMPILER=clang++-18
 - BUILD_SHARED_LIBS=OFF (static linking)
-- Disable SIMD/hardware optimizations
+- Disable SIMD/hardware optimizations to minimize assembly code
 - CMAKE_C_FLAGS=-flto=full -save-temps=obj (IR generation)
+
+**Assembly Verification:**
+- After each successful `cmake_build()`, assembly check runs automatically
+- Result includes `assembly_check.has_new_assembly` flag
+- If assembly detected, agent can try different CMake flags to avoid it
+- Known unavoidable assembly (from dependencies) is filtered from results
+- Goal: Minimize or eliminate assembly code through build configuration
 
 **Mode Selection:**
 - LLM decides based on project complexity
@@ -792,10 +850,12 @@ export GOOGLE_CLOUD_PROJECT="your-project-id"
 - [x] **Completed:** ReAct error analysis with file exploration tools
 - [x] **Completed:** llama.cpp backend with tool calling support
 - [x] **Completed:** Pagination support for reading large files (start_line parameter)
-- [ ] Assembly code avoidance strategies
-  - [ ] Detect assembly files in project
-  - [ ] Add compiler flags to minimize asm usage
-  - [ ] Patch build scripts if needed
+- [x] **Completed:** Assembly code detection and avoidance
+  - [x] Detect standalone assembly files (.s/.S/.asm) in compile_commands.json
+  - [x] Detect inline assembly in C/C++ sources (__asm__, asm(), etc.)
+  - [x] Detect inline assembly in LLVM IR (.bc files) using llvm-dis
+  - [x] Iterative flag exploration to minimize assembly (ReAct loop integration)
+  - [x] Known unavoidable assembly filtering (from dependencies)
 - [ ] Fuzzing harness detection
   - [ ] Scan for `fuzzing/` or `fuzz/` directories
   - [ ] Build with AFL/libFuzzer flags
@@ -852,7 +912,7 @@ export GOOGLE_CLOUD_PROJECT="your-project-id"
 1. **CMake Only**: Only CMake projects supported (Autotools/Meson planned for Phase 2)
 2. **No Fuzzing**: Fuzzing harness detection not implemented
 3. **No Runtime Dependency Installation**: Dependencies cannot be installed at runtime; they must be pre-installed in the Docker image. Agent will identify missing dependencies and stop, requiring user to update `docker/build-env/Dockerfile` and rebuild the image.
-4. **Basic Assembly Handling**: No advanced asm avoidance strategies beyond disabling SIMD
+4. **Assembly from Dependencies**: While the agent can minimize assembly in the project itself through CMake flags, inline assembly from third-party dependencies (e.g., BoringSSL crypto functions) cannot be eliminated. These are tracked as unavoidable.
 5. **English Only**: LLM prompts assume English CMakeLists.txt comments
 6. **Single Architecture**: Builds for host architecture only (x86_64)
 7. **Tool-Use Backend Required**: ReAct mode requires tool-enabled backends (Vertex AI, Anthropic API, or llama.cpp). Ollama and OpenAI fall back to simple mode.
@@ -872,6 +932,8 @@ export GOOGLE_CLOUD_PROJECT="your-project-id"
 11. **Tool Format Conversion**: Automatic conversion between Anthropic and OpenAI tool formats
 12. **Build Directory Access**: Agent can access both project and build directories; paths starting with `"build/"` map to separate build directory mount
 13. **Smart Termination**: Agent stops ReAct loop when it identifies missing dependencies that cannot be installed at runtime; reports them as `missing_dependencies` for Docker image updates
+14. **Assembly Code Detection**: Automatic verification after successful builds detects standalone .s/.S/.asm files, inline assembly in C/C++ sources, and inline assembly in LLVM bitcode
+15. **Unavoidable Assembly Filtering**: Known unavoidable assembly findings (from dependencies) are saved to `build-scripts/<project>/unavoidable_asm.json` and filtered from future results, preventing agent from wasting turns trying to remove them
 
 ## Performance Characteristics
 
