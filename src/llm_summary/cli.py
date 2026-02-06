@@ -967,6 +967,7 @@ def build_learn(
     flags = result.get("flags", [])
     build_system_used = result.get("build_system_used", "unknown")
     use_build_dir = result.get("use_build_dir", True)
+    dependencies = result.get("dependencies", []) or []
 
     try:
         paths = generator.generate(
@@ -977,6 +978,7 @@ def build_learn(
             build_system=build_system_used,
             enable_ir=generate_ir,
             use_build_dir=use_build_dir,
+            dependencies=dependencies,
         )
 
         console.print(f"Script: [bold]{paths['script']}[/bold]")
@@ -1016,6 +1018,8 @@ def build_learn(
             "flags": flags,
             "use_build_dir": use_build_dir,
         }
+        if dependencies:
+            config_dict["dependencies"] = dependencies
 
         db.add_build_config(
             project_path=str(project_path),

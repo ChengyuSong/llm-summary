@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from ..llm.base import LLMBackend
-from .actions import AutotoolsActions, CMakeActions
+from .actions import AutotoolsActions, CMakeActions, install_packages
 from .constants import (
     DOCKER_WORKSPACE_BUILD,
     DOCKER_WORKSPACE_SRC,
@@ -121,6 +121,7 @@ class Builder:
                     "build_log": "Build succeeded during ReAct exploration",
                     "error_messages": [],
                     "use_build_dir": use_build_dir,
+                    "dependencies": result.get("dependencies", []),
                 }
 
             if react_terminated:
@@ -136,6 +137,7 @@ class Builder:
                     "build_log": "ReAct loop terminated without successful build",
                     "error_messages": ["LLM identified blockers that cannot be resolved with available tools (e.g., missing dependencies)"],
                     "use_build_dir": use_build_dir,
+                    "dependencies": result.get("dependencies", []),
                 }
         else:
             # Simple mode returned a list of cmake flags
@@ -299,6 +301,7 @@ Return JSON configuration directly:
 - make_build: Run bear -- make to build and capture compile commands
 - make_clean: Run make clean
 - make_distclean: Run make distclean
+- install_packages: Install system packages (apt) when build fails due to missing headers/libraries
 - finish: Signal completion (MUST call this when done)
 
 **IMPORTANT**: All file/directory paths in tools must be RELATIVE to project root (e.g., ".", "cmake/", "src/config.h", "build/compile_commands.json"). The build directory is accessible at "build/". Absolute paths are not allowed.
@@ -329,10 +332,14 @@ After a successful build, if assembly is detected, you may iterate:
 - Make: make_distclean → run_configure (new flags) → make_build → check → repeat
 Once assembly results are acceptable, call finish(status="success", summary="...")
 
+**Installing missing packages:**
+- If a build fails due to missing headers or libraries (e.g., zlib.h not found), use install_packages to install the required dev package (e.g., zlib1g-dev)
+- After installing, retry the build (you may need to re-run cmake_configure or run_configure)
+- When calling finish, report which installed packages are actual build dependencies in the 'dependencies' field
+
 **CRITICAL - When to STOP:**
-- You CANNOT install packages or dependencies
-- If missing system dependencies are identified, call finish(status="failure", summary="...") immediately
-- Once build succeeds with acceptable assembly results, call finish(status="success", summary="...")
+- Once build succeeds with acceptable assembly results, call finish(status="success", summary="...", dependencies=[...])
+- If you've exhausted all reasonable options, call finish(status="failure", summary="...")
 
 You are working on: {project_name}
 If you recognize this project, leverage your knowledge of its typical build requirements."""
@@ -345,7 +352,7 @@ If you recognize this project, leverage your knowledge of its typical build requ
         if self.verbose:
             print("[LLM] Requesting initial configuration (unified mode)...")
             print(f"[LLM] Project: {project_name}")
-            print("[LLM] Available tools: read_file, list_dir, cmake_configure, cmake_build, bootstrap, autoreconf, run_configure, make_build, make_clean, make_distclean, finish")
+            print("[LLM] Available tools: read_file, list_dir, cmake_configure, cmake_build, bootstrap, autoreconf, run_configure, make_build, make_clean, make_distclean, install_packages, finish")
 
         if self.log_file:
             with open(self.log_file, "a") as f:
@@ -514,6 +521,8 @@ If you recognize this project, leverage your knowledge of its typical build requ
         build_system_used = "unknown"
         use_build_dir = True
         tool_history = {}
+        installed_packages: set[str] = set()
+        dependencies: list[str] = []
 
         # State machine for enforcing tool ordering
         # cmake: cmake_configure can be called freely; cmake_build requires prior cmake_configure
@@ -624,13 +633,29 @@ If you recognize this project, leverage your knowledge of its typical build requ
                             build_succeeded = False
                         elif block.name == "make_clean":
                             build_succeeded = False
+                        elif block.name == "install_packages" and result.get("success"):
+                            new_image = result.get("new_image")
+                            if new_image:
+                                cmake_actions.container_image = new_image
+                                autotools_actions.container_image = new_image
+                                installed_packages.update(block.input.get("packages", []))
+                                if self.verbose:
+                                    print(f"[ReAct] Updated container image to {new_image}")
                         elif block.name == "finish":
                             finished = True
                             finish_status = block.input.get("status")
                             finish_summary = block.input.get("summary")
+                            # Cross-validate: only keep deps that were actually installed
+                            reported_deps = block.input.get("dependencies", [])
+                            dependencies = [
+                                d for d in reported_deps if d in installed_packages
+                            ]
                             if self.verbose:
                                 print(f"[ReAct] LLM called finish: status={finish_status}")
                                 print(f"[ReAct] Summary: {finish_summary}")
+                                if reported_deps:
+                                    print(f"[ReAct] Reported dependencies: {reported_deps}")
+                                    print(f"[ReAct] Validated dependencies: {dependencies}")
 
                         tool_results.append({
                             "type": "tool_result",
@@ -724,6 +749,7 @@ If you recognize this project, leverage your knowledge of its typical build requ
             "build_succeeded": build_succeeded,
             "react_terminated": react_terminated,
             "use_build_dir": use_build_dir,
+            "dependencies": dependencies,
         }
 
     def _check_state_guard(
@@ -826,6 +852,13 @@ If you recognize this project, leverage your knowledge of its typical build requ
             elif tool_name == "make_distclean":
                 return autotools_actions.make_distclean(
                     use_build_dir=tool_input.get("use_build_dir", True),
+                )
+            # Install packages
+            elif tool_name == "install_packages":
+                return install_packages(
+                    current_image=cmake_actions.container_image,
+                    packages=tool_input.get("packages", []),
+                    verbose=self.verbose,
                 )
             # Finish tool
             elif tool_name == "finish":

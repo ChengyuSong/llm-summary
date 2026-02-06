@@ -311,6 +311,7 @@ class LlamaCppBackend(LLMBackend):
                     if "content" in message and message["content"]:
                         class TextBlock:
                             def __init__(self, text):
+                                self.type = "text"
                                 self.text = text
                         self.content.append(TextBlock(message["content"]))
 

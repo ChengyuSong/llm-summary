@@ -88,6 +88,8 @@ BUILD_TOOLS = {
     "make_build",
     "make_clean",
     "make_distclean",
+    # Package installation
+    "install_packages",
 }
 
 

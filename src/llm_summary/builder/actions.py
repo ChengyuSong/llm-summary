@@ -1,7 +1,10 @@
 """Build action tools for the build agent (CMake and Autotools)."""
 
+import hashlib
 import os
+import re
 import subprocess
+import tempfile
 from pathlib import Path
 from typing import Any
 
@@ -11,6 +14,7 @@ from .constants import (
     DOCKER_WORKSPACE_SRC,
     TIMEOUT_BUILD,
     TIMEOUT_CONFIGURE,
+    TIMEOUT_INSTALL,
     TIMEOUT_LONG_BUILD,
 )
 
@@ -771,6 +775,112 @@ class AutotoolsActions:
         )
 
 
+# Package name validation pattern (prevent injection)
+_PACKAGE_NAME_RE = re.compile(r"^[a-zA-Z0-9][a-zA-Z0-9.+\-:]+$")
+
+
+def install_packages(
+    current_image: str,
+    packages: list[str],
+    verbose: bool = False,
+) -> dict[str, Any]:
+    """
+    Install system packages by building a derived Docker image.
+
+    Creates a new Docker image extending current_image with the requested
+    packages installed via apt-get. Returns the new image tag so subsequent
+    docker run calls use the updated image.
+
+    Args:
+        current_image: The current Docker image to extend.
+        packages: List of apt package names to install.
+        verbose: Print debug info.
+
+    Returns:
+        Dict with 'success', 'output', 'error', 'new_image'.
+    """
+    if not packages:
+        return {
+            "success": False,
+            "output": "",
+            "error": "No packages specified.",
+            "new_image": current_image,
+        }
+
+    # Validate package names
+    invalid = [p for p in packages if not _PACKAGE_NAME_RE.match(p)]
+    if invalid:
+        return {
+            "success": False,
+            "output": "",
+            "error": f"Invalid package name(s): {', '.join(invalid)}",
+            "new_image": current_image,
+        }
+
+    # Build a deterministic tag from the sorted package list + base image
+    pkg_key = ",".join(sorted(packages)) + ":" + current_image
+    short_hash = hashlib.sha256(pkg_key.encode()).hexdigest()[:12]
+    new_tag = f"llm-summary-builder:ext-{short_hash}"
+
+    # Create temporary directory with Dockerfile
+    dockerfile_content = (
+        f"FROM {current_image}\n"
+        f"USER root\n"
+        f"RUN apt-get update && apt-get install -y {' '.join(packages)} "
+        f"&& rm -rf /var/lib/apt/lists/*\n"
+    )
+
+    try:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            dockerfile_path = Path(tmpdir) / "Dockerfile"
+            dockerfile_path.write_text(dockerfile_content)
+
+            if verbose:
+                print(f"[install_packages] Building derived image {new_tag}")
+                print(f"[install_packages] Packages: {', '.join(packages)}")
+
+            result = subprocess.run(
+                ["docker", "build", "-t", new_tag, tmpdir],
+                capture_output=True,
+                text=True,
+                timeout=TIMEOUT_INSTALL,
+            )
+
+            output = result.stdout + result.stderr
+
+            if result.returncode == 0:
+                if verbose:
+                    print(f"[install_packages] Image {new_tag} built successfully")
+                return {
+                    "success": True,
+                    "output": output,
+                    "error": "",
+                    "new_image": new_tag,
+                }
+            else:
+                return {
+                    "success": False,
+                    "output": output,
+                    "error": f"docker build failed with exit code {result.returncode}",
+                    "new_image": current_image,
+                }
+
+    except subprocess.TimeoutExpired:
+        return {
+            "success": False,
+            "output": "",
+            "error": f"Package installation timed out after {TIMEOUT_INSTALL} seconds",
+            "new_image": current_image,
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "output": "",
+            "error": f"Package installation failed: {str(e)}",
+            "new_image": current_image,
+        }
+
+
 # Tool definitions for LLM (Anthropic tool use format)
 # CMake tools
 CMAKE_TOOL_DEFINITIONS = [
@@ -964,9 +1074,11 @@ FINISH_TOOL_DEFINITION = {
     "description": (
         "Signal that the build task is complete. Call this when: "
         "(1) build succeeded with acceptable assembly results, "
-        "(2) you've identified unresolvable blockers (missing dependencies), or "
+        "(2) you've identified unresolvable blockers, or "
         "(3) you've exhausted all reasonable options. "
-        "Do NOT call build tools after a successful build - call finish instead."
+        "Do NOT call build tools after a successful build - call finish instead. "
+        "If you installed packages with install_packages, report which ones are actual "
+        "build dependencies in the 'dependencies' field."
     ),
     "input_schema": {
         "type": "object",
@@ -980,8 +1092,43 @@ FINISH_TOOL_DEFINITION = {
                 "type": "string",
                 "description": "Brief summary of what was accomplished or why it failed",
             },
+            "dependencies": {
+                "type": "array",
+                "items": {"type": "string"},
+                "description": (
+                    "List of apt package names that are actual build dependencies "
+                    "(packages you installed via install_packages that the project needs). "
+                    "Only include packages that were genuinely required for the build."
+                ),
+            },
         },
         "required": ["status", "summary"],
+    },
+}
+
+# Install packages tool
+INSTALL_PACKAGES_TOOL_DEFINITION = {
+    "name": "install_packages",
+    "description": (
+        "Install system packages (apt) into the build environment. Use this when a build "
+        "fails due to missing headers or libraries (e.g., 'fatal error: zlib.h: No such file "
+        "or directory' → install zlib1g-dev). This builds a derived Docker image with the "
+        "requested packages. Subsequent build commands will use the updated image. "
+        "When calling finish, report which installed packages are actual dependencies."
+    ),
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "packages": {
+                "type": "array",
+                "items": {"type": "string"},
+                "description": (
+                    "List of apt package names to install (e.g., ['zlib1g-dev', 'libssl-dev']). "
+                    "Use Debian/Ubuntu package names."
+                ),
+            },
+        },
+        "required": ["packages"],
     },
 }
 
