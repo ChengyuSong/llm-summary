@@ -48,26 +48,10 @@ llm-summary extract --path /path/to/project --db analysis.db
 
 ## Architecture
 
-### Hybrid Workflow: Simple vs ReAct Mode
+### ReAct Workflow
 
-The build agent automatically chooses between two modes based on project complexity:
+The build agent uses a ReAct (Reason + Act) loop where the LLM explores the project, detects the build system, configures, builds, and installs missing dependencies — all iteratively with tool feedback.
 
-**Simple Mode (for straightforward projects):**
-```
-┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
-│  CMakeLists.txt │────▶│ LLM Analysis    │────▶│ JSON Config     │
-│  (Project)      │     │ (1 turn)        │     │ (cmake_flags)   │
-└─────────────────┘     └─────────────────┘     └─────────────────┘
-                                                        │
-                                                        ▼
-                                               ┌─────────────────┐
-                                               │ Docker Build    │
-                                               │ (configure +    │
-                                               │  build)         │
-                                               └─────────────────┘
-```
-
-**ReAct Mode (for complex projects):**
 ```
 ┌─────────────────┐     ┌────────────────────────────────────────┐
 │  Project        │────▶│ LLM Agent with Tools (iterative)       │
@@ -82,7 +66,7 @@ The build agent automatically chooses between two modes based on project complex
                         │                                        │
                         │ Loop (max 20 turns):                   │
                         │ 1. Explore project structure           │
-                        │ 2. Read build files/configs            │
+                        │ 2. Detect build system                 │
                         │ 3. Configure with flags                │
                         │ 4. Build, adjust on errors             │
                         │ 5. Install missing deps if needed      │
@@ -99,55 +83,35 @@ The build agent automatically chooses between two modes based on project complex
                         └─────────────────────────────────────────┘
 ```
 
-**Mode Selection:**
-- LLM decides automatically based on project complexity
-- Simple projects (standard CMakeLists.txt) → Simple mode (1 LLM turn)
-- Complex projects (unusual build system, many includes) → ReAct mode (iterative)
+**Fallback for non-tool backends** (Ollama, OpenAI): A simple mode reads CMakeLists.txt, sends it to the LLM in a single turn, and parses a JSON config response. This only supports CMake projects.
 
 ## Components
 
 ### 1. Unified Builder (`builder/builder.py`)
 
-A single `Builder` class handles both CMake and autotools projects. The agent auto-detects the build system by exploring the project root.
+A single `Builder` class handles CMake, autotools, and plain Makefile projects. The agent explores the project root to detect the build system and uses the appropriate tools.
 
-**Hybrid Workflow:**
-
-**Simple Mode (for standard CMake projects):**
-1. `_get_initial_config_simple()`: LLM reads CMakeLists.txt
-2. Returns JSON with cmake_flags immediately
-3. Build executes with retry loop (max 3 attempts via `learn_and_build()`)
-4. On failure: error analysis via `ErrorAnalyzer` and flag adjustment
-
-**ReAct Mode (for complex projects):**
-1. `_get_initial_config_with_tools()`: LLM receives unified system prompt
-2. If stop_reason = "tool_use", enters `_execute_react_loop()` (max 20 turns)
-3. LLM explores project with tools (read_file, list_dir)
-4. Auto-detects build system and uses appropriate tools
+**ReAct Workflow:**
+1. `_get_initial_config_with_tools()`: LLM receives unified system prompt with all tools
+2. Enters `_execute_react_loop()` (max 20 turns)
+3. LLM explores project with tools (read_file, list_dir) to detect build system
+4. Configures and builds using appropriate tools (cmake_configure/cmake_build or run_configure/make_build)
 5. Can install missing system dependencies via `install_packages`
-6. On successful build: Returns dict with `build_succeeded=True`, flags, `dependencies`
-7. If build succeeded in ReAct phase: Skip retry loop entirely
+6. On successful build: calls `finish(status="success", dependencies=[...])`
+7. Returns dict with flags, build status, and validated dependencies
 
-**Mode Selection Logic:**
-- Check `response.stop_reason` from first LLM turn:
-  - `"end_turn"` or `"stop"` → Simple mode (parse JSON config)
-  - `"tool_use"` → ReAct mode (enter tool execution loop)
-- LLM decides automatically based on project complexity
-
-**Retry Loop (Simple Mode or ReAct Build Failure):**
-- Max retries configurable (default: 3)
-- On failure: `ErrorAnalyzer` suggests fixes
-- Tool-enabled backends: Error analysis can use ReAct mode too (max 10 turns)
-- Applies suggestions via `_apply_suggestions()` and retries build
+**Fallback (non-tool backends):**
+- `_get_initial_config_simple()`: Reads CMakeLists.txt and sends to LLM for single-turn JSON config
+- Only supports CMake projects
+- Build executes with retry loop (max 3 attempts) and `ErrorAnalyzer` on failure
 
 **Features:**
 - **Unified build system support**: Single class handles CMake, autotools, and plain Makefile projects
-- **Hybrid mode selection**: LLM chooses simple or ReAct automatically based on stop_reason
 - **Runtime dependency installation**: Agent can install missing packages via `install_packages`
 - **Dependency tracking**: Cross-validates agent-reported deps against actually installed packages
 - **Sandboxed file access**: All file operations restricted to project directory via `_validate_path()`
 - **Docker isolation**: All builds run in containers with LLVM 18, user permissions preserved
 - **Path fixing**: Container paths (`/workspace/src`, `/workspace/build`) mapped to host paths via `extract_compile_commands()`
-- **Early exit optimization**: If ReAct mode succeeds in building, skip retry loop
 
 **Key class:** `Builder`
 
@@ -566,19 +530,18 @@ When the agent installs packages and finishes successfully:
 
 ## LLM Prompts (`builder/builder.py`)
 
-The build agent uses different prompts depending on the backend capabilities and workflow mode.
-
-### Unified System Prompt (Tool-Enabled Backends)
+### System Prompt (Tool-Enabled Backends)
 
 Defined in `builder.py:_get_initial_config_with_tools()`.
 
-The agent receives a unified system prompt that covers all build systems:
+The agent receives a system prompt instructing it to:
 
-**Step 1**: Explore project root to determine build system
-**Step 2**: Choose appropriate tools (cmake_configure/cmake_build or run_configure/make_build)
-**Simple mode fallback**: Return JSON for straightforward CMake projects
+1. **Explore** the project root to determine the build system
+2. **Choose** appropriate tools (cmake_configure/cmake_build or run_configure/make_build)
+3. **Install** missing dependencies via `install_packages` when needed
+4. **Finish** with status and dependency list
 
-**Build Requirements (both modes):**
+**Build Requirements:**
 - Generate compile_commands.json
 - Use Clang 18
 - Enable LLVM LTO
@@ -591,12 +554,12 @@ The agent receives a unified system prompt that covers all build systems:
 - Agent can iterate on flags to minimize assembly
 
 **Package Installation:**
-- Agent can use `install_packages` when build fails due to missing headers/libraries
+- Agent uses `install_packages` when build fails due to missing headers/libraries
 - Reports installed dependencies via `finish(dependencies=[...])`
 
 ### Error Analysis Prompts
 
-Defined in `prompts.py` and `error_analyzer.py`.
+Defined in `prompts.py` and `error_analyzer.py`. Used in the retry loop when the initial ReAct build fails.
 
 **ReAct Mode (tool-enabled backends):**
 - Can use read_file and list_dir to investigate errors
