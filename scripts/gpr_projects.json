@@ -174,13 +174,13 @@
   {
     "name": "Sendmail",
     "url": "https://www.proofpoint.com/us/products/email-protection/open-source-email-solution",
-    "tier": 1,
+    "tier": 2,
     "area": "High-profile web and mail servers"
   },
   {
     "name": "Postfix",
     "url": "https://github.com/vdukhovni/postfix",
-    "tier": 1,
+    "tier": 2,
     "area": "High-profile web and mail servers",
     "project_dir": "postfix"
   },
@@ -201,7 +201,7 @@
   {
     "name": "Chromium",
     "url": "https://source.chromium.org/chromium/chromium/src",
-    "tier": 1,
+    "tier": 2,
     "area": "Open source foundations of Chrome and Android",
     "project_dir": "chromium"
   },
@@ -215,7 +215,7 @@
   {
     "name": "AOSP",
     "url": "http://source.android.com/",
-    "tier": 1,
+    "tier": 2,
     "area": "Open source foundations of Chrome and Android"
   },
   {
@@ -553,7 +553,7 @@
   {
     "name": "GCC",
     "url": "https://gcc.gnu.org/git/gcc.git",
-    "tier": 1,
+    "tier": 2,
     "area": "Toolchain security improvements",
     "project_dir": "gcc"
   },
