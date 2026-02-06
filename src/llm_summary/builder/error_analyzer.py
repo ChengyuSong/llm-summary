@@ -7,7 +7,6 @@ from typing import TYPE_CHECKING
 from ..llm.base import LLMBackend
 from .constants import MAX_TURNS_ERROR_ANALYSIS
 from .json_utils import parse_llm_json
-from .prompts import BUILD_FAILURE_PROMPT, ERROR_ANALYSIS_PROMPT
 
 if TYPE_CHECKING:
     from .tools import BuildTools
@@ -26,131 +25,6 @@ class ErrorAnalyzer:
         self.llm = llm
         self.verbose = verbose
         self.log_file = log_file
-
-    def analyze_cmake_error(
-        self,
-        error_output: str,
-        current_flags: list[str],
-        project_path: Path,
-        cmakelists_content: str | None = None,
-    ) -> dict:
-        """
-        Analyze a CMake configuration error and suggest fixes.
-
-        Returns a dict with:
-        - diagnosis: str
-        - suggested_flags: list[str]
-        - missing_dependencies: list[str]
-        - confidence: str
-        """
-        # Extract relevant excerpt from CMakeLists.txt if available
-        cmakelists_excerpt = ""
-        if cmakelists_content:
-            # Take first 100 lines or full content if shorter
-            lines = cmakelists_content.split("\n")
-            cmakelists_excerpt = "\n".join(lines[:100])
-
-        prompt = ERROR_ANALYSIS_PROMPT.format(
-            current_flags="\n".join(current_flags),
-            error_output=error_output,
-            cmakelists_excerpt=cmakelists_excerpt,
-        )
-
-        if self.verbose:
-            print("\n[LLM] Analyzing CMake error...")
-            print(f"[LLM] Prompt length: {len(prompt)} chars")
-
-        if self.log_file:
-            with open(self.log_file, "a") as f:
-                f.write(f"\n{'='*80}\n")
-                f.write("CMAKE ERROR ANALYSIS\n")
-                f.write(f"{'='*80}\n\n")
-                f.write(f"PROMPT:\n{prompt}\n\n")
-
-        response = self.llm.complete(prompt)
-
-        if self.log_file:
-            with open(self.log_file, "a") as f:
-                f.write(f"RESPONSE:\n{response}\n\n")
-
-        if self.verbose:
-            print(f"[LLM] Response: {response[:500]}...")
-
-        result = parse_llm_json(
-            response,
-            default_response={
-                "diagnosis": "Failed to parse LLM response",
-                "suggested_flags": [],
-                "missing_dependencies": [],
-                "confidence": "low",
-            },
-            verbose=self.verbose,
-        )
-        return {
-            "diagnosis": result.get("diagnosis", "Unknown error"),
-            "suggested_flags": result.get("suggested_flags", []),
-            "missing_dependencies": result.get("missing_dependencies", []),
-            "confidence": result.get("confidence", "low"),
-        }
-
-    def analyze_build_error(
-        self,
-        error_output: str,
-        current_flags: list[str],
-    ) -> dict:
-        """
-        Analyze a compilation/build error and suggest fixes.
-
-        Returns a dict with:
-        - diagnosis: str
-        - suggested_flags: list[str]
-        - compiler_flag_changes: dict[str, str]
-        - confidence: str
-        - notes: str
-        """
-        prompt = BUILD_FAILURE_PROMPT.format(
-            current_flags="\n".join(current_flags),
-            error_output=error_output,
-        )
-
-        if self.verbose:
-            print("\n[LLM] Analyzing build error...")
-            print(f"[LLM] Prompt length: {len(prompt)} chars")
-
-        if self.log_file:
-            with open(self.log_file, "a") as f:
-                f.write(f"\n{'='*80}\n")
-                f.write("BUILD ERROR ANALYSIS\n")
-                f.write(f"{'='*80}\n\n")
-                f.write(f"PROMPT:\n{prompt}\n\n")
-
-        response = self.llm.complete(prompt)
-
-        if self.log_file:
-            with open(self.log_file, "a") as f:
-                f.write(f"RESPONSE:\n{response}\n\n")
-
-        if self.verbose:
-            print(f"[LLM] Response: {response[:500]}...")
-
-        result = parse_llm_json(
-            response,
-            default_response={
-                "diagnosis": "Failed to parse LLM response",
-                "suggested_flags": [],
-                "compiler_flag_changes": {},
-                "confidence": "low",
-                "notes": "",
-            },
-            verbose=self.verbose,
-        )
-        return {
-            "diagnosis": result.get("diagnosis", "Unknown build error"),
-            "suggested_flags": result.get("suggested_flags", []),
-            "compiler_flag_changes": result.get("compiler_flag_changes", {}),
-            "confidence": result.get("confidence", "low"),
-            "notes": result.get("notes", ""),
-        }
 
     def analyze_error_with_tools(
         self,
@@ -172,16 +46,6 @@ class ErrorAnalyzer:
         - missing_dependencies: list[str]
         - confidence: str
         """
-        # Check if backend supports tools
-        if not hasattr(self.llm, "complete_with_tools"):
-            # Fall back to simple analysis
-            if is_cmake_error:
-                return self.analyze_cmake_error(
-                    error_output, current_flags, project_path, None
-                )
-            else:
-                return self.analyze_build_error(error_output, current_flags)
-
         # Tool definitions for error analysis
         from .tool_definitions import TOOL_DEFINITIONS_READ_ONLY
 

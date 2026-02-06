@@ -6,7 +6,14 @@ from pathlib import Path
 from typing import Any
 
 from ..llm.base import LLMBackend
-from .actions import AutotoolsActions, CMakeActions, install_packages
+from .actions import (
+    AutotoolsActions,
+    CMakeActions,
+    RunCommandAction,
+    check_assembly_tool,
+    install_packages,
+    test_build_script,
+)
 from .constants import (
     DOCKER_WORKSPACE_BUILD,
     DOCKER_WORKSPACE_SRC,
@@ -21,7 +28,6 @@ from .llm_utils import (
     track_tool_result,
     truncate_messages,
 )
-from .prompts import INITIAL_CONFIG_PROMPT
 from .tool_definitions import UNIFIED_TOOL_DEFINITIONS
 from .tools import BuildTools
 
@@ -98,7 +104,7 @@ class Builder:
         if self.verbose:
             print("\n[1/3] Analyzing project with LLM...")
 
-        result = self._get_initial_config(project_path)
+        result = self._get_initial_config_with_tools(project_path)
 
         # Handle both list[str] (simple mode) and dict (ReAct mode with metadata)
         if isinstance(result, dict):
@@ -122,6 +128,7 @@ class Builder:
                     "error_messages": [],
                     "use_build_dir": use_build_dir,
                     "dependencies": result.get("dependencies", []),
+                    "build_script": result.get("build_script"),
                 }
 
             if react_terminated:
@@ -197,26 +204,14 @@ class Builder:
 
                 is_cmake_error = "CMake Error" in error_msg or "cmake" in error_msg.lower()
 
-                if hasattr(self.llm, "complete_with_tools"):
-                    file_tools = BuildTools(project_path, build_dir)
-                    analysis = self.error_analyzer.analyze_error_with_tools(
-                        error_msg,
-                        flags,
-                        project_path,
-                        file_tools,
-                        is_cmake_error=is_cmake_error,
-                    )
-                else:
-                    cmakelists_path = project_path / "CMakeLists.txt"
-                    cmakelists_content = cmakelists_path.read_text() if cmakelists_path.exists() else ""
-                    if is_cmake_error:
-                        analysis = self.error_analyzer.analyze_cmake_error(
-                            error_msg, flags, project_path, cmakelists_content,
-                        )
-                    else:
-                        analysis = self.error_analyzer.analyze_build_error(
-                            error_msg, flags,
-                        )
+                file_tools = BuildTools(project_path, build_dir)
+                analysis = self.error_analyzer.analyze_error_with_tools(
+                    error_msg,
+                    flags,
+                    project_path,
+                    file_tools,
+                    is_cmake_error=is_cmake_error,
+                )
 
                 if self.verbose:
                     print(f"[Analysis] {analysis['diagnosis']}")
@@ -236,15 +231,6 @@ class Builder:
             "error_messages": error_messages,
             "use_build_dir": use_build_dir,
         }
-
-    def _get_initial_config(
-        self, project_path: Path
-    ) -> list[str] | dict:
-        """Get initial configuration using LLM analysis with tool support."""
-        if hasattr(self.llm, "complete_with_tools"):
-            return self._get_initial_config_with_tools(project_path)
-        else:
-            return self._get_initial_config_simple(project_path)
 
     def _get_initial_config_with_tools(
         self, project_path: Path
@@ -270,6 +256,10 @@ class Builder:
             project_path, self.build_dir, self.container_image,
             unavoidable_asm_path=unavoidable_asm_path, verbose=self.verbose
         )
+        run_command_action = RunCommandAction(
+            project_path, self.build_dir, self.container_image,
+            verbose=self.verbose,
+        )
 
         system = f"""You are a build configuration expert. Build this project iteratively using the available tools.
 
@@ -280,6 +270,7 @@ class Builder:
 - If `CMakeLists.txt` exists → prefer cmake_configure + cmake_build (generates compile_commands.json natively)
 - If `configure` or `configure.ac` exists → use run_configure + make_build; run autoreconf first if only configure.ac
 - If only `Makefile` exists → use make_build directly with use_build_dir=false
+- For Meson, Bazel, SCons, or custom build systems → use run_command to explore and build
 - For simple/straightforward CMake projects, you may return JSON configuration instead of using tools
 
 **Simple mode (for straightforward CMake projects):**
@@ -301,6 +292,9 @@ Return JSON configuration directly:
 - make_build: Run bear -- make to build and capture compile commands
 - make_clean: Run make clean
 - make_distclean: Run make distclean
+- run_command: Run arbitrary shell commands in Docker (for Meson, Bazel, SCons, custom build systems)
+- test_build_script: Test a build script from scratch in a clean temp dir (verifies compile_commands.json)
+- check_assembly: Explicit assembly check after run_command builds
 - install_packages: Install system packages (apt) when build fails due to missing headers/libraries
 - finish: Signal completion (MUST call this when done)
 
@@ -328,10 +322,20 @@ After each successful build (cmake_build or make_build), an assembly check runs 
 **Normal workflow:**
 explore (list_dir/read_file) → configure (cmake_configure or run_configure) → build (cmake_build or make_build) → finish
 
+**Workflow for Meson, Bazel, SCons, or custom build systems:**
+1. Use run_command to explore the project and try building (trial and error)
+2. After figuring out the build, distill working commands into a clean script
+3. Call test_build_script(script) to verify it works from scratch
+   - The test runs in a fresh build dir and REQUIRES compile_commands.json to be generated
+   - If it fails, adjust the script and retry
+4. Only call finish() after test_build_script succeeds
+5. Include the validated build_script in finish(build_script=...)
+
 **Assembly minimization workflow:**
 After a successful build, if assembly is detected, you may iterate:
 - CMake: cmake_configure (new flags) → cmake_build → check → repeat
 - Make: make_distclean → run_configure (new flags) → make_build → check → repeat
+- Custom: adjust script → test_build_script → check_assembly → repeat
 Once assembly results are acceptable, call finish(status="success", summary="...")
 
 **Installing missing packages:**
@@ -354,7 +358,7 @@ If you recognize this project, leverage your knowledge of its typical build requ
         if self.verbose:
             print("[LLM] Requesting initial configuration (unified mode)...")
             print(f"[LLM] Project: {project_name}")
-            print("[LLM] Available tools: read_file, list_dir, cmake_configure, cmake_build, bootstrap, autoreconf, run_configure, make_build, make_clean, make_distclean, install_packages, finish")
+            print("[LLM] Available tools: read_file, list_dir, cmake_configure, cmake_build, bootstrap, autoreconf, run_configure, make_build, make_clean, make_distclean, run_command, test_build_script, check_assembly, install_packages, finish")
 
         if self.log_file:
             with open(self.log_file, "a") as f:
@@ -406,7 +410,8 @@ If you recognize this project, leverage your knowledge of its typical build requ
                 print("[Mode] ReAct workflow (LLM exploring with tools)")
 
             result = self._execute_react_loop(
-                messages, response, file_tools, cmake_actions, autotools_actions, system
+                messages, response, file_tools, cmake_actions, autotools_actions,
+                run_command_action, system
             )
             return result
 
@@ -414,47 +419,6 @@ If you recognize this project, leverage your knowledge of its typical build requ
             if self.verbose:
                 print(f"[Mode] Unexpected stop_reason: {response.stop_reason}, using default")
             return self._get_default_cmake_config()
-
-    def _get_initial_config_simple(
-        self, project_path: Path
-    ) -> list[str]:
-        """Get initial config without tool support (fallback for non-tool backends)."""
-        project_name = project_path.name
-
-        cmakelists_path = project_path / "CMakeLists.txt"
-        if cmakelists_path.exists():
-            cmakelists_content = cmakelists_path.read_text()
-        else:
-            # Non-tool backend can only handle CMake projects
-            return self._get_default_cmake_config()
-
-        prompt = INITIAL_CONFIG_PROMPT.format(
-            project_name=project_name,
-            cmakelists_content=cmakelists_content,
-        )
-
-        if self.verbose:
-            print("[LLM] Requesting initial configuration...")
-            print(f"[LLM] Project: {project_name}")
-
-        if self.log_file:
-            with open(self.log_file, "a") as f:
-                f.write(f"\n{'='*80}\n")
-                f.write("BUILD-LEARN INITIAL CONFIG REQUEST\n")
-                f.write(f"Project: {project_name}\n")
-                f.write(f"{'='*80}\n\n")
-                f.write(f"PROMPT:\n{prompt}\n\n")
-
-        response = self.llm.complete(prompt)
-
-        if self.log_file:
-            with open(self.log_file, "a") as f:
-                f.write(f"RESPONSE:\n{response}\n\n")
-
-        if self.verbose:
-            print(f"[LLM] Response length: {len(response)} chars")
-
-        return self._parse_config_response(response)
 
     def _parse_config_response(self, response: str) -> list[str]:
         """Parse LLM response to extract CMake configuration."""
@@ -503,6 +467,7 @@ If you recognize this project, leverage your knowledge of its typical build requ
         file_tools: BuildTools,
         cmake_actions: CMakeActions,
         autotools_actions: AutotoolsActions,
+        run_command_action: RunCommandAction,
         system: str,
     ) -> dict:
         """
@@ -510,7 +475,8 @@ If you recognize this project, leverage your knowledge of its typical build requ
 
         Returns:
             Dict with 'success', 'flags', 'build_system_used', 'attempts',
-            'configure_succeeded', 'build_succeeded', 'react_terminated', 'use_build_dir'
+            'configure_succeeded', 'build_succeeded', 'react_terminated', 'use_build_dir',
+            'build_script'
         """
         max_turns = MAX_TURNS
         configure_succeeded = False
@@ -522,6 +488,7 @@ If you recognize this project, leverage your knowledge of its typical build requ
         final_flags = []
         build_system_used = "unknown"
         use_build_dir = True
+        build_script: str | None = None
         tool_history = {}
         installed_packages: set[str] = set()
         dependencies: list[str] = []
@@ -584,7 +551,8 @@ If you recognize this project, leverage your knowledge of its typical build requ
                             # No guard violation, execute normally
                             result = self._execute_tool_safe(
                                 file_tools, cmake_actions, autotools_actions,
-                                block.name, block.input
+                                block.name, block.input,
+                                run_command_action=run_command_action,
                             )
 
                         result = track_tool_result(
@@ -635,11 +603,17 @@ If you recognize this project, leverage your knowledge of its typical build requ
                             build_succeeded = False
                         elif block.name == "make_clean":
                             build_succeeded = False
+                        elif block.name == "test_build_script" and result.get("success"):
+                            build_succeeded = True
+                            build_system_used = "custom"
+                            if self.verbose:
+                                print("[ReAct] test_build_script succeeded — build validated")
                         elif block.name == "install_packages" and result.get("success"):
                             new_image = result.get("new_image")
                             if new_image:
                                 cmake_actions.container_image = new_image
                                 autotools_actions.container_image = new_image
+                                run_command_action.container_image = new_image
                                 installed_packages.update(block.input.get("packages", []))
                                 if self.verbose:
                                     print(f"[ReAct] Updated container image to {new_image}")
@@ -647,6 +621,11 @@ If you recognize this project, leverage your knowledge of its typical build requ
                             finished = True
                             finish_status = block.input.get("status")
                             finish_summary = block.input.get("summary")
+                            if finish_status == "success":
+                                build_succeeded = True
+                            # Capture build_script if provided
+                            if block.input.get("build_script"):
+                                build_script = block.input["build_script"]
                             # Cross-validate: only keep deps that were actually installed
                             reported_deps = block.input.get("dependencies", [])
                             dependencies = [
@@ -658,6 +637,8 @@ If you recognize this project, leverage your knowledge of its typical build requ
                                 if reported_deps:
                                     print(f"[ReAct] Reported dependencies: {reported_deps}")
                                     print(f"[ReAct] Validated dependencies: {dependencies}")
+                                if build_script:
+                                    print(f"[ReAct] Build script provided ({len(build_script)} chars)")
 
                         tool_results.append({
                             "type": "tool_result",
@@ -752,6 +733,7 @@ If you recognize this project, leverage your knowledge of its typical build requ
             "react_terminated": react_terminated,
             "use_build_dir": use_build_dir,
             "dependencies": dependencies,
+            "build_script": build_script,
         }
 
     def _check_state_guard(
@@ -808,8 +790,9 @@ If you recognize this project, leverage your knowledge of its typical build requ
         autotools_actions: AutotoolsActions,
         tool_name: str,
         tool_input: dict,
+        run_command_action: RunCommandAction | None = None,
     ) -> dict:
-        """Execute tool with security checks. Routes to both CMake and autotools actions."""
+        """Execute tool with security checks. Routes to CMake, autotools, and custom build actions."""
         try:
             # File tools
             if tool_name == "read_file":
@@ -854,6 +837,30 @@ If you recognize this project, leverage your knowledge of its typical build requ
             elif tool_name == "make_distclean":
                 return autotools_actions.make_distclean(
                     use_build_dir=tool_input.get("use_build_dir", True),
+                )
+            # Arbitrary build system tools
+            elif tool_name == "run_command":
+                if run_command_action is None:
+                    return {"error": "run_command not available"}
+                return run_command_action.run_command(
+                    command=tool_input.get("command", ""),
+                    workdir=tool_input.get("workdir", "src"),
+                )
+            elif tool_name == "test_build_script":
+                return test_build_script(
+                    script_content=tool_input.get("script", ""),
+                    project_path=cmake_actions.project_path,
+                    build_dir=cmake_actions.build_dir,
+                    container_image=cmake_actions.container_image,
+                    unavoidable_asm_path=cmake_actions.unavoidable_asm_path,
+                    verbose=self.verbose,
+                )
+            elif tool_name == "check_assembly":
+                return check_assembly_tool(
+                    build_dir=cmake_actions.build_dir,
+                    project_path=cmake_actions.project_path,
+                    unavoidable_asm_path=cmake_actions.unavoidable_asm_path,
+                    verbose=self.verbose,
                 )
             # Install packages
             elif tool_name == "install_packages":

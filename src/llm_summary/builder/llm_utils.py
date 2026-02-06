@@ -88,6 +88,9 @@ BUILD_TOOLS = {
     "make_build",
     "make_clean",
     "make_distclean",
+    # Arbitrary build system (from actions.py)
+    "run_command",
+    "test_build_script",
     # Package installation
     "install_packages",
 }

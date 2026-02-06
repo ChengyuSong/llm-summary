@@ -1,8 +1,10 @@
-"""Build action tools for the build agent (CMake and Autotools)."""
+"""Build action tools for the build agent (CMake, Autotools, and arbitrary build systems)."""
 
+import glob as globmod
 import hashlib
 import os
 import re
+import shutil
 import subprocess
 import tempfile
 from pathlib import Path
@@ -16,6 +18,7 @@ from .constants import (
     TIMEOUT_CONFIGURE,
     TIMEOUT_INSTALL,
     TIMEOUT_LONG_BUILD,
+    TIMEOUT_RUN_COMMAND,
 )
 
 
@@ -1068,7 +1071,7 @@ CONFIGURE_MAKE_TOOL_DEFINITIONS = [
     },
 ]
 
-# Shared finish tool for both CMake and Autotools
+# Shared finish tool for all build systems
 FINISH_TOOL_DEFINITION = {
     "name": "finish",
     "description": (
@@ -1078,7 +1081,8 @@ FINISH_TOOL_DEFINITION = {
         "(3) you've exhausted all reasonable options. "
         "Do NOT call build tools after a successful build - call finish instead. "
         "If you installed packages with install_packages, report which ones are actual "
-        "build dependencies in the 'dependencies' field."
+        "build dependencies in the 'dependencies' field. "
+        "If you used test_build_script, include the validated script in build_script."
     ),
     "input_schema": {
         "type": "object",
@@ -1099,6 +1103,13 @@ FINISH_TOOL_DEFINITION = {
                     "List of apt package names that are actual build dependencies "
                     "(packages you installed via install_packages that the project needs). "
                     "Only include packages that were genuinely required for the build."
+                ),
+            },
+            "build_script": {
+                "type": "string",
+                "description": (
+                    "The validated build script content (from a successful test_build_script call). "
+                    "Include this for non-CMake/non-Autotools builds so the script can be reproduced."
                 ),
             },
         },
@@ -1129,6 +1140,395 @@ INSTALL_PACKAGES_TOOL_DEFINITION = {
             },
         },
         "required": ["packages"],
+    },
+}
+
+
+class RunCommandAction:
+    """Run arbitrary shell commands in Docker for non-CMake/non-Autotools build systems."""
+
+    def __init__(
+        self,
+        project_path: Path,
+        build_dir: Path | None = None,
+        container_image: str = "llm-summary-builder:latest",
+        verbose: bool = False,
+    ):
+        self.project_path = Path(project_path).resolve()
+        self.build_dir = Path(build_dir) if build_dir else self.project_path / "build"
+        self.container_image = container_image
+        self.verbose = verbose
+
+    def run_command(self, command: str, workdir: str = "src") -> dict[str, Any]:
+        """
+        Run an arbitrary shell command in Docker.
+
+        Args:
+            command: Shell command to run via bash -c
+            workdir: "src" for /workspace/src, "build" for /workspace/build
+
+        Returns:
+            Dict with 'success' (bool), 'output' (str), 'error' (str)
+        """
+        try:
+            self.build_dir.mkdir(parents=True, exist_ok=True)
+
+            uid = os.getuid()
+            gid = os.getgid()
+
+            if workdir == "build":
+                work_path = DOCKER_WORKSPACE_BUILD
+            else:
+                work_path = DOCKER_WORKSPACE_SRC
+
+            docker_cmd = [
+                "docker", "run", "--rm",
+                "-u", f"{uid}:{gid}",
+                "-v", f"{self.project_path}:{DOCKER_WORKSPACE_SRC}",
+                "-v", f"{self.build_dir}:{DOCKER_WORKSPACE_BUILD}",
+                "-w", work_path,
+                self.container_image,
+                "bash", "-c",
+                command,
+            ]
+
+            if self.verbose:
+                print(f"[run_command] Running in {workdir}: {command[:200]}")
+
+            result = subprocess.run(
+                docker_cmd,
+                capture_output=True,
+                text=True,
+                timeout=TIMEOUT_RUN_COMMAND,
+            )
+
+            output = result.stdout + result.stderr
+
+            if result.returncode == 0:
+                return {
+                    "success": True,
+                    "output": output,
+                    "error": "",
+                }
+            else:
+                return {
+                    "success": False,
+                    "output": output,
+                    "error": f"Command failed with exit code {result.returncode}",
+                }
+
+        except subprocess.TimeoutExpired:
+            return {
+                "success": False,
+                "output": "",
+                "error": f"Command timed out after {TIMEOUT_RUN_COMMAND} seconds",
+            }
+        except Exception as e:
+            return {
+                "success": False,
+                "output": "",
+                "error": f"Command failed: {str(e)}",
+            }
+
+
+def test_build_script(
+    script_content: str,
+    project_path: Path,
+    build_dir: Path,
+    container_image: str = "llm-summary-builder:latest",
+    unavoidable_asm_path: Path | None = None,
+    verbose: bool = False,
+) -> dict[str, Any]:
+    """
+    Test a build script by running it from scratch in a clean temporary build directory.
+
+    Verifies that the script produces compile_commands.json (required).
+    On success, copies compile_commands.json and IR artifacts to the real build dir.
+
+    Args:
+        script_content: Shell script content to run
+        project_path: Path to project source
+        build_dir: Real build directory (artifacts copied here on success)
+        container_image: Docker image to use
+        unavoidable_asm_path: Path to unavoidable assembly findings
+        verbose: Print debug info
+
+    Returns:
+        Dict with 'success', 'output', 'error', 'assembly_check', 'compile_commands_found'
+    """
+    project_path = Path(project_path).resolve()
+    build_dir = Path(build_dir)
+    temp_build_dir = None
+
+    try:
+        # Create a temp build directory for a clean test
+        temp_build_dir = tempfile.mkdtemp(prefix="llm-summary-test-build-")
+
+        if verbose:
+            print(f"[test_build_script] Testing script in temp dir: {temp_build_dir}")
+
+        uid = os.getuid()
+        gid = os.getgid()
+
+        docker_cmd = [
+            "docker", "run", "--rm",
+            "-u", f"{uid}:{gid}",
+            "-v", f"{project_path}:{DOCKER_WORKSPACE_SRC}",
+            "-v", f"{temp_build_dir}:{DOCKER_WORKSPACE_BUILD}",
+            "-w", DOCKER_WORKSPACE_BUILD,
+            container_image,
+            "bash", "-c",
+            script_content,
+        ]
+
+        if verbose:
+            print(f"[test_build_script] Running script ({len(script_content)} chars)...")
+
+        result = subprocess.run(
+            docker_cmd,
+            capture_output=True,
+            text=True,
+            timeout=TIMEOUT_LONG_BUILD,  # 20 minutes for full build
+        )
+
+        output = result.stdout + result.stderr
+
+        if result.returncode != 0:
+            return {
+                "success": False,
+                "output": output,
+                "error": f"Script failed with exit code {result.returncode}",
+                "compile_commands_found": False,
+            }
+
+        # Check for compile_commands.json in temp build dir and project dir
+        compile_commands_path = None
+        for candidate in [
+            Path(temp_build_dir) / "compile_commands.json",
+            project_path / "compile_commands.json",
+        ]:
+            if candidate.exists():
+                compile_commands_path = candidate
+                break
+
+        # Also search subdirectories of temp build dir
+        if compile_commands_path is None:
+            for found in globmod.glob(
+                str(Path(temp_build_dir) / "**" / "compile_commands.json"),
+                recursive=True,
+            ):
+                compile_commands_path = Path(found)
+                break
+
+        if compile_commands_path is None:
+            return {
+                "success": False,
+                "output": output,
+                "error": (
+                    "compile_commands.json not generated. "
+                    "The build script must produce compile_commands.json. "
+                    "For CMake: use -DCMAKE_EXPORT_COMPILE_COMMANDS=ON. "
+                    "For Make: wrap with 'bear -- make'. "
+                    "For other build systems: use bear or compiledb."
+                ),
+                "compile_commands_found": False,
+            }
+
+        if verbose:
+            print(f"[test_build_script] Found compile_commands.json at {compile_commands_path}")
+
+        # Run assembly check
+        asm_result = check_assembly(
+            compile_commands_path=compile_commands_path,
+            build_dir=Path(temp_build_dir),
+            project_path=project_path,
+            unavoidable_asm_path=unavoidable_asm_path,
+            verbose=verbose,
+            log_prefix="[test_build_script]",
+        )
+
+        # Success — copy artifacts to the real build dir
+        build_dir.mkdir(parents=True, exist_ok=True)
+
+        # Copy compile_commands.json
+        dest_cc = build_dir / "compile_commands.json"
+        shutil.copy2(str(compile_commands_path), str(dest_cc))
+        if verbose:
+            print(f"[test_build_script] Copied compile_commands.json to {dest_cc}")
+
+        # Copy .bc and .ll artifacts
+        ir_count = 0
+        for pattern in ("**/*.bc", "**/*.ll"):
+            for src_file in Path(temp_build_dir).rglob(pattern.split("/")[-1]):
+                dest_file = build_dir / src_file.name
+                shutil.copy2(str(src_file), str(dest_file))
+                ir_count += 1
+
+        if verbose and ir_count > 0:
+            print(f"[test_build_script] Copied {ir_count} IR artifacts to {build_dir}")
+
+        return {
+            "success": True,
+            "output": output,
+            "error": "",
+            "compile_commands_found": True,
+            "assembly_check": asm_result.to_dict() if asm_result else None,
+        }
+
+    except subprocess.TimeoutExpired:
+        return {
+            "success": False,
+            "output": "",
+            "error": f"Build script timed out after {TIMEOUT_LONG_BUILD} seconds",
+            "compile_commands_found": False,
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "output": "",
+            "error": f"test_build_script failed: {str(e)}",
+            "compile_commands_found": False,
+        }
+    finally:
+        # Clean up temp directory
+        if temp_build_dir and os.path.exists(temp_build_dir):
+            try:
+                shutil.rmtree(temp_build_dir)
+                if verbose:
+                    print(f"[test_build_script] Cleaned up temp dir: {temp_build_dir}")
+            except Exception:
+                pass
+
+
+def check_assembly_tool(
+    build_dir: Path,
+    project_path: Path,
+    unavoidable_asm_path: Path | None = None,
+    verbose: bool = False,
+) -> dict[str, Any]:
+    """
+    Standalone assembly check tool for use after run_command builds.
+
+    Args:
+        build_dir: Build output directory
+        project_path: Source project directory
+        unavoidable_asm_path: Path to unavoidable assembly findings
+        verbose: Print debug info
+
+    Returns:
+        Dict with assembly check results or error
+    """
+    # Search for compile_commands.json in build dir and project dir
+    compile_commands_path = None
+    for candidate in [
+        Path(build_dir) / "compile_commands.json",
+        Path(project_path) / "compile_commands.json",
+    ]:
+        if candidate.exists():
+            compile_commands_path = candidate
+            break
+
+    if compile_commands_path is None:
+        return {
+            "success": False,
+            "error": "compile_commands.json not found in build or project directory",
+        }
+
+    asm_result = check_assembly(
+        compile_commands_path=compile_commands_path,
+        build_dir=Path(build_dir),
+        project_path=Path(project_path),
+        unavoidable_asm_path=unavoidable_asm_path,
+        verbose=verbose,
+        log_prefix="[check_assembly]",
+    )
+
+    if asm_result is None:
+        return {
+            "success": True,
+            "assembly_check": None,
+            "message": "Assembly check could not be performed (no compile_commands.json or error)",
+        }
+
+    return {
+        "success": True,
+        "assembly_check": asm_result.to_dict(),
+    }
+
+
+# Tool definitions for arbitrary build systems
+RUN_COMMAND_TOOL_DEFINITION = {
+    "name": "run_command",
+    "description": (
+        "Run an arbitrary shell command in Docker for exploring and building projects "
+        "that use Meson, Bazel, SCons, or custom build systems. The command runs via "
+        "'bash -c' in the Docker container with the project at /workspace/src and build "
+        "dir at /workspace/build. Use this for trial and error during exploration. "
+        "After figuring out how to build, distill working commands into a script and "
+        "call test_build_script to verify reproducibility."
+    ),
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "command": {
+                "type": "string",
+                "description": (
+                    "Shell command to run. Examples: 'meson setup /workspace/build', "
+                    "'ninja -C /workspace/build', 'bazel build //...', 'make -j$(nproc)'"
+                ),
+            },
+            "workdir": {
+                "type": "string",
+                "enum": ["src", "build"],
+                "description": (
+                    "Working directory: 'src' for /workspace/src (project root), "
+                    "'build' for /workspace/build. Default: 'src'"
+                ),
+                "default": "src",
+            },
+        },
+        "required": ["command"],
+    },
+}
+
+TEST_BUILD_SCRIPT_TOOL_DEFINITION = {
+    "name": "test_build_script",
+    "description": (
+        "Test a build script by running it from scratch in a clean temporary build "
+        "directory. Verifies that the script produces compile_commands.json (required). "
+        "Also runs assembly check. Use this after you've figured out how to build with "
+        "run_command to verify your script is reproducible before calling finish(). "
+        "If it fails, adjust the script and retry."
+    ),
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "script": {
+                "type": "string",
+                "description": (
+                    "Shell script content. Will be run via bash -c inside Docker with "
+                    "project at /workspace/src and a clean build dir at /workspace/build. "
+                    "Must generate compile_commands.json. For CMake use "
+                    "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON, for Make use 'bear -- make'."
+                ),
+            },
+        },
+        "required": ["script"],
+    },
+}
+
+CHECK_ASSEMBLY_TOOL_DEFINITION = {
+    "name": "check_assembly",
+    "description": (
+        "Check for assembly code in the build output. Use this after a successful "
+        "run_command build to check if any assembly (.s files, inline asm) was compiled. "
+        "Requires compile_commands.json to exist in the build or project directory. "
+        "For CMake/Autotools builds, assembly check runs automatically after cmake_build "
+        "or make_build — you don't need this tool for those."
+    ),
+    "input_schema": {
+        "type": "object",
+        "properties": {},
     },
 }
 

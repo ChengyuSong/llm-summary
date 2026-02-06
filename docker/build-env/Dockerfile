@@ -25,6 +25,8 @@ RUN apt-get update && apt-get install -y \
     automake \
     libtool \
     pkg-config \
+    meson \
+    scons \
     # Version control
     git \
     # Essential build tools
@@ -34,6 +36,8 @@ RUN apt-get update && apt-get install -y \
     m4 \
     patch \
     python3 \
+    python3-pip \
+    python3-venv \
     perl \
     texinfo \
     gettext \
@@ -46,6 +50,10 @@ RUN apt-get update && apt-get install -y \
     vim \
     bear \
     && rm -rf /var/lib/apt/lists/*
+
+# Install Bazelisk (auto-downloads correct Bazel version per project)
+RUN wget -qO /usr/local/bin/bazel https://github.com/bazelbuild/bazelisk/releases/latest/download/bazelisk-linux-amd64 && \
+    chmod +x /usr/local/bin/bazel
 
 # Set clang-18 as default compiler
 RUN update-alternatives --install /usr/bin/clang clang /usr/bin/clang-18 100 && \
