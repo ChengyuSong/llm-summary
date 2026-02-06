@@ -1,21 +1,37 @@
-"""Anthropic Claude backend."""
+"""Anthropic Claude backend (direct API and Vertex AI)."""
 
 import os
+from typing import Any
 
 from .base import LLMBackend, LLMResponse
 
 
 class ClaudeBackend(LLMBackend):
-    """Anthropic Claude API backend."""
+    """Anthropic Claude API backend with automatic Vertex AI support.
+
+    Auto-detects client type:
+    - If ANTHROPIC_API_KEY is set: uses anthropic.Anthropic
+    - If GCP project env vars are set: uses anthropic.AnthropicVertex
+    """
 
     def __init__(
         self,
         model: str | None = None,
         api_key: str | None = None,
+        project_id: str | None = None,
+        location: str | None = None,
         max_tokens: int = 4096,
     ):
         super().__init__(model)
         self.api_key = api_key or os.environ.get("ANTHROPIC_API_KEY")
+        self.project_id = (
+            project_id
+            or os.environ.get("VERTEX_AI_PROJECT")
+            or os.environ.get("ANTHROPIC_VERTEX_PROJECT_ID")
+            or os.environ.get("GOOGLE_CLOUD_PROJECT")
+            or os.environ.get("CLOUD_ML_PROJECT_ID")
+        )
+        self.location = location or os.environ.get("VERTEX_AI_LOCATION", "global")
         self.max_tokens = max_tokens
         self._client = None
 
@@ -33,18 +49,61 @@ class ClaudeBackend(LLMBackend):
                     "anthropic package required. Install with: pip install anthropic"
                 )
 
-            if not self.api_key:
-                raise ValueError(
-                    "Anthropic API key required. Set ANTHROPIC_API_KEY or pass api_key."
-                )
+            if self.api_key:
+                self._client = anthropic.Anthropic(api_key=self.api_key)
+            elif self.project_id:
+                from anthropic import AnthropicVertex
 
-            self._client = anthropic.Anthropic(api_key=self.api_key)
+                self._client = AnthropicVertex(
+                    project_id=self.project_id,
+                    region=self.location,
+                )
+            else:
+                raise ValueError(
+                    "Set ANTHROPIC_API_KEY or GOOGLE_CLOUD_PROJECT for Vertex AI."
+                )
         return self._client
 
     def complete(self, prompt: str, system: str | None = None) -> str:
         """Generate a completion using Claude."""
         response = self.complete_with_metadata(prompt, system)
         return response.content
+
+    def complete_with_tools(
+        self,
+        messages: list[dict],
+        tools: list[dict] | None = None,
+        system: str | None = None,
+    ) -> Any:
+        """Generate a completion with tool use support.
+
+        Args:
+            messages: List of message dicts with role and content
+            tools: Optional list of tool definitions
+            system: Optional system message
+
+        Returns:
+            Raw API response object with tool_use blocks if applicable
+        """
+        kwargs = {
+            "model": self.model,
+            "max_tokens": self.max_tokens,
+            "messages": messages,
+        }
+
+        if system:
+            kwargs["system"] = system
+
+        if tools:
+            kwargs["tools"] = tools
+
+        response = self.client.messages.create(**kwargs)
+
+        if os.environ.get("CLAUDE_DEBUG"):
+            print("[CLAUDE DEBUG] Tool use response:")
+            print(response.model_dump_json(indent=2))
+
+        return response
 
     def complete_with_metadata(
         self, prompt: str, system: str | None = None
@@ -60,6 +119,10 @@ class ClaudeBackend(LLMBackend):
             kwargs["system"] = system
 
         response = self.client.messages.create(**kwargs)
+
+        if os.environ.get("CLAUDE_DEBUG"):
+            print("[CLAUDE DEBUG] Full response:")
+            print(response.model_dump_json(indent=2))
 
         # Extract content
         content = ""

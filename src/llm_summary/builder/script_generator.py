@@ -429,7 +429,7 @@ To regenerate a build script (e.g., after project updates):
 ```bash
 llm-summary build-learn \\
   --project-path /path/to/project \\
-  --backend vertex \\
+  --backend claude \\
   --verbose
 ```
 

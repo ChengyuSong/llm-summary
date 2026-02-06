@@ -299,18 +299,26 @@ When ready, return your analysis as JSON."""
                 tool_results = []
 
                 for block in response.content:
-                    if hasattr(block, "text"):
-                        assistant_content.append({"type": "text", "text": block.text})
-                        if self.verbose:
+                    if hasattr(block, "text") and block.type == "text":
+                        text_entry = {"type": "text", "text": block.text}
+                        if getattr(block, "thought", False):
+                            text_entry["thought"] = True
+                        if getattr(block, "thought_signature", None):
+                            text_entry["thought_signature"] = block.thought_signature
+                        assistant_content.append(text_entry)
+                        if self.verbose and not getattr(block, "thought", False):
                             print(f"[LLM] {block.text}")
 
                     elif block.type == "tool_use":
-                        assistant_content.append({
+                        tool_use_entry = {
                             "type": "tool_use",
                             "id": block.id,
                             "name": block.name,
                             "input": block.input,
-                        })
+                        }
+                        if getattr(block, "thought_signature", None):
+                            tool_use_entry["thought_signature"] = block.thought_signature
+                        assistant_content.append(tool_use_entry)
 
                         # Execute tool
                         result = self._execute_tool_safe(
