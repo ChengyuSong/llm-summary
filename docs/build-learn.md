@@ -83,7 +83,6 @@ The build agent uses a ReAct (Reason + Act) loop where the LLM explores the proj
                         └─────────────────────────────────────────┘
 ```
 
-**Fallback for non-tool backends** (Ollama, OpenAI): A simple mode reads CMakeLists.txt, sends it to the LLM in a single turn, and parses a JSON config response. This only supports CMake projects.
 
 ## Components
 
@@ -99,11 +98,6 @@ A single `Builder` class handles CMake, autotools, and plain Makefile projects. 
 5. Can install missing system dependencies via `install_packages`
 6. On successful build: calls `finish(status="success", dependencies=[...])`
 7. Returns dict with flags, build status, and validated dependencies
-
-**Fallback (non-tool backends):**
-- `_get_initial_config_simple()`: Reads CMakeLists.txt and sends to LLM for single-turn JSON config
-- Only supports CMake projects
-- Build executes with retry loop (max 3 attempts) and `ErrorAnalyzer` on failure
 
 **Features:**
 - **Unified build system support**: Single class handles CMake, autotools, and plain Makefile projects
@@ -339,13 +333,11 @@ Multiple LLM backends are supported with varying capabilities:
   - Supports thinking mode control
   - Tool format conversion: Anthropic → OpenAI
 
-**Simple Mode Only Backends:**
+**Other Backends:**
 - **Ollama** (`llm/ollama.py`): Local Ollama server
   - Default model: `qwen3-coder:30b`
-  - Falls back to simple workflow (no tool support)
 - **OpenAI** (`llm/openai.py`): OpenAI API
   - Default model: `gpt-4`
-  - Falls back to simple workflow
 
 ## Usage
 
@@ -361,8 +353,6 @@ llm-summary build-learn [OPTIONS]
 **Optional:**
 - `--build-dir PATH`: Custom build directory (default: `<project-path>/build`)
 - `--backend {claude|openai|ollama|llamacpp|gemini}`: LLM backend (default: `claude`)
-  - Tool-enabled (ReAct mode): `claude`, `gemini`, `llamacpp`
-  - Simple mode only: `ollama`, `openai`
 - `--model NAME`: Model name (default varies by backend)
 - `--max-retries N`: Maximum build attempts (default: `3`)
 - `--container-image NAME`: Docker image (default: `llm-summary-builder:latest`)
@@ -566,9 +556,6 @@ Defined in `prompts.py` and `error_analyzer.py`. Used in the retry loop when the
 - Max 10 turns for exploration
 - Returns JSON with diagnosis and fixes
 
-**Simple Mode (all backends):**
-- Direct LLM prompt with error output
-- Suggests flag changes, missing packages, compatibility fixes
 
 ## Database Schema
 
@@ -770,7 +757,6 @@ export ANTHROPIC_API_KEY="your-api-key"
 3. **Assembly from Dependencies**: While the agent can minimize assembly in the project itself through flags, inline assembly from third-party dependencies (e.g., BoringSSL crypto functions) cannot be eliminated. These are tracked as unavoidable.
 4. **English Only**: LLM prompts assume English build file comments
 5. **Single Architecture**: Builds for host architecture only (x86_64)
-6. **Tool-Use Backend Required**: ReAct mode requires tool-enabled backends (Claude, Gemini, or llama.cpp). Ollama and OpenAI fall back to simple mode.
 
 ## References
 
