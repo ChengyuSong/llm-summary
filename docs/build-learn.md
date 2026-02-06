@@ -11,6 +11,7 @@ The `build-learn` command uses LLM-powered incremental learning to automatically
 - **IR Generation**: LLVM bitcode (`.bc`) files for advanced analysis
 - **Static Linking**: Prefers static libraries over dynamic
 - **Incremental Learning**: Analyzes build failures and adapts configuration
+- **Runtime Dependency Installation**: Installs missing system packages on-the-fly via derived Docker images
 - **Reusable Scripts**: Generates version-controlled build scripts
 
 ## Quick Start
@@ -25,14 +26,13 @@ bash build.sh
 ### 2. Run Build Learning
 
 ```bash
-# Using GCP Vertex AI (recommended)
+# Using Claude via Vertex AI (recommended)
 export GOOGLE_CLOUD_PROJECT="your-gcp-project-id"
 
 llm-summary build-learn \
   --project-path /path/to/project \
   --build-dir /path/to/build \
-  --backend vertex \
-  --model claude-haiku-4-5@20251001 \
+  --backend claude \
   --verbose
 ```
 
@@ -70,28 +70,23 @@ The build agent automatically chooses between two modes based on project complex
 **ReAct Mode (for complex projects):**
 ```
 ┌─────────────────┐     ┌────────────────────────────────────────┐
-│  CMakeLists.txt │────▶│ LLM Agent with Tools (iterative)       │
-│  (Project)      │     │                                        │
-└─────────────────┘     │ Tools available:                       │
-                        │ • read_file: Read project & build      │
-                        │   files (with pagination)              │
-                        │ • list_dir: Explore structure          │
-                        │ • cmake_configure: Test config         │
-                        │ • cmake_build: Run build               │
+│  Project        │────▶│ LLM Agent with Tools (iterative)       │
+│  (CMake/        │     │                                        │
+│   Autotools/    │     │ Tools available:                       │
+│   Makefile)     │     │ • read_file / list_dir: Explore        │
+└─────────────────┘     │ • cmake_configure / cmake_build        │
+                        │ • run_configure / make_build           │
+                        │ • bootstrap / autoreconf               │
+                        │ • install_packages: Install deps       │
+                        │ • finish: Signal completion            │
                         │                                        │
-                        │ Loop (max 15 turns):                   │
+                        │ Loop (max 20 turns):                   │
                         │ 1. Explore project structure           │
-                        │ 2. Read CMake modules/configs          │
-                        │ 3. Try cmake configure with flags      │
-                        │ 4. See results, adjust if needed       │
-                        │ 5. Try cmake build                     │
-                        │ 6. Inspect build artifacts if needed   │
-                        │ 7. On success: return flags            │
-                        │                                        │
-                        │ Termination conditions:                │
-                        │ • Build succeeds → return flags        │
-                        │ • Missing dependencies identified →    │
-                        │   STOP (cannot install at runtime)     │
+                        │ 2. Read build files/configs            │
+                        │ 3. Configure with flags                │
+                        │ 4. Build, adjust on errors             │
+                        │ 5. Install missing deps if needed      │
+                        │ 6. On success: finish with deps list   │
                         └────────────────────────────────────────┘
                                         │
                                         ▼
@@ -111,35 +106,26 @@ The build agent automatically chooses between two modes based on project complex
 
 ## Components
 
-### 1. Build System Detector (`builder/detector.py`)
+### 1. Unified Builder (`builder/builder.py`)
 
-Identifies the build system used by a project:
-- CMake (CMakeLists.txt)
-- Autotools (configure.ac, configure.in, or configure script)
-- Meson (meson.build)
-- Make (Makefile)
-
-**Current support:** CMake and Autotools
-
-### 2. CMake Builder (`builder/cmake_builder.py`)
+A single `Builder` class handles both CMake and autotools projects. The agent auto-detects the build system by exploring the project root.
 
 **Hybrid Workflow:**
 
-**Simple Mode (for standard projects):**
+**Simple Mode (for standard CMake projects):**
 1. `_get_initial_config_simple()`: LLM reads CMakeLists.txt
 2. Returns JSON with cmake_flags immediately
 3. Build executes with retry loop (max 3 attempts via `learn_and_build()`)
 4. On failure: error analysis via `ErrorAnalyzer` and flag adjustment
 
 **ReAct Mode (for complex projects):**
-1. `_get_initial_config_with_tools()`: LLM receives hybrid system prompt
-2. If stop_reason = "tool_use", enters `_execute_react_loop()` (max 15 turns)
+1. `_get_initial_config_with_tools()`: LLM receives unified system prompt
+2. If stop_reason = "tool_use", enters `_execute_react_loop()` (max 20 turns)
 3. LLM explores project with tools (read_file, list_dir)
-4. Iteratively tries cmake_configure with different flags
-5. Sees configure output, adjusts based on errors
-6. Once configure succeeds, tries cmake_build
-7. On successful build: Returns dict with `build_succeeded=True`, `cmake_flags`, `attempts`
-8. If build succeeded in ReAct phase: Skip retry loop entirely!
+4. Auto-detects build system and uses appropriate tools
+5. Can install missing system dependencies via `install_packages`
+6. On successful build: Returns dict with `build_succeeded=True`, flags, `dependencies`
+7. If build succeeded in ReAct phase: Skip retry loop entirely
 
 **Mode Selection Logic:**
 - Check `response.stop_reason` from first LLM turn:
@@ -154,58 +140,42 @@ Identifies the build system used by a project:
 - Applies suggestions via `_apply_suggestions()` and retries build
 
 **Features:**
+- **Unified build system support**: Single class handles CMake, autotools, and plain Makefile projects
 - **Hybrid mode selection**: LLM chooses simple or ReAct automatically based on stop_reason
+- **Runtime dependency installation**: Agent can install missing packages via `install_packages`
+- **Dependency tracking**: Cross-validates agent-reported deps against actually installed packages
 - **Sandboxed file access**: All file operations restricted to project directory via `_validate_path()`
-- **Separate configure/build steps**: `CMakeActions.cmake_configure()` and `cmake_build()` can run independently
 - **Docker isolation**: All builds run in containers with LLVM 18, user permissions preserved
 - **Path fixing**: Container paths (`/workspace/src`, `/workspace/build`) mapped to host paths via `extract_compile_commands()`
-- **Tool-based exploration**: Can read cmake modules, explore directories with pagination
-- **Security**: Path traversal and absolute paths blocked by `BuildTools._validate_path()`
 - **Early exit optimization**: If ReAct mode succeeds in building, skip retry loop
 
-**Key class:** `CMakeBuilder`
+**Key class:** `Builder`
 
 **Constructor:**
 ```python
-CMakeBuilder(
+Builder(
     llm: LLMBackend,
     container_image: str = "llm-summary-builder:latest",
     build_dir: Path | None = None,
-    build_scripts_dir: Path | None = None,  # For unavoidable assembly tracking
     max_retries: int = 3,
     enable_lto: bool = True,
     prefer_static: bool = True,
     generate_ir: bool = True,
     verbose: bool = False,
-    log_file: str | None = None,  # Optional: Log all LLM interactions
+    log_file: str | None = None,
 )
 ```
 
 **Key methods:**
 - `learn_and_build()`: Main entry point, orchestrates entire workflow
 - `_get_initial_config()`: Routes to tool-enabled or simple workflow
-- `_get_initial_config_with_tools()`: Hybrid prompt for tool-enabled backends
+- `_get_initial_config_with_tools()`: Unified prompt for tool-enabled backends
 - `_get_initial_config_simple()`: Simple JSON prompt for non-tool backends
-- `_execute_react_loop()`: ReAct tool execution loop (max 15 turns)
-- `_attempt_build()`: Two-phase build (configure + build) via CMakeActions
-- `_apply_suggestions()`: Apply error analysis suggestions to flags
+- `_execute_react_loop()`: ReAct tool execution loop (max 20 turns)
+- `_execute_tool_safe()`: Routes tools to appropriate handlers
 - `extract_compile_commands()`: Fix Docker paths in compile_commands.json
 
-### 2b. Autotools Builder (`builder/autotools_builder.py`)
-
-Builds autotools projects using `./configure` and `bear -- make` for compile database generation.
-
-**ReAct Mode Workflow:**
-1. `_get_initial_config_with_tools()`: LLM receives autotools system prompt
-2. Enters `_execute_react_loop()` (max 20 turns)
-3. LLM explores project with tools (read_file, list_dir)
-4. If needed, runs `bootstrap` (for projects with bootstrap/autogen.sh scripts) or `autoreconf` to regenerate configure script
-5. Runs `autotools_configure` with flags
-6. Runs `autotools_build` (uses Bear to capture compile commands)
-7. Can use `autotools_clean` or `autotools_distclean` to retry with different flags
-8. On success: Returns dict with `build_succeeded=True`, `configure_flags`
-
-**Default Environment Variables (auto-injected):**
+**Default Environment Variables (auto-injected for autotools/make):**
 ```bash
 CC=clang-18
 CXX=clang++-18
@@ -218,31 +188,7 @@ NM=llvm-nm-18
 RANLIB=llvm-ranlib-18
 ```
 
-**Key class:** `AutotoolsBuilder`
-
-**Constructor:**
-```python
-AutotoolsBuilder(
-    llm: LLMBackend,
-    container_image: str = "llm-summary-builder:latest",
-    build_dir: Path | None = None,
-    build_scripts_dir: Path | None = None,
-    max_retries: int = 3,
-    enable_lto: bool = True,
-    prefer_static: bool = True,
-    generate_ir: bool = True,
-    verbose: bool = False,
-    log_file: str | None = None,
-)
-```
-
-**Key methods:**
-- `learn_and_build()`: Main entry point
-- `_execute_react_loop()`: ReAct tool execution loop (max 20 turns)
-- `_execute_tool_safe()`: Routes tools to appropriate handlers
-- `extract_compile_commands()`: Fix Docker paths, supports both in-source and out-of-source builds
-
-### 3. Error Analyzer (`builder/error_analyzer.py`)
+### 2. Error Analyzer (`builder/error_analyzer.py`)
 
 Uses LLM to diagnose build failures and suggest fixes with optional ReAct mode:
 
@@ -255,7 +201,6 @@ Uses LLM to diagnose build failures and suggest fixes with optional ReAct mode:
 - Iteratively investigates before suggesting fixes
 - Max 10 turns for exploration
 - Returns JSON with diagnosis and suggested fixes
-- **Critical**: Stops immediately if missing dependencies are identified (cannot install at runtime)
 
 **Simple Mode (fallback):**
 - Direct LLM prompt with error output
@@ -267,27 +212,21 @@ Uses LLM to diagnose build failures and suggest fixes with optional ReAct mode:
 - **CMake Configuration Errors:** Missing dependencies, invalid flags, incompatible options
 - **Build/Compilation Errors:** Compiler flag issues, LTO conflicts, assembly code problems
 
-**Dependency Handling:**
-- Missing dependencies are reported in `missing_dependencies` list
-- Dependencies **cannot** be installed at runtime (Docker container is immutable)
-- User must update `docker/build-env/Dockerfile` and rebuild image to add missing packages
-- Agent stops exploration when it identifies unresolvable dependency issues
-
 **Key class:** `ErrorAnalyzer`
 
-### 4. Script Generator (`builder/script_generator.py`)
+### 3. Script Generator (`builder/script_generator.py`)
 
 Generates reusable build scripts in `build-scripts/<project>/`:
 
 **Generated Files:**
-- `build.sh`: Executable Docker build script
-- `config.json`: Learned configuration metadata
+- `build.sh`: Executable Docker build script (includes dependency comment block if packages were installed)
+- `config.json`: Learned configuration metadata (includes `dependencies` field)
 - `artifacts/`: Directory for LLVM IR files
 - `README.md`: Documentation
 
 **Key class:** `ScriptGenerator`
 
-### 5. Assembly Checker (`builder/assembly_checker.py`)
+### 4. Assembly Checker (`builder/assembly_checker.py`)
 
 Detects assembly code in build artifacts and filters out known unavoidable findings:
 
@@ -307,41 +246,20 @@ Detects assembly code in build artifacts and filters out known unavoidable findi
 - Prevents agent from repeatedly trying to remove unavoidable inline assembly from dependencies
 
 **Integration:**
-- Runs automatically after successful `cmake_build()`
+- Runs automatically after successful `cmake_build()` or `make_build()`
 - Results included in build tool response as `assembly_check` field
-- Agent can iteratively try different CMake flags (e.g., `-DDISABLE_ASM=ON`, `-DENABLE_SIMD=OFF`) to minimize assembly
-
-**Example Result:**
-```json
-{
-  "has_assembly": true,
-  "has_new_assembly": false,  // No action needed
-  "standalone_asm_files": [],
-  "inline_asm_sources": [],
-  "inline_asm_ir": [],
-  "known_unavoidable_count": 26  // From dependencies
-}
-```
+- Agent can iteratively try different flags to minimize assembly
 
 **Key class:** `AssemblyChecker`
 
-**Methods:**
-- `check(scan_ir=True)`: Run full assembly detection with filtering
-- `save_unavoidable(findings)`: Save findings to unavoidable_asm.json
-- `_filter_unavoidable()`: Separate new findings from known unavoidable
-
-### 6. Build Agent Tools (`builder/tools.py`, `builder/actions.py`, `builder/tool_definitions.py`)
-
-The LLM agent has access to four tools for exploring and building projects:
+### 5. Build Agent Tools (`builder/tools.py`, `builder/actions.py`, `builder/tool_definitions.py`)
 
 #### Tool Definitions (`builder/tool_definitions.py`)
 
 Centralizes all tool definitions in Anthropic format:
 
 - **TOOL_DEFINITIONS_READ_ONLY**: File exploration tools only (for error analysis)
-- **CMAKE_TOOL_DEFINITIONS**: File tools + CMake action tools (cmake_configure, cmake_build)
-- **AUTOTOOLS_TOOL_DEFINITIONS**: File tools + autotools action tools (bootstrap, autoreconf, autotools_configure, autotools_build, autotools_clean, autotools_distclean)
-- **ALL_TOOL_DEFINITIONS**: Alias for CMAKE_TOOL_DEFINITIONS (backwards compatibility)
+- **UNIFIED_TOOL_DEFINITIONS**: File tools + all build action tools + install_packages + finish
 
 Tool definitions are automatically converted to OpenAI format for backends that require it (e.g., llama.cpp).
 
@@ -354,8 +272,6 @@ Tool definitions are automatically converted to OpenAI format for backends that 
 - `max_lines`: Maximum lines to read (default: 200)
 - `start_line`: Line number to start reading from (1-indexed, default: 1)
 - Returns dict with: `content`, `path`, `start_line`, `end_line`, `lines_read`, `truncated`
-- Line-numbered output format: `{line_num:4d}: {line_content}`
-- Use `start_line` to jump to specific sections when errors mention line numbers
 - Security: Blocks absolute paths and path traversal, allows project and build directories only
 
 **list_dir(dir_path=".", pattern=None)**
@@ -367,166 +283,96 @@ Tool definitions are automatically converted to OpenAI format for backends that 
 
 #### Build Action Tools (`builder/actions.py`)
 
+**CMake Tools:**
+
 **cmake_configure(cmake_flags)**
 - Runs CMake configuration step in Docker container
 - `cmake_flags`: List of CMake flags (e.g., `["-DCMAKE_BUILD_TYPE=Release", "-DBUILD_SHARED_LIBS=OFF"]`)
-- Flags with spaces are automatically quoted for shell execution
-- Returns dict with: `success` (bool), `output` (stdout+stderr), `error` (error message)
 - Container config: `-G Ninja`, source at `/workspace/src`, build at `/workspace/build`
 - Timeout: 5 minutes
-- Allows iterative flag refinement without full build
 
 **cmake_build()**
 - Runs ninja build (`ninja -j$(nproc)`) after successful configure
-- No parameters required
 - Requires CMakeCache.txt to exist (from successful configure)
-- Returns dict with: `success` (bool), `output` (stdout+stderr), `error` (error message), `assembly_check` (assembly detection results)
+- Returns dict with: `success`, `output`, `error`, `assembly_check`
 - Timeout: 10 minutes
-- Separate from configure for targeted debugging and faster iteration
-- **Assembly Verification**: On successful build, automatically scans for assembly code:
-  - Standalone .s/.S/.asm files in compile_commands.json
-  - Inline assembly in C/C++ sources (`__asm__`, `asm()`, etc.)
-  - Inline assembly in LLVM bitcode (.bc) using llvm-dis
-  - Filters out known unavoidable assembly from `build-scripts/<project>/unavoidable_asm.json`
-  - Returns `has_new_assembly` flag to indicate if action is needed
-  - Agent can iterate on CMake flags to minimize/eliminate assembly
+
+**Autotools/Make Tools:**
+
+**bootstrap(script_path="bootstrap")**
+- Runs a bootstrap script (e.g., `bootstrap`, `autogen.sh`, `buildconf`) to prepare the build system
+- Security: Validates script path is within project directory
+- Timeout: 5 minutes
+
+**autoreconf()**
+- Runs `autoreconf -fi` to regenerate configure script from configure.ac
+- Timeout: 5 minutes
+
+**run_configure(configure_flags, use_build_dir=True)**
+- Runs `./configure` with specified flags
+- Auto-injects CC, CXX, CFLAGS, CXXFLAGS, LDFLAGS, LD, AR, NM, RANLIB for clang-18 with LTO
+- Timeout: 10 minutes
+
+**make_build(make_target="", use_build_dir=True)**
+- Runs `bear -- make -j$(nproc)` to build and capture compile commands
+- On failure: Retries with `make -j1` for clearer error output
+- Returns dict with: `success`, `output`, `error`, `assembly_check`
+- Timeout: 20 minutes
+
+**make_clean(use_build_dir=True)**
+- Runs `make clean` to remove compiled object files
+
+**make_distclean(use_build_dir=True)**
+- Runs `make distclean` to remove all generated files including Makefile
+- After distclean, must run run_configure again
+
+**Package Management:**
+
+**install_packages(packages)**
+- Installs system packages (apt) by building a derived Docker image
+- `packages`: List of apt package names (e.g., `["zlib1g-dev", "libssl-dev"]`)
+- Validates package names against `^[a-zA-Z0-9][a-zA-Z0-9.+\-:]+$` (prevents injection)
+- Creates Dockerfile: `FROM <current_image>\nRUN apt-get update && apt-get install -y <packages>`
+- Runs `docker build -t llm-summary-builder:ext-<hash> .`
+- Updates container image reference for subsequent build commands
+- Timeout: 2 minutes
+
+**finish(status, summary, dependencies=None)**
+- Signals that the build task is complete
+- `status`: Either `"success"` or `"failure"`
+- `summary`: Brief description of what was accomplished or why it failed
+- `dependencies`: Optional list of apt package names that are actual build dependencies
+  - Cross-validated: only packages that were both installed via `install_packages` AND reported here are stored
 
 #### Security Sandboxing
 
 All file tools enforce strict path validation via `BuildTools._validate_path()`:
 
-**Validation Steps:**
-1. **Reject absolute paths**: Paths like `/etc/passwd` are blocked immediately
-2. **Handle build directory paths**: Paths starting with `"build/"` are mapped to the separate build directory mount
-3. **Resolve relative to allowed directories**: Paths resolved against `self.project_path` or `self.build_dir`
-4. **Check containment**: Use `Path.relative_to()` to ensure resolved path is within allowed directories
-5. **Raise ValueError**: Any security violation raises `ValueError` which is caught and returned as error
-
-**Implementation Details:**
-```python
-def _validate_path(self, path: str) -> Path:
-    requested = Path(path)
-    if requested.is_absolute():
-        raise ValueError(f"Absolute paths not allowed: {path}")
-
-    # Special handling for build directory paths
-    parts = requested.parts
-    if parts and parts[0] == "build" and self.build_dir:
-        # Strip "build/" prefix and resolve relative to build_dir
-        relative_to_build = Path(*parts[1:]) if len(parts) > 1 else Path(".")
-        full_path = (self.build_dir / relative_to_build).resolve()
-
-        # Security: ensure resolved path is within build directory
-        try:
-            full_path.relative_to(self.build_dir)
-            return full_path
-        except ValueError:
-            raise ValueError(f"Path escapes build directory: {path}")
-
-    # Otherwise, resolve relative to project root
-    full_path = (self.project_path / requested).resolve()
-
-    try:
-        full_path.relative_to(self.project_path)
-        return full_path
-    except ValueError:
-        raise ValueError(f"Path escapes project directory: {path}")
-```
-
-**Example Security Validation:**
-```python
-# Valid (within project)
-read_file("CMakeLists.txt")              ✓
-read_file("cmake/FindZLIB.cmake")        ✓
-read_file("src/config.h.in")             ✓
-list_dir("src")                          ✓
-list_dir(".", pattern="*.cmake")         ✓
-
-# Valid (within build directory)
-read_file("build/compile_commands.json") ✓
-read_file("build/CMakeCache.txt")        ✓
-list_dir("build")                        ✓
-list_dir("build/CMakeFiles")             ✓
-
-# Invalid (blocked by security)
-read_file("/etc/passwd")                 ✗ Absolute path
-read_file("../../../etc/passwd")         ✗ Path traversal
-list_dir("../../")                       ✗ Escapes project
-```
+1. **Reject absolute paths**: Paths like `/etc/passwd` are blocked
+2. **Handle build directory paths**: Paths starting with `"build/"` map to the build directory mount
+3. **Check containment**: Resolved path must be within allowed directories
+4. **Symlink escape detection**: Prevents symlinks pointing outside allowed directories
 
 **Key classes:** `BuildTools` (file exploration), `CMakeActions` (CMake build execution), `AutotoolsActions` (autotools build execution)
 
-#### Autotools Action Tools (in `builder/actions.py`)
-
-**bootstrap(script_path="bootstrap")**
-- Runs a bootstrap script (e.g., `bootstrap`, `autogen.sh`, `buildconf`) to prepare the build system
-- `script_path`: Relative path to script in project directory (NOT build directory)
-- Security: Validates script path is within project directory; absolute paths rejected
-- Returns dict with: `success` (bool), `output` (stdout+stderr), `error` (error message)
-- Timeout: 5 minutes
-
-**autoreconf()**
-- Runs `autoreconf -fi` to regenerate configure script from configure.ac
-- Use when project has configure.ac but no configure script
-- Returns dict with: `success` (bool), `output` (stdout+stderr), `error` (error message)
-- Timeout: 5 minutes
-
-**autotools_configure(configure_flags, use_build_dir=True)**
-- Runs `./configure` with specified flags
-- `configure_flags`: List of flags (e.g., `["--disable-shared", "--enable-static"]`)
-- `use_build_dir`: If True, out-of-source build in /workspace/build; if False, in-source build
-- Auto-injects CC, CXX, CFLAGS, CXXFLAGS, LDFLAGS, LD, AR, NM, RANLIB for clang-18 with LTO
-- Returns dict with: `success` (bool), `output`, `error`, `use_build_dir`
-- Timeout: 10 minutes
-
-**autotools_build(make_target="", use_build_dir=True)**
-- Runs `bear -- make -j$(nproc)` to build and capture compile commands
-- Bear intercepts compiler calls to generate compile_commands.json
-- `make_target`: Optional target (e.g., "all", "lib")
-- Returns dict with: `success` (bool), `output`, `error`, `assembly_check` (assembly detection results)
-- On failure: Retries with `make -j1` for clearer error output
-- Timeout: 20 minutes
-
-**autotools_clean(use_build_dir=True)**
-- Runs `make clean` to remove compiled object files
-- Use before retrying build with different flags
-- Returns dict with: `success` (bool), `output`, `error`
-
-**autotools_distclean(use_build_dir=True)**
-- Runs `make distclean` to remove all generated files including Makefile
-- Use before reconfiguring with completely different flags
-- After distclean, must run autotools_configure again
-- Returns dict with: `success` (bool), `output`, `error`
-
-#### Finish Tool (both CMake and Autotools)
-
-**finish(status, summary)**
-- Signals that the build task is complete
-- `status`: Either `"success"` or `"failure"`
-- `summary`: Brief description of what was accomplished or why it failed
-- **When to call:**
-  - Build succeeded with acceptable assembly results
-  - Identified unresolvable blockers (missing dependencies)
-  - Exhausted all reasonable options
-- **Important:** Must call this instead of calling build tools again after success
-- Prevents the agent from repeatedly calling build tools in a loop
-
-### 7. LLM Backends (`llm/`)
+### 6. LLM Backends (`llm/`)
 
 Multiple LLM backends are supported with varying capabilities:
 
 **Tool-Enabled Backends (Support ReAct Mode):**
-- **Vertex AI** (`llm/vertex.py`): Anthropic Claude via GCP Vertex AI
-  - Default model: `claude-haiku-4-5@20251001`
-  - Environment variables (in order): `VERTEX_AI_PROJECT`, `ANTHROPIC_VERTEX_PROJECT_ID`, `GOOGLE_CLOUD_PROJECT`, `CLOUD_ML_PROJECT_ID`
-  - Debug: Set `VERTEX_DEBUG=1` for full API responses
-- **Claude/Anthropic** (`llm/claude.py`): Direct Anthropic API
-  - Default model: `claude-sonnet-4-5@20250929`
-  - Requires: `ANTHROPIC_API_KEY` environment variable
+- **Claude** (`llm/claude.py`): Anthropic Claude API with automatic Vertex AI support
+  - Auto-detects: uses Vertex AI if GCP project env vars are set, otherwise direct API
+  - Default model: `claude-sonnet-4-20250514`
+  - Direct API: Requires `ANTHROPIC_API_KEY`
+  - Vertex AI: Requires `GOOGLE_CLOUD_PROJECT` (or `VERTEX_AI_PROJECT`, `ANTHROPIC_VERTEX_PROJECT_ID`, `CLOUD_ML_PROJECT_ID`)
+  - Debug: Set `CLAUDE_DEBUG=1` for full API responses
+- **Gemini** (`llm/gemini.py`): Google Gemini via Vertex AI
+  - Default model: `gemini-2.5-flash-preview-05-20`
+  - Environment variables: `VERTEX_AI_PROJECT`, `GOOGLE_CLOUD_PROJECT`, `CLOUD_ML_PROJECT_ID`
+  - Supports tool calling with Anthropic-compatible response format
 - **llama.cpp** (`llm/llamacpp.py`): Local model server with tool calling
-  - Default: Uses model served by llama.cpp server
   - OpenAI-compatible /v1/chat/completions endpoint
-  - Supports thinking mode control for Nemotron models
+  - Supports thinking mode control
   - Tool format conversion: Anthropic → OpenAI
 
 **Simple Mode Only Backends:**
@@ -550,8 +396,8 @@ llm-summary build-learn [OPTIONS]
 
 **Optional:**
 - `--build-dir PATH`: Custom build directory (default: `<project-path>/build`)
-- `--backend {claude|openai|ollama|vertex|llamacpp}`: LLM backend (default: `vertex`)
-  - Tool-enabled (ReAct mode): `claude`, `vertex`, `llamacpp`
+- `--backend {claude|openai|ollama|llamacpp|gemini}`: LLM backend (default: `claude`)
+  - Tool-enabled (ReAct mode): `claude`, `gemini`, `llamacpp`
   - Simple mode only: `ollama`, `openai`
 - `--model NAME`: Model name (default varies by backend)
 - `--max-retries N`: Maximum build attempts (default: `3`)
@@ -561,11 +407,11 @@ llm-summary build-learn [OPTIONS]
 - `--generate-ir / --no-ir`: Generate LLVM IR (default: `true`)
 - `--db PATH`: Database file (default: `summaries.db`)
 - `--verbose, -v`: Show detailed output
-- `--log-file PATH`: Optional log file to record all LLM interactions (prompts, responses, tool calls)
+- `--log-llm PATH`: Log all LLM interactions (prompts, responses, tool calls)
 
 ### Examples
 
-**Basic usage with Vertex AI:**
+**Basic usage with Claude (auto-detects Vertex AI or direct API):**
 ```bash
 export GOOGLE_CLOUD_PROJECT="my-gcp-project"
 llm-summary build-learn --project-path /data/csong/opensource/libpng
@@ -579,32 +425,29 @@ llm-summary build-learn \
   --verbose
 ```
 
-**Using Ollama (local LLM):**
+**Using Gemini:**
 ```bash
+export GOOGLE_CLOUD_PROJECT="my-gcp-project"
 llm-summary build-learn \
   --project-path /path/to/project \
-  --backend ollama \
-  --model qwen3-coder:30b
+  --backend gemini \
+  --verbose
 ```
 
 **Using llama.cpp (local model with tool support):**
 ```bash
-# Start llama.cpp server first (see llama.cpp docs for setup)
-# Then run build-learn:
 llm-summary build-learn \
   --project-path /path/to/project \
   --backend llamacpp \
   --verbose
 ```
 
-**Building an autotools project (e.g., libvpx):**
+**Using Ollama (local LLM, simple mode):**
 ```bash
-# Autotools projects are automatically detected
 llm-summary build-learn \
-  --project-path /path/to/libvpx \
-  --build-dir /tmp/libvpx-build \
-  --backend vertex \
-  --verbose
+  --project-path /path/to/project \
+  --backend ollama \
+  --model qwen3-coder:30b
 ```
 
 **Disable IR generation (faster builds):**
@@ -626,79 +469,70 @@ llm-summary build-learn \
 
 ## How ReAct Mode Works
 
-### Example: Building a Complex Project
+### Example: Building a Project with Missing Dependencies
 
 The LLM receives the project name (e.g., "libpng") upfront. If it recognizes the project, it can leverage its knowledge of typical build requirements.
 
 **Turn 1 - Exploration:**
 ```
-LLM: I see this is libpng. Let me read the CMakeLists.txt to confirm
+LLM: Let me explore the project structure
+Tool: list_dir(".")
+Result: [CMakeLists.txt, src/, cmake/, ...]
+```
+
+**Turn 2 - Read build file:**
+```
+LLM: Let me read the CMakeLists.txt
 Tool: read_file("CMakeLists.txt")
 Result: [CMake content showing find_package(ZLIB), custom modules]
 ```
 
-**Turn 2 - Discover modules:**
+**Turn 3 - Try initial configure:**
 ```
-LLM: I see it includes custom cmake modules. Let me explore
-Tool: list_dir("cmake", pattern="*.cmake")
-Result: FindZLIB.cmake, CompilerFlags.cmake, Options.cmake
-```
-
-**Turn 3 - Read critical module:**
-```
-LLM: Let me check the Options.cmake file
-Tool: read_file("cmake/Options.cmake")
-Result: [Options like ENABLE_SIMD, BUILD_TESTS, etc.]
-```
-
-**Turn 4 - Try initial configure:**
-```
-LLM: Based on analysis, I'll try this configuration
+LLM: I'll try this configuration
 Tool: cmake_configure([
     "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
     "-DCMAKE_C_COMPILER=clang-18",
-    "-DENABLE_SIMD=OFF",
     "-DBUILD_SHARED_LIBS=OFF"
 ])
+Result: Error: Could not find zlib.h
+```
+
+**Turn 4 - Install missing dependency:**
+```
+LLM: zlib is missing, let me install it
+Tool: install_packages(["zlib1g-dev"])
+Result: Success! Built derived image llm-summary-builder:ext-a1b2c3d4e5f6
+```
+
+**Turn 5 - Retry configure:**
+```
+LLM: Now let me reconfigure with zlib available
+Tool: cmake_configure([...same flags...])
 Result: Success! Configuration complete
 ```
 
-**Turn 5 - Build:**
+**Turn 6 - Build:**
 ```
-LLM: Configuration succeeded, now building
+LLM: Building...
 Tool: cmake_build()
-Result: Success! Build complete in 25.3 seconds
+Result: Success! Build complete, no assembly detected
 ```
 
-### Simple Mode vs ReAct: When Each is Used
+**Turn 7 - Finish:**
+```
+LLM: Build succeeded
+Tool: finish(status="success", summary="Built with cmake...", dependencies=["zlib1g-dev"])
+```
 
-**Simple Mode** (LLM returns JSON immediately):
-- Standard CMakeLists.txt structure
-- Common dependencies (zlib, openssl)
-- No unusual cmake modules
-- Standard project layout
-- Example: libpng, zlib, simple projects
+### Dependency Tracking
 
-**ReAct Mode** (LLM uses tools iteratively):
-- Complex cmake module includes
-- Custom find_package() scripts
-- Conditional compilation based on options
-- Multi-target builds
-- Deep directory structure
-- Example: LLVM, Qt, complex projects
+When the agent installs packages and finishes successfully:
 
-### Efficiency Comparison
-
-**libpng (Simple Mode):**
-- LLM turns: 1
-- Time: ~30 seconds total
-- Token usage: ~12K tokens
-
-**Complex Project (ReAct Mode):**
-- LLM turns: 5-10
-- Time: ~45-60 seconds
-- Token usage: ~30K tokens
-- **But**: Higher success rate on first attempt (fewer retries)
+1. **Installed set**: The ReAct loop tracks which packages were successfully installed via `install_packages`
+2. **Agent reports**: The `finish` tool includes a `dependencies` field where the agent reports which packages are actual dependencies
+3. **Cross-validation**: Only packages appearing in BOTH sets are stored — this filters out hallucinated deps
+4. **Storage**: Dependencies are written to `config.json` and the database `configuration_json`
 
 ## Docker Build Environment
 
@@ -729,68 +563,40 @@ Result: Success! Build complete in 25.3 seconds
 **Note on Build Directory Access:**
 - The build directory is mounted separately and can be on a different host path than the project
 - Agent tools can access build artifacts using `"build/"` prefix (e.g., `"build/compile_commands.json"`)
-- This allows inspection of CMakeCache.txt, compile_commands.json, and other generated files during ReAct exploration
 
-## LLM Prompts (`builder/prompts.py`, `builder/cmake_builder.py`)
+## LLM Prompts (`builder/builder.py`)
 
 The build agent uses different prompts depending on the backend capabilities and workflow mode.
 
-### Hybrid System Prompt (Tool-Enabled Backends)
+### Unified System Prompt (Tool-Enabled Backends)
 
-Defined in `cmake_builder.py:_get_initial_config_with_tools()`.
+Defined in `builder.py:_get_initial_config_with_tools()`.
 
-For backends supporting tool use (Vertex AI, Anthropic API, llama.cpp), the agent receives a hybrid system prompt offering both modes:
+The agent receives a unified system prompt that covers all build systems:
 
-**Option 1 - Simple Mode:**
-- Return JSON configuration immediately for straightforward projects
-- Format: `{"cmake_flags": [...], "reasoning": "...", "dependencies": [...]}`
+**Step 1**: Explore project root to determine build system
+**Step 2**: Choose appropriate tools (cmake_configure/cmake_build or run_configure/make_build)
+**Simple mode fallback**: Return JSON for straightforward CMake projects
 
-**Option 2 - ReAct Mode:**
-- Use tools iteratively for complex projects
-- Available tools: read_file, list_dir, cmake_configure, cmake_build
-- Explore, configure, build with feedback loop
-
-**Requirements (both modes):**
-- CMAKE_EXPORT_COMPILE_COMMANDS=ON
-- CMAKE_INTERPROCEDURAL_OPTIMIZATION=ON (LTO)
-- CMAKE_C_COMPILER=clang-18, CMAKE_CXX_COMPILER=clang++-18
-- BUILD_SHARED_LIBS=OFF (static linking)
-- Disable SIMD/hardware optimizations to minimize assembly code
-- CMAKE_C_FLAGS=-flto=full -save-temps=obj (IR generation)
-
-**Assembly Verification:**
-- After each successful `cmake_build()`, assembly check runs automatically
-- Result includes `assembly_check.has_new_assembly` flag
-- If assembly detected, agent can try different CMake flags to avoid it
-- Known unavoidable assembly (from dependencies) is filtered from results
-- Goal: Minimize or eliminate assembly code through build configuration
-
-**Mode Selection:**
-- LLM decides based on project complexity
-- No user configuration needed
-
-### Initial Configuration Prompt (Fallback for Non-Tool Backends)
-
-For backends without tool support, uses simpler prompt:
-
-Analyzes CMakeLists.txt and generates:
-- CMake configuration flags
-- System dependencies (apt packages)
-- Potential issues
-- Reasoning for flag choices
-
-**Goals:**
-- Generate `compile_commands.json`
+**Build Requirements (both modes):**
+- Generate compile_commands.json
+- Use Clang 18
 - Enable LLVM LTO
 - Prefer static linking
-- Use Clang 18
-- Minimize assembly code
-- Generate LLVM IR
+- Disable SIMD/hardware optimizations to minimize assembly code
+- Generate LLVM IR with `-save-temps=obj`
+
+**Assembly Verification:**
+- After each successful build, assembly check runs automatically
+- Agent can iterate on flags to minimize assembly
+
+**Package Installation:**
+- Agent can use `install_packages` when build fails due to missing headers/libraries
+- Reports installed dependencies via `finish(dependencies=[...])`
 
 ### Error Analysis Prompts
 
-Defined in `prompts.py`: `ERROR_ANALYSIS_PROMPT`, `BUILD_FAILURE_PROMPT`
-System prompt in `error_analyzer.py:analyze_error_with_tools()` for ReAct mode.
+Defined in `prompts.py` and `error_analyzer.py`.
 
 **ReAct Mode (tool-enabled backends):**
 - Can use read_file and list_dir to investigate errors
@@ -798,19 +604,8 @@ System prompt in `error_analyzer.py:analyze_error_with_tools()` for ReAct mode.
 - Returns JSON with diagnosis and fixes
 
 **Simple Mode (all backends):**
-On build failure in retry loop, analyzes:
-- Error output
-- Current configuration
-- CMakeLists.txt context
-
-**Suggests:**
-- Flag changes
-- Missing packages
-- Compatibility fixes
-
-**Note:**
-- In ReAct mode during initial config, the agent may resolve build issues in exploration phase without needing error analysis
-- Error analysis runs separately in retry loop if initial build attempt fails
+- Direct LLM prompt with error output
+- Suggests flag changes, missing packages, compatibility fixes
 
 ## Database Schema
 
@@ -821,7 +616,7 @@ CREATE TABLE build_configs (
     project_path TEXT PRIMARY KEY,
     project_name TEXT NOT NULL,
     build_system TEXT NOT NULL,       -- 'cmake', 'autotools', 'make'
-    configuration_json TEXT,          -- JSON with flags and options
+    configuration_json TEXT,          -- JSON with flags, options, and dependencies
     script_path TEXT,                 -- Path to generated build script
     artifacts_dir TEXT,               -- Path to LLVM IR artifacts
     compile_commands_path TEXT,       -- Path to compile_commands.json
@@ -843,16 +638,6 @@ CREATE TABLE build_configs (
 - All Docker paths replaced with host paths
 - Ready for libclang analysis
 
-**Example entry:**
-```json
-{
-  "directory": "/data/csong/build-artifacts/libpng",
-  "command": "clang-18 -DPNG_INTEL_SSE_OPT=1 -I/data/csong/opensource/libpng ...",
-  "file": "/data/csong/opensource/libpng/png.c",
-  "output": "CMakeFiles/png_static.dir/png.c.o"
-}
-```
-
 ### 2. Build Script
 
 **Location:** `build-scripts/<project>/build.sh`
@@ -861,6 +646,7 @@ CREATE TABLE build_configs (
 - Parameterized (accepts custom paths)
 - Executable (chmod +x)
 - Self-documenting (comments with config summary)
+- Lists required packages if dependencies were installed
 - Idempotent (can be run multiple times)
 
 ### 3. Configuration Metadata
@@ -870,8 +656,30 @@ CREATE TABLE build_configs (
 **Contains:**
 - Project name and path
 - Build system type
-- Learned CMake flags
+- Learned flags (cmake_flags or configure_flags)
 - Generation timestamp
+- `dependencies`: List of apt packages required beyond the base image (if any)
+
+**Example:**
+```json
+{
+  "project_name": "libpng",
+  "project_path": "/data/csong/opensource/libpng",
+  "build_system": "cmake",
+  "generated_at": "2026-02-05T21:36:45.956961",
+  "cmake_flags": [
+    "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
+    "-DCMAKE_INTERPROCEDURAL_OPTIMIZATION=ON",
+    "-DCMAKE_C_COMPILER=clang-18",
+    "-DCMAKE_CXX_COMPILER=clang++-18",
+    "-DBUILD_SHARED_LIBS=OFF",
+    "-DCMAKE_C_FLAGS=-flto=full -save-temps=obj",
+    "-DCMAKE_CXX_FLAGS=-flto=full -save-temps=obj",
+    "-DPNG_HARDWARE_OPTIMIZATIONS=OFF"
+  ],
+  "dependencies": ["zlib1g-dev"]
+}
+```
 
 ### 4. LLVM IR Artifacts
 
@@ -887,7 +695,7 @@ CREATE TABLE build_configs (
 
 ### Log File Output
 
-The `--log-file` option enables comprehensive logging of all LLM interactions:
+The `--log-llm` option enables comprehensive logging of all LLM interactions:
 
 **What's logged:**
 - System prompts for each phase (initial config, error analysis)
@@ -897,18 +705,11 @@ The `--log-file` option enables comprehensive logging of all LLM interactions:
 - Tool calls with parameters and results
 - Each turn in ReAct loops
 
-**Use cases:**
-- Debug why LLM chose specific flags
-- Understand ReAct exploration behavior
-- Troubleshoot tool call failures
-- Analyze error diagnosis reasoning
-- Review full conversation history
-
 **Example:**
 ```bash
 llm-summary build-learn \
   --project-path /path/to/project \
-  --log-file build-debug.log \
+  --log-llm build-debug.log \
   --verbose
 ```
 
@@ -920,24 +721,26 @@ The log file is append-mode, so multiple runs accumulate in the same file with c
 
 **Cause:** Compiler flags not properly quoted for shell
 
-**Solution:** Already handled by flag quoting in `cmake_builder.py`
+**Solution:** Already handled by flag quoting in `builder.py`
 
 ### Build Fails: Missing Dependencies
 
-**Solution:**
-1. Check LLM-identified dependencies in output
-2. Add packages to `docker/build-env/Dockerfile`
-3. Rebuild Docker image: `cd docker/build-env && ./build.sh`
+The agent will automatically attempt to install missing dependencies via `install_packages`. If this fails (e.g., package not found in apt), you can:
 
-### Vertex AI Authentication Errors
+1. Check the error output for the correct package name
+2. Add packages to `docker/build-env/Dockerfile` and rebuild the base image
 
-**Solution:**
+### Authentication Errors
+
+**Claude via Vertex AI:**
 ```bash
-# Authenticate with GCP
 gcloud auth application-default login
-
-# Set project
 export GOOGLE_CLOUD_PROJECT="your-project-id"
+```
+
+**Claude via direct API:**
+```bash
+export ANTHROPIC_API_KEY="your-api-key"
 ```
 
 ### Paths in compile_commands.json Wrong
@@ -952,43 +755,33 @@ export GOOGLE_CLOUD_PROJECT="your-project-id"
 
 **Cause:** LLM returns markdown-wrapped JSON (` ```json ... ``` `)
 
-**Solution:** Already handled by markdown stripping in `error_analyzer.py` and `cmake_builder.py`
+**Solution:** Already handled by markdown stripping in `error_analyzer.py` and `builder.py`
 
 ## TODOs / Future Work
 
 ### Phase 2: Non-CMake Support
-- [x] **Completed:** Autotools support (`./configure` with Bear)
-  - [x] autoreconf, autotools_configure, autotools_build tools
-  - [x] autotools_clean, autotools_distclean for iterative builds
-  - [x] Out-of-source and in-source build support
-  - [x] Auto-injected LDFLAGS for proper LTO linking
+- [x] Autotools support (`./configure` with Bear)
 - [ ] Meson support (`meson setup`)
 - [ ] Plain Make support (intercept with Bear)
 - [ ] Custom build script detection
 
 ### Phase 3: Advanced Configuration
-- [x] **Completed:** ReAct-style iterative building with tools
-- [x] **Completed:** Separate cmake_configure and cmake_build steps
-- [x] **Completed:** Path sandboxing and security validation
-- [x] **Completed:** Project exploration with read_file/list_dir
-- [x] **Completed:** ReAct error analysis with file exploration tools
-- [x] **Completed:** llama.cpp backend with tool calling support
-- [x] **Completed:** Pagination support for reading large files (start_line parameter)
-- [x] **Completed:** Assembly code detection and avoidance
-  - [x] Detect standalone assembly files (.s/.S/.asm) in compile_commands.json
-  - [x] Detect inline assembly in C/C++ sources (__asm__, asm(), etc.)
-  - [x] Detect inline assembly in LLVM IR (.bc files) using llvm-dis
-  - [x] Iterative flag exploration to minimize assembly (ReAct loop integration)
-  - [x] Known unavoidable assembly filtering (from dependencies)
+- [x] ReAct-style iterative building with tools
+- [x] Separate cmake_configure and cmake_build steps
+- [x] Path sandboxing and security validation
+- [x] Project exploration with read_file/list_dir
+- [x] ReAct error analysis with file exploration tools
+- [x] llama.cpp backend with tool calling support
+- [x] Assembly code detection and avoidance
+- [x] Runtime dependency installation via `install_packages`
+- [x] Dependency tracking and cross-validation
 - [ ] Fuzzing harness detection
-  - [ ] Scan for `fuzzing/` or `fuzz/` directories
-  - [ ] Build with AFL/libFuzzer flags
 - [ ] Enhanced ReAct features
   - [ ] Memory across sessions (save exploration results)
   - [ ] Parallel configure attempts (test multiple flag combinations)
-  - [ ] Automatic dependency detection from cmake modules
 
 ### Phase 4: Dependency Management
+- [x] Runtime apt package installation
 - [ ] Parse CMake `find_package()` calls
 - [ ] Attempt git clone of dependencies
 - [ ] Recursively build dependencies with same settings
@@ -998,7 +791,6 @@ export GOOGLE_CLOUD_PROJECT="your-project-id"
 ### Phase 5: Caching and Optimization
 - [ ] ccache integration for faster rebuilds
 - [ ] Docker layer caching
-- [ ] Parallel builds with optimal `-j` value
 - [ ] Incremental rebuilds (only changed files)
 - [ ] Build artifact reuse across projects
 
@@ -1008,84 +800,18 @@ export GOOGLE_CLOUD_PROJECT="your-project-id"
 - [ ] Aggregate statistics (success rate, common issues)
 - [ ] Shared dependency pool
 
-### Improvements
-- [ ] Better error messages for common failures
-- [ ] Progress bars for long builds
-- [ ] Estimated time remaining
-- [ ] Build log streaming (instead of waiting for completion)
-- [ ] Support for cross-compilation
-- [ ] Custom compiler selection (GCC, other LLVM versions)
-- [ ] IR optimization level selection
-- [ ] Generate `.ll` (text IR) in addition to `.bc`
-
-### Testing
-- [ ] Unit tests for each component
-- [ ] Integration tests with real OSS projects
-- [ ] Test suite for error analyzer prompts
-- [ ] Regression tests for path fixing
-- [ ] Performance benchmarks
-
-### Documentation
-- [ ] Video walkthrough
-- [ ] Example projects repository
-- [ ] Troubleshooting guide expansion
-- [ ] Best practices for Docker image customization
-
 ## Known Limitations
 
 1. **CMake and Autotools Only**: Meson and plain Make projects not yet supported
 2. **No Fuzzing**: Fuzzing harness detection not implemented
-3. **No Runtime Dependency Installation**: Dependencies cannot be installed at runtime; they must be pre-installed in the Docker image. Agent will identify missing dependencies and stop, requiring user to update `docker/build-env/Dockerfile` and rebuild the image.
-4. **Assembly from Dependencies**: While the agent can minimize assembly in the project itself through CMake flags, inline assembly from third-party dependencies (e.g., BoringSSL crypto functions) cannot be eliminated. These are tracked as unavoidable.
-5. **English Only**: LLM prompts assume English CMakeLists.txt comments
-6. **Single Architecture**: Builds for host architecture only (x86_64)
-7. **Tool-Use Backend Required**: ReAct mode requires tool-enabled backends (Vertex AI, Anthropic API, or llama.cpp). Ollama and OpenAI fall back to simple mode.
-
-## New Capabilities (Recently Added)
-
-1. **Hybrid Simple/ReAct Workflow**: Automatically chooses optimal mode based on complexity
-2. **Sandboxed File Access**: Security validation prevents path traversal attacks
-3. **Iterative Configure/Build**: Can refine configuration before building
-4. **Project Exploration**: Can read cmake modules and explore directory structure
-5. **Separate Build Steps**: cmake_configure and cmake_build can be run independently
-6. **Tool-Based Debugging**: LLM can see configure output and adjust flags iteratively
-7. **Project Name Hints**: LLM receives project name (e.g., "libpng", "zlib") to leverage its knowledge of common projects
-8. **ReAct Error Analysis**: Error analyzer can explore files to investigate build failures (max 10 turns)
-9. **llama.cpp Backend**: Local model support with full tool calling capabilities
-10. **File Pagination**: read_file supports start_line parameter for reading specific sections of large files
-11. **Tool Format Conversion**: Automatic conversion between Anthropic and OpenAI tool formats
-12. **Build Directory Access**: Agent can access both project and build directories; paths starting with `"build/"` map to separate build directory mount
-13. **Smart Termination**: Agent stops ReAct loop when it identifies missing dependencies that cannot be installed at runtime; reports them as `missing_dependencies` for Docker image updates
-14. **Assembly Code Detection**: Automatic verification after successful builds detects standalone .s/.S/.asm files, inline assembly in C/C++ sources, and inline assembly in LLVM bitcode
-15. **Unavoidable Assembly Filtering**: Known unavoidable assembly findings (from dependencies) are saved to `build-scripts/<project>/unavoidable_asm.json` and filtered from future results, preventing agent from wasting turns trying to remove them
-16. **Autotools Support**: Full support for autotools projects with Bear for compile_commands.json generation
-17. **Autotools Tools**: bootstrap, autoreconf, autotools_configure, autotools_build, autotools_clean, autotools_distclean
-18. **LTO Linking**: LDFLAGS with `-flto=full -fuse-ld=lld` ensures proper linking of LTO bitcode objects
-19. **Finish Tool**: Explicit tool for signaling task completion, preventing repeated build calls after success
-20. **Consolidated Actions Module**: CMakeActions and AutotoolsActions unified in `builder/actions.py`
-
-## Performance Characteristics
-
-**Typical Build Times (libpng example):**
-- Initial analysis: ~5 seconds (LLM)
-- CMake configuration: ~2 seconds
-- Ninja build: ~20 seconds
-- Path fixing: <1 second
-- Total: ~30 seconds
-
-**LLM Token Usage (libpng, Claude Haiku 4.5):**
-- Input: ~47K chars (~11K tokens)
-- Output: ~3K chars (~750 tokens)
-- Cost: ~$0.001 per build (Vertex AI pricing)
-
-**Disk Usage:**
-- Docker image: ~2GB
-- Build artifacts: ~50MB (libpng)
-- LLVM IR files: ~2MB (18 .bc files for libpng)
+3. **Assembly from Dependencies**: While the agent can minimize assembly in the project itself through flags, inline assembly from third-party dependencies (e.g., BoringSSL crypto functions) cannot be eliminated. These are tracked as unavoidable.
+4. **English Only**: LLM prompts assume English build file comments
+5. **Single Architecture**: Builds for host architecture only (x86_64)
+6. **Tool-Use Backend Required**: ReAct mode requires tool-enabled backends (Claude, Gemini, or llama.cpp). Ollama and OpenAI fall back to simple mode.
 
 ## References
 
 - [LLVM Link-Time Optimization](https://llvm.org/docs/LinkTimeOptimization.html)
 - [CMake Compile Commands](https://cmake.org/cmake/help/latest/variable/CMAKE_EXPORT_COMPILE_COMMANDS.html)
 - [Clang Compilation Flags](https://clang.llvm.org/docs/ClangCommandLineReference.html)
-- [Anthropic Vertex AI](https://docs.anthropic.com/en/api/claude-on-vertex-ai)
+- [Anthropic Claude API](https://docs.anthropic.com/en/api/)
