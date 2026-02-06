@@ -141,7 +141,7 @@ def main():
         "--backend",
         type=str,
         default="llamacpp",
-        choices=["claude", "openai", "ollama", "vertex", "llamacpp"],
+        choices=["claude", "openai", "ollama", "llamacpp", "gemini"],
         help="LLM backend to use",
     )
     parser.add_argument(
@@ -194,7 +194,6 @@ def main():
     parser.add_argument(
         "--llm-host",
         type=str,
-        default="localhost",
         help="llama.cpp/ollama server host (default: localhost)",
     )
     parser.add_argument(
@@ -327,6 +326,16 @@ def main():
             llm_host=args.llm_host,
             llm_port=args.llm_port,
         )
+
+        # Read build_system from generated config.json if available
+        config_path = Path("build-scripts") / project_path.name / "config.json"
+        build_system = "unknown"
+        if config_path.exists():
+            try:
+                config_data = json.loads(config_path.read_text())
+                build_system = config_data.get("build_system", "unknown")
+            except (json.JSONDecodeError, OSError):
+                pass
 
         if success:
             print(f"  ✅ Success! ({duration:.1f}s)")
