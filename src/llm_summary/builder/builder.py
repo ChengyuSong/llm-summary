@@ -297,7 +297,7 @@ Return JSON configuration directly:
 - cmake_build: Run ninja build after cmake configure
 - bootstrap: Run bootstrap/autogen.sh script
 - autoreconf: Run autoreconf -fi to regenerate configure script
-- run_configure: Run ./configure with flags (env vars auto-set for clang-18 + LTO)
+- run_configure: Run ./configure with flags (env vars default to clang-18 + LTO, but can be overridden)
 - make_build: Run bear -- make to build and capture compile commands
 - make_clean: Run make clean
 - make_distclean: Run make distclean
@@ -306,13 +306,15 @@ Return JSON configuration directly:
 
 **IMPORTANT**: All file/directory paths in tools must be RELATIVE to project root (e.g., ".", "cmake/", "src/config.h", "build/compile_commands.json"). The build directory is accessible at "build/". Absolute paths are not allowed.
 
-**Build Requirements:**
+**Build Requirements (mandatory):**
 - Generate compile_commands.json (cmake: CMAKE_EXPORT_COMPILE_COMMANDS=ON; make: via bear)
-- Use Clang 18 (cmake: CMAKE_C_COMPILER=clang-18; configure/make: auto-injected env vars)
-- Enable LLVM LTO (cmake: CMAKE_INTERPROCEDURAL_OPTIMIZATION=ON; configure/make: auto-injected)
-- Prefer static linking (cmake: BUILD_SHARED_LIBS=OFF; configure: --disable-shared --enable-static)
-- Enable LLVM IR generation (cmake: CMAKE_C_FLAGS='-flto=full -save-temps=obj'; configure/make: auto-injected)
 - Disable SIMD/hardware optimizations to minimize assembly code
+
+**Build Preferences (use these by default, but fall back if the project doesn't support them):**
+- Prefer Clang 18 (cmake: CMAKE_C_COMPILER=clang-18; configure/make: auto-injected env vars). If the project fails to build with clang, fall back to gcc.
+- Prefer LLVM LTO (cmake: CMAKE_INTERPROCEDURAL_OPTIMIZATION=ON; configure/make: auto-injected). If LTO causes build failures, disable it.
+- Prefer static libraries only (cmake: BUILD_SHARED_LIBS=OFF; configure: --disable-shared --enable-static). If the project requires shared libraries, that's fine.
+- Prefer LLVM IR generation (cmake: CMAKE_C_FLAGS='-flto=full -save-temps=obj'; configure/make: auto-injected). Only applicable when using clang with LTO.
 
 **Assembly Verification:**
 After each successful build (cmake_build or make_build), an assembly check runs automatically. If assembly is detected, try different flags to avoid it.

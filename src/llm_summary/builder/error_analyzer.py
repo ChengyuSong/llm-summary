@@ -203,7 +203,7 @@ You have tools to explore the project:
 Context:
 - Build runs in Docker container (source at /workspace/src, build at /workspace/build)
 - Error messages reference container paths
-- Using Clang 18, LTO enabled, static linking preferred
+- Preferring Clang 18, LTO, and static linking — but these are soft preferences. If the error is caused by clang or LTO incompatibility, suggest falling back to gcc or disabling LTO.
 
 Your task:
 1. Read the error output carefully
