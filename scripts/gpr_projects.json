@@ -387,7 +387,7 @@
   {
     "name": "Typo3",
     "url": "https://github.com/TYPO3/typo3",
-    "tier": 1,
+    "tier": 3,
     "area": "Popular CMS platforms",
     "project_dir": "typo3"
   },
@@ -408,7 +408,7 @@
   {
     "name": "Django",
     "url": "https://github.com/django/django",
-    "tier": 1,
+    "tier": 3,
     "area": "Popular web frameworks and libraries",
     "project_dir": "django"
   },
@@ -421,7 +421,7 @@
   {
     "name": "Ember",
     "url": "https://github.com/emberjs/ember.js",
-    "tier": 1,
+    "tier": 3,
     "area": "Popular web frameworks and libraries",
     "project_dir": "ember"
   },
@@ -470,21 +470,21 @@
   {
     "name": "Knockout",
     "url": "https://github.com/knockout/knockout",
-    "tier": 1,
+    "tier": 3,
     "area": "Popular web frameworks and libraries",
     "project_dir": "knockout"
   },
   {
     "name": "Polymer",
     "url": "https://github.com/Polymer/polymer",
-    "tier": 1,
+    "tier": 3,
     "area": "Popular web frameworks and libraries",
     "project_dir": "polymer"
   },
   {
     "name": "Struts",
     "url": "https://struts.apache.org/index.html",
-    "tier": 1,
+    "tier": 3,
     "area": "Popular web frameworks and libraries"
   },
   {
@@ -546,7 +546,7 @@
   {
     "name": "npm",
     "url": "https://github.com/npm/cli",
-    "tier": 1,
+    "tier": 3,
     "area": "Security-relevant bits of common package managers",
     "project_dir": "npm"
   },
@@ -567,7 +567,7 @@
   {
     "name": "llvm-project",
     "url": "https://github.com/llvm/llvm-project",
-    "tier": 1,
+    "tier": 2,
     "area": "Toolchain security improvements",
     "project_dir": "llvm-project"
   },
