@@ -4,7 +4,7 @@ This document describes the automated build agent system that learns how to buil
 
 ## Overview
 
-The `build-learn` command uses LLM-powered incremental learning to automatically configure and build CMake and autotools projects with optimal settings for static analysis:
+The `build-learn` command uses LLM-powered incremental learning to automatically configure and build C/C++ projects with optimal settings for static analysis. Supports CMake, autotools, Meson, Bazel, SCons, and custom build systems:
 
 - **Containerized Builds**: Isolated Docker environment with LLVM 18 toolchain
 - **LTO Support**: Link-Time Optimization with `-flto=full`
@@ -57,14 +57,18 @@ The build agent uses a ReAct (Reason + Act) loop where the LLM explores the proj
 │  Project        │────▶│ LLM Agent with Tools (iterative)       │
 │  (CMake/        │     │                                        │
 │   Autotools/    │     │ Tools available:                       │
-│   Makefile)     │     │ • read_file / list_dir: Explore        │
-└─────────────────┘     │ • cmake_configure / cmake_build        │
-                        │ • run_configure / make_build           │
+│   Meson/Bazel/  │     │ • read_file / list_dir: Explore        │
+│   SCons/custom) │     │ • cmake_configure / cmake_build        │
+└─────────────────┘     │ • run_configure / make_build           │
                         │ • bootstrap / autoreconf               │
+                        │ • run_command: Arbitrary shell commands │
+                        │ • test_build_script: Validate scripts   │
+                        │ • check_assembly: Assembly detection    │
                         │ • install_packages: Install deps       │
+                        │ • request_more_turns: Extend budget     │
                         │ • finish: Signal completion            │
                         │                                        │
-                        │ Loop (max 20 turns):                   │
+                        │ Loop (max 20 turns, extendable):       │
                         │ 1. Explore project structure           │
                         │ 2. Detect build system                 │
                         │ 3. Configure with flags                │
@@ -88,24 +92,27 @@ The build agent uses a ReAct (Reason + Act) loop where the LLM explores the proj
 
 ### 1. Unified Builder (`builder/builder.py`)
 
-A single `Builder` class handles CMake, autotools, and plain Makefile projects. The agent explores the project root to detect the build system and uses the appropriate tools.
+A single `Builder` class handles all build systems. The agent explores the project root to detect the build system and uses the appropriate tools.
 
 **ReAct Workflow:**
 1. `_get_initial_config_with_tools()`: LLM receives unified system prompt with all tools
-2. Enters `_execute_react_loop()` (max 20 turns)
+2. Enters `_execute_react_loop()` (max 20 turns, extendable up to 50 via `request_more_turns`)
 3. LLM explores project with tools (read_file, list_dir) to detect build system
-4. Configures and builds using appropriate tools (cmake_configure/cmake_build or run_configure/make_build)
+4. Configures and builds using appropriate tools (cmake, autotools, or run_command for others)
 5. Can install missing system dependencies via `install_packages`
-6. On successful build: calls `finish(status="success", dependencies=[...])`
-7. Returns dict with flags, build status, and validated dependencies
+6. For non-CMake/autotools: validates build via `test_build_script` before finishing
+7. On successful build: calls `finish(status="success", dependencies=[...], build_script=...)`
+8. Returns dict with flags, build status, validated dependencies, and build script
 
 **Features:**
-- **Unified build system support**: Single class handles CMake, autotools, and plain Makefile projects
+- **Unified build system support**: Single class handles CMake, autotools, Meson, Bazel, SCons, and custom builds
+- **Turn budget management**: Agent sees remaining turns, gets low-turn warnings, can request extensions
 - **Runtime dependency installation**: Agent can install missing packages via `install_packages`
 - **Dependency tracking**: Cross-validates agent-reported deps against actually installed packages
 - **Sandboxed file access**: All file operations restricted to project directory via `_validate_path()`
 - **Docker isolation**: All builds run in containers with LLVM 18, user permissions preserved
 - **Path fixing**: Container paths (`/workspace/src`, `/workspace/build`) mapped to host paths via `extract_compile_commands()`
+- **Soft preferences**: Clang 18, LTO, and static linking are preferred but the agent falls back if unsupported
 
 **Key class:** `Builder`
 
@@ -126,10 +133,8 @@ Builder(
 
 **Key methods:**
 - `learn_and_build()`: Main entry point, orchestrates entire workflow
-- `_get_initial_config()`: Routes to tool-enabled or simple workflow
-- `_get_initial_config_with_tools()`: Unified prompt for tool-enabled backends
-- `_get_initial_config_simple()`: Simple JSON prompt for non-tool backends
-- `_execute_react_loop()`: ReAct tool execution loop (max 20 turns)
+- `_get_initial_config_with_tools()`: Unified prompt with all tools
+- `_execute_react_loop()`: ReAct tool execution loop (max 20 turns, extendable)
 - `_execute_tool_safe()`: Routes tools to appropriate handlers
 - `extract_compile_commands()`: Fix Docker paths in compile_commands.json
 
@@ -148,23 +153,15 @@ RANLIB=llvm-ranlib-18
 
 ### 2. Error Analyzer (`builder/error_analyzer.py`)
 
-Uses LLM to diagnose build failures and suggest fixes with optional ReAct mode:
+Uses LLM with ReAct mode to diagnose build failures and suggest fixes:
 
-**Error Analysis Modes:**
-
-**ReAct Mode (tool-enabled backends):**
 - Uses `analyze_error_with_tools()` method
 - Can explore project files to investigate errors
 - Available tools: `read_file`, `list_dir` (build directory accessible via `"build/"`)
 - Iteratively investigates before suggesting fixes
 - Max 10 turns for exploration
 - Returns JSON with diagnosis and suggested fixes
-
-**Simple Mode (fallback):**
-- Direct LLM prompt with error output
-- CMake errors: `analyze_cmake_error()`
-- Build errors: `analyze_build_error()`
-- Single-turn analysis
+- Treats clang/LTO as soft preferences — suggests gcc fallback if clang causes errors
 
 **Error Types Handled:**
 - **CMake Configuration Errors:** Missing dependencies, invalid flags, incompatible options
@@ -217,7 +214,7 @@ Detects assembly code in build artifacts and filters out known unavoidable findi
 Centralizes all tool definitions in Anthropic format:
 
 - **TOOL_DEFINITIONS_READ_ONLY**: File exploration tools only (for error analysis)
-- **UNIFIED_TOOL_DEFINITIONS**: File tools + all build action tools + install_packages + finish
+- **UNIFIED_TOOL_DEFINITIONS**: File tools + all build action tools + run_command + test_build_script + check_assembly + install_packages + request_more_turns + finish
 
 Tool definitions are automatically converted to OpenAI format for backends that require it (e.g., llama.cpp).
 
@@ -284,6 +281,36 @@ Tool definitions are automatically converted to OpenAI format for backends that 
 - Runs `make distclean` to remove all generated files including Makefile
 - After distclean, must run run_configure again
 
+**Arbitrary Build System Tools:**
+
+**run_command(command, workdir="src")**
+- Runs an arbitrary shell command in Docker via `bash -c`
+- `command`: Shell command string
+- `workdir`: `"src"` for `/workspace/src`, `"build"` for `/workspace/build`
+- Use for Meson, Bazel, SCons, or custom build systems
+- Timeout: 10 minutes
+
+**test_build_script(script)**
+- Tests a build script from scratch in a clean temporary build directory
+- Validates that `compile_commands.json` is generated (required)
+- Runs assembly check on successful builds
+- On success: copies `compile_commands.json` and IR artifacts to the real build directory
+- Use after figuring out the build via `run_command` to verify reproducibility
+- Timeout: 20 minutes
+
+**check_assembly()**
+- Standalone assembly check for use after `run_command` builds
+- Searches for `compile_commands.json` in build and project directories
+- Not needed for CMake/autotools builds (assembly check runs automatically)
+
+**Turn Management:**
+
+**request_more_turns(reason)**
+- Requests 10 additional turns when running low
+- `reason`: Explanation of why more turns are needed
+- Maximum 3 extensions allowed (up to 50 total turns)
+- Denied after maximum extensions; agent must wrap up
+
 **Package Management:**
 
 **install_packages(packages)**
@@ -295,12 +322,15 @@ Tool definitions are automatically converted to OpenAI format for backends that 
 - Updates container image reference for subsequent build commands
 - Timeout: 2 minutes
 
-**finish(status, summary, dependencies=None)**
+**finish(status, summary, dependencies=None, build_script=None, build_system=None)**
 - Signals that the build task is complete
 - `status`: Either `"success"` or `"failure"`
 - `summary`: Brief description of what was accomplished or why it failed
 - `dependencies`: Optional list of apt package names that are actual build dependencies
   - Cross-validated: only packages that were both installed via `install_packages` AND reported here are stored
+- `build_script`: Validated build script content (from successful `test_build_script`), for custom build systems
+- `build_system`: Build system type (`"cmake"`, `"autotools"`, `"meson"`, `"bazel"`, `"scons"`, `"custom"`)
+- **State guard**: `finish(status="success")` is blocked unless a build has succeeded (cmake_build, make_build, or test_build_script)
 
 #### Security Sandboxing
 
@@ -311,7 +341,7 @@ All file tools enforce strict path validation via `BuildTools._validate_path()`:
 3. **Check containment**: Resolved path must be within allowed directories
 4. **Symlink escape detection**: Prevents symlinks pointing outside allowed directories
 
-**Key classes:** `BuildTools` (file exploration), `CMakeActions` (CMake build execution), `AutotoolsActions` (autotools build execution)
+**Key classes:** `BuildTools` (file exploration), `CMakeActions` (CMake build execution), `AutotoolsActions` (autotools build execution), `RunCommandAction` (arbitrary shell commands)
 
 ### 6. LLM Backends (`llm/`)
 
@@ -333,11 +363,7 @@ Multiple LLM backends are supported with varying capabilities:
   - Supports thinking mode control
   - Tool format conversion: Anthropic → OpenAI
 
-**Other Backends:**
-- **Ollama** (`llm/ollama.py`): Local Ollama server
-  - Default model: `qwen3-coder:30b`
-- **OpenAI** (`llm/openai.py`): OpenAI API
-  - Default model: `gpt-4`
+**Note:** All backends must support tool calling (ReAct mode). The simple/non-tool fallback path has been removed.
 
 ## Usage
 
@@ -396,7 +422,7 @@ llm-summary build-learn \
   --verbose
 ```
 
-**Using Ollama (local LLM, simple mode):**
+**Using Ollama (local LLM):**
 ```bash
 llm-summary build-learn \
   --project-path /path/to/project \
@@ -497,6 +523,9 @@ When the agent installs packages and finishes successfully:
 - libc++-18-dev, libc++abi-18-dev
 - CMake 3.28+, Ninja, Make
 - Autotools (autoconf, automake, libtool)
+- Meson, SCons
+- Bazelisk (auto-downloads correct Bazel version per project)
+- Python 3 with pip and venv
 - Bear (for compile_commands.json generation with make)
 - Git
 - Common dependencies (zlib, libssl, libpng, libjpeg)
@@ -520,24 +549,33 @@ When the agent installs packages and finishes successfully:
 
 ## LLM Prompts (`builder/builder.py`)
 
-### System Prompt (Tool-Enabled Backends)
+### System Prompt
 
 Defined in `builder.py:_get_initial_config_with_tools()`.
 
 The agent receives a system prompt instructing it to:
 
-1. **Explore** the project root to determine the build system
-2. **Choose** appropriate tools (cmake_configure/cmake_build or run_configure/make_build)
+1. **Explore** the project root to determine the build system (minimal — 2-3 reads max)
+2. **Choose** appropriate tools (cmake, autotools, or run_command for others)
 3. **Install** missing dependencies via `install_packages` when needed
-4. **Finish** with status and dependency list
+4. For Meson/Bazel/SCons/custom: validate via `test_build_script` before finishing
+5. **Finish** with status, dependency list, and build script
 
-**Build Requirements:**
+**Turn Budget:**
+- Agent is told the turn budget upfront (default 20 turns)
+- Low-turn warning injected at 5 turns remaining
+- Final-turn warning at 1 turn remaining
+- Agent can call `request_more_turns` for 10 extra turns (up to 3 extensions)
+
+**Build Requirements (mandatory):**
 - Generate compile_commands.json
-- Use Clang 18
-- Enable LLVM LTO
-- Prefer static linking
 - Disable SIMD/hardware optimizations to minimize assembly code
-- Generate LLVM IR with `-save-temps=obj`
+
+**Build Preferences (soft — fall back if unsupported):**
+- Prefer Clang 18 (fall back to gcc if project doesn't support clang)
+- Prefer LLVM LTO (disable if LTO causes build failures)
+- Prefer static libraries (allow shared if project requires them)
+- Prefer LLVM IR generation with `-save-temps=obj` (only when using clang with LTO)
 
 **Assembly Verification:**
 - After each successful build, assembly check runs automatically
@@ -547,14 +585,19 @@ The agent receives a system prompt instructing it to:
 - Agent uses `install_packages` when build fails due to missing headers/libraries
 - Reports installed dependencies via `finish(dependencies=[...])`
 
+**Workflows:**
+- CMake: explore → cmake_configure → cmake_build → finish
+- Autotools: explore → bootstrap/autoreconf → run_configure → make_build → finish
+- Meson/Bazel/SCons/custom: explore → run_command (trial and error) → test_build_script → finish(build_script=...)
+
 ### Error Analysis Prompts
 
-Defined in `prompts.py` and `error_analyzer.py`. Used in the retry loop when the initial ReAct build fails.
+Defined in `error_analyzer.py`. Used in the retry loop when the initial ReAct build fails.
 
-**ReAct Mode (tool-enabled backends):**
 - Can use read_file and list_dir to investigate errors
 - Max 10 turns for exploration
 - Returns JSON with diagnosis and fixes
+- Suggests gcc/LTO-disable fallbacks when appropriate
 
 
 ## Database Schema
@@ -565,7 +608,7 @@ Defined in `prompts.py` and `error_analyzer.py`. Used in the retry loop when the
 CREATE TABLE build_configs (
     project_path TEXT PRIMARY KEY,
     project_name TEXT NOT NULL,
-    build_system TEXT NOT NULL,       -- 'cmake', 'autotools', 'make'
+    build_system TEXT NOT NULL,       -- 'cmake', 'autotools', 'make', 'meson', 'bazel', 'scons', 'custom'
     configuration_json TEXT,          -- JSON with flags, options, and dependencies
     script_path TEXT,                 -- Path to generated build script
     artifacts_dir TEXT,               -- Path to LLVM IR artifacts
@@ -606,7 +649,7 @@ CREATE TABLE build_configs (
 **Contains:**
 - Project name and path
 - Build system type
-- Learned flags (cmake_flags or configure_flags)
+- Learned flags (cmake_flags or configure_flags) or `build_script` for custom builds
 - Generation timestamp
 - `dependencies`: List of apt packages required beyond the base image (if any)
 
@@ -705,15 +748,15 @@ export ANTHROPIC_API_KEY="your-api-key"
 
 **Cause:** LLM returns markdown-wrapped JSON (` ```json ... ``` `)
 
-**Solution:** Already handled by markdown stripping in `error_analyzer.py` and `builder.py`
+**Solution:** Already handled by markdown stripping in `builder.py`
 
 ## TODOs / Future Work
 
 ### Phase 2: Non-CMake Support
 - [x] Autotools support (`./configure` with Bear)
-- [ ] Meson support (`meson setup`)
-- [ ] Plain Make support (intercept with Bear)
-- [ ] Custom build script detection
+- [x] Arbitrary build system support via `run_command` + `test_build_script`
+- [x] Meson, Bazel, SCons support (via run_command)
+- [x] Custom build script detection and validation
 
 ### Phase 3: Advanced Configuration
 - [x] ReAct-style iterative building with tools
@@ -725,6 +768,8 @@ export ANTHROPIC_API_KEY="your-api-key"
 - [x] Assembly code detection and avoidance
 - [x] Runtime dependency installation via `install_packages`
 - [x] Dependency tracking and cross-validation
+- [x] Turn budget management with warnings and extensions
+- [x] Soft preferences for clang/LTO/static (graceful fallback)
 - [ ] Fuzzing harness detection
 - [ ] Enhanced ReAct features
   - [ ] Memory across sessions (save exploration results)
@@ -752,11 +797,10 @@ export ANTHROPIC_API_KEY="your-api-key"
 
 ## Known Limitations
 
-1. **CMake and Autotools Only**: Meson and plain Make projects not yet supported
-2. **No Fuzzing**: Fuzzing harness detection not implemented
-3. **Assembly from Dependencies**: While the agent can minimize assembly in the project itself through flags, inline assembly from third-party dependencies (e.g., BoringSSL crypto functions) cannot be eliminated. These are tracked as unavoidable.
-4. **English Only**: LLM prompts assume English build file comments
-5. **Single Architecture**: Builds for host architecture only (x86_64)
+1. **No Fuzzing**: Fuzzing harness detection not implemented
+2. **Assembly from Dependencies**: While the agent can minimize assembly in the project itself through flags, inline assembly from third-party dependencies (e.g., BoringSSL crypto functions) cannot be eliminated. These are tracked as unavoidable.
+3. **English Only**: LLM prompts assume English build file comments
+4. **Single Architecture**: Builds for host architecture only (x86_64)
 
 ## References
 
