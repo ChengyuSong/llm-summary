@@ -368,6 +368,9 @@ def truncate_messages(messages: list, max_tokens: int = 100000) -> list:
     """
     Truncate old messages to stay under token limit.
 
+    Messages are kept in assistant+user pairs to avoid orphaned tool_result
+    blocks that reference tool_use IDs from truncated assistant messages.
+
     Args:
         messages: List of message dicts
         max_tokens: Maximum token limit
@@ -384,22 +387,43 @@ def truncate_messages(messages: list, max_tokens: int = 100000) -> list:
     if len(messages) <= 3:
         return messages
 
-    # Keep first message and last N messages
-    truncated = [messages[0]]
-
-    # Add recent messages from the end
-    for msg in reversed(messages[1:]):
-        msg_tokens = estimate_tokens(json.dumps(msg.get("content", "")))
-        if current_tokens - msg_tokens < max_tokens:
-            truncated.insert(1, msg)
+    # Group messages after the first into (assistant, user) pairs.
+    # Each pair is an assistant message followed by its user response
+    # (which typically contains tool_result blocks).
+    first = messages[0]
+    rest = messages[1:]
+    pairs = []
+    i = 0
+    while i < len(rest):
+        if rest[i].get("role") == "assistant" and i + 1 < len(rest):
+            pairs.append((rest[i], rest[i + 1]))
+            i += 2
         else:
-            current_tokens -= msg_tokens
+            # Standalone message (shouldn't happen normally, but handle it)
+            pairs.append((rest[i],))
+            i += 1
 
-    if len(truncated) < len(messages):
-        # Add a marker that we truncated
-        truncated.insert(1, {
+    # Keep pairs from the end until we'd exceed the budget
+    kept_pairs = []
+    kept_tokens = estimate_tokens(json.dumps(first.get("content", "")))
+    for pair in reversed(pairs):
+        pair_tokens = sum(
+            estimate_tokens(json.dumps(m.get("content", ""))) for m in pair
+        )
+        if kept_tokens + pair_tokens > max_tokens and kept_pairs:
+            break
+        kept_pairs.insert(0, pair)
+        kept_tokens += pair_tokens
+
+    # Flatten pairs back to messages
+    truncated = [first]
+    dropped = len(pairs) - len(kept_pairs)
+    if dropped > 0:
+        truncated.append({
             "role": "user",
-            "content": f"[{len(messages) - len(truncated)} earlier messages truncated to save context]"
+            "content": f"[{dropped * 2} earlier messages truncated to save context]"
         })
+    for pair in kept_pairs:
+        truncated.extend(pair)
 
     return truncated

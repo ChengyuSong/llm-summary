@@ -19,6 +19,9 @@ from .constants import (
     DOCKER_WORKSPACE_SRC,
     MAX_CONTEXT_TOKENS,
     MAX_TURNS,
+    MAX_TURN_EXTENSIONS,
+    TURNS_EXTENSION,
+    TURNS_LOW_WARNING,
 )
 from .error_analyzer import BuildError, ErrorAnalyzer
 from .json_utils import parse_llm_json
@@ -146,6 +149,22 @@ class Builder:
                     "use_build_dir": use_build_dir,
                     "dependencies": result.get("dependencies", []),
                 }
+
+            # ReAct loop exhausted max turns without completing
+            if self.verbose:
+                print("\n[ReAct] Loop exhausted max turns without completing build")
+                print("[FAILED] Agent did not finish the build workflow in time")
+
+            return {
+                "success": False,
+                "flags": flags,
+                "build_system_used": build_system_used,
+                "attempts": 1,
+                "build_log": "ReAct loop exhausted max turns without completing build",
+                "error_messages": ["Agent ran out of turns before completing the build workflow"],
+                "use_build_dir": use_build_dir,
+                "dependencies": result.get("dependencies", []),
+            }
         else:
             # Simple mode returned a list of cmake flags
             flags = result
@@ -263,8 +282,11 @@ class Builder:
 
         system = f"""You are a build configuration expert. Build this project iteratively using the available tools.
 
+**Turn Budget:** You have {MAX_TURNS} tool-use turns to complete the build. Be efficient — minimize exploratory reads and move to building quickly. If you recognize the project or build system, skip unnecessary exploration. You will be warned when turns are running low. If you need more turns (e.g., complex build with many dependencies), call the request_more_turns tool with a reason.
+
 **Step 1 - Explore the project root** to determine the build system:
 - Use list_dir and read_file to examine the project structure
+- Keep exploration minimal — 2-3 reads max before starting the build
 
 **Step 2 - Choose the appropriate build approach:**
 - If `CMakeLists.txt` exists → prefer cmake_configure + cmake_build (generates compile_commands.json natively)
@@ -296,6 +318,7 @@ Return JSON configuration directly:
 - test_build_script: Test a build script from scratch in a clean temp dir (verifies compile_commands.json)
 - check_assembly: Explicit assembly check after run_command builds
 - install_packages: Install system packages (apt) when build fails due to missing headers/libraries
+- request_more_turns: Request additional turns if running low and still making progress
 - finish: Signal completion (MUST call this when done)
 
 **IMPORTANT**: All file/directory paths in tools must be RELATIVE to project root (e.g., ".", "cmake/", "src/config.h", "build/compile_commands.json"). The build directory is accessible at "build/". Absolute paths are not allowed.
@@ -358,7 +381,7 @@ If you recognize this project, leverage your knowledge of its typical build requ
         if self.verbose:
             print("[LLM] Requesting initial configuration (unified mode)...")
             print(f"[LLM] Project: {project_name}")
-            print("[LLM] Available tools: read_file, list_dir, cmake_configure, cmake_build, bootstrap, autoreconf, run_configure, make_build, make_clean, make_distclean, run_command, test_build_script, check_assembly, install_packages, finish")
+            print("[LLM] Available tools: read_file, list_dir, cmake_configure, cmake_build, bootstrap, autoreconf, run_configure, make_build, make_clean, make_distclean, run_command, test_build_script, check_assembly, install_packages, request_more_turns, finish")
 
         if self.log_file:
             with open(self.log_file, "a") as f:
@@ -479,6 +502,7 @@ If you recognize this project, leverage your knowledge of its typical build requ
             'build_script'
         """
         max_turns = MAX_TURNS
+        turn_extensions_used = 0
         configure_succeeded = False
         build_succeeded = False
         react_terminated = False
@@ -501,8 +525,9 @@ If you recognize this project, leverage your knowledge of its typical build requ
         make_configured = False  # run_configure succeeded (Makefile exists)
 
         response = initial_response
+        turn = 0
 
-        for turn in range(max_turns):
+        while turn < max_turns:
             if response.stop_reason in ("end_turn", "stop"):
                 if not build_succeeded:
                     react_terminated = True
@@ -545,6 +570,7 @@ If you recognize this project, leverage your knowledge of its typical build requ
                             block.name, block.input,
                             cmake_configured, make_configured,
                             build_succeeded,
+                            build_system_used=build_system_used,
                         )
 
                         if result is None:
@@ -605,7 +631,6 @@ If you recognize this project, leverage your knowledge of its typical build requ
                             build_succeeded = False
                         elif block.name == "test_build_script" and result.get("success"):
                             build_succeeded = True
-                            build_system_used = "custom"
                             if self.verbose:
                                 print("[ReAct] test_build_script succeeded — build validated")
                         elif block.name == "install_packages" and result.get("success"):
@@ -617,15 +642,39 @@ If you recognize this project, leverage your knowledge of its typical build requ
                                 installed_packages.update(block.input.get("packages", []))
                                 if self.verbose:
                                     print(f"[ReAct] Updated container image to {new_image}")
+                        elif block.name == "request_more_turns":
+                            if turn_extensions_used < MAX_TURN_EXTENSIONS:
+                                max_turns += TURNS_EXTENSION
+                                turn_extensions_used += 1
+                                reason = block.input.get("reason", "")
+                                result = {
+                                    "granted": True,
+                                    "extra_turns": TURNS_EXTENSION,
+                                    "new_max_turns": max_turns,
+                                    "remaining_turns": max_turns - turn - 1,
+                                    "extensions_remaining": MAX_TURN_EXTENSIONS - turn_extensions_used,
+                                }
+                                if self.verbose:
+                                    print(f"[ReAct] Granted {TURNS_EXTENSION} extra turns (reason: {reason})")
+                                    print(f"[ReAct] New max: {max_turns}, remaining: {max_turns - turn - 1}")
+                            else:
+                                result = {
+                                    "granted": False,
+                                    "error": f"Maximum extensions ({MAX_TURN_EXTENSIONS}) already used. Wrap up and call finish.",
+                                    "remaining_turns": max_turns - turn - 1,
+                                }
+                                if self.verbose:
+                                    print("[ReAct] Denied turn extension — max extensions reached")
                         elif block.name == "finish":
                             finished = True
                             finish_status = block.input.get("status")
                             finish_summary = block.input.get("summary")
-                            if finish_status == "success":
-                                build_succeeded = True
                             # Capture build_script if provided
                             if block.input.get("build_script"):
                                 build_script = block.input["build_script"]
+                            # Agent-reported build system overrides auto-detected
+                            if block.input.get("build_system"):
+                                build_system_used = block.input["build_system"]
                             # Cross-validate: only keep deps that were actually installed
                             reported_deps = block.input.get("dependencies", [])
                             dependencies = [
@@ -634,6 +683,8 @@ If you recognize this project, leverage your knowledge of its typical build requ
                             if self.verbose:
                                 print(f"[ReAct] LLM called finish: status={finish_status}")
                                 print(f"[ReAct] Summary: {finish_summary}")
+                                if block.input.get("build_system"):
+                                    print(f"[ReAct] Build system: {build_system_used}")
                                 if reported_deps:
                                     print(f"[ReAct] Reported dependencies: {reported_deps}")
                                     print(f"[ReAct] Validated dependencies: {dependencies}")
@@ -647,6 +698,33 @@ If you recognize this project, leverage your knowledge of its typical build requ
                         })
 
                 messages.append({"role": "assistant", "content": assistant_content})
+
+                # Inject turn budget warning when running low
+                # Appended to last tool result's content to stay compatible with
+                # all backends (OpenAI-compatible APIs reject mixed content types)
+                remaining_turns = max_turns - turn - 1
+                warning = None
+                if remaining_turns == TURNS_LOW_WARNING and not build_succeeded:
+                    warning = (
+                        f"\n\n[SYSTEM WARNING] You have {remaining_turns} turns remaining. "
+                        "Wrap up exploration and focus on completing the build. "
+                        "If you need more turns, call request_more_turns now. "
+                        "You MUST call finish() before running out of turns."
+                    )
+                    if self.verbose:
+                        print(f"[ReAct] Injected low-turn warning ({remaining_turns} turns left)")
+                elif remaining_turns == 1 and not build_succeeded:
+                    warning = (
+                        "\n\n[SYSTEM WARNING] This is your LAST turn. "
+                        "Call finish(status='failure', summary='...') now to report what you accomplished."
+                    )
+                    if self.verbose:
+                        print("[ReAct] Injected final-turn warning")
+
+                if warning and tool_results:
+                    last = tool_results[-1]
+                    last["content"] = last.get("content", "") + warning
+
                 messages.append({"role": "user", "content": tool_results})
 
                 if finished:
@@ -720,6 +798,8 @@ If you recognize this project, leverage your knowledge of its typical build requ
                     print(f"[ReAct] Unexpected stop reason: {response.stop_reason}")
                 break
 
+            turn += 1
+
         if not final_flags:
             final_flags = self._get_default_cmake_config()
 
@@ -743,6 +823,7 @@ If you recognize this project, leverage your knowledge of its typical build requ
         cmake_configured: bool,
         make_configured: bool,
         build_succeeded: bool,
+        build_system_used: str = "unknown",
     ) -> dict | None:
         """Check state machine constraints before executing a tool.
 
@@ -754,6 +835,8 @@ If you recognize this project, leverage your knowledge of its typical build requ
         - run_configure: requires make_distclean first if already configured
         - make_build: requires run_configure first (unless Makefile-only with use_build_dir=false)
         - make_clean/make_distclean: always allowed
+        - finish(status=success): requires build_succeeded
+          (cmake_build, make_build, or test_build_script must have succeeded)
         """
         if tool_name == "cmake_build" and not cmake_configured:
             if self.verbose:
@@ -780,6 +863,21 @@ If you recognize this project, leverage your knowledge of its typical build requ
             if self.verbose:
                 print("[Guard] Blocked make_build — run_configure required first")
             return {"error": "Run run_configure before make_build."}
+
+        if tool_name == "finish" and tool_input.get("status") == "success" and not build_succeeded:
+            if build_system_used == "cmake":
+                msg = "Run cmake_build before finishing with success."
+            elif build_system_used in ("configure_make", "make"):
+                msg = "Run make_build before finishing with success."
+            else:
+                msg = (
+                    "No validated build. Call test_build_script with your build "
+                    "commands to verify the build is reproducible and generates "
+                    "compile_commands.json, then call finish."
+                )
+            if self.verbose:
+                print("[Guard] Blocked finish(success) — build not validated")
+            return {"error": msg}
 
         return None
 
@@ -876,6 +974,9 @@ If you recognize this project, leverage your knowledge of its typical build requ
                     "status": tool_input.get("status"),
                     "summary": tool_input.get("summary"),
                 }
+            # Request more turns (handled by state machine in _execute_react_loop)
+            elif tool_name == "request_more_turns":
+                return {"acknowledged": True}
             else:
                 return {"error": f"Unknown tool: {tool_name}"}
         except ValueError as e:

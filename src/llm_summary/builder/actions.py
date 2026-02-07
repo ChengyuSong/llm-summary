@@ -1112,8 +1112,37 @@ FINISH_TOOL_DEFINITION = {
                     "Include this for non-CMake/non-Autotools builds so the script can be reproduced."
                 ),
             },
+            "build_system": {
+                "type": "string",
+                "enum": ["cmake", "autotools", "meson", "bazel", "scons", "custom"],
+                "description": (
+                    "The build system used. 'cmake' and 'autotools' are auto-detected from "
+                    "structured tools. For other build systems, report the type: 'meson', "
+                    "'bazel', 'scons', or 'custom' if truly unknown."
+                ),
+            },
         },
         "required": ["status", "summary"],
+    },
+}
+
+# Request more turns tool
+REQUEST_MORE_TURNS_TOOL_DEFINITION = {
+    "name": "request_more_turns",
+    "description": (
+        "Request additional turns when running low. Use this when you are making progress "
+        "but need more turns to complete the build (e.g., complex project with many "
+        "dependencies, multiple build iterations needed). Grants 10 extra turns per call."
+    ),
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "reason": {
+                "type": "string",
+                "description": "Brief explanation of why more turns are needed and what remains to be done.",
+            },
+        },
+        "required": ["reason"],
     },
 }
 

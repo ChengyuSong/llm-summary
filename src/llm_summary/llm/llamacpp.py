@@ -182,6 +182,7 @@ class LlamaCppBackend(LLMBackend):
 
             # Handle tool results in Anthropic format (user role with tool_result content)
             if role == "user" and isinstance(content, list):
+                user_text_parts = []
                 for item in content:
                     if isinstance(item, dict) and item.get("type") == "tool_result":
                         # Convert to OpenAI tool message
@@ -190,10 +191,17 @@ class LlamaCppBackend(LLMBackend):
                             "tool_call_id": item.get("tool_use_id"),
                             "content": item.get("content", "")
                         })
+                    elif isinstance(item, dict) and item.get("type") == "text":
+                        user_text_parts.append(item.get("text", ""))
                     else:
-                        # Regular user message content, pass through
+                        # Unknown content type, pass through as user message
                         openai_messages.append(msg)
                         break
+                if user_text_parts:
+                    openai_messages.append({
+                        "role": "user",
+                        "content": "\n".join(user_text_parts),
+                    })
             # Handle assistant messages with tool uses in Anthropic format
             elif role == "assistant" and isinstance(content, list):
                 # Build OpenAI assistant message format
