@@ -60,7 +60,7 @@ def run_build_learn(
             cmd,
             capture_output=True,
             text=True,
-            timeout=1200,  # 10 minute timeout per project
+            timeout=1800,  # 10 minute timeout per project
         )
 
         duration = (datetime.now() - start_time).total_seconds()
