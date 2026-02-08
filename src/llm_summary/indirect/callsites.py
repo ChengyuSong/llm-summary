@@ -76,9 +76,9 @@ class IndirectCallsiteFinder:
 
         # Load file contents
         try:
-            with open(file_path, "r", encoding="utf-8", errors="replace") as f:
+            with open(file_path, encoding="utf-8", errors="replace") as f:
                 self._file_contents[str(file_path)] = f.read().splitlines()
-        except (OSError, IOError):
+        except OSError:
             self._file_contents[str(file_path)] = []
 
         callsites = []
@@ -254,9 +254,7 @@ class IndirectCallsiteFinder:
         """Get the expected signature for the call."""
         result_type = call_cursor.type.spelling
 
-        # Count arguments
         children = list(call_cursor.get_children())
-        arg_count = len(children) - 1  # First child is callee
 
         # Try to get argument types
         arg_types = []

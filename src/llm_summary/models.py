@@ -5,6 +5,18 @@ from enum import Enum
 from typing import Any
 
 
+class TargetType(str, Enum):
+    """Type of indirect call target."""
+
+    ADDRESS_TAKEN = "address_taken"
+    VIRTUAL_METHOD = "virtual_method"
+    CONSTRUCTOR_ATTR = "constructor_attr"
+    DESTRUCTOR_ATTR = "destructor_attr"
+    SECTION_PLACED = "section_placed"
+    IFUNC = "ifunc"
+    WEAK_SYMBOL = "weak_symbol"
+
+
 class AllocationType(str, Enum):
     """Type of memory allocation."""
 
@@ -115,6 +127,7 @@ class AddressTakenFunction:
 
     function_id: int
     signature: str
+    target_type: str = "address_taken"
     id: int | None = None
 
 

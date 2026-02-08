@@ -852,6 +852,160 @@ def show_indirect(db_path, fmt):
         db.close()
 
 
+@main.command()
+@click.option("--compile-commands", "compile_commands_path", type=click.Path(exists=True), required=True,
+              help="Path to compile_commands.json")
+@click.option("--db", "db_path", default="summaries.db", help="Database file path")
+@click.option("--verbose", "-v", is_flag=True, help="Verbose output")
+def scan(compile_commands_path, db_path, verbose):
+    """Extract functions, scan indirect call targets, and find callsites (no LLM).
+
+    This command runs the pre-LLM scanner phases:
+    1. Extract all functions from source files
+    2. Scan for indirect call targets (address-taken, virtual, attributes)
+    3. Find indirect callsites
+
+    Example:
+        llm-summary scan --compile-commands build/compile_commands.json --db out.db
+    """
+    from collections import Counter
+
+    from rich.progress import BarColumn, MofNCompleteColumn, TaskProgressColumn, TimeElapsedColumn
+
+    from .models import TargetType
+
+    # Load compile_commands.json
+    try:
+        compile_commands = CompileCommandsDB(compile_commands_path)
+    except Exception as e:
+        console.print(f"[red]Failed to load compile_commands.json: {e}[/red]")
+        return
+
+    # Filter to C/C++ source files
+    c_extensions = {".c", ".cpp", ".cc", ".cxx", ".c++"}
+    all_files = compile_commands.get_all_files()
+    source_files = [
+        f for f in all_files
+        if Path(f).suffix.lower() in c_extensions
+    ]
+
+    if not source_files:
+        console.print("[red]No C/C++ source files found in compile_commands.json[/red]")
+        return
+
+    console.print(f"Loaded compile_commands.json: {len(all_files)} entries, {len(source_files)} C/C++ source files")
+
+    db = SummaryDB(db_path)
+
+    try:
+        # Phase 1: Extract functions
+        console.print("\n[bold]Phase 1: Extracting functions[/bold]")
+
+        extractor = FunctionExtractor(compile_commands=compile_commands)
+        all_functions = []
+        extract_errors = 0
+
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            BarColumn(),
+            MofNCompleteColumn(),
+            TimeElapsedColumn(),
+            console=console,
+        ) as progress:
+            task = progress.add_task("Extracting...", total=len(source_files))
+
+            for f in source_files:
+                try:
+                    functions = extractor.extract_from_file(f)
+                    all_functions.extend(functions)
+                    if verbose:
+                        progress.console.print(f"  {Path(f).name}: {len(functions)} functions")
+                except Exception as e:
+                    extract_errors += 1
+                    if verbose:
+                        progress.console.print(f"  [yellow]{Path(f).name}: {e}[/yellow]")
+                progress.advance(task)
+
+        db.insert_functions_batch(all_functions)
+        console.print(f"  Functions: {len(all_functions)}")
+        if extract_errors:
+            console.print(f"  [yellow]Errors: {extract_errors}[/yellow]")
+
+        # Phase 2: Scan for indirect call targets
+        console.print("\n[bold]Phase 2: Scanning indirect call targets[/bold]")
+
+        scanner = AddressTakenScanner(db, compile_commands=compile_commands)
+
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            BarColumn(),
+            MofNCompleteColumn(),
+            TimeElapsedColumn(),
+            console=console,
+        ) as progress:
+            task = progress.add_task("Scanning...", total=len(source_files))
+
+            for f in source_files:
+                try:
+                    scanner.scan_files([f])
+                except Exception as e:
+                    if verbose:
+                        progress.console.print(f"  [yellow]{Path(f).name}: {e}[/yellow]")
+                progress.advance(task)
+
+        # Count targets by type
+        atfs = db.get_address_taken_functions()
+        type_counts: Counter[str] = Counter()
+        for atf in atfs:
+            type_counts[atf.target_type] += 1
+
+        console.print(f"  Total targets: {len(atfs)}")
+        for tt in TargetType:
+            count = type_counts.get(tt.value, 0)
+            if count > 0:
+                console.print(f"    {tt.value}: {count}")
+
+        # Phase 3: Find indirect callsites
+        console.print("\n[bold]Phase 3: Finding indirect callsites[/bold]")
+
+        finder = IndirectCallsiteFinder(db, compile_commands=compile_commands)
+
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            BarColumn(),
+            MofNCompleteColumn(),
+            TimeElapsedColumn(),
+            console=console,
+        ) as progress:
+            task = progress.add_task("Finding callsites...", total=len(source_files))
+
+            all_callsites = []
+            for f in source_files:
+                try:
+                    callsites = finder.find_in_files([f])
+                    all_callsites.extend(callsites)
+                except Exception as e:
+                    if verbose:
+                        progress.console.print(f"  [yellow]{Path(f).name}: {e}[/yellow]")
+                progress.advance(task)
+
+        console.print(f"  Indirect callsites: {len(all_callsites)}")
+
+        # Summary
+        console.print(f"\n[bold]Summary[/bold]")
+        console.print(f"  Source files: {len(source_files)}")
+        console.print(f"  Functions: {len(all_functions)}")
+        console.print(f"  Indirect call targets: {len(atfs)}")
+        console.print(f"  Indirect callsites: {len(all_callsites)}")
+        console.print(f"  Database: {db_path}")
+
+    finally:
+        db.close()
+
+
 @main.command("build-learn")
 @click.option("--project-path", type=click.Path(exists=True), required=True, help="Path to the project to build")
 @click.option("--build-dir", type=click.Path(), default=None, help="Custom build directory (default: <project-path>/build)")

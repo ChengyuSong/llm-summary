@@ -4,8 +4,9 @@ from ..db import SummaryDB
 from ..llm.base import LLMBackend
 from ..models import AddressFlowSummary, IndirectCallsite, IndirectCallTarget
 
-
-INDIRECT_CALL_PROMPT = """You are analyzing indirect function calls in C/C++ code to determine which functions could be called.
+INDIRECT_CALL_PROMPT = """\
+You are analyzing indirect function calls in C/C++ code \
+to determine which functions could be called.
 
 ## Indirect Call Site
 
@@ -46,7 +47,8 @@ Respond in JSON format:
 }}
 ```
 
-Only include functions that could realistically be called. If no candidates seem likely, return an empty targets array.
+Only include functions that could realistically be called. \
+If no candidates seem likely, return an empty targets array.
 """
 
 

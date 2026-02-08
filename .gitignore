@@ -47,3 +47,6 @@ Thumbs.db
 
 # Build artifacts
 build-scripts/
+
+# Scan output
+func-scans/

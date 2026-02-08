@@ -7,7 +7,7 @@ from clang.cindex import Cursor, CursorKind
 from ..compile_commands import CompileCommandsDB
 from ..db import SummaryDB
 from ..extractor import FunctionExtractorWithBodies, get_type_spelling
-from ..models import AddressFlow, AddressTakenFunction
+from ..models import AddressFlow, AddressTakenFunction, TargetType
 
 
 class AddressTakenScanner:
@@ -71,9 +71,9 @@ class AddressTakenScanner:
 
         # Load file contents for context extraction
         try:
-            with open(file_path, "r", encoding="utf-8", errors="replace") as f:
+            with open(file_path, encoding="utf-8", errors="replace") as f:
                 self._file_contents[str(file_path)] = f.read().splitlines()
-        except (OSError, IOError):
+        except OSError:
             self._file_contents[str(file_path)] = []
 
         self._scan_cursor(tu.cursor, str(file_path))
@@ -100,6 +100,15 @@ class AddressTakenScanner:
                 # Use meaningful_parent (skipping UNEXPOSED_EXPR wrappers)
                 parent_to_check = meaningful_parent if meaningful_parent else cursor
                 self._check_function_reference(child, main_file, parent_to_check)
+
+            # Check function definitions for attributes
+            elif child.kind == CursorKind.FUNCTION_DECL and child.is_definition():
+                self._check_function_attributes(child, main_file)
+
+            # Check C++ virtual methods and destructors
+            elif child.kind in (CursorKind.CXX_METHOD, CursorKind.DESTRUCTOR):
+                if child.is_definition():
+                    self._check_virtual_method(child, main_file)
 
             # Track context for flow analysis
             new_context = context
@@ -322,6 +331,92 @@ class AddressTakenScanner:
                 if base and base.kind == CursorKind.DECL_REF_EXPR:
                     return f"array:{base.spelling}"
         return None
+
+    def _check_function_attributes(self, cursor: Cursor, file_path: str) -> None:
+        """Check function definition for constructor/destructor/weak/section/ifunc attributes."""
+        func_name = cursor.spelling
+        if func_name not in self._function_map:
+            return
+
+        for child in cursor.get_children():
+            if child.kind != CursorKind.UNEXPOSED_ATTR:
+                continue
+
+            # Tokenize the attribute to get its name
+            tokens = list(child.get_tokens())
+            attr_text = " ".join(t.spelling for t in tokens).lower()
+
+            if "constructor" in attr_text:
+                self._record_target(cursor, file_path, TargetType.CONSTRUCTOR_ATTR)
+            elif "destructor" in attr_text:
+                self._record_target(cursor, file_path, TargetType.DESTRUCTOR_ATTR)
+            elif "weak" in attr_text:
+                self._record_target(cursor, file_path, TargetType.WEAK_SYMBOL)
+            elif "ifunc" in attr_text:
+                self._record_target(cursor, file_path, TargetType.IFUNC)
+            elif "section" in attr_text:
+                # Check for .init/.fini/.ctors/.dtors sections
+                for tok in tokens:
+                    s = tok.spelling.strip('"')
+                    if any(
+                        s.startswith(prefix)
+                        for prefix in (".init", ".fini", ".ctors", ".dtors")
+                    ):
+                        self._record_target(cursor, file_path, TargetType.SECTION_PLACED)
+                        break
+
+    def _check_virtual_method(self, cursor: Cursor, file_path: str) -> None:
+        """Check if a C++ method is virtual."""
+        if cursor.is_virtual_method():
+            func_name = self._get_qualified_name(cursor)
+            if func_name not in self._function_map:
+                # Also try unqualified name
+                if cursor.spelling not in self._function_map:
+                    return
+            self._record_target(cursor, file_path, TargetType.VIRTUAL_METHOD)
+
+    def _get_qualified_name(self, cursor: Cursor) -> str:
+        """Get the fully qualified name for a method."""
+        parts = []
+        c = cursor
+        while c:
+            if c.kind in (
+                CursorKind.FUNCTION_DECL,
+                CursorKind.CXX_METHOD,
+                CursorKind.CONSTRUCTOR,
+                CursorKind.DESTRUCTOR,
+                CursorKind.NAMESPACE,
+                CursorKind.CLASS_DECL,
+                CursorKind.STRUCT_DECL,
+            ):
+                if c.spelling:
+                    parts.append(c.spelling)
+            c = c.semantic_parent
+        parts.reverse()
+        return "::".join(parts) if len(parts) > 1 else (parts[0] if parts else "")
+
+    def _record_target(
+        self, func_cursor: Cursor, file_path: str, target_type: TargetType
+    ) -> None:
+        """Record a function as an indirect call target with a specific type."""
+        func_name = func_cursor.spelling
+        # Try qualified name for C++ methods
+        qualified_name = self._get_qualified_name(func_cursor)
+        func_id = self._function_map.get(qualified_name) or self._function_map.get(func_name)
+        if func_id is None:
+            return
+
+        signature = get_type_spelling(func_cursor)
+
+        atf = AddressTakenFunction(
+            function_id=func_id,
+            signature=signature,
+            target_type=target_type.value,
+        )
+        try:
+            self.db.add_address_taken_function(atf)
+        except Exception:
+            pass  # Already recorded
 
     def _get_context_snippet(self, file_path: str, line: int, context_lines: int = 3) -> str:
         """Get surrounding lines for context."""

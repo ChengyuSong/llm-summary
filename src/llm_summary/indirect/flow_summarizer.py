@@ -7,7 +7,6 @@ from ..db import SummaryDB
 from ..llm.base import LLMBackend
 from ..models import AddressFlowSummary, FlowDestination
 
-
 FLOW_SUMMARY_PROMPT = """You are analyzing where a function pointer flows in C/C++ code.
 
 ## Key Insight

@@ -95,9 +95,21 @@ flags = cc.get_compile_flags("/path/to/source.c")
 
 ### 2. Address-Taken Scanner (`indirect/scanner.py`)
 
-Finds functions whose addresses are taken.
+Finds functions that may be called indirectly. Each target is tagged with a `TargetType`.
 
-**Detected patterns:**
+**Target types (`TargetType` enum):**
+
+| Type | Detection | Example |
+|------|-----------|---------|
+| `address_taken` | `&func`, implicit conversion, passed as arg | `callback = handler; register(handler)` |
+| `virtual_method` | `cursor.is_virtual_method()` | `virtual void on_event()` |
+| `constructor_attr` | `__attribute__((constructor))` | Init functions called before `main()` |
+| `destructor_attr` | `__attribute__((destructor))` | Cleanup functions called after `main()` |
+| `section_placed` | `__attribute__((section(".init*"/".fini*"/".ctors"/".dtors")))` | Linker-called functions |
+| `ifunc` | `__attribute__((ifunc("resolver")))` | GNU indirect function resolvers |
+| `weak_symbol` | `__attribute__((weak))` | Override-able default implementations |
+
+**Detected address-taken patterns:**
 - Explicit address-of: `&function`
 - Implicit conversion: `callback = function`
 - Passed as argument: `register(function)`
@@ -105,7 +117,7 @@ Finds functions whose addresses are taken.
 - Array initialization: `handlers[0] = function`
 
 **Output:**
-- `address_taken_functions` table: function ID and signature
+- `address_taken_functions` table: function ID, signature, and target_type
 - `address_flows` table: where each address flows to
 
 ### 3. Indirect Callsite Finder (`indirect/callsites.py`)
@@ -188,8 +200,8 @@ CREATE TABLE address_flow_summaries (
 ### Existing Tables Used
 
 ```sql
--- Functions whose addresses are taken
-address_taken_functions (id, function_id, signature)
+-- Functions whose addresses are taken (with target type)
+address_taken_functions (id, function_id, signature, target_type)
 
 -- Where function addresses flow to (static analysis)
 address_flows (id, function_id, flow_target, file_path, line_number, context_snippet)
@@ -203,7 +215,20 @@ indirect_call_targets (callsite_id, target_function_id, confidence, llm_reasonin
 
 ## CLI Usage
 
-### Full Analysis
+### Scan (No LLM)
+
+Extract functions, scan for all indirect call target types, and find callsites without requiring an LLM backend:
+
+```bash
+llm-summary scan \
+  --compile-commands build/compile_commands.json \
+  --db out.db \
+  --verbose
+```
+
+Output includes target counts broken down by `TargetType`.
+
+### Full Analysis (with LLM)
 
 ```bash
 llm-summary indirect-analyze \
@@ -224,6 +249,16 @@ llm-summary indirect-analyze --path src/ --db out.db --pass1-only
 # Later, run only Pass 2 (resolution)
 llm-summary indirect-analyze --path src/ --db out.db --pass2-only
 ```
+
+### Batch Scan (All Projects)
+
+Scan all projects in `build-scripts/` that have `compile_commands.json`:
+
+```bash
+python scripts/batch_scan_targets.py --verbose
+```
+
+Produces `scan_report_<timestamp>.json` with per-project and aggregate statistics.
 
 ### View Results
 
@@ -272,7 +307,7 @@ Tested on libpng with ground truth from LLVM IR analysis:
 - [ ] **Signature compatibility checking**: Currently uses exact match; should support compatible signatures (e.g., `void*` vs `char*`)
 - [ ] **Candidate deduplication**: Handle multiple definitions of same function
 - [ ] **Better callee expression extraction**: Improve `(*unknown)` cases to extract actual expression
-- [ ] **Virtual method support**: C++ virtual calls need vtable analysis
+- [x] **Virtual method support**: C++ virtual methods detected via `is_virtual_method()`
 
 ### TODO: Medium-term
 
@@ -294,10 +329,11 @@ Tested on libpng with ground truth from LLVM IR analysis:
 |------|---------|
 | `compile_commands.py` | Parse compile_commands.json |
 | `indirect/__init__.py` | Package exports |
-| `indirect/scanner.py` | Find address-taken functions |
+| `indirect/scanner.py` | Find address-taken functions and other indirect call targets |
 | `indirect/callsites.py` | Find indirect callsites |
 | `indirect/flow_summarizer.py` | Pass 1: LLM flow analysis |
 | `indirect/resolver.py` | Pass 2: LLM call resolution |
-| `models.py` | FlowDestination, AddressFlowSummary |
+| `models.py` | TargetType, FlowDestination, AddressFlowSummary |
 | `db.py` | Database schema and methods |
-| `cli.py` | indirect-analyze, show-indirect commands |
+| `cli.py` | scan, indirect-analyze, show-indirect commands |
+| `scripts/batch_scan_targets.py` | Batch scan all built projects |

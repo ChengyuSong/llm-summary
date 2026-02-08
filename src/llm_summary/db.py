@@ -19,6 +19,7 @@ from .models import (
     IndirectCallsite,
     IndirectCallTarget,
     ParameterInfo,
+    TargetType,
 )
 
 SCHEMA = """
@@ -62,7 +63,8 @@ CREATE TABLE IF NOT EXISTS address_taken_functions (
     id INTEGER PRIMARY KEY,
     function_id INTEGER REFERENCES functions(id) ON DELETE CASCADE,
     signature TEXT NOT NULL,
-    UNIQUE(function_id)
+    target_type TEXT NOT NULL DEFAULT 'address_taken',
+    UNIQUE(function_id, target_type)
 );
 
 -- Where function addresses flow to
@@ -156,6 +158,21 @@ class SummaryDB:
         """Initialize database schema."""
         self.conn.executescript(SCHEMA)
         self.conn.commit()
+        self._migrate_schema()
+
+    def _migrate_schema(self) -> None:
+        """Apply schema migrations for existing databases."""
+        # Add target_type column to address_taken_functions if missing
+        cursor = self.conn.execute("PRAGMA table_info(address_taken_functions)")
+        columns = {row[1] for row in cursor.fetchall()}
+        if "target_type" not in columns:
+            self.conn.execute(
+                "ALTER TABLE address_taken_functions ADD COLUMN target_type TEXT NOT NULL DEFAULT 'address_taken'"
+            )
+            # Recreate unique index to include target_type
+            # Drop old unique constraint by recreating the table is complex;
+            # instead just create a new unique index (old UNIQUE(function_id) stays as-is for old DBs)
+            self.conn.commit()
 
     def close(self) -> None:
         """Close the database connection."""
@@ -499,33 +516,42 @@ class SummaryDB:
         """Add an address-taken function."""
         cursor = self.conn.execute(
             """
-            INSERT OR REPLACE INTO address_taken_functions (function_id, signature)
-            VALUES (?, ?)
+            INSERT OR REPLACE INTO address_taken_functions (function_id, signature, target_type)
+            VALUES (?, ?, ?)
             """,
-            (atf.function_id, atf.signature),
+            (atf.function_id, atf.signature, atf.target_type),
         )
         self.conn.commit()
         return cursor.lastrowid
 
     def get_address_taken_functions(
-        self, signature: str | None = None
+        self,
+        signature: str | None = None,
+        target_type: str | None = None,
     ) -> list[AddressTakenFunction]:
-        """Get address-taken functions, optionally filtered by signature."""
+        """Get address-taken functions, optionally filtered by signature and/or target_type."""
+        query = "SELECT * FROM address_taken_functions"
+        conditions = []
+        params: list[str] = []
+
         if signature:
-            rows = self.conn.execute(
-                "SELECT * FROM address_taken_functions WHERE signature = ?",
-                (signature,),
-            ).fetchall()
-        else:
-            rows = self.conn.execute(
-                "SELECT * FROM address_taken_functions"
-            ).fetchall()
+            conditions.append("signature = ?")
+            params.append(signature)
+        if target_type:
+            conditions.append("target_type = ?")
+            params.append(target_type)
+
+        if conditions:
+            query += " WHERE " + " AND ".join(conditions)
+
+        rows = self.conn.execute(query, params).fetchall()
 
         return [
             AddressTakenFunction(
                 id=row["id"],
                 function_id=row["function_id"],
                 signature=row["signature"],
+                target_type=row["target_type"],
             )
             for row in rows
         ]
