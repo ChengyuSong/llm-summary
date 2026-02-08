@@ -352,35 +352,35 @@
   {
     "name": "Joomla",
     "url": "https://github.com/joomla/joomla-cms",
-    "tier": 1,
+    "tier": 3,
     "area": "Popular CMS platforms",
     "project_dir": "joomla"
   },
   {
     "name": "Drupal",
     "url": "https://github.com/drupal/drupal",
-    "tier": 1,
+    "tier": 3,
     "area": "Popular CMS platforms",
     "project_dir": "drupal"
   },
   {
     "name": "Magento",
     "url": "https://github.com/magento/magento2",
-    "tier": 1,
+    "tier": 3,
     "area": "Popular CMS platforms",
     "project_dir": "magento"
   },
   {
     "name": "PrestaShop",
     "url": "https://github.com/PrestaShop/PrestaShop",
-    "tier": 1,
+    "tier": 3,
     "area": "Popular CMS platforms",
     "project_dir": "PrestaShop"
   },
   {
     "name": "OpenCart",
     "url": "https://github.com/opencart/opencart",
-    "tier": 1,
+    "tier": 3,
     "area": "Popular CMS platforms",
     "project_dir": "opencart"
   },
@@ -442,7 +442,7 @@
   {
     "name": "Jinja",
     "url": "https://github.com/pallets/jinja",
-    "tier": 1,
+    "tier": 3,
     "area": "Popular web frameworks and libraries",
     "project_dir": "jinja"
   },
@@ -456,14 +456,14 @@
   {
     "name": "Flask",
     "url": "https://github.com/pallets/flask",
-    "tier": 1,
+    "tier": 3,
     "area": "Popular web frameworks and libraries",
     "project_dir": "flask"
   },
   {
     "name": "jQuery",
     "url": "https://github.com/jquery/jquery",
-    "tier": 1,
+    "tier": 3,
     "area": "Popular web frameworks and libraries",
     "project_dir": "jquery"
   },
@@ -497,7 +497,7 @@
   {
     "name": "Wicket",
     "url": "https://github.com/apache/wicket",
-    "tier": 1,
+    "tier": 3,
     "area": "Popular web frameworks and libraries",
     "project_dir": "wicket"
   },
@@ -539,7 +539,7 @@
   {
     "name": "pip",
     "url": "https://github.com/pypa/pip",
-    "tier": 1,
+    "tier": 3,
     "area": "Security-relevant bits of common package managers",
     "project_dir": "pip"
   },
