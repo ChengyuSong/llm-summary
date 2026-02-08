@@ -3,6 +3,10 @@
 # Docker mount paths
 DOCKER_WORKSPACE_SRC = "/workspace/src"
 DOCKER_WORKSPACE_BUILD = "/workspace/build"
+DOCKER_CCACHE_DIR = "/ccache"
+
+# ccache defaults
+DEFAULT_CCACHE_DIR = "~/.cache/llm-summary-ccache"
 
 # Timeouts (seconds)
 TIMEOUT_CONFIGURE = 300

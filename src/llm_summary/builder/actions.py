@@ -12,6 +12,7 @@ from typing import Any
 
 from .assembly_utils import check_assembly
 from .constants import (
+    DOCKER_CCACHE_DIR,
     DOCKER_WORKSPACE_BUILD,
     DOCKER_WORKSPACE_SRC,
     TIMEOUT_BUILD,
@@ -20,6 +21,16 @@ from .constants import (
     TIMEOUT_LONG_BUILD,
     TIMEOUT_RUN_COMMAND,
 )
+
+
+def _ccache_docker_args(ccache_dir: Path | None) -> list[str]:
+    """Return docker run args to mount and configure ccache."""
+    if ccache_dir is None:
+        return []
+    return [
+        "-v", f"{ccache_dir}:{DOCKER_CCACHE_DIR}",
+        "-e", f"CCACHE_DIR={DOCKER_CCACHE_DIR}",
+    ]
 
 
 class CMakeActions:
@@ -32,12 +43,14 @@ class CMakeActions:
         container_image: str = "llm-summary-builder:latest",
         unavoidable_asm_path: Path | str | None = None,
         verbose: bool = False,
+        ccache_dir: Path | None = None,
     ):
         self.project_path = Path(project_path).resolve()
         self.build_dir = Path(build_dir) if build_dir else self.project_path / "build"
         self.container_image = container_image
         self.unavoidable_asm_path = Path(unavoidable_asm_path) if unavoidable_asm_path else None
         self.verbose = verbose
+        self.ccache_dir = ccache_dir
 
     def cmake_configure(self, cmake_flags: list[str]) -> dict[str, Any]:
         """
@@ -60,6 +73,7 @@ class CMakeActions:
             docker_cmd = [
                 "docker", "run", "--rm",
                 "-u", f"{uid}:{gid}",
+                *_ccache_docker_args(self.ccache_dir),
                 "-v", f"{self.project_path}:{DOCKER_WORKSPACE_SRC}",
                 "-v", f"{self.build_dir}:{DOCKER_WORKSPACE_BUILD}",
                 "-w", DOCKER_WORKSPACE_BUILD,
@@ -148,6 +162,7 @@ class CMakeActions:
             docker_cmd = [
                 "docker", "run", "--rm",
                 "-u", f"{uid}:{gid}",
+                *_ccache_docker_args(self.ccache_dir),
                 "-v", f"{self.project_path}:{DOCKER_WORKSPACE_SRC}",
                 "-v", f"{self.build_dir}:{DOCKER_WORKSPACE_BUILD}",
                 "-w", DOCKER_WORKSPACE_BUILD,
@@ -185,6 +200,7 @@ class CMakeActions:
                 docker_cmd_j1 = [
                     "docker", "run", "--rm",
                     "-u", f"{uid}:{gid}",
+                    *_ccache_docker_args(self.ccache_dir),
                     "-v", f"{self.project_path}:{DOCKER_WORKSPACE_SRC}",
                     "-v", f"{self.build_dir}:{DOCKER_WORKSPACE_BUILD}",
                     "-w", DOCKER_WORKSPACE_BUILD,
@@ -243,12 +259,14 @@ class AutotoolsActions:
         container_image: str = "llm-summary-builder:latest",
         unavoidable_asm_path: Path | str | None = None,
         verbose: bool = False,
+        ccache_dir: Path | None = None,
     ):
         self.project_path = Path(project_path).resolve()
         self.build_dir = Path(build_dir) if build_dir else self.project_path / "build"
         self.container_image = container_image
         self.unavoidable_asm_path = Path(unavoidable_asm_path) if unavoidable_asm_path else None
         self.verbose = verbose
+        self.ccache_dir = ccache_dir
 
     def _get_default_env_flags(self) -> dict[str, str]:
         """Get default environment variables for autotools builds."""
@@ -302,6 +320,7 @@ class AutotoolsActions:
             docker_cmd = [
                 "docker", "run", "--rm",
                 "-u", f"{uid}:{gid}",
+                *_ccache_docker_args(self.ccache_dir),
                 "-v", f"{self.project_path}:/workspace/src",
                 "-w", DOCKER_WORKSPACE_SRC,
                 self.container_image,
@@ -362,6 +381,7 @@ class AutotoolsActions:
             docker_cmd = [
                 "docker", "run", "--rm",
                 "-u", f"{uid}:{gid}",
+                *_ccache_docker_args(self.ccache_dir),
                 "-v", f"{self.project_path}:/workspace/src",
                 "-w", DOCKER_WORKSPACE_SRC,
                 self.container_image,
@@ -434,6 +454,7 @@ class AutotoolsActions:
             docker_cmd = [
                 "docker", "run", "--rm",
                 "-u", f"{uid}:{gid}",
+                *_ccache_docker_args(self.ccache_dir),
                 "-v", f"{self.project_path}:/workspace/src",
             ]
 
@@ -553,6 +574,7 @@ class AutotoolsActions:
             docker_cmd = [
                 "docker", "run", "--rm",
                 "-u", f"{uid}:{gid}",
+                *_ccache_docker_args(self.ccache_dir),
                 "-v", f"{self.project_path}:/workspace/src",
             ]
 
@@ -704,6 +726,7 @@ class AutotoolsActions:
             docker_cmd = [
                 "docker", "run", "--rm",
                 "-u", f"{uid}:{gid}",
+                *_ccache_docker_args(self.ccache_dir),
                 "-v", f"{self.project_path}:/workspace/src",
             ]
 
@@ -1182,11 +1205,13 @@ class RunCommandAction:
         build_dir: Path | None = None,
         container_image: str = "llm-summary-builder:latest",
         verbose: bool = False,
+        ccache_dir: Path | None = None,
     ):
         self.project_path = Path(project_path).resolve()
         self.build_dir = Path(build_dir) if build_dir else self.project_path / "build"
         self.container_image = container_image
         self.verbose = verbose
+        self.ccache_dir = ccache_dir
 
     def run_command(self, command: str, workdir: str = "src") -> dict[str, Any]:
         """
@@ -1213,6 +1238,7 @@ class RunCommandAction:
             docker_cmd = [
                 "docker", "run", "--rm",
                 "-u", f"{uid}:{gid}",
+                *_ccache_docker_args(self.ccache_dir),
                 "-v", f"{self.project_path}:{DOCKER_WORKSPACE_SRC}",
                 "-v", f"{self.build_dir}:{DOCKER_WORKSPACE_BUILD}",
                 "-w", work_path,
@@ -1267,6 +1293,7 @@ def test_build_script(
     container_image: str = "llm-summary-builder:latest",
     unavoidable_asm_path: Path | None = None,
     verbose: bool = False,
+    ccache_dir: Path | None = None,
 ) -> dict[str, Any]:
     """
     Test a build script by running it from scratch in a clean temporary build directory.
@@ -1302,6 +1329,7 @@ def test_build_script(
         docker_cmd = [
             "docker", "run", "--rm",
             "-u", f"{uid}:{gid}",
+            *_ccache_docker_args(ccache_dir),
             "-v", f"{project_path}:{DOCKER_WORKSPACE_SRC}",
             "-v", f"{temp_build_dir}:{DOCKER_WORKSPACE_BUILD}",
             "-w", DOCKER_WORKSPACE_BUILD,

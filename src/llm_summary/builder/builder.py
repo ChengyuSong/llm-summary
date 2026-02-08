@@ -54,6 +54,7 @@ class Builder:
         generate_ir: bool = True,
         verbose: bool = False,
         log_file: str | None = None,
+        ccache_dir: Path | None = None,
     ):
         self.llm = llm
         self.container_image = container_image
@@ -66,6 +67,7 @@ class Builder:
         self.verbose = verbose
         self.log_file = log_file
         self.error_analyzer = ErrorAnalyzer(llm, verbose, log_file=log_file)
+        self.ccache_dir = ccache_dir
 
     def _get_unavoidable_asm_path(self, project_name: str) -> Path | None:
         """Get path to unavoidable_asm.json for a project."""
@@ -264,20 +266,26 @@ class Builder:
         project_name = project_path.name
         build_dir = Path(self.build_dir) if self.build_dir else project_path / "build"
 
+        # Ensure ccache host directory exists
+        if self.ccache_dir:
+            self.ccache_dir.mkdir(parents=True, exist_ok=True)
+
         # Initialize tools for both build systems
         file_tools = BuildTools(project_path, build_dir)
         unavoidable_asm_path = self._get_unavoidable_asm_path(project_name)
         cmake_actions = CMakeActions(
             project_path, self.build_dir, self.container_image,
-            unavoidable_asm_path=unavoidable_asm_path, verbose=self.verbose
+            unavoidable_asm_path=unavoidable_asm_path, verbose=self.verbose,
+            ccache_dir=self.ccache_dir,
         )
         autotools_actions = AutotoolsActions(
             project_path, self.build_dir, self.container_image,
-            unavoidable_asm_path=unavoidable_asm_path, verbose=self.verbose
+            unavoidable_asm_path=unavoidable_asm_path, verbose=self.verbose,
+            ccache_dir=self.ccache_dir,
         )
         run_command_action = RunCommandAction(
             project_path, self.build_dir, self.container_image,
-            verbose=self.verbose,
+            verbose=self.verbose, ccache_dir=self.ccache_dir,
         )
 
         system = f"""You are a build configuration expert. Build this project iteratively using the available tools.
@@ -952,6 +960,7 @@ If you recognize this project, leverage your knowledge of its typical build requ
                     container_image=cmake_actions.container_image,
                     unavoidable_asm_path=cmake_actions.unavoidable_asm_path,
                     verbose=self.verbose,
+                    ccache_dir=self.ccache_dir,
                 )
             elif tool_name == "check_assembly":
                 return check_assembly_tool(
@@ -1027,7 +1036,8 @@ If you recognize this project, leverage your knowledge of its typical build requ
         unavoidable_asm_path = self._get_unavoidable_asm_path(project_path.name)
         actions = CMakeActions(
             project_path, build_dir, self.container_image,
-            unavoidable_asm_path=unavoidable_asm_path, verbose=self.verbose
+            unavoidable_asm_path=unavoidable_asm_path, verbose=self.verbose,
+            ccache_dir=self.ccache_dir,
         )
 
         if self.verbose:

@@ -867,6 +867,9 @@ def show_indirect(db_path, fmt):
 @click.option("--generate-ir/--no-ir", default=True, help="Generate and save LLVM IR artifacts")
 @click.option("--db", "db_path", default="summaries.db", help="Database file path")
 @click.option("--log-llm", type=click.Path(), default=None, help="Log all LLM prompts and responses to file")
+@click.option("--ccache-dir", type=click.Path(), default="~/.cache/llm-summary-ccache",
+              help="Host ccache directory (default: ~/.cache/llm-summary-ccache)")
+@click.option("--no-ccache", is_flag=True, help="Disable ccache")
 @click.option("--verbose", "-v", is_flag=True, help="Show detailed output")
 def build_learn(
     project_path,
@@ -883,6 +886,8 @@ def build_learn(
     generate_ir,
     db_path,
     log_llm,
+    ccache_dir,
+    no_ccache,
     verbose,
 ):
     """Learn how to build a project and generate reusable build script."""
@@ -925,6 +930,9 @@ def build_learn(
         console.print(f"[red]Error initializing LLM backend: {e}[/red]")
         sys.exit(1)
 
+    # Resolve ccache directory
+    ccache_path = None if no_ccache else Path(ccache_dir).expanduser()
+
     # Initialize unified builder
     builder = Builder(
         llm=llm,
@@ -936,6 +944,7 @@ def build_learn(
         generate_ir=generate_ir,
         verbose=verbose,
         log_file=log_llm,
+        ccache_dir=ccache_path,
     )
 
     # Learn and build

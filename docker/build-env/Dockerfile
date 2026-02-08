@@ -49,7 +49,15 @@ RUN apt-get update && apt-get install -y \
     file \
     vim \
     bear \
+    ccache \
     && rm -rf /var/lib/apt/lists/*
+
+# Create ccache symlinks for clang-18 (Ubuntu's ccache package handles gcc/g++/cc/c++)
+RUN ln -sf /usr/bin/ccache /usr/lib/ccache/clang-18 && \
+    ln -sf /usr/bin/ccache /usr/lib/ccache/clang++-18
+
+# Prepend ccache to PATH so compiler calls are intercepted
+ENV PATH="/usr/lib/ccache:${PATH}"
 
 # Install Bazelisk (auto-downloads correct Bazel version per project)
 RUN wget -qO /usr/local/bin/bazel https://github.com/bazelbuild/bazelisk/releases/latest/download/bazelisk-linux-amd64 && \

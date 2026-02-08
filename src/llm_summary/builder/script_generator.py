@@ -193,6 +193,14 @@ SCRIPT_DIR="$(cd "$(dirname "${{BASH_SOURCE[0]}}")" && pwd)"
 PROJECT_PATH="${{1:-{project_path}}}"
 ARTIFACTS_DIR="${{2:-$SCRIPT_DIR/artifacts}}"
 
+# ccache support (disable with CCACHE_DISABLE=1)
+CCACHE_HOST_DIR="${{CCACHE_DIR:-$HOME/.cache/llm-summary-ccache}}"
+CCACHE_ARGS=""
+if [ "${{CCACHE_DISABLE:-0}}" != "1" ]; then
+    mkdir -p "$CCACHE_HOST_DIR"
+    CCACHE_ARGS="-v $CCACHE_HOST_DIR:/ccache -e CCACHE_DIR=/ccache"
+fi
+
 # Validate project path
 if [ ! -d "$PROJECT_PATH" ]; then
     echo "Error: Project path does not exist: $PROJECT_PATH"
@@ -206,6 +214,7 @@ mkdir -p "$ARTIFACTS_DIR"
 echo "Building {project_name}..."
 docker run --rm \\
   -u $(id -u):$(id -g) \\
+  $CCACHE_ARGS \\
   -v "$PROJECT_PATH":/workspace \\
   -v "$ARTIFACTS_DIR":/artifacts \\
   -w /workspace/build \\
@@ -328,6 +337,14 @@ ARTIFACTS_DIR="${{2:-$SCRIPT_DIR/artifacts}}"
 '''
 
         script_content += f'''
+# ccache support (disable with CCACHE_DISABLE=1)
+CCACHE_HOST_DIR="${{CCACHE_DIR:-$HOME/.cache/llm-summary-ccache}}"
+CCACHE_ARGS=""
+if [ "${{CCACHE_DISABLE:-0}}" != "1" ]; then
+    mkdir -p "$CCACHE_HOST_DIR"
+    CCACHE_ARGS="-v $CCACHE_HOST_DIR:/ccache -e CCACHE_DIR=/ccache"
+fi
+
 # Validate project path
 if [ ! -d "$PROJECT_PATH" ]; then
     echo "Error: Project path does not exist: $PROJECT_PATH"
@@ -350,6 +367,7 @@ echo "Building {project_name}..."
         if use_build_dir:
             script_content += f'''docker run --rm \\
   -u $(id -u):$(id -g) \\
+  $CCACHE_ARGS \\
   -v "$PROJECT_PATH":/workspace/src \\
   -v "$BUILD_DIR":/workspace/build \\
   -v "$ARTIFACTS_DIR":/artifacts \\
@@ -361,6 +379,7 @@ echo "Building {project_name}..."
         else:
             script_content += f'''docker run --rm \\
   -u $(id -u):$(id -g) \\
+  $CCACHE_ARGS \\
   -v "$PROJECT_PATH":/workspace/src \\
   -v "$ARTIFACTS_DIR":/artifacts \\
   -w {work_dir} \\
@@ -444,6 +463,14 @@ PROJECT_PATH="${{1:-{project_path}}}"
 ARTIFACTS_DIR="${{2:-$SCRIPT_DIR/artifacts}}"
 BUILD_DIR="${{3:-$PROJECT_PATH/build}}"
 
+# ccache support (disable with CCACHE_DISABLE=1)
+CCACHE_HOST_DIR="${{CCACHE_DIR:-$HOME/.cache/llm-summary-ccache}}"
+CCACHE_ARGS=""
+if [ "${{CCACHE_DISABLE:-0}}" != "1" ]; then
+    mkdir -p "$CCACHE_HOST_DIR"
+    CCACHE_ARGS="-v $CCACHE_HOST_DIR:/ccache -e CCACHE_DIR=/ccache"
+fi
+
 # Validate project path
 if [ ! -d "$PROJECT_PATH" ]; then
     echo "Error: Project path does not exist: $PROJECT_PATH"
@@ -458,6 +485,7 @@ mkdir -p "$BUILD_DIR"
 echo "Building {project_name}..."
 docker run --rm \\
   -u $(id -u):$(id -g) \\
+  $CCACHE_ARGS \\
   -v "$PROJECT_PATH":/workspace/src \\
   -v "$BUILD_DIR":/workspace/build \\
   -w /workspace/build \\
