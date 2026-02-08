@@ -1092,6 +1092,7 @@ def build_learn(
         llm=llm,
         container_image=container_image,
         build_dir=Path(build_dir) if build_dir else None,
+        build_scripts_dir=Path("build-scripts"),
         max_retries=max_retries,
         enable_lto=enable_lto,
         prefer_static=prefer_static,

@@ -75,6 +75,75 @@ class Builder:
             return None
         return self.build_scripts_dir / project_name.lower() / "unavoidable_asm.json"
 
+    def _load_prior_config(self, project_name: str) -> dict | None:
+        """Load prior build config from build-scripts/<project>/config.json."""
+        if not self.build_scripts_dir:
+            return None
+        config_path = self.build_scripts_dir / project_name.lower() / "config.json"
+        if not config_path.exists():
+            return None
+        try:
+            with open(config_path) as f:
+                config = json.load(f)
+            if self.verbose:
+                print(f"[Prior Config] Loaded from {config_path}")
+            return config
+        except (json.JSONDecodeError, OSError) as e:
+            if self.verbose:
+                print(f"[Prior Config] Failed to load {config_path}: {e}")
+            return None
+
+    def _format_prior_config_message(self, project_name: str, config: dict) -> str:
+        """Format a user message that includes prior build configuration."""
+        build_system = config.get("build_system", "unknown")
+        parts = [
+            f"Build this project: {project_name}",
+            "",
+            'Note: All file paths must be relative to the project root. '
+            'Build directory is at "build/".',
+            "",
+            "## Prior build configuration",
+            "",
+            "A previous successful build used the following configuration. "
+            "Use this as a starting point — deviate if needed.",
+            "",
+            f"Build system: {build_system}",
+        ]
+
+        # CMake flags
+        cmake_flags = config.get("cmake_flags")
+        if cmake_flags:
+            parts.append(f"CMake flags: {' '.join(cmake_flags)}")
+
+        # Configure flags
+        configure_flags = config.get("configure_flags")
+        if configure_flags:
+            parts.append(f"Configure flags: {' '.join(configure_flags)}")
+
+        # use_build_dir
+        if "use_build_dir" in config:
+            parts.append(f"use_build_dir: {config['use_build_dir']}")
+
+        # Dependencies
+        dependencies = config.get("dependencies")
+        if dependencies:
+            parts.append(f"Dependencies to install: {', '.join(dependencies)}")
+
+        # Build script
+        build_script = config.get("build_script")
+        if build_script:
+            parts.extend([
+                "",
+                "Prior build script:",
+                "```",
+                build_script.rstrip(),
+                "```",
+                "",
+                "Use test_build_script to validate the script (adjust if needed).",
+            ])
+
+        return "\n".join(parts)
+
     def learn_and_build(
         self, project_path: Path
     ) -> dict[str, Any]:
@@ -381,10 +450,20 @@ Once assembly results are acceptable, call finish(status="success", summary="...
 You are working on: {project_name}
 If you recognize this project, leverage your knowledge of its typical build requirements."""
 
-        messages = [{
-            "role": "user",
-            "content": f"Build this project: {project_name}\n\nNote: All file paths must be relative to the project root. Build directory is at \"build/\".\n\nExplore the project root first to determine the build system, then proceed with the build.",
-        }]
+        # Build the initial user message, incorporating prior config if available
+        prior_config = self._load_prior_config(project_name)
+        if prior_config:
+            user_content = self._format_prior_config_message(project_name, prior_config)
+        else:
+            user_content = (
+                f"Build this project: {project_name}\n\n"
+                "Note: All file paths must be relative to the project root. "
+                'Build directory is at "build/".\n\n'
+                "Explore the project root first to determine the build system, "
+                "then proceed with the build."
+            )
+
+        messages = [{"role": "user", "content": user_content}]
 
         if self.verbose:
             print("[LLM] Requesting initial configuration (unified mode)...")
