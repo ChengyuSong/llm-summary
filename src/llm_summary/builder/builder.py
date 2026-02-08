@@ -1097,7 +1097,14 @@ If you recognize this project, leverage your knowledge of its typical build requ
     ) -> Path:
         """
         Extract compile_commands.json from build directory to output directory.
-        Fixes Docker container paths to host paths.
+
+        Fixes Docker container paths to host paths and preserves generated
+        source files (e.g. protobuf .pb.cc, lex/yacc output) that only exist
+        in the build directory by copying them into output_dir/sources/.
+
+        Files that already exist in the project source tree are remapped
+        without copying.  Entries whose source file cannot be found anywhere
+        are dropped.
 
         Args:
             project_path: Path to the project source
@@ -1130,28 +1137,99 @@ If you recognize this project, leverage your knowledge of its typical build requ
         with open(compile_commands_src, "r") as f:
             compile_commands = json.load(f)
 
-        for entry in compile_commands:
-            if "file" in entry:
-                entry["file"] = entry["file"].replace(DOCKER_WORKSPACE_SRC, str(project_path))
-                entry["file"] = entry["file"].replace(DOCKER_WORKSPACE_BUILD, str(build_dir))
-            if "directory" in entry:
-                entry["directory"] = entry["directory"].replace(DOCKER_WORKSPACE_BUILD, str(build_dir))
-                entry["directory"] = entry["directory"].replace(DOCKER_WORKSPACE_SRC, str(project_path))
+        pp = str(project_path)
+        bd = str(build_dir)
+
+        def _replace(s: str) -> str:
+            return s.replace(DOCKER_WORKSPACE_SRC, pp).replace(DOCKER_WORKSPACE_BUILD, bd)
+
+        def _replace_file_path(entry: dict, old_path: str, new_path: str) -> None:
+            """Replace a file path in all fields of an entry."""
+            entry["file"] = new_path
             if "command" in entry:
-                entry["command"] = entry["command"].replace(DOCKER_WORKSPACE_SRC, str(project_path))
-                entry["command"] = entry["command"].replace(DOCKER_WORKSPACE_BUILD, str(build_dir))
+                entry["command"] = entry["command"].replace(old_path, new_path)
             if "arguments" in entry:
-                entry["arguments"] = [
-                    arg.replace(DOCKER_WORKSPACE_SRC, str(project_path)).replace(DOCKER_WORKSPACE_BUILD, str(build_dir))
-                    for arg in entry["arguments"]
-                ]
+                entry["arguments"] = [a.replace(old_path, new_path) for a in entry["arguments"]]
+
+        sources_dir = output_dir / "sources"
+        fixed = []
+        removed = 0
+        copied = 0
+
+        for entry in compile_commands:
+            # -- Phase 1: Replace Docker container paths in all fields --
+            for field in ("file", "directory", "output"):
+                if field in entry:
+                    entry[field] = _replace(entry[field])
+            if "command" in entry:
+                entry["command"] = _replace(entry["command"])
+            if "arguments" in entry:
+                entry["arguments"] = [_replace(a) for a in entry["arguments"]]
+
+            # -- Phase 2: Resolve relative file paths through Docker-space --
+            file_path = entry.get("file", "")
+            directory = entry.get("directory", "")
+            if file_path and not Path(file_path).is_absolute() and directory:
+                docker_dir = directory.replace(bd, DOCKER_WORKSPACE_BUILD).replace(
+                    pp, DOCKER_WORKSPACE_SRC
+                )
+                docker_resolved = str((Path(docker_dir) / file_path).resolve())
+                resolved = _replace(docker_resolved)
+                _replace_file_path(entry, file_path, resolved)
+                file_path = resolved
+
+            # -- Phase 3: Remap build-dir aliases to source tree --
+            # Handles cases like ffmpeg where a src/ symlink in the build dir
+            # points back to the source tree (broken on host).
+            if file_path and not Path(file_path).exists() and file_path.startswith(bd + "/"):
+                rel = file_path[len(bd) + 1:]
+                for candidate_rel in [rel] + [
+                    rel[len(p):] for p in ("src/", "source/") if rel.startswith(p)
+                ]:
+                    candidate = str(project_path / candidate_rel)
+                    if Path(candidate).exists():
+                        _replace_file_path(entry, file_path, candidate)
+                        file_path = candidate
+                        break
+
+            # -- Phase 4: Copy build-only generated files --
+            # If the file doesn't exist on host but does in the build dir,
+            # copy it to output_dir/sources/ to preserve it.
+            if file_path and not Path(file_path).exists():
+                # Translate the host path back to the build dir to find the
+                # actual file (it may have been remapped to project_path in
+                # phase 1 but only exists in build_dir).
+                build_candidates = [file_path]
+                if file_path.startswith(pp + "/"):
+                    rel = file_path[len(pp) + 1:]
+                    build_candidates.append(str(build_dir / rel))
+                # The original Docker path may also help
+                for bc in build_candidates:
+                    if Path(bc).exists():
+                        rel = Path(bc).relative_to(build_dir) if bc.startswith(bd) else Path(bc).name
+                        dest = sources_dir / rel
+                        dest.parent.mkdir(parents=True, exist_ok=True)
+                        shutil.copy2(bc, dest)
+                        _replace_file_path(entry, file_path, str(dest))
+                        file_path = str(dest)
+                        copied += 1
+                        break
+
+            # -- Phase 5: Drop entries whose source file can't be found --
+            if file_path and not Path(file_path).exists():
+                removed += 1
+                continue
+
+            fixed.append(entry)
 
         with open(compile_commands_dst, "w") as f:
-            json.dump(compile_commands, f, indent=2)
+            json.dump(fixed, f, indent=2)
 
         if self.verbose:
-            print(f"[Extract] Copied and fixed compile_commands.json to {compile_commands_dst}")
-            print(f"[Extract] Fixed Docker paths: {DOCKER_WORKSPACE_SRC} -> {project_path}")
-            print(f"[Extract] Fixed Docker paths: {DOCKER_WORKSPACE_BUILD} -> {build_dir}")
+            print(f"[Extract] Saved {len(fixed)} entries to {compile_commands_dst}")
+            if copied:
+                print(f"[Extract] Copied {copied} generated source files to {sources_dir}")
+            if removed:
+                print(f"[Extract] Removed {removed} entries with missing source files")
 
         return compile_commands_dst

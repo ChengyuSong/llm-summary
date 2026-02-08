@@ -300,6 +300,9 @@ class TestExtractCompileCommands:
         output_dir = tmp_path / "output"
         output_dir.mkdir()
 
+        # Create the source file so it isn't dropped as missing
+        (project_dir / "main.c").write_text("int main() {}")
+
         # Create compile_commands.json with Docker paths
         compile_commands = [
             {
@@ -337,6 +340,9 @@ class TestExtractCompileCommands:
         project_dir.mkdir()
         output_dir = tmp_path / "output"
         output_dir.mkdir()
+
+        # Create the source file so it isn't dropped as missing
+        (project_dir / "main.c").write_text("int main() {}")
 
         # Create compile_commands.json in project dir (in-source build)
         compile_commands = [
