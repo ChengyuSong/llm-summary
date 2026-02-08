@@ -12,6 +12,7 @@ The `build-learn` command uses LLM-powered incremental learning to automatically
 - **Static Linking**: Prefers static libraries over dynamic
 - **Incremental Learning**: Analyzes build failures and adapts configuration
 - **Runtime Dependency Installation**: Installs missing system packages on-the-fly via derived Docker images
+- **ccache Integration**: Host-mounted compiler cache for fast rebuilds
 - **Reusable Scripts**: Generates version-controlled build scripts
 
 ## Quick Start
@@ -128,6 +129,7 @@ Builder(
     generate_ir: bool = True,
     verbose: bool = False,
     log_file: str | None = None,
+    ccache_dir: Path | None = None,
 )
 ```
 
@@ -386,6 +388,8 @@ llm-summary build-learn [OPTIONS]
 - `--prefer-static / --no-static`: Prefer static linking (default: `true`)
 - `--generate-ir / --no-ir`: Generate LLVM IR (default: `true`)
 - `--db PATH`: Database file (default: `summaries.db`)
+- `--ccache-dir PATH`: Host ccache directory (default: `~/.cache/llm-summary-ccache`)
+- `--no-ccache`: Disable ccache
 - `--verbose, -v`: Show detailed output
 - `--log-llm PATH`: Log all LLM interactions (prompts, responses, tool calls)
 
@@ -527,6 +531,7 @@ When the agent installs packages and finishes successfully:
 - Bazelisk (auto-downloads correct Bazel version per project)
 - Python 3 with pip and venv
 - Bear (for compile_commands.json generation with make)
+- ccache (transparent compiler cache, symlinks in `/usr/lib/ccache`)
 - Git
 - Common dependencies (zlib, libssl, libpng, libjpeg)
 
@@ -541,6 +546,7 @@ When the agent installs packages and finishes successfully:
 **Volume Mounts:**
 - `/workspace/src`: Project source (read-only) - Maps to host project directory
 - `/workspace/build`: Build directory (read-write) - Maps to host build directory (can be separate from project)
+- `/ccache`: Compiler cache (read-write) - Maps to host `~/.cache/llm-summary-ccache` (when ccache enabled)
 - `/artifacts`: LLVM IR output (read-write)
 
 **Note on Build Directory Access:**
@@ -784,7 +790,7 @@ export ANTHROPIC_API_KEY="your-api-key"
 - [ ] Support vcpkg/Conan package managers
 
 ### Phase 5: Caching and Optimization
-- [ ] ccache integration for faster rebuilds
+- [x] ccache integration for faster rebuilds
 - [ ] Docker layer caching
 - [ ] Incremental rebuilds (only changed files)
 - [ ] Build artifact reuse across projects
