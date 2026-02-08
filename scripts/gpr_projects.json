@@ -10,14 +10,16 @@
     "url": "https://github.com/libjpeg-turbo/libjpeg-turbo",
     "tier": 1,
     "area": "Core infrastructure data parsers",
-    "project_dir": "libjpeg-turbo"
+    "project_dir": "libjpeg-turbo",
+    "language": "C"
   },
   {
     "name": "libpng",
     "url": "https://github.com/pnggroup/libpng",
     "tier": 1,
     "area": "Core infrastructure data parsers",
-    "project_dir": "libpng"
+    "project_dir": "libpng",
+    "language": "C"
   },
   {
     "name": "giflib",
@@ -30,63 +32,72 @@
     "url": "https://github.com/madler/zlib",
     "tier": 1,
     "area": "Core infrastructure data parsers",
-    "project_dir": "zlib"
+    "project_dir": "zlib",
+    "language": "C"
   },
   {
     "name": "libxml2",
     "url": "https://gitlab.gnome.org/GNOME/libxml2",
     "tier": 1,
     "area": "Core infrastructure data parsers",
-    "project_dir": "libxml2"
+    "project_dir": "libxml2",
+    "language": "C"
   },
   {
     "name": "protobuf",
     "url": "https://github.com/protocolbuffers/protobuf",
     "tier": 1,
     "area": "Core infrastructure data parsers",
-    "project_dir": "protobuf"
+    "project_dir": "protobuf",
+    "language": "C++"
   },
   {
     "name": "flatbuffers",
     "url": "https://github.com/google/flatbuffers",
     "tier": 1,
     "area": "Core infrastructure data parsers",
-    "project_dir": "flatbuffers"
+    "project_dir": "flatbuffers",
+    "language": "C/C++"
   },
   {
     "name": "grpc_proto",
     "url": "https://github.com/grpc/grpc-proto",
-    "tier": 1,
+    "tier": 3,
     "area": "Core infrastructure data parsers",
-    "project_dir": "grpc_proto"
+    "project_dir": "grpc_proto",
+    "language": "Protocol Buffer"
   },
   {
     "name": "grpc",
     "url": "https://github.com/grpc/grpc",
     "tier": 1,
     "area": "Core infrastructure data parsers",
-    "project_dir": "grpc"
+    "project_dir": "grpc",
+    "language": "C/C++"
   },
   {
     "name": "protoc_gen_validate",
     "url": "https://github.com/bufbuild/protoc-gen-validate",
-    "tier": 1,
+    "tier": 3,
     "area": "Core infrastructure data parsers",
-    "project_dir": "protoc_gen_validate"
+    "project_dir": "protoc_gen_validate",
+    "language": "Go"
   },
   {
     "name": "libpcap",
     "url": "https://github.com/the-tcpdump-group/libpcap",
     "tier": 1,
     "area": "Core infrastructure data parsers",
-    "project_dir": "libpcap"
+    "project_dir": "libpcap",
+    "language": "C"
   },
   {
     "name": "libwebp",
     "url": "https://chromium.googlesource.com/webm/libwebp",
     "tier": 1,
     "area": "Core infrastructure data parsers",
-    "project_dir": "libwebp"
+    "project_dir": "libwebp",
+    "language": "C/C++"
   },
   {
     "name": "libgif",
@@ -99,77 +110,88 @@
     "url": "https://gitlab.com/libtiff/libtiff.git",
     "tier": 1,
     "area": "Core infrastructure data parsers",
-    "project_dir": "libtiff"
+    "project_dir": "libtiff",
+    "language": "C/C++"
   },
   {
     "name": "jpegxl",
     "url": "https://github.com/libjxl/libjxl",
     "tier": 1,
     "area": "Core infrastructure data parsers",
-    "project_dir": "jpegxl"
+    "project_dir": "jpegxl",
+    "language": "C/C++"
   },
   {
     "name": "libvpx",
     "url": "https://chromium.googlesource.com/webm/libvpx",
     "tier": 1,
     "area": "Core infrastructure data parsers",
-    "project_dir": "libvpx"
+    "project_dir": "libvpx",
+    "language": "C/C++"
   },
   {
     "name": "libogg",
     "url": "https://gitlab.xiph.org/xiph/ogg",
     "tier": 1,
     "area": "Core infrastructure data parsers",
-    "project_dir": "libogg"
+    "project_dir": "libogg",
+    "language": "C"
   },
   {
     "name": "libavif",
     "url": "https://github.com/aomediacodec/libavif",
     "tier": 1,
     "area": "Core infrastructure data parsers",
-    "project_dir": "libavif"
+    "project_dir": "libavif",
+    "language": "C/C++"
   },
   {
     "name": "ffmpeg",
     "url": "https://git.ffmpeg.org/ffmpeg.git",
     "tier": 1,
     "area": "Core infrastructure data parsers",
-    "project_dir": "ffmpeg"
+    "project_dir": "ffmpeg",
+    "language": "C"
   },
   {
     "name": "Envoy proxy",
     "url": "https://github.com/envoyproxy/envoy",
     "tier": 1,
     "area": "Critical software used for cloud computing",
-    "project_dir": "envoy"
+    "project_dir": "envoy",
+    "language": "C/C++"
   },
   {
     "name": "xds",
     "url": "https://github.com/cncf/xds",
-    "tier": 1,
+    "tier": 3,
     "area": "Critical software used for cloud computing",
-    "project_dir": "xds"
+    "project_dir": "xds",
+    "language": "Go"
   },
   {
     "name": "Apache httpd",
     "url": "https://github.com/apache/httpd",
     "tier": 1,
     "area": "High-profile web and mail servers",
-    "project_dir": "httpd"
+    "project_dir": "httpd",
+    "language": "C"
   },
   {
     "name": "lighttpd",
     "url": "https://git.lighttpd.net/lighttpd/lighttpd1.4",
     "tier": 1,
     "area": "High-profile web and mail servers",
-    "project_dir": "lighttpd"
+    "project_dir": "lighttpd",
+    "language": "C"
   },
   {
     "name": "nginx",
     "url": "https://github.com/nginx/nginx",
     "tier": 1,
     "area": "High-profile web and mail servers",
-    "project_dir": "nginx"
+    "project_dir": "nginx",
+    "language": "C"
   },
   {
     "name": "Sendmail",
@@ -182,35 +204,40 @@
     "url": "https://github.com/vdukhovni/postfix",
     "tier": 2,
     "area": "High-profile web and mail servers",
-    "project_dir": "postfix"
+    "project_dir": "postfix",
+    "language": "C"
   },
   {
     "name": "Exim",
     "url": "https://github.com/Exim/exim",
     "tier": 1,
     "area": "High-profile web and mail servers",
-    "project_dir": "exim"
+    "project_dir": "exim",
+    "language": "C"
   },
   {
     "name": "Dovecot",
     "url": "https://github.com/dovecot/core",
     "tier": 1,
     "area": "High-profile web and mail servers",
-    "project_dir": "dovecot"
+    "project_dir": "dovecot",
+    "language": "C/C++"
   },
   {
     "name": "Chromium",
     "url": "https://source.chromium.org/chromium/chromium/src",
     "tier": 2,
     "area": "Open source foundations of Chrome and Android",
-    "project_dir": "chromium"
+    "project_dir": "chromium",
+    "language": "C/C++"
   },
   {
     "name": "Blink",
     "url": "https://chromium.googlesource.com/chromium/src/+/HEAD/third_party/blink/",
     "tier": 2,
     "area": "Open source foundations of Chrome and Android",
-    "project_dir": "blink"
+    "project_dir": "blink",
+    "language": "C/C++"
   },
   {
     "name": "AOSP",
@@ -223,7 +250,8 @@
     "url": "https://github.com/openssl/openssl",
     "tier": 1,
     "area": "Other essential libraries",
-    "project_dir": "openssl"
+    "project_dir": "openssl",
+    "language": "C"
   },
   {
     "name": "Mozilla NSS",
@@ -236,112 +264,128 @@
     "url": "https://github.com/tink-crypto/tink-cc",
     "tier": 1,
     "area": "Other essential libraries",
-    "project_dir": "tink"
+    "project_dir": "tink",
+    "language": "C++"
   },
   {
     "name": "highwayhash",
     "url": "https://github.com/google/highwayhash",
     "tier": 1,
     "area": "Other essential libraries",
-    "project_dir": "highwayhash"
+    "project_dir": "highwayhash",
+    "language": "C/C++"
   },
   {
     "name": "tz",
     "url": "https://github.com/eggert/tz",
     "tier": 1,
     "area": "Other essential libraries",
-    "project_dir": "tz"
+    "project_dir": "tz",
+    "language": "C"
   },
   {
     "name": "icu",
     "url": "https://github.com/unicode-org/icu",
-    "tier": 1,
+    "tier": 3,
     "area": "Other essential libraries",
-    "project_dir": "icu"
+    "project_dir": "icu",
+    "language": "Mixed"
   },
   {
     "name": "re2",
     "url": "https://github.com/google/re2",
     "tier": 1,
     "area": "Other essential libraries",
-    "project_dir": "re2"
+    "project_dir": "re2",
+    "language": "C++"
   },
   {
     "name": "elfutils",
     "url": "https://sourceware.org/git/elfutils.git",
     "tier": 1,
     "area": "Other essential libraries",
-    "project_dir": "elfutils"
+    "project_dir": "elfutils",
+    "language": "C"
   },
   {
     "name": "libzip",
     "url": "https://github.com/nih-at/libzip",
     "tier": 1,
     "area": "Other essential libraries",
-    "project_dir": "libzip"
+    "project_dir": "libzip",
+    "language": "C"
   },
   {
     "name": "lz4",
     "url": "https://github.com/lz4/lz4",
     "tier": 1,
     "area": "Other essential libraries",
-    "project_dir": "lz4"
+    "project_dir": "lz4",
+    "language": "C"
   },
   {
     "name": "tensorflow",
     "url": "https://github.com/tensorflow/tensorflow",
-    "tier": 1,
+    "tier": 3,
     "area": "Other essential libraries",
-    "project_dir": "tensorflow"
+    "project_dir": "tensorflow",
+    "language": "Python"
   },
   {
     "name": "BoringSSL",
     "url": "https://boringssl.googlesource.com/boringssl",
     "tier": 1,
     "area": "Other essential libraries",
-    "project_dir": "boringssl"
+    "project_dir": "boringssl",
+    "language": "C/C++"
   },
   {
     "name": "OpenSSH",
     "url": "https://github.com/openssh/openssh-portable.git",
     "tier": 1,
     "area": "Other high-impact network services",
-    "project_dir": "openssh"
+    "project_dir": "openssh",
+    "language": "C"
   },
   {
     "name": "OpenVPN",
     "url": "https://github.com/OpenVPN/openvpn",
     "tier": 1,
     "area": "Other high-impact network services",
-    "project_dir": "openvpn"
+    "project_dir": "openvpn",
+    "language": "C/C++"
   },
   {
     "name": "BIND",
     "url": "https://github.com/isc-projects/bind9",
     "tier": 1,
     "area": "Other high-impact network services",
-    "project_dir": "bind"
+    "project_dir": "bind",
+    "language": "C"
   },
   {
     "name": "ISC DHCP",
     "url": "https://github.com/isc-projects/dhcp",
     "tier": 1,
     "area": "Other high-impact network services",
-    "project_dir": "dhcp"
+    "project_dir": "dhcp",
+    "language": "C"
   },
   {
     "name": "University of Delaware NTPD",
     "url": "https://github.com/ntp-project/ntp",
     "tier": 1,
     "area": "Other high-impact network services",
-    "project_dir": "ntp"
+    "project_dir": "ntp",
+    "language": "C"
   },
   {
     "name": "ares",
     "url": "https://github.com/c-ares/c-ares",
     "tier": 1,
     "area": "Other high-impact network services",
-    "project_dir": "ares"
+    "project_dir": "ares",
+    "language": "C"
   },
   {
     "name": "WordPress",
@@ -354,49 +398,56 @@
     "url": "https://github.com/joomla/joomla-cms",
     "tier": 3,
     "area": "Popular CMS platforms",
-    "project_dir": "joomla"
+    "project_dir": "joomla",
+    "language": "PHP"
   },
   {
     "name": "Drupal",
     "url": "https://github.com/drupal/drupal",
     "tier": 3,
     "area": "Popular CMS platforms",
-    "project_dir": "drupal"
+    "project_dir": "drupal",
+    "language": "PHP"
   },
   {
     "name": "Magento",
     "url": "https://github.com/magento/magento2",
     "tier": 3,
     "area": "Popular CMS platforms",
-    "project_dir": "magento"
+    "project_dir": "magento",
+    "language": "PHP"
   },
   {
     "name": "PrestaShop",
     "url": "https://github.com/PrestaShop/PrestaShop",
     "tier": 3,
     "area": "Popular CMS platforms",
-    "project_dir": "PrestaShop"
+    "project_dir": "PrestaShop",
+    "language": "PHP"
   },
   {
     "name": "OpenCart",
     "url": "https://github.com/opencart/opencart",
     "tier": 3,
     "area": "Popular CMS platforms",
-    "project_dir": "opencart"
+    "project_dir": "opencart",
+    "language": "PHP"
   },
   {
     "name": "Typo3",
     "url": "https://github.com/TYPO3/typo3",
     "tier": 3,
     "area": "Popular CMS platforms",
-    "project_dir": "typo3"
+    "project_dir": "typo3",
+    "language": "PHP"
   },
   {
     "name": "Angular",
     "url": "https://github.com/angular/angular",
-    "tier": 1,
+    "tier": 3,
     "area": "Popular web frameworks and libraries",
-    "project_dir": "angular"
+    "project_dir": "angular",
+    "language": "TypeScript"
   },
   {
     "name": "Dart",
@@ -410,7 +461,8 @@
     "url": "https://github.com/django/django",
     "tier": 3,
     "area": "Popular web frameworks and libraries",
-    "project_dir": "django"
+    "project_dir": "django",
+    "language": "Python"
   },
   {
     "name": "Dojo Toolkit",
@@ -423,63 +475,72 @@
     "url": "https://github.com/emberjs/ember.js",
     "tier": 3,
     "area": "Popular web frameworks and libraries",
-    "project_dir": "ember"
+    "project_dir": "ember",
+    "language": "TypeScript"
   },
   {
     "name": "GWT",
     "url": "https://github.com/gwtproject/gwt",
-    "tier": 1,
+    "tier": 3,
     "area": "Popular web frameworks and libraries",
-    "project_dir": "gwt"
+    "project_dir": "gwt",
+    "language": "Java"
   },
   {
     "name": "Go",
     "url": "https://github.com/golang/go",
-    "tier": 1,
+    "tier": 3,
     "area": "Popular web frameworks and libraries",
-    "project_dir": "go"
+    "project_dir": "go",
+    "language": "Go"
   },
   {
     "name": "Jinja",
     "url": "https://github.com/pallets/jinja",
     "tier": 3,
     "area": "Popular web frameworks and libraries",
-    "project_dir": "jinja"
+    "project_dir": "jinja",
+    "language": "Python"
   },
   {
     "name": "Werkzeug",
     "url": "https://github.com/pallets/werkzeug",
-    "tier": 1,
+    "tier": 3,
     "area": "Popular web frameworks and libraries",
-    "project_dir": "werkzeug"
+    "project_dir": "werkzeug",
+    "language": "Python"
   },
   {
     "name": "Flask",
     "url": "https://github.com/pallets/flask",
     "tier": 3,
     "area": "Popular web frameworks and libraries",
-    "project_dir": "flask"
+    "project_dir": "flask",
+    "language": "Python"
   },
   {
     "name": "jQuery",
     "url": "https://github.com/jquery/jquery",
     "tier": 3,
     "area": "Popular web frameworks and libraries",
-    "project_dir": "jquery"
+    "project_dir": "jquery",
+    "language": "JavaScript"
   },
   {
     "name": "Knockout",
     "url": "https://github.com/knockout/knockout",
     "tier": 3,
     "area": "Popular web frameworks and libraries",
-    "project_dir": "knockout"
+    "project_dir": "knockout",
+    "language": "JavaScript"
   },
   {
     "name": "Polymer",
     "url": "https://github.com/Polymer/polymer",
     "tier": 3,
     "area": "Popular web frameworks and libraries",
-    "project_dir": "polymer"
+    "project_dir": "polymer",
+    "language": "JavaScript"
   },
   {
     "name": "Struts",
@@ -490,128 +551,146 @@
   {
     "name": "Web2py",
     "url": "https://github.com/web2py/web2py",
-    "tier": 1,
+    "tier": 3,
     "area": "Popular web frameworks and libraries",
-    "project_dir": "web2py"
+    "project_dir": "web2py",
+    "language": "Python"
   },
   {
     "name": "Wicket",
     "url": "https://github.com/apache/wicket",
     "tier": 3,
     "area": "Popular web frameworks and libraries",
-    "project_dir": "wicket"
+    "project_dir": "wicket",
+    "language": "Java"
   },
   {
     "name": "CiviForm",
     "url": "https://github.com/civiform/civiform",
-    "tier": 1,
+    "tier": 3,
     "area": "Public-interest open source applications supported by Google.org",
-    "project_dir": "civiform"
+    "project_dir": "civiform",
+    "language": "Scala"
   },
   {
     "name": "Linux kernel",
     "url": "https://github.com/torvalds/linux",
     "tier": 1,
     "area": "Security-critical, commonly used components of the Linux kernel (including KVM)",
-    "project_dir": "linux"
+    "project_dir": "linux",
+    "language": "C"
   },
   {
     "name": "liburing",
     "url": "https://github.com/axboe/liburing",
     "tier": 1,
     "area": "Security-critical, commonly used components of the Linux kernel (including KVM)",
-    "project_dir": "liburing"
+    "project_dir": "liburing",
+    "language": "C"
   },
   {
     "name": "libcap",
     "url": "git://git.kernel.org/pub/scm/libs/libcap/libcap.git",
     "tier": 1,
     "area": "Security-critical, commonly used components of the Linux kernel (including KVM)",
-    "project_dir": "libcap"
+    "project_dir": "libcap",
+    "language": "C"
   },
   {
     "name": "apt",
     "url": "https://salsa.debian.org/apt-team/apt.git",
     "tier": 1,
     "area": "Security-relevant bits of common package managers",
-    "project_dir": "apt"
+    "project_dir": "apt",
+    "language": "C++"
   },
   {
     "name": "pip",
     "url": "https://github.com/pypa/pip",
     "tier": 3,
     "area": "Security-relevant bits of common package managers",
-    "project_dir": "pip"
+    "project_dir": "pip",
+    "language": "Python"
   },
   {
     "name": "npm",
     "url": "https://github.com/npm/cli",
     "tier": 3,
     "area": "Security-relevant bits of common package managers",
-    "project_dir": "npm"
+    "project_dir": "npm",
+    "language": "JavaScript"
   },
   {
     "name": "GCC",
     "url": "https://gcc.gnu.org/git/gcc.git",
     "tier": 2,
     "area": "Toolchain security improvements",
-    "project_dir": "gcc"
+    "project_dir": "gcc",
+    "language": "C/C++"
   },
   {
     "name": "binutils",
     "url": "git://sourceware.org/git/binutils-gdb.git",
     "tier": 1,
     "area": "Toolchain security improvements",
-    "project_dir": "binutils"
+    "project_dir": "binutils",
+    "language": "C/C++"
   },
   {
     "name": "llvm-project",
     "url": "https://github.com/llvm/llvm-project",
     "tier": 2,
     "area": "Toolchain security improvements",
-    "project_dir": "llvm-project"
+    "project_dir": "llvm-project",
+    "language": "C/C++"
   },
   {
     "name": "bzip2",
     "url": "https://gitlab.com/bzip2/bzip2/",
     "tier": 1,
     "area": "Widespread decompression libraries",
-    "project_dir": "bzip2"
+    "project_dir": "bzip2",
+    "language": "C"
   },
   {
     "name": "tar",
     "url": "https://git.savannah.gnu.org/git/tar.git",
     "tier": 1,
     "area": "Widespread decompression libraries",
-    "project_dir": "tar"
+    "project_dir": "tar",
+    "language": "C"
   },
   {
     "name": "gzip",
     "url": "https://git.savannah.gnu.org/git/gzip.git",
     "tier": 1,
     "area": "Widespread decompression libraries",
-    "project_dir": "gzip"
+    "project_dir": "gzip",
+    "language": "C"
   },
   {
     "name": "cpio",
     "url": "https://git.savannah.gnu.org/git/cpio.git",
     "tier": 1,
     "area": "Widespread decompression libraries",
-    "project_dir": "cpio"
+    "project_dir": "cpio",
+    "language": "C"
   },
   {
     "name": "xz",
     "url": "https://github.com/tukaani-project/xz",
     "tier": 1,
     "area": "Widespread decompression libraries",
-    "project_dir": "xz"
+    "project_dir": "xz",
+    "language": "C"
   },
   {
     "name": "7z",
     "url": "https://github.com/mcmilk/7-Zip",
     "tier": 1,
     "area": "Widespread decompression libraries",
-    "project_dir": "7z"
+    "project_dir": "7z",
+    "language": "C/C++"
   },
   {
     "name": "p7zip",
@@ -624,7 +703,8 @@
     "url": "https://github.com/vapier/ncompress",
     "tier": 1,
     "area": "Widespread decompression libraries",
-    "project_dir": "ncompress"
+    "project_dir": "ncompress",
+    "language": "C"
   },
   {
     "name": "lzo",
@@ -637,20 +717,23 @@
     "url": "https://github.com/facebook/zstd",
     "tier": 1,
     "area": "Widespread decompression libraries",
-    "project_dir": "zstdlib"
+    "project_dir": "zstdlib",
+    "language": "C/C++"
   },
   {
     "name": "bz2lib",
     "url": "https://sourceware.org/git/bzip2.git",
     "tier": 1,
     "area": "Widespread decompression libraries",
-    "project_dir": "bz2lib"
+    "project_dir": "bz2lib",
+    "language": "C"
   },
   {
     "name": "sqlite3",
     "url": "https://github.com/sqlite/sqlite",
     "tier": 1,
     "area": "Widespread database",
-    "project_dir": "sqlite3"
+    "project_dir": "sqlite3",
+    "language": "C"
   }
 ]
