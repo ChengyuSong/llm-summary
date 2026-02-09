@@ -10,7 +10,7 @@ Use --dry-run to skip DB storage (in-memory only).
 Produces a JSON report with per-project and aggregate statistics.
 
 Usage:
-    python scripts/batch_scan_targets.py [--verbose] [--dry-run] [-j4] [--tier 1]
+    python scripts/batch_scan_targets.py [--verbose] [--dry-run] [-j4] [--tier 1] [--skip-list skip.txt]
 """
 
 import json
@@ -178,6 +178,10 @@ def main():
         "--tier", type=int, default=None,
         help="Only scan projects with this tier (1, 2, or 3) from gpr_projects.json",
     )
+    parser.add_argument(
+        "--skip-list", type=str, default=None,
+        help="File with project names to skip (one per line)",
+    )
     args = parser.parse_args()
 
     if not BUILD_SCRIPTS_DIR.exists():
@@ -199,6 +203,22 @@ def main():
             before = len(projects)
             projects = [p for p in projects if tier_map.get(p.name) == args.tier]
             print(f"Tier {args.tier} filter: {len(projects)}/{before} projects")
+
+    # Filter by skip list if provided
+    if args.skip_list is not None:
+        skip_path = Path(args.skip_list)
+        if not skip_path.exists():
+            print(f"Error: skip list file not found: {args.skip_list}")
+            sys.exit(1)
+        skip_names = set()
+        with open(skip_path) as f:
+            for line in f:
+                name = line.strip()
+                if name and not name.startswith("#"):
+                    skip_names.add(name)
+        before = len(projects)
+        projects = [p for p in projects if p.name not in skip_names]
+        print(f"Skip list: skipped {before - len(projects)}/{before} projects")
 
     num_workers = args.jobs if args.jobs > 0 else os.cpu_count()
 
