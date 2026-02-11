@@ -852,6 +852,186 @@ def show_indirect(db_path, fmt):
         db.close()
 
 
+@main.command("container-analyze")
+@click.option("--db", "db_path", default="summaries.db", help="Database file path")
+@click.option("--backend", type=click.Choice(["claude", "openai", "ollama", "llamacpp", "gemini"]), default="ollama")
+@click.option("--model", default=None, help="Model name to use")
+@click.option("--llm-host", default="localhost", help="Hostname for local LLM backends (llamacpp, ollama)")
+@click.option("--llm-port", default=None, type=int, help="Port for local LLM backends (llamacpp: 8080, ollama: 11434)")
+@click.option("--disable-thinking", is_flag=True, help="Disable thinking/reasoning mode")
+@click.option("--verbose", "-v", is_flag=True, help="Verbose output")
+@click.option("--force", "-f", is_flag=True, help="Force re-analysis (ignore cache)")
+@click.option("--min-score", default=5, type=int, help="Minimum heuristic score for LLM confirmation (default: 5)")
+@click.option("--log-llm", type=click.Path(), default=None, help="Log all LLM prompts and responses to file")
+@click.option("--heuristic-only", is_flag=True, help="Only run heuristic scoring, skip LLM")
+def container_analyze(
+    db_path, backend, model, llm_host, llm_port, disable_thinking,
+    verbose, force, min_score, log_llm, heuristic_only
+):
+    """Detect container/collection functions (hash tables, lists, trees, etc.).
+
+    Uses a heuristic pre-filter to find candidates, then confirms with LLM.
+    Results are stored in the database for downstream analysis.
+
+    Example:
+        llm-summary container-analyze --db summaries.db --backend ollama --model qwen3 -v
+        llm-summary container-analyze --db summaries.db --heuristic-only -v
+    """
+    from .container import ContainerDetector
+
+    db = SummaryDB(db_path)
+
+    try:
+        # Check for functions in DB
+        functions = db.get_all_functions()
+        if not functions:
+            console.print("[red]No functions in database. Run 'extract' or 'scan' first.[/red]")
+            return
+
+        console.print(f"Database: {db_path} ({len(functions)} functions)")
+
+        if heuristic_only:
+            # Heuristic-only mode: no LLM
+            detector = ContainerDetector(
+                db, llm=None, verbose=verbose, min_score=min_score
+            )
+            candidates = detector.heuristic_only()
+
+            if not candidates:
+                console.print("[yellow]No candidates found above threshold.[/yellow]")
+                return
+
+            # Display results as a table
+            table = Table(title=f"Container Candidates (score >= {min_score})")
+            table.add_column("Score", justify="right", style="green")
+            table.add_column("Function", style="cyan")
+            table.add_column("File", style="dim")
+            table.add_column("Signals")
+
+            # Sort by score descending
+            candidates.sort(key=lambda x: x[1], reverse=True)
+
+            for func, score, signals in candidates:
+                signal_strs = []
+                for s in signals:
+                    # Shorten signal display
+                    tag = s.split(": ", 1)[0] if ": " in s else s
+                    signal_strs.append(tag)
+                table.add_row(
+                    str(score),
+                    func.name,
+                    Path(func.file_path).name,
+                    ", ".join(signal_strs),
+                )
+
+            console.print(table)
+            console.print(f"\nTotal candidates: {len(candidates)}")
+
+            stats = detector.stats
+            console.print(f"Functions scanned: {stats['functions_scanned']}")
+            return
+
+        # Full mode: heuristic + LLM
+        backend_kwargs = {}
+        if backend == "llamacpp":
+            backend_kwargs["host"] = llm_host
+            backend_kwargs["port"] = llm_port if llm_port is not None else 8080
+        elif backend == "ollama":
+            if llm_port is None:
+                llm_port = 11434
+            backend_kwargs["base_url"] = f"http://{llm_host}:{llm_port}"
+
+        if disable_thinking:
+            backend_kwargs["enable_thinking"] = False
+
+        llm = create_backend(backend, model=model, **backend_kwargs)
+        console.print(f"Using {backend} backend ({llm.model})")
+
+        detector = ContainerDetector(
+            db, llm=llm, verbose=verbose, log_file=log_llm, min_score=min_score
+        )
+
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            console=console,
+        ) as progress:
+            task = progress.add_task("Detecting container functions...", total=None)
+            results = detector.detect_all(force=force)
+            progress.update(task, completed=True)
+
+        stats = detector.stats
+        console.print(f"\nContainer detection complete:")
+        console.print(f"  Functions scanned: {stats['functions_scanned']}")
+        console.print(f"  Candidates (score >= {min_score}): {stats['candidates']}")
+        console.print(f"  LLM calls: {stats['llm_calls']}")
+        console.print(f"  Cache hits: {stats['cache_hits']}")
+        console.print(f"  Containers found: {stats['containers_found']}")
+        if stats["errors"] > 0:
+            console.print(f"  [yellow]Errors: {stats['errors']}[/yellow]")
+
+    finally:
+        db.close()
+
+
+@main.command("show-containers")
+@click.option("--db", "db_path", default="summaries.db", help="Database file path")
+@click.option("--format", "fmt", type=click.Choice(["table", "json"]), default="table")
+def show_containers(db_path, fmt):
+    """Show detected container/collection functions."""
+    db = SummaryDB(db_path)
+
+    try:
+        summaries = db.get_all_container_summaries()
+        functions = {f.id: f for f in db.get_all_functions()}
+
+        if not summaries:
+            console.print("[yellow]No container summaries found. Run 'container-analyze' first.[/yellow]")
+            return
+
+        if fmt == "json":
+            output = []
+            for cs in summaries:
+                func = functions.get(cs.function_id)
+                entry = cs.to_dict()
+                if func:
+                    entry["function_name"] = func.name
+                    entry["file_path"] = func.file_path
+                    entry["signature"] = func.signature
+                output.append(entry)
+            console.print(json.dumps(output, indent=2))
+
+        else:
+            table = Table(title="Container Functions")
+            table.add_column("Function", style="cyan")
+            table.add_column("File", style="dim")
+            table.add_column("Type", style="green")
+            table.add_column("Container", justify="center")
+            table.add_column("Store", justify="center")
+            table.add_column("Load", justify="center")
+            table.add_column("Conf.", style="magenta")
+            table.add_column("Score", justify="right")
+
+            for cs in summaries:
+                func = functions.get(cs.function_id)
+                table.add_row(
+                    func.name if func else f"ID:{cs.function_id}",
+                    Path(func.file_path).name if func else "?",
+                    cs.container_type,
+                    f"arg[{cs.container_arg}]",
+                    ",".join(str(a) for a in cs.store_args) if cs.store_args else "-",
+                    "ret" if cs.load_return else "-",
+                    cs.confidence,
+                    str(cs.heuristic_score),
+                )
+
+            console.print(table)
+            console.print(f"\nTotal: {len(summaries)} container functions")
+
+    finally:
+        db.close()
+
+
 @main.command()
 @click.option("--compile-commands", "compile_commands_path", type=click.Path(exists=True), required=True,
               help="Path to compile_commands.json")

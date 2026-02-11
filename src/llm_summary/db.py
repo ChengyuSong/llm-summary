@@ -14,6 +14,7 @@ from .models import (
     AllocationSummary,
     AllocationType,
     CallEdge,
+    ContainerSummary,
     FlowDestination,
     Function,
     IndirectCallsite,
@@ -127,6 +128,22 @@ CREATE TABLE IF NOT EXISTS build_configs (
     last_built_at TIMESTAMP
 );
 
+-- Container function summaries
+CREATE TABLE IF NOT EXISTS container_summaries (
+    id INTEGER PRIMARY KEY,
+    function_id INTEGER REFERENCES functions(id) ON DELETE CASCADE,
+    container_arg INTEGER NOT NULL,
+    store_args_json TEXT NOT NULL,
+    load_return INTEGER NOT NULL DEFAULT 0,
+    container_type TEXT NOT NULL,
+    confidence TEXT NOT NULL,
+    heuristic_score INTEGER,
+    heuristic_signals_json TEXT,
+    model_used TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(function_id)
+);
+
 -- Indexes for fast lookups
 CREATE INDEX IF NOT EXISTS idx_functions_name ON functions(name);
 CREATE INDEX IF NOT EXISTS idx_functions_file ON functions(file_path);
@@ -136,6 +153,7 @@ CREATE INDEX IF NOT EXISTS idx_address_flows_function ON address_flows(function_
 CREATE INDEX IF NOT EXISTS idx_indirect_callsites_caller ON indirect_callsites(caller_function_id);
 CREATE INDEX IF NOT EXISTS idx_flow_summaries_function ON address_flow_summaries(function_id);
 CREATE INDEX IF NOT EXISTS idx_build_configs_name ON build_configs(project_name);
+CREATE INDEX IF NOT EXISTS idx_container_summaries_function ON container_summaries(function_id);
 """
 
 
@@ -767,6 +785,99 @@ class SummaryDB:
         ).fetchone()
         return row is not None
 
+    # ========== Container Summary Operations ==========
+
+    def add_container_summary(self, summary: ContainerSummary) -> int:
+        """Add or update a container function summary."""
+        store_args_json = json.dumps(summary.store_args)
+        heuristic_signals_json = json.dumps(summary.heuristic_signals)
+
+        cursor = self.conn.execute(
+            """
+            INSERT INTO container_summaries
+            (function_id, container_arg, store_args_json, load_return,
+             container_type, confidence, heuristic_score, heuristic_signals_json, model_used)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(function_id) DO UPDATE SET
+                container_arg = excluded.container_arg,
+                store_args_json = excluded.store_args_json,
+                load_return = excluded.load_return,
+                container_type = excluded.container_type,
+                confidence = excluded.confidence,
+                heuristic_score = excluded.heuristic_score,
+                heuristic_signals_json = excluded.heuristic_signals_json,
+                model_used = excluded.model_used,
+                created_at = CURRENT_TIMESTAMP
+            """,
+            (
+                summary.function_id,
+                summary.container_arg,
+                store_args_json,
+                1 if summary.load_return else 0,
+                summary.container_type,
+                summary.confidence,
+                summary.heuristic_score,
+                heuristic_signals_json,
+                summary.model_used,
+            ),
+        )
+        self.conn.commit()
+        return cursor.lastrowid
+
+    def get_container_summary(self, function_id: int) -> ContainerSummary | None:
+        """Get the container summary for a function."""
+        row = self.conn.execute(
+            "SELECT * FROM container_summaries WHERE function_id = ?",
+            (function_id,),
+        ).fetchone()
+
+        if not row:
+            return None
+
+        store_args = []
+        try:
+            store_args = json.loads(row["store_args_json"])
+        except json.JSONDecodeError:
+            pass
+
+        heuristic_signals = []
+        try:
+            if row["heuristic_signals_json"]:
+                heuristic_signals = json.loads(row["heuristic_signals_json"])
+        except json.JSONDecodeError:
+            pass
+
+        return ContainerSummary(
+            id=row["id"],
+            function_id=row["function_id"],
+            container_arg=row["container_arg"],
+            store_args=store_args,
+            load_return=bool(row["load_return"]),
+            container_type=row["container_type"],
+            confidence=row["confidence"],
+            heuristic_score=row["heuristic_score"] or 0,
+            heuristic_signals=heuristic_signals,
+            model_used=row["model_used"] or "",
+        )
+
+    def get_all_container_summaries(self) -> list[ContainerSummary]:
+        """Get all container summaries from the database."""
+        rows = self.conn.execute("SELECT function_id FROM container_summaries").fetchall()
+        summaries = []
+        for row in rows:
+            summary = self.get_container_summary(row["function_id"])
+            if summary:
+                summaries.append(summary)
+        return summaries
+
+    def has_container_summary(self, function_id: int) -> bool:
+        """Check if a function already has a container summary."""
+        row = self.conn.execute(
+            "SELECT 1 FROM container_summaries WHERE function_id = ?",
+            (function_id,),
+        ).fetchone()
+        return row is not None
+
     # ========== Utility Operations ==========
 
     def clear_all(self) -> None:
@@ -777,6 +888,7 @@ class SummaryDB:
             "address_flow_summaries",
             "address_flows",
             "address_taken_functions",
+            "container_summaries",
             "call_edges",
             "allocation_summaries",
             "functions",
@@ -798,6 +910,7 @@ class SummaryDB:
             "address_flow_summaries",
             "indirect_callsites",
             "indirect_call_targets",
+            "container_summaries",
             "build_configs",
         ]
         for table in tables:

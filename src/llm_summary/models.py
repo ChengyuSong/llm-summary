@@ -235,6 +235,35 @@ class AssemblyType(str, Enum):
 
 
 @dataclass
+class ContainerSummary:
+    """Summary of a container/collection function detected via heuristic + LLM."""
+
+    function_id: int
+    container_arg: int  # 0-based index of container object param
+    store_args: list[int] = field(default_factory=list)  # indices of value params stored INTO container
+    load_return: bool = False  # return value loaded FROM container
+    container_type: str = "other"  # hash_table, linked_list, tree, map, cache, queue, set, array, other
+    confidence: str = "medium"  # high, medium, low
+    heuristic_score: int = 0  # pre-filter score
+    heuristic_signals: list[str] = field(default_factory=list)  # which signals triggered
+    model_used: str = ""
+    id: int | None = None
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "function_id": self.function_id,
+            "container_arg": self.container_arg,
+            "store_args": self.store_args,
+            "load_return": self.load_return,
+            "container_type": self.container_type,
+            "confidence": self.confidence,
+            "heuristic_score": self.heuristic_score,
+            "heuristic_signals": self.heuristic_signals,
+            "model_used": self.model_used,
+        }
+
+
+@dataclass
 class AssemblyFinding:
     """Single assembly detection with location info."""
 
