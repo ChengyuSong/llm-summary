@@ -1,0 +1,344 @@
+[
+  {
+    "function": "hol_free",
+    "file": "/data/csong/opensource/cpio/gnu/argp-help.c",
+    "signature": "void(struct hol *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "parser_init",
+    "file": "/data/csong/opensource/cpio/gnu/argp-parse.c",
+    "signature": "error_t(struct parser *, const struct argp *, int, char **, int, void *)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [
+      5
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 10,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "hash_get_max_bucket_length",
+    "file": "/data/csong/opensource/cpio/gnu/hash.c",
+    "signature": "size_t(const Hash_table *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 10,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "hash_table_ok",
+    "file": "/data/csong/opensource/cpio/gnu/hash.c",
+    "signature": "int()",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "safe_hasher",
+    "file": "/data/csong/opensource/cpio/gnu/hash.c",
+    "signature": "struct hash_entry *(const Hash_table *, const void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "hash_lookup",
+    "file": "/data/csong/opensource/cpio/gnu/hash.c",
+    "signature": "void *(const Hash_table *, const void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 18,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "hash_get_first",
+    "file": "/data/csong/opensource/cpio/gnu/hash.c",
+    "signature": "void *(const Hash_table *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 15,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "hash_get_next",
+    "file": "/data/csong/opensource/cpio/gnu/hash.c",
+    "signature": "void *(const Hash_table *, const void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 18,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "hash_get_entries",
+    "file": "/data/csong/opensource/cpio/gnu/hash.c",
+    "signature": "size_t(const Hash_table *, void **, size_t)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 12,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "hash_do_for_each",
+    "file": "/data/csong/opensource/cpio/gnu/hash.c",
+    "signature": "size_t(const Hash_table *, int, void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 10,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "raw_hasher",
+    "file": "/data/csong/opensource/cpio/gnu/hash.c",
+    "signature": "size_t(const void *, size_t)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "hash_initialize",
+    "file": "/data/csong/opensource/cpio/gnu/hash.c",
+    "signature": "Hash_table *(size_t, const Hash_tuning *, Hash_hasher, Hash_comparator, Hash_data_freer)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "hash_clear",
+    "file": "/data/csong/opensource/cpio/gnu/hash.c",
+    "signature": "void(Hash_table *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "hash_free",
+    "file": "/data/csong/opensource/cpio/gnu/hash.c",
+    "signature": "void(Hash_table *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "find_entry",
+    "file": "/data/csong/opensource/cpio/gnu/hash.c",
+    "signature": "void *(Hash_table *, const void *, struct hash_entry **, bool)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 11,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "transfer_entries",
+    "file": "/data/csong/opensource/cpio/gnu/hash.c",
+    "signature": "int()",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "hash_rehash",
+    "file": "/data/csong/opensource/cpio/gnu/hash.c",
+    "signature": "int()",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "hash_insert_if_absent",
+    "file": "/data/csong/opensource/cpio/gnu/hash.c",
+    "signature": "int(Hash_table *, const void *, const void **)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 13,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "hash_insert",
+    "file": "/data/csong/opensource/cpio/gnu/hash.c",
+    "signature": "void *(Hash_table *, const void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 10,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "hash_remove",
+    "file": "/data/csong/opensource/cpio/gnu/hash.c",
+    "signature": "void *(Hash_table *, const void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 12,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "_obstack_begin_worker",
+    "file": "/data/csong/opensource/cpio/gnu/obstack.c",
+    "signature": "int(struct obstack *, int, int)",
+    "container_type": "obstack",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "_obstack_allocated_p",
+    "file": "/data/csong/opensource/cpio/gnu/obstack.c",
+    "signature": "int(struct obstack *, void *)",
+    "container_type": "obstack",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 9,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "hash_string_insert_prefix",
+    "file": "/data/csong/opensource/cpio/paxutils/paxlib/names.c",
+    "signature": "int()",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "dl_hash",
+    "file": "/data/csong/opensource/cpio/src/copyin.c",
+    "signature": "size_t(const void *, size_t)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "add_link_defer",
+    "file": "/data/csong/opensource/cpio/src/copyout.c",
+    "signature": "void(struct cpio_file_stat *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "getuser",
+    "file": "/data/csong/opensource/cpio/src/idcache.c",
+    "signature": "char *(uid_t)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      0
+    ],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "getgroup",
+    "file": "/data/csong/opensource/cpio/src/idcache.c",
+    "signature": "char *(gid_t)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      0
+    ],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  }
+]

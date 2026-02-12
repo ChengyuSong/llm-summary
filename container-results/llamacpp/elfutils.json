@@ -1,0 +1,382 @@
+[
+  {
+    "function": "eu_search_tree_init",
+    "file": "/data/csong/opensource/elfutils/lib/eu-search.c",
+    "signature": "void(search_tree *)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "__elf32_updatemmap",
+    "file": "/data/csong/opensource/elfutils/libelf/elf32_updatefile.c",
+    "signature": "int(Elf *, int, size_t)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "strtab_add",
+    "file": "/data/csong/opensource/elfutils/libdwelf/dwelf_strtab.c",
+    "signature": "Dwelf_Strent *(Dwelf_Strtab *, const char *, size_t)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "copystrings",
+    "file": "/data/csong/opensource/elfutils/libdwelf/dwelf_strtab.c",
+    "signature": "void(Dwelf_Strent *, char **, size_t *)",
+    "container_type": "binary_search_tree",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "cache_sections",
+    "file": "/data/csong/opensource/elfutils/libdwfl/derelocate.c",
+    "signature": "int(Dwfl_Module *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 10,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "dwfl_report_end",
+    "file": "/data/csong/opensource/elfutils/libdwfl/dwfl_module.c",
+    "signature": "int(Dwfl *, int (*)(Dwfl_Module *, void *, const char *, Dwarf_Addr, void *), void *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "dwfl_getmodules",
+    "file": "/data/csong/opensource/elfutils/libdwfl/dwfl_getmodules.c",
+    "signature": "ptrdiff_t(Dwfl *, int (*)(Dwfl_Module *, void **, const char *, Dwarf_Addr, void *), void *, ptrdiff_t)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "dwfl_segment_report_module",
+    "file": "/data/csong/opensource/elfutils/libdwfl/dwfl_segment_report_module.c",
+    "signature": "int(Dwfl *, int, const char *, const char *, Dwfl_Memory_Callback *, void *, Dwfl_Module_Callback *, void *, size_t, const void *, size_t, const struct r_debug_info *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 9,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "report_r_debug",
+    "file": "/data/csong/opensource/elfutils/libdwfl/link_map.c",
+    "signature": "int(uint_fast8_t, uint_fast8_t, Dwfl *, GElf_Addr, Dwfl_Memory_Callback *, void *, struct r_debug_info *)",
+    "container_type": "linked_list",
+    "container_arg": 6,
+    "store_args": [
+      2,
+      6
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 10,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "dwfl_attach_state",
+    "file": "/data/csong/opensource/elfutils/libdwfl/dwfl_frame.c",
+    "signature": "_Bool(Dwfl *, Elf *, pid_t, const Dwfl_Thread_Callbacks *, void *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "__libdwfl_stacktrace_add_dwfl_to_tracker",
+    "file": "/data/csong/opensource/elfutils/libdwfl_stacktrace/dwflst_process_tracker.c",
+    "signature": "void(Dwfl *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "__libdwfl_stacktrace_remove_dwfl_from_tracker",
+    "file": "/data/csong/opensource/elfutils/libdwfl_stacktrace/dwflst_process_tracker.c",
+    "signature": "void(Dwfl *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "dwflst_tracker_find_cached_elf",
+    "file": "/data/csong/opensource/elfutils/libdwfl_stacktrace/dwflst_tracker_find_elf.c",
+    "signature": "int(Dwflst_Process_Tracker *, const char *, const char *, char **, Elf **)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 10,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "get_offsets",
+    "file": "/data/csong/opensource/elfutils/libdw/dwarf_getpubnames.c",
+    "signature": "int(Dwarf *)",
+    "container_type": "dynamic_array",
+    "container_arg": 0,
+    "store_args": [
+      0
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "add_new_line",
+    "file": "/data/csong/opensource/elfutils/libdw/dwarf_getsrclines.c",
+    "signature": "_Bool(struct line_state *, struct linelist *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 9,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "origin_match",
+    "file": "/data/csong/opensource/elfutils/libdw/dwarf_getscopes.c",
+    "signature": "int(unsigned int, struct Dwarf_Die_Chain *, void *)",
+    "container_type": "dynamic_array",
+    "container_arg": 2,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 9,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "scope_visitor",
+    "file": "/data/csong/opensource/elfutils/libdw/dwarf_getscopes_die.c",
+    "signature": "int(unsigned int, struct Dwarf_Die_Chain *, void *)",
+    "container_type": "array",
+    "container_arg": 2,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "add_dump_section",
+    "file": "/data/csong/opensource/elfutils/src/readelf.c",
+    "signature": "void(const char *, int, _Bool)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "handle_sysv_hash",
+    "file": "/data/csong/opensource/elfutils/src/readelf.c",
+    "signature": "void(Ebl *, Elf_Scn *, GElf_Shdr *, size_t)",
+    "container_type": "hash_table",
+    "container_arg": 3,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "handle_sysv_hash64",
+    "file": "/data/csong/opensource/elfutils/src/readelf.c",
+    "signature": "void(Ebl *, Elf_Scn *, GElf_Shdr *, size_t)",
+    "container_type": "hash_table",
+    "container_arg": 3,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "handle_gnu_hash",
+    "file": "/data/csong/opensource/elfutils/src/readelf.c",
+    "signature": "void(Ebl *, Elf_Scn *, GElf_Shdr *, size_t)",
+    "container_type": "hash_table",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "add_pattern",
+    "file": "/data/csong/opensource/elfutils/src/strip.c",
+    "signature": "void(struct section_pattern **, const char *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "compare_hash_gnu_hash",
+    "file": "/data/csong/opensource/elfutils/src/elflint.c",
+    "signature": "void(Ebl *, GElf_Ehdr *, size_t, size_t)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2,
+      3
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "add_version",
+    "file": "/data/csong/opensource/elfutils/src/elflint.c",
+    "signature": "int(const char *, const char *, GElf_Versym, int)",
+    "container_type": "linked_list",
+    "container_arg": 3,
+    "store_args": [
+      0,
+      1,
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "do_oper_delete",
+    "file": "/data/csong/opensource/elfutils/src/ar.c",
+    "signature": "int(const char *, char **, int, long)",
+    "container_type": "hash_table",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "do_oper_insert",
+    "file": "/data/csong/opensource/elfutils/src/ar.c",
+    "signature": "int(int, const char *, char **, int, const char *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "record_new_data",
+    "file": "/data/csong/opensource/elfutils/src/unstrip.c",
+    "signature": "void(void *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      0
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "add_pattern",
+    "file": "/data/csong/opensource/elfutils/src/elfcompress.c",
+    "signature": "void(const char *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "collect_sourcefiles",
+    "file": "/data/csong/opensource/elfutils/src/srcfiles.cxx",
+    "signature": "int(Dwfl_Module *, void **, const char *, Dwarf_Addr, void *)",
+    "container_type": "hash_table",
+    "container_arg": 4,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  }
+]

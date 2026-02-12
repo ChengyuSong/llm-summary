@@ -1,0 +1,74 @@
+[
+  {
+    "function": "GetExpectedHashesFromFor",
+    "file": "/data/csong/opensource/apt/apt-pkg/acquire-item.cc",
+    "signature": "HashStringList(metaIndex *const, const std::string &)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "debRecordParserBase::Hashes",
+    "file": "/data/csong/opensource/apt/apt-pkg/deb/debrecords.cc",
+    "signature": "HashStringList()",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "pkgCache::ReMap",
+    "file": "/data/csong/opensource/apt/apt-pkg/pkgcache.cc",
+    "signature": "bool(const bool &)",
+    "container_type": "cache",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "pkgCache::sHash",
+    "file": "/data/csong/opensource/apt/apt-pkg/pkgcache.cc",
+    "signature": "map_id_t(string_view)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "CircleBuf::Reset",
+    "file": "/data/csong/opensource/apt/methods/http.cc",
+    "signature": "void()",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "HttpServerState::InitHashes",
+    "file": "/data/csong/opensource/apt/methods/http.cc",
+    "signature": "bool(const HashStringList &)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  }
+]

@@ -1,0 +1,19 @@
+[
+  {
+    "function": "re2::Compiler::CachedRuneByteSuffix",
+    "file": "/data/csong/opensource/re2/re2/compile.cc",
+    "signature": "int(uint8_t, uint8_t, bool, int)",
+    "container_type": "hash_table",
+    "container_arg": -1,
+    "store_args": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  }
+]

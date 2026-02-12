@@ -1,0 +1,4627 @@
+[
+  {
+    "function": "grpc_core::Fork::RegisterResetChildPollingEngineFunc",
+    "file": "/data/csong/opensource/grpc/src/core/util/fork.cc",
+    "signature": "bool(Fork::child_postfork_func)",
+    "container_type": "set",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "grpc_core::MultiProducerSingleConsumerQueue::Push",
+    "file": "/data/csong/opensource/grpc/src/core/util/mpscq.cc",
+    "signature": "bool(Node *)",
+    "container_type": "queue",
+    "container_arg": 0,
+    "store_args": [
+      0
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "grpc_core::MultiProducerSingleConsumerQueue::PopAndCheckEnd",
+    "file": "/data/csong/opensource/grpc/src/core/util/mpscq.cc",
+    "signature": "MultiProducerSingleConsumerQueue::Node *(bool *)",
+    "container_type": "queue",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "hash",
+    "file": "/data/csong/opensource/grpc/src/core/util/sync.cc",
+    "signature": "struct sync_array_s *(gpr_event *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "gpr_event_set",
+    "file": "/data/csong/opensource/grpc/src/core/util/sync.cc",
+    "signature": "void(gpr_event *, void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "gpr_event_wait",
+    "file": "/data/csong/opensource/grpc/src/core/util/sync.cc",
+    "signature": "void *(gpr_event *, gpr_timespec)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "verifier_put_mapping",
+    "file": "/data/csong/opensource/grpc/src/core/credentials/call/jwt/jwt_verifier.cc",
+    "signature": "void(grpc_jwt_verifier *, const char *, const char *)",
+    "container_type": "dynamic_array",
+    "container_arg": 0,
+    "store_args": [
+      1,
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "grpc_alts_credentials_client_options_add_target_service_account",
+    "file": "/data/csong/opensource/grpc/src/core/credentials/transport/alts/grpc_alts_credentials_client_options.cc",
+    "signature": "void(grpc_alts_credentials_options *, const char *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "grpc_core::NewChttp2ServerListener::OnAccept",
+    "file": "/data/csong/opensource/grpc/src/core/ext/transport/chttp2/server/chttp2_server.cc",
+    "signature": "void(void *, grpc_endpoint *, grpc_pollset *, grpc_tcp_server_acceptor *)",
+    "container_type": "dynamic_collection",
+    "container_arg": 0,
+    "store_args": [
+      0
+    ],
+    "load_return": false,
+    "confidence": "medium",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "grpc_core::ForEachContextListEntryExecute",
+    "file": "/data/csong/opensource/grpc/src/core/ext/transport/chttp2/transport/chttp2_transport.cc",
+    "signature": "void(void *, Timestamps *, grpc_error_handle)",
+    "container_type": "list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "flush_write_list",
+    "file": "/data/csong/opensource/grpc/src/core/ext/transport/chttp2/transport/chttp2_transport.cc",
+    "signature": "void(grpc_chttp2_transport *, grpc_chttp2_write_cb **, grpc_error_handle)",
+    "container_type": "linked_list",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "stream_list_pop",
+    "file": "/data/csong/opensource/grpc/src/core/ext/transport/chttp2/transport/stream_lists.cc",
+    "signature": "bool(grpc_chttp2_transport *, grpc_chttp2_stream **, grpc_chttp2_stream_list_id)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "stream_list_remove",
+    "file": "/data/csong/opensource/grpc/src/core/ext/transport/chttp2/transport/stream_lists.cc",
+    "signature": "void(grpc_chttp2_transport *, grpc_chttp2_stream *, grpc_chttp2_stream_list_id)",
+    "container_type": "doubly_linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "stream_list_maybe_remove",
+    "file": "/data/csong/opensource/grpc/src/core/ext/transport/chttp2/transport/stream_lists.cc",
+    "signature": "bool(grpc_chttp2_transport *, grpc_chttp2_stream *, grpc_chttp2_stream_list_id)",
+    "container_type": "list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "stream_list_add_tail",
+    "file": "/data/csong/opensource/grpc/src/core/ext/transport/chttp2/transport/stream_lists.cc",
+    "signature": "void(grpc_chttp2_transport *, grpc_chttp2_stream *, grpc_chttp2_stream_list_id)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1,
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "stream_list_add_head",
+    "file": "/data/csong/opensource/grpc/src/core/ext/transport/chttp2/transport/stream_lists.cc",
+    "signature": "void(grpc_chttp2_transport *, grpc_chttp2_stream *, grpc_chttp2_stream_list_id)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1,
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "stream_list_add",
+    "file": "/data/csong/opensource/grpc/src/core/ext/transport/chttp2/transport/stream_lists.cc",
+    "signature": "bool(grpc_chttp2_transport *, grpc_chttp2_stream *, grpc_chttp2_stream_list_id)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "stream_list_prepend",
+    "file": "/data/csong/opensource/grpc/src/core/ext/transport/chttp2/transport/stream_lists.cc",
+    "signature": "bool(grpc_chttp2_transport *, grpc_chttp2_stream *, grpc_chttp2_stream_list_id)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "grpc_chttp2_list_add_writable_stream",
+    "file": "/data/csong/opensource/grpc/src/core/ext/transport/chttp2/transport/stream_lists.cc",
+    "signature": "bool(grpc_chttp2_transport *, grpc_chttp2_stream *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "grpc_chttp2_list_add_writing_stream",
+    "file": "/data/csong/opensource/grpc/src/core/ext/transport/chttp2/transport/stream_lists.cc",
+    "signature": "bool(grpc_chttp2_transport *, grpc_chttp2_stream *)",
+    "container_type": "list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "grpc_chttp2_list_pop_writing_stream",
+    "file": "/data/csong/opensource/grpc/src/core/ext/transport/chttp2/transport/stream_lists.cc",
+    "signature": "bool(grpc_chttp2_transport *, grpc_chttp2_stream **)",
+    "container_type": "list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "grpc_chttp2_list_add_waiting_for_concurrency",
+    "file": "/data/csong/opensource/grpc/src/core/ext/transport/chttp2/transport/stream_lists.cc",
+    "signature": "void(grpc_chttp2_transport *, grpc_chttp2_stream *)",
+    "container_type": "list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "grpc_chttp2_list_pop_waiting_for_concurrency",
+    "file": "/data/csong/opensource/grpc/src/core/ext/transport/chttp2/transport/stream_lists.cc",
+    "signature": "bool(grpc_chttp2_transport *, grpc_chttp2_stream **)",
+    "container_type": "list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "grpc_chttp2_list_remove_waiting_for_concurrency",
+    "file": "/data/csong/opensource/grpc/src/core/ext/transport/chttp2/transport/stream_lists.cc",
+    "signature": "void(grpc_chttp2_transport *, grpc_chttp2_stream *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "grpc_chttp2_list_add_stalled_by_transport",
+    "file": "/data/csong/opensource/grpc/src/core/ext/transport/chttp2/transport/stream_lists.cc",
+    "signature": "void(grpc_chttp2_transport *, grpc_chttp2_stream *)",
+    "container_type": "list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "grpc_chttp2_list_pop_stalled_by_transport",
+    "file": "/data/csong/opensource/grpc/src/core/ext/transport/chttp2/transport/stream_lists.cc",
+    "signature": "bool(grpc_chttp2_transport *, grpc_chttp2_stream **)",
+    "container_type": "list",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "grpc_chttp2_list_remove_stalled_by_transport",
+    "file": "/data/csong/opensource/grpc/src/core/ext/transport/chttp2/transport/stream_lists.cc",
+    "signature": "void(grpc_chttp2_transport *, grpc_chttp2_stream *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "grpc_chttp2_list_add_stalled_by_stream",
+    "file": "/data/csong/opensource/grpc/src/core/ext/transport/chttp2/transport/stream_lists.cc",
+    "signature": "void(grpc_chttp2_transport *, grpc_chttp2_stream *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "grpc_chttp2_list_pop_stalled_by_stream",
+    "file": "/data/csong/opensource/grpc/src/core/ext/transport/chttp2/transport/stream_lists.cc",
+    "signature": "bool(grpc_chttp2_transport *, grpc_chttp2_stream **)",
+    "container_type": "list",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "grpc_chttp2_list_remove_stalled_by_stream",
+    "file": "/data/csong/opensource/grpc/src/core/ext/transport/chttp2/transport/stream_lists.cc",
+    "signature": "bool(grpc_chttp2_transport *, grpc_chttp2_stream *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "add_to_write_list",
+    "file": "/data/csong/opensource/grpc/src/core/ext/transport/chttp2/transport/writing.cc",
+    "signature": "void(grpc_chttp2_write_cb **, grpc_chttp2_write_cb *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "update_list",
+    "file": "/data/csong/opensource/grpc/src/core/ext/transport/chttp2/transport/writing.cc",
+    "signature": "bool(grpc_chttp2_transport *, int64_t, grpc_chttp2_write_cb **, int64_t *, grpc_error_handle)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "grpc_event_engine::experimental::AresResolver::OnSRVQueryDoneLocked",
+    "file": "/data/csong/opensource/grpc/src/core/lib/event_engine/ares_resolver.cc",
+    "signature": "void(void *, int, int, unsigned char *, int)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "grpc_event_engine::experimental::PosixEngineListenerImpl::Bind",
+    "file": "/data/csong/opensource/grpc/src/core/lib/event_engine/posix_engine/posix_engine_listener.cc",
+    "signature": "absl::StatusOr<int>(const EventEngine::ResolvedAddress &, PosixListenerWithFdSupport::OnPosixBindNewFdCallback)",
+    "container_type": "vector_like",
+    "container_arg": -1,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "grpc_event_engine::experimental::ListenerContainerAddWildcardAddresses",
+    "file": "/data/csong/opensource/grpc/src/core/lib/event_engine/posix_engine/posix_engine_listener_utils.cc",
+    "signature": "absl::StatusOr<int>(EventEnginePosixInterface *, ListenerSocketsContainer &, const PosixTcpOptions &, int)",
+    "container_type": "list",
+    "container_arg": 1,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "grpc_event_engine::experimental::ListJoin",
+    "file": "/data/csong/opensource/grpc/src/core/lib/event_engine/posix_engine/timer.cc",
+    "signature": "void(Timer *, Timer *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "grpc_event_engine::experimental::ListRemove",
+    "file": "/data/csong/opensource/grpc/src/core/lib/event_engine/posix_engine/timer.cc",
+    "signature": "void(Timer *)",
+    "container_type": "doubly_linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "grpc_event_engine::experimental::TimerList::Shard::RefillHeap",
+    "file": "/data/csong/opensource/grpc/src/core/lib/event_engine/posix_engine/timer.cc",
+    "signature": "bool(grpc_core::Timestamp)",
+    "container_type": "heap",
+    "container_arg": -1,
+    "store_args": [
+      0
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "grpc_core::TracedBufferList::AddNewEntry",
+    "file": "/data/csong/opensource/grpc/src/core/lib/iomgr/buffer_list.cc",
+    "signature": "void(int32_t, int, void *)",
+    "container_type": "linked_list",
+    "container_arg": -1,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "fork_fd_list_add_grpc_fd",
+    "file": "/data/csong/opensource/grpc/src/core/lib/iomgr/ev_epoll1_linux.cc",
+    "signature": "void(grpc_fd *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "fork_fd_list_remove_grpc_fd",
+    "file": "/data/csong/opensource/grpc/src/core/lib/iomgr/ev_epoll1_linux.cc",
+    "signature": "void(grpc_fd *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "worker_insert",
+    "file": "/data/csong/opensource/grpc/src/core/lib/iomgr/ev_epoll1_linux.cc",
+    "signature": "bool(grpc_pollset *, grpc_pollset_worker *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "worker_remove",
+    "file": "/data/csong/opensource/grpc/src/core/lib/iomgr/ev_epoll1_linux.cc",
+    "signature": "worker_remove_result(grpc_pollset *, grpc_pollset_worker *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "pollset_destroy",
+    "file": "/data/csong/opensource/grpc/src/core/lib/iomgr/ev_epoll1_linux.cc",
+    "signature": "void(grpc_pollset *)",
+    "container_type": "doubly_linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "reset_event_manager_on_fork",
+    "file": "/data/csong/opensource/grpc/src/core/lib/iomgr/ev_epoll1_linux.cc",
+    "signature": "void()",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "fork_fd_list_remove_node",
+    "file": "/data/csong/opensource/grpc/src/core/lib/iomgr/ev_poll_posix.cc",
+    "signature": "void(grpc_fork_fd_list *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "fork_fd_list_remove_grpc_fd",
+    "file": "/data/csong/opensource/grpc/src/core/lib/iomgr/ev_poll_posix.cc",
+    "signature": "void(grpc_fd *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "fork_fd_list_remove_wakeup_fd",
+    "file": "/data/csong/opensource/grpc/src/core/lib/iomgr/ev_poll_posix.cc",
+    "signature": "void(grpc_cached_wakeup_fd *)",
+    "container_type": "list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "fork_fd_list_add_node",
+    "file": "/data/csong/opensource/grpc/src/core/lib/iomgr/ev_poll_posix.cc",
+    "signature": "void(grpc_fork_fd_list *)",
+    "container_type": "doubly_linked_list",
+    "container_arg": 0,
+    "store_args": [
+      0
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "fork_fd_list_add_grpc_fd",
+    "file": "/data/csong/opensource/grpc/src/core/lib/iomgr/ev_poll_posix.cc",
+    "signature": "void(grpc_fd *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "fork_fd_list_add_wakeup_fd",
+    "file": "/data/csong/opensource/grpc/src/core/lib/iomgr/ev_poll_posix.cc",
+    "signature": "void(grpc_cached_wakeup_fd *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "has_watchers",
+    "file": "/data/csong/opensource/grpc/src/core/lib/iomgr/ev_poll_posix.cc",
+    "signature": "int(grpc_fd *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "remove_worker",
+    "file": "/data/csong/opensource/grpc/src/core/lib/iomgr/ev_poll_posix.cc",
+    "signature": "void(grpc_pollset *, grpc_pollset_worker *)",
+    "container_type": "doubly_linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "pop_front_worker",
+    "file": "/data/csong/opensource/grpc/src/core/lib/iomgr/ev_poll_posix.cc",
+    "signature": "grpc_pollset_worker *(grpc_pollset *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "push_back_worker",
+    "file": "/data/csong/opensource/grpc/src/core/lib/iomgr/ev_poll_posix.cc",
+    "signature": "void(grpc_pollset *, grpc_pollset_worker *)",
+    "container_type": "doubly_linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "push_front_worker",
+    "file": "/data/csong/opensource/grpc/src/core/lib/iomgr/ev_poll_posix.cc",
+    "signature": "void(grpc_pollset *, grpc_pollset_worker *)",
+    "container_type": "doubly_linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "pollset_kick_ext",
+    "file": "/data/csong/opensource/grpc/src/core/lib/iomgr/ev_poll_posix.cc",
+    "signature": "grpc_error_handle(grpc_pollset *, grpc_pollset_worker *, uint32_t)",
+    "container_type": "doubly_linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "pollset_add_fd",
+    "file": "/data/csong/opensource/grpc/src/core/lib/iomgr/ev_poll_posix.cc",
+    "signature": "void(grpc_pollset *, grpc_fd *)",
+    "container_type": "dynamic_array",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "pollset_work",
+    "file": "/data/csong/opensource/grpc/src/core/lib/iomgr/ev_poll_posix.cc",
+    "signature": "grpc_error_handle(grpc_pollset *, grpc_pollset_worker **, grpc_core::Timestamp)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "pollset_set_add_pollset",
+    "file": "/data/csong/opensource/grpc/src/core/lib/iomgr/ev_poll_posix.cc",
+    "signature": "void(grpc_pollset_set *, grpc_pollset *)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "pollset_set_add_pollset_set",
+    "file": "/data/csong/opensource/grpc/src/core/lib/iomgr/ev_poll_posix.cc",
+    "signature": "void(grpc_pollset_set *, grpc_pollset_set *)",
+    "container_type": "dynamic_array",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "pollset_set_add_fd",
+    "file": "/data/csong/opensource/grpc/src/core/lib/iomgr/ev_poll_posix.cc",
+    "signature": "void(grpc_pollset_set *, grpc_fd *)",
+    "container_type": "dynamic_array",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "pollset_set_add_pollset",
+    "file": "/data/csong/opensource/grpc/src/core/lib/iomgr/ev_posix.cc",
+    "signature": "void(grpc_pollset_set *, grpc_pollset *)",
+    "container_type": "set",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "pollset_set_add_pollset_set",
+    "file": "/data/csong/opensource/grpc/src/core/lib/iomgr/ev_posix.cc",
+    "signature": "void(grpc_pollset_set *, grpc_pollset_set *)",
+    "container_type": "set",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "grpc_pollset_set_add_fd",
+    "file": "/data/csong/opensource/grpc/src/core/lib/iomgr/ev_posix.cc",
+    "signature": "void(grpc_pollset_set *, grpc_fd *)",
+    "container_type": "set",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "grpc_polling_entity_add_to_pollset_set",
+    "file": "/data/csong/opensource/grpc/src/core/lib/iomgr/polling_entity.cc",
+    "signature": "void(grpc_polling_entity *, grpc_pollset_set *)",
+    "container_type": "set",
+    "container_arg": 1,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "grpc_pollset_set_add_pollset",
+    "file": "/data/csong/opensource/grpc/src/core/lib/iomgr/pollset_set.cc",
+    "signature": "void(grpc_pollset_set *, grpc_pollset *)",
+    "container_type": "unknown_collection",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "grpc_pollset_set_add_pollset_set",
+    "file": "/data/csong/opensource/grpc/src/core/lib/iomgr/pollset_set.cc",
+    "signature": "void(grpc_pollset_set *, grpc_pollset_set *)",
+    "container_type": "set",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "tcp_add_to_pollset_set",
+    "file": "/data/csong/opensource/grpc/src/core/lib/iomgr/tcp_posix.cc",
+    "signature": "void(grpc_endpoint *, grpc_pollset_set *)",
+    "container_type": "pollset_set",
+    "container_arg": 1,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "add_wildcard_addrs_to_server",
+    "file": "/data/csong/opensource/grpc/src/core/lib/iomgr/tcp_server_posix.cc",
+    "signature": "grpc_error_handle(grpc_tcp_server *, unsigned int, int, int *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "tcp_server_add_port",
+    "file": "/data/csong/opensource/grpc/src/core/lib/iomgr/tcp_server_posix.cc",
+    "signature": "grpc_error_handle(grpc_tcp_server *, const grpc_resolved_address *, int *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "add_socket_to_server",
+    "file": "/data/csong/opensource/grpc/src/core/lib/iomgr/tcp_server_utils_posix_common.cc",
+    "signature": "grpc_error_handle(grpc_tcp_server *, int, const grpc_resolved_address *, unsigned int, unsigned int, grpc_tcp_listener **)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      5
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "find_listener_with_addr",
+    "file": "/data/csong/opensource/grpc/src/core/lib/iomgr/tcp_server_utils_posix_ifaddrs.cc",
+    "signature": "grpc_tcp_listener *(grpc_tcp_server *, grpc_resolved_address *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 9,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "timer_list_init",
+    "file": "/data/csong/opensource/grpc/src/core/lib/iomgr/timer_generic.cc",
+    "signature": "void()",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      262
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "list_join",
+    "file": "/data/csong/opensource/grpc/src/core/lib/iomgr/timer_generic.cc",
+    "signature": "void(grpc_timer *, grpc_timer *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "list_remove",
+    "file": "/data/csong/opensource/grpc/src/core/lib/iomgr/timer_generic.cc",
+    "signature": "void(grpc_timer *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "refill_heap",
+    "file": "/data/csong/opensource/grpc/src/core/lib/iomgr/timer_generic.cc",
+    "signature": "bool(timer_shard *, grpc_core::Timestamp)",
+    "container_type": "heap",
+    "container_arg": 0,
+    "store_args": [
+      0
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "grpc_timer_heap_add",
+    "file": "/data/csong/opensource/grpc/src/core/lib/iomgr/timer_heap.cc",
+    "signature": "bool(grpc_timer_heap *, grpc_timer *)",
+    "container_type": "heap",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "grpc_timer_heap_remove",
+    "file": "/data/csong/opensource/grpc/src/core/lib/iomgr/timer_heap.cc",
+    "signature": "void(grpc_timer_heap *, grpc_timer *)",
+    "container_type": "heap",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "grpc_timer_heap_pop",
+    "file": "/data/csong/opensource/grpc/src/core/lib/iomgr/timer_heap.cc",
+    "signature": "void(grpc_timer_heap *)",
+    "container_type": "heap",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "grpc_completion_queue_thread_local_cache_flush",
+    "file": "/data/csong/opensource/grpc/src/core/lib/surface/completion_queue.cc",
+    "signature": "int(grpc_completion_queue *, void **, int *)",
+    "container_type": "cache",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "cq_end_op_for_next",
+    "file": "/data/csong/opensource/grpc/src/core/lib/surface/completion_queue.cc",
+    "signature": "void(grpc_completion_queue *, void *, grpc_error_handle, void (*)(void *, grpc_cq_completion *), void *, grpc_cq_completion *, bool)",
+    "container_type": "queue",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "cq_end_op_for_pluck",
+    "file": "/data/csong/opensource/grpc/src/core/lib/surface/completion_queue.cc",
+    "signature": "void(grpc_completion_queue *, void *, grpc_error_handle, void (*)(void *, grpc_cq_completion *), void *, grpc_cq_completion *, bool)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "cq_next",
+    "file": "/data/csong/opensource/grpc/src/core/lib/surface/completion_queue.cc",
+    "signature": "grpc_event(grpc_completion_queue *, gpr_timespec, void *)",
+    "container_type": "queue",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "cq_pluck",
+    "file": "/data/csong/opensource/grpc/src/core/lib/surface/completion_queue.cc",
+    "signature": "grpc_event(grpc_completion_queue *, void *, gpr_timespec, void *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "pop_fd_node_locked",
+    "file": "/data/csong/opensource/grpc/src/core/resolver/dns/c_ares/grpc_ares_wrapper.cc",
+    "signature": "fd_node *(fd_node **, ares_socket_t)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "on_ares_backup_poll_alarm",
+    "file": "/data/csong/opensource/grpc/src/core/resolver/dns/c_ares/grpc_ares_wrapper.cc",
+    "signature": "void(void *, grpc_error_handle)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "grpc_core::Histogram_16777216_50_64::BucketFor",
+    "file": "/data/csong/opensource/grpc/src/core/telemetry/stats_data.cc",
+    "signature": "int(int)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "grpc_core::json_detail::LoadMap::LoadInto",
+    "file": "/data/csong/opensource/grpc/src/core/util/json/json_object_loader.cc",
+    "signature": "void(const Json &, const JsonArgs &, void *, ValidationErrors *)",
+    "container_type": "hash_table",
+    "container_arg": 2,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "insert",
+    "file": "/data/csong/opensource/grpc/third_party/upb/upb/hash/common.c",
+    "signature": "void(upb_table *, lookupkey_t, upb_key, upb_value, uint32_t, hashfunc_t *, eqlfunc_t *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "upb_strtable_resize",
+    "file": "/data/csong/opensource/grpc/third_party/upb/upb/hash/common.c",
+    "signature": "_Bool(upb_strtable *, size_t, upb_Arena *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "upb_strtable_insert",
+    "file": "/data/csong/opensource/grpc/third_party/upb/upb/hash/common.c",
+    "signature": "_Bool(upb_strtable *, const char *, size_t, upb_value, upb_Arena *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      3
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "upb_strtable_lookup2",
+    "file": "/data/csong/opensource/grpc/third_party/upb/upb/hash/common.c",
+    "signature": "_Bool(const upb_strtable *, const char *, size_t, upb_value *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "upb_strtable_remove2",
+    "file": "/data/csong/opensource/grpc/third_party/upb/upb/hash/common.c",
+    "signature": "_Bool(upb_strtable *, const char *, size_t, upb_value *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "upb_strtable_removeiter",
+    "file": "/data/csong/opensource/grpc/third_party/upb/upb/hash/common.c",
+    "signature": "void(upb_strtable *, intptr_t *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "inttable_array_get",
+    "file": "/data/csong/opensource/grpc/third_party/upb/upb/hash/common.c",
+    "signature": "const upb_value *(const upb_inttable *, uintptr_t)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "upb_inttable_insert",
+    "file": "/data/csong/opensource/grpc/third_party/upb/upb/hash/common.c",
+    "signature": "_Bool(upb_inttable *, uintptr_t, upb_value, upb_Arena *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "upb_inttable_lookup",
+    "file": "/data/csong/opensource/grpc/third_party/upb/upb/hash/common.c",
+    "signature": "_Bool(const upb_inttable *, uintptr_t, upb_value *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "upb_inttable_remove",
+    "file": "/data/csong/opensource/grpc/third_party/upb/upb/hash/common.c",
+    "signature": "_Bool(upb_inttable *, uintptr_t, upb_value *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "upb_inttable_compact",
+    "file": "/data/csong/opensource/grpc/third_party/upb/upb/hash/common.c",
+    "signature": "_Bool(upb_inttable *, upb_Arena *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "upb_inttable_removeiter",
+    "file": "/data/csong/opensource/grpc/third_party/upb/upb/hash/common.c",
+    "signature": "void(upb_inttable *, intptr_t *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "upb_Map_Get",
+    "file": "/data/csong/opensource/grpc/third_party/upb/upb/message/map.c",
+    "signature": "_Bool(const upb_Map *, upb_MessageValue, upb_MessageValue *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "upb_Map_Insert",
+    "file": "/data/csong/opensource/grpc/third_party/upb/upb/message/map.c",
+    "signature": "upb_MapInsertStatus(upb_Map *, upb_MessageValue, upb_MessageValue, upb_Arena *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "upb_Map_Delete",
+    "file": "/data/csong/opensource/grpc/third_party/upb/upb/message/map.c",
+    "signature": "_Bool(upb_Map *, upb_MessageValue, upb_MessageValue *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "_upb_mapsorter_intkeys",
+    "file": "/data/csong/opensource/grpc/third_party/upb/upb/message/map_sorter.c",
+    "signature": "int(const void *, const void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "_upb_mapsorter_getkeys",
+    "file": "/data/csong/opensource/grpc/third_party/upb/upb/message/map_sorter.c",
+    "signature": "void(const void *, const void *, void *, void *, size_t)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2,
+      3
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "_upb_mapsorter_cmpu64",
+    "file": "/data/csong/opensource/grpc/third_party/upb/upb/message/map_sorter.c",
+    "signature": "int(const void *, const void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "_upb_mapsorter_cmpi32",
+    "file": "/data/csong/opensource/grpc/third_party/upb/upb/message/map_sorter.c",
+    "signature": "int(const void *, const void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "_upb_mapsorter_cmpstr",
+    "file": "/data/csong/opensource/grpc/third_party/upb/upb/message/map_sorter.c",
+    "signature": "int(const void *, const void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "_upb_mapsorter_cmpext",
+    "file": "/data/csong/opensource/grpc/third_party/upb/upb/message/map_sorter.c",
+    "signature": "int(const void *, const void *)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "upb_MtDecoder_DoBuildMiniTableEnum",
+    "file": "/data/csong/opensource/grpc/third_party/upb/upb/mini_descriptor/build_enum.c",
+    "signature": "upb_MiniTableEnum *(upb_MdEnumDecoder *, const char *, size_t)",
+    "container_type": "dynamic_array",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "_upb_DefPool_Unpack",
+    "file": "/data/csong/opensource/grpc/third_party/upb/upb/reflection/def_pool.c",
+    "signature": "const void *(const upb_DefPool *, const char *, size_t, upb_deftype_t)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "upb_DefBuilder_AddFileToPool",
+    "file": "/data/csong/opensource/grpc/third_party/upb/upb/reflection/def_pool.c",
+    "signature": "const upb_FileDef *(upb_DefBuilder *const, upb_DefPool *const, const google_protobuf_FileDescriptorProto *const, const upb_StringView, upb_Status *const)",
+    "container_type": "hash_table",
+    "container_arg": 1,
+    "store_args": [
+      3
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "grpc::ChannelArguments::SetPointer",
+    "file": "/data/csong/opensource/grpc/src/cpp/common/channel_arguments.cc",
+    "signature": "void(const std::string &, void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "grpc::ChannelArguments::SetPointerWithVtable",
+    "file": "/data/csong/opensource/grpc/src/cpp/common/channel_arguments.cc",
+    "signature": "void(const std::string &, void *, const grpc_arg_pointer_vtable *)",
+    "container_type": "vector",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "grpc::CompletionQueue::AsyncNextInternal",
+    "file": "/data/csong/opensource/grpc/src/cpp/common/completion_queue_cc.cc",
+    "signature": "CompletionQueue::NextStatus(void **, bool *, gpr_timespec)",
+    "container_type": "queue",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "absl::lts_20250512::base_internal::LLA_SkiplistSearch",
+    "file": "/data/csong/opensource/grpc/third_party/abseil-cpp/absl/base/internal/low_level_alloc.cc",
+    "signature": "AllocList *(AllocList *, AllocList *, AllocList **)",
+    "container_type": "skiplist",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "absl::lts_20250512::base_internal::LLA_SkiplistInsert",
+    "file": "/data/csong/opensource/grpc/third_party/abseil-cpp/absl/base/internal/low_level_alloc.cc",
+    "signature": "void(AllocList *, AllocList *, AllocList **)",
+    "container_type": "skiplist",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "absl::lts_20250512::base_internal::LLA_SkiplistDelete",
+    "file": "/data/csong/opensource/grpc/third_party/abseil-cpp/absl/base/internal/low_level_alloc.cc",
+    "signature": "void(AllocList *, AllocList *, AllocList **)",
+    "container_type": "skiplist",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "absl::lts_20250512::base_internal::AddToFreelist",
+    "file": "/data/csong/opensource/grpc/third_party/abseil-cpp/absl/base/internal/low_level_alloc.cc",
+    "signature": "void(void *, LowLevelAlloc::Arena *)",
+    "container_type": "skiplist",
+    "container_arg": 1,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "absl::lts_20250512::container_internal::DropDeletesWithoutResizeAndPrepareInsert",
+    "file": "/data/csong/opensource/grpc/third_party/abseil-cpp/absl/container/internal/raw_hash_set.cc",
+    "signature": "size_t(CommonFields &, const PolicyFunctions &__restrict, size_t)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "absl::lts_20250512::container_internal::FindNewPositionsAndTransferSlots",
+    "file": "/data/csong/opensource/grpc/third_party/abseil-cpp/absl/container/internal/raw_hash_set.cc",
+    "signature": "size_t(CommonFields &, const PolicyFunctions &__restrict, ctrl_t *, void *, size_t)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      3
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "absl::lts_20250512::container_internal::DecodeAndInsertToTable",
+    "file": "/data/csong/opensource/grpc/third_party/abseil-cpp/absl/container/internal/raw_hash_set.cc",
+    "signature": "size_t(CommonFields &, const PolicyFunctions &__restrict, void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "absl::lts_20250512::container_internal::DecodeAndInsertToTableOverflow",
+    "file": "/data/csong/opensource/grpc/third_party/abseil-cpp/absl/container/internal/raw_hash_set.cc",
+    "signature": "size_t(CommonFields &, const PolicyFunctions &__restrict, void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "absl::lts_20250512::GetStackTrace",
+    "file": "/data/csong/opensource/grpc/third_party/abseil-cpp/absl/debugging/stacktrace.cc",
+    "signature": "int(void **, int, int)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "absl::lts_20250512::flags_internal::AddToFreelist",
+    "file": "/data/csong/opensource/grpc/third_party/abseil-cpp/absl/flags/internal/flag.cc",
+    "signature": "void(void *)",
+    "container_type": "vector",
+    "container_arg": 0,
+    "store_args": [
+      0
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "absl::lts_20250512::cord_internal::CordRepBtree::Rebuild",
+    "file": "/data/csong/opensource/grpc/third_party/abseil-cpp/absl/strings/internal/cord_rep_btree.cc",
+    "signature": "void(CordRepBtree **, CordRepBtree *, bool)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "absl::lts_20250512::cord_internal::CordzInfo::GetStack",
+    "file": "/data/csong/opensource/grpc/third_party/abseil-cpp/absl/strings/internal/cordz_info.cc",
+    "signature": "absl::Span<void *const>()",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "absl::lts_20250512::synchronization_internal::NodeSet::FindIndex",
+    "file": "/data/csong/opensource/grpc/third_party/abseil-cpp/absl/synchronization/internal/graphcycles.cc",
+    "signature": "uint32_t(int32_t)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "absl::lts_20250512::synchronization_internal::PointerMap::Find",
+    "file": "/data/csong/opensource/grpc/third_party/abseil-cpp/absl/synchronization/internal/graphcycles.cc",
+    "signature": "int32_t(void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "absl::lts_20250512::synchronization_internal::PointerMap::Add",
+    "file": "/data/csong/opensource/grpc/third_party/abseil-cpp/absl/synchronization/internal/graphcycles.cc",
+    "signature": "void(void *, int32_t)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "absl::lts_20250512::synchronization_internal::PointerMap::Remove",
+    "file": "/data/csong/opensource/grpc/third_party/abseil-cpp/absl/synchronization/internal/graphcycles.cc",
+    "signature": "int32_t(void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "absl::lts_20250512::synchronization_internal::ReclaimThreadIdentity",
+    "file": "/data/csong/opensource/grpc/third_party/abseil-cpp/absl/synchronization/internal/create_thread_identity.cc",
+    "signature": "void(void *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "absl::lts_20250512::GetSynchEvent",
+    "file": "/data/csong/opensource/grpc/third_party/abseil-cpp/absl/synchronization/mutex.cc",
+    "signature": "SynchEvent *(const void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "absl::lts_20250512::Enqueue",
+    "file": "/data/csong/opensource/grpc/third_party/abseil-cpp/absl/synchronization/mutex.cc",
+    "signature": "PerThreadSynch *(PerThreadSynch *, SynchWaitParams *, intptr_t, int)",
+    "container_type": "singly_linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "absl::lts_20250512::Dequeue",
+    "file": "/data/csong/opensource/grpc/third_party/abseil-cpp/absl/synchronization/mutex.cc",
+    "signature": "PerThreadSynch *(PerThreadSynch *, PerThreadSynch *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "absl::lts_20250512::DequeueAllWakeable",
+    "file": "/data/csong/opensource/grpc/third_party/abseil-cpp/absl/synchronization/mutex.cc",
+    "signature": "PerThreadSynch *(PerThreadSynch *, PerThreadSynch *, PerThreadSynch **)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "absl::lts_20250512::CondVarEnqueue",
+    "file": "/data/csong/opensource/grpc/third_party/abseil-cpp/absl/synchronization/mutex.cc",
+    "signature": "void(SynchWaitParams *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ares_append_addrinfo_cname",
+    "file": "/data/csong/opensource/grpc/third_party/cares/cares/src/lib/ares_getaddrinfo.c",
+    "signature": "struct ares_addrinfo_cname *(struct ares_addrinfo_cname **)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ares_append_requeue",
+    "file": "/data/csong/opensource/grpc/third_party/cares/cares/src/lib/ares_process.c",
+    "signature": "ares_status_t(ares_array_t **, ares_query_t *, ares_server_t *)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ares_qcache_insert_int",
+    "file": "/data/csong/opensource/grpc/third_party/cares/cares/src/lib/ares_qcache.c",
+    "signature": "ares_status_t(ares_qcache_t *, ares_dns_record_t *, const ares_dns_record_t *, const ares_timeval_t *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ares_qcache_fetch",
+    "file": "/data/csong/opensource/grpc/third_party/cares/cares/src/lib/ares_qcache.c",
+    "signature": "ares_status_t(ares_channel_t *, const ares_timeval_t *, const ares_dns_record_t *, const ares_dns_record_t **)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ares_qcache_insert",
+    "file": "/data/csong/opensource/grpc/third_party/cares/cares/src/lib/ares_qcache.c",
+    "signature": "ares_status_t(ares_channel_t *, const ares_timeval_t *, const ares_query_t *, ares_dns_record_t *)",
+    "container_type": "cache",
+    "container_arg": 0,
+    "store_args": [
+      3
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ares_search_name_list",
+    "file": "/data/csong/opensource/grpc/third_party/cares/cares/src/lib/ares_search.c",
+    "signature": "ares_status_t(const ares_channel_t *, const char *, char ***, size_t *)",
+    "container_type": "array",
+    "container_arg": -1,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "sortlist_append",
+    "file": "/data/csong/opensource/grpc/third_party/cares/cares/src/lib/ares_sysconfig_files.c",
+    "signature": "ares_bool_t(struct apattern **, size_t *, const struct apattern *)",
+    "container_type": "dynamic_array",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ares_addr_node_to_sconfig_llist",
+    "file": "/data/csong/opensource/grpc/third_party/cares/cares/src/lib/ares_update_servers.c",
+    "signature": "ares_status_t(const struct ares_addr_node *, ares_llist_t **)",
+    "container_type": "linked_list",
+    "container_arg": 1,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ares_addrpnode_to_sconfig_llist",
+    "file": "/data/csong/opensource/grpc/third_party/cares/cares/src/lib/ares_update_servers.c",
+    "signature": "ares_status_t(const struct ares_addr_port_node *, ares_llist_t **)",
+    "container_type": "linked_list",
+    "container_arg": 1,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ares_get_servers",
+    "file": "/data/csong/opensource/grpc/third_party/cares/cares/src/lib/ares_update_servers.c",
+    "signature": "int(const ares_channel_t *, struct ares_addr_node **)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ares_get_servers_ports",
+    "file": "/data/csong/opensource/grpc/third_party/cares/cares/src/lib/ares_update_servers.c",
+    "signature": "int(const ares_channel_t *, struct ares_addr_port_node **)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ares_htable_create",
+    "file": "/data/csong/opensource/grpc/third_party/cares/cares/src/lib/dsa/ares_htable.c",
+    "signature": "ares_htable_t *(ares_htable_hashfunc_t, ares_htable_bucket_key_t, ares_htable_bucket_free_t, ares_htable_key_eq_t)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ares_htable_all_buckets",
+    "file": "/data/csong/opensource/grpc/third_party/cares/cares/src/lib/dsa/ares_htable.c",
+    "signature": "const void **(const ares_htable_t *, size_t *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ares_htable_find",
+    "file": "/data/csong/opensource/grpc/third_party/cares/cares/src/lib/dsa/ares_htable.c",
+    "signature": "ares_llist_node_t *(const ares_htable_t *, unsigned int, const void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ares_htable_insert",
+    "file": "/data/csong/opensource/grpc/third_party/cares/cares/src/lib/dsa/ares_htable.c",
+    "signature": "ares_bool_t(ares_htable_t *, void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 9,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ares_htable_get",
+    "file": "/data/csong/opensource/grpc/third_party/cares/cares/src/lib/dsa/ares_htable.c",
+    "signature": "void *(const ares_htable_t *, const void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 9,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ares_htable_remove",
+    "file": "/data/csong/opensource/grpc/third_party/cares/cares/src/lib/dsa/ares_htable.c",
+    "signature": "ares_bool_t(ares_htable_t *, const void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "hash_func",
+    "file": "/data/csong/opensource/grpc/third_party/cares/cares/src/lib/dsa/ares_htable_asvp.c",
+    "signature": "unsigned int(const void *, unsigned int)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "bucket_key",
+    "file": "/data/csong/opensource/grpc/third_party/cares/cares/src/lib/dsa/ares_htable_asvp.c",
+    "signature": "const void *(const void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "bucket_free",
+    "file": "/data/csong/opensource/grpc/third_party/cares/cares/src/lib/dsa/ares_htable_asvp.c",
+    "signature": "void(void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ares_htable_asvp_create",
+    "file": "/data/csong/opensource/grpc/third_party/cares/cares/src/lib/dsa/ares_htable_asvp.c",
+    "signature": "ares_htable_asvp_t *(ares_htable_asvp_val_free_t)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ares_htable_asvp_insert",
+    "file": "/data/csong/opensource/grpc/third_party/cares/cares/src/lib/dsa/ares_htable_asvp.c",
+    "signature": "ares_bool_t(ares_htable_asvp_t *, ares_socket_t, void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 12,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ares_htable_asvp_get",
+    "file": "/data/csong/opensource/grpc/third_party/cares/cares/src/lib/dsa/ares_htable_asvp.c",
+    "signature": "ares_bool_t(const ares_htable_asvp_t *, ares_socket_t, void **)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 9,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ares_htable_asvp_get_direct",
+    "file": "/data/csong/opensource/grpc/third_party/cares/cares/src/lib/dsa/ares_htable_asvp.c",
+    "signature": "void *(const ares_htable_asvp_t *, ares_socket_t)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 9,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ares_htable_asvp_remove",
+    "file": "/data/csong/opensource/grpc/third_party/cares/cares/src/lib/dsa/ares_htable_asvp.c",
+    "signature": "ares_bool_t(ares_htable_asvp_t *, ares_socket_t)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "bucket_key",
+    "file": "/data/csong/opensource/grpc/third_party/cares/cares/src/lib/dsa/ares_htable_dict.c",
+    "signature": "const void *(const void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 9,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ares_htable_dict_create",
+    "file": "/data/csong/opensource/grpc/third_party/cares/cares/src/lib/dsa/ares_htable_dict.c",
+    "signature": "ares_htable_dict_t *()",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ares_htable_dict_insert",
+    "file": "/data/csong/opensource/grpc/third_party/cares/cares/src/lib/dsa/ares_htable_dict.c",
+    "signature": "ares_bool_t(ares_htable_dict_t *, const char *, const char *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 10,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ares_htable_dict_get",
+    "file": "/data/csong/opensource/grpc/third_party/cares/cares/src/lib/dsa/ares_htable_dict.c",
+    "signature": "ares_bool_t(const ares_htable_dict_t *, const char *, const char **)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ares_htable_dict_get_direct",
+    "file": "/data/csong/opensource/grpc/third_party/cares/cares/src/lib/dsa/ares_htable_dict.c",
+    "signature": "const char *(const ares_htable_dict_t *, const char *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ares_htable_dict_remove",
+    "file": "/data/csong/opensource/grpc/third_party/cares/cares/src/lib/dsa/ares_htable_dict.c",
+    "signature": "ares_bool_t(ares_htable_dict_t *, const char *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "bucket_key",
+    "file": "/data/csong/opensource/grpc/third_party/cares/cares/src/lib/dsa/ares_htable_strvp.c",
+    "signature": "const void *(const void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 9,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "bucket_free",
+    "file": "/data/csong/opensource/grpc/third_party/cares/cares/src/lib/dsa/ares_htable_strvp.c",
+    "signature": "void(void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ares_htable_strvp_create",
+    "file": "/data/csong/opensource/grpc/third_party/cares/cares/src/lib/dsa/ares_htable_strvp.c",
+    "signature": "ares_htable_strvp_t *(ares_htable_strvp_val_free_t)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ares_htable_strvp_insert",
+    "file": "/data/csong/opensource/grpc/third_party/cares/cares/src/lib/dsa/ares_htable_strvp.c",
+    "signature": "ares_bool_t(ares_htable_strvp_t *, const char *, void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 12,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ares_htable_strvp_get",
+    "file": "/data/csong/opensource/grpc/third_party/cares/cares/src/lib/dsa/ares_htable_strvp.c",
+    "signature": "ares_bool_t(const ares_htable_strvp_t *, const char *, void **)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 9,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ares_htable_strvp_get_direct",
+    "file": "/data/csong/opensource/grpc/third_party/cares/cares/src/lib/dsa/ares_htable_strvp.c",
+    "signature": "void *(const ares_htable_strvp_t *, const char *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 9,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ares_htable_strvp_remove",
+    "file": "/data/csong/opensource/grpc/third_party/cares/cares/src/lib/dsa/ares_htable_strvp.c",
+    "signature": "ares_bool_t(ares_htable_strvp_t *, const char *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ares_htable_strvp_claim",
+    "file": "/data/csong/opensource/grpc/third_party/cares/cares/src/lib/dsa/ares_htable_strvp.c",
+    "signature": "void *(ares_htable_strvp_t *, const char *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 9,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "hash_func",
+    "file": "/data/csong/opensource/grpc/third_party/cares/cares/src/lib/dsa/ares_htable_szvp.c",
+    "signature": "unsigned int(const void *, unsigned int)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "bucket_key",
+    "file": "/data/csong/opensource/grpc/third_party/cares/cares/src/lib/dsa/ares_htable_szvp.c",
+    "signature": "const void *(const void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ares_htable_szvp_create",
+    "file": "/data/csong/opensource/grpc/third_party/cares/cares/src/lib/dsa/ares_htable_szvp.c",
+    "signature": "ares_htable_szvp_t *(ares_htable_szvp_val_free_t)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ares_htable_szvp_insert",
+    "file": "/data/csong/opensource/grpc/third_party/cares/cares/src/lib/dsa/ares_htable_szvp.c",
+    "signature": "ares_bool_t(ares_htable_szvp_t *, size_t, void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 12,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ares_htable_szvp_get",
+    "file": "/data/csong/opensource/grpc/third_party/cares/cares/src/lib/dsa/ares_htable_szvp.c",
+    "signature": "ares_bool_t(const ares_htable_szvp_t *, size_t, void **)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 9,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ares_htable_szvp_get_direct",
+    "file": "/data/csong/opensource/grpc/third_party/cares/cares/src/lib/dsa/ares_htable_szvp.c",
+    "signature": "void *(const ares_htable_szvp_t *, size_t)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 9,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ares_htable_szvp_remove",
+    "file": "/data/csong/opensource/grpc/third_party/cares/cares/src/lib/dsa/ares_htable_szvp.c",
+    "signature": "ares_bool_t(ares_htable_szvp_t *, size_t)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ares_htable_vpstr_create",
+    "file": "/data/csong/opensource/grpc/third_party/cares/cares/src/lib/dsa/ares_htable_vpstr.c",
+    "signature": "ares_htable_vpstr_t *()",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ares_htable_vpstr_insert",
+    "file": "/data/csong/opensource/grpc/third_party/cares/cares/src/lib/dsa/ares_htable_vpstr.c",
+    "signature": "ares_bool_t(ares_htable_vpstr_t *, void *, const char *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 12,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ares_htable_vpstr_get",
+    "file": "/data/csong/opensource/grpc/third_party/cares/cares/src/lib/dsa/ares_htable_vpstr.c",
+    "signature": "ares_bool_t(const ares_htable_vpstr_t *, const void *, const char **)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 9,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ares_htable_vpstr_get_direct",
+    "file": "/data/csong/opensource/grpc/third_party/cares/cares/src/lib/dsa/ares_htable_vpstr.c",
+    "signature": "const char *(const ares_htable_vpstr_t *, const void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ares_htable_vpstr_remove",
+    "file": "/data/csong/opensource/grpc/third_party/cares/cares/src/lib/dsa/ares_htable_vpstr.c",
+    "signature": "ares_bool_t(ares_htable_vpstr_t *, const void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "bucket_free",
+    "file": "/data/csong/opensource/grpc/third_party/cares/cares/src/lib/dsa/ares_htable_vpvp.c",
+    "signature": "void(void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ares_htable_vpvp_create",
+    "file": "/data/csong/opensource/grpc/third_party/cares/cares/src/lib/dsa/ares_htable_vpvp.c",
+    "signature": "ares_htable_vpvp_t *(ares_htable_vpvp_key_free_t, ares_htable_vpvp_val_free_t)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ares_htable_vpvp_insert",
+    "file": "/data/csong/opensource/grpc/third_party/cares/cares/src/lib/dsa/ares_htable_vpvp.c",
+    "signature": "ares_bool_t(ares_htable_vpvp_t *, void *, void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 12,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ares_htable_vpvp_get",
+    "file": "/data/csong/opensource/grpc/third_party/cares/cares/src/lib/dsa/ares_htable_vpvp.c",
+    "signature": "ares_bool_t(const ares_htable_vpvp_t *, const void *, void **)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 11,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ares_htable_vpvp_get_direct",
+    "file": "/data/csong/opensource/grpc/third_party/cares/cares/src/lib/dsa/ares_htable_vpvp.c",
+    "signature": "void *(const ares_htable_vpvp_t *, const void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 9,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ares_htable_vpvp_remove",
+    "file": "/data/csong/opensource/grpc/third_party/cares/cares/src/lib/dsa/ares_htable_vpvp.c",
+    "signature": "ares_bool_t(ares_htable_vpvp_t *, const void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ares_llist_attach_at",
+    "file": "/data/csong/opensource/grpc/third_party/cares/cares/src/lib/dsa/ares_llist.c",
+    "signature": "void(ares_llist_t *, ares_llist_insert_type_t, ares_llist_node_t *, ares_llist_node_t *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      2,
+      3
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ares_llist_insert_at",
+    "file": "/data/csong/opensource/grpc/third_party/cares/cares/src/lib/dsa/ares_llist.c",
+    "signature": "ares_llist_node_t *(ares_llist_t *, ares_llist_insert_type_t, ares_llist_node_t *, void *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      3
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ares_llist_insert_first",
+    "file": "/data/csong/opensource/grpc/third_party/cares/cares/src/lib/dsa/ares_llist.c",
+    "signature": "ares_llist_node_t *(ares_llist_t *, void *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ares_llist_insert_last",
+    "file": "/data/csong/opensource/grpc/third_party/cares/cares/src/lib/dsa/ares_llist.c",
+    "signature": "ares_llist_node_t *(ares_llist_t *, void *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ares_llist_insert_before",
+    "file": "/data/csong/opensource/grpc/third_party/cares/cares/src/lib/dsa/ares_llist.c",
+    "signature": "ares_llist_node_t *(ares_llist_node_t *, void *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 10,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ares_llist_insert_after",
+    "file": "/data/csong/opensource/grpc/third_party/cares/cares/src/lib/dsa/ares_llist.c",
+    "signature": "ares_llist_node_t *(ares_llist_node_t *, void *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 10,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ares_llist_node_first",
+    "file": "/data/csong/opensource/grpc/third_party/cares/cares/src/lib/dsa/ares_llist.c",
+    "signature": "ares_llist_node_t *(ares_llist_t *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ares_llist_node_idx",
+    "file": "/data/csong/opensource/grpc/third_party/cares/cares/src/lib/dsa/ares_llist.c",
+    "signature": "ares_llist_node_t *(ares_llist_t *, size_t)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ares_llist_node_last",
+    "file": "/data/csong/opensource/grpc/third_party/cares/cares/src/lib/dsa/ares_llist.c",
+    "signature": "ares_llist_node_t *(ares_llist_t *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ares_llist_first_val",
+    "file": "/data/csong/opensource/grpc/third_party/cares/cares/src/lib/dsa/ares_llist.c",
+    "signature": "void *(ares_llist_t *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ares_llist_last_val",
+    "file": "/data/csong/opensource/grpc/third_party/cares/cares/src/lib/dsa/ares_llist.c",
+    "signature": "void *(ares_llist_t *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ares_llist_node_detach",
+    "file": "/data/csong/opensource/grpc/third_party/cares/cares/src/lib/dsa/ares_llist.c",
+    "signature": "void(ares_llist_node_t *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ares_llist_node_claim",
+    "file": "/data/csong/opensource/grpc/third_party/cares/cares/src/lib/dsa/ares_llist.c",
+    "signature": "void *(ares_llist_node_t *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ares_llist_node_replace",
+    "file": "/data/csong/opensource/grpc/third_party/cares/cares/src/lib/dsa/ares_llist.c",
+    "signature": "void(ares_llist_node_t *, void *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ares_slist_node_push",
+    "file": "/data/csong/opensource/grpc/third_party/cares/cares/src/lib/dsa/ares_slist.c",
+    "signature": "void(ares_slist_t *, ares_slist_node_t *)",
+    "container_type": "skip_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ares_slist_insert",
+    "file": "/data/csong/opensource/grpc/third_party/cares/cares/src/lib/dsa/ares_slist.c",
+    "signature": "ares_slist_node_t *(ares_slist_t *, void *)",
+    "container_type": "singly-linked_skip_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 10,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ares_slist_node_pop",
+    "file": "/data/csong/opensource/grpc/third_party/cares/cares/src/lib/dsa/ares_slist.c",
+    "signature": "void(ares_slist_node_t *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ares_slist_node_claim",
+    "file": "/data/csong/opensource/grpc/third_party/cares/cares/src/lib/dsa/ares_slist.c",
+    "signature": "void *(ares_slist_node_t *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 10,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ares_slist_node_reinsert",
+    "file": "/data/csong/opensource/grpc/third_party/cares/cares/src/lib/dsa/ares_slist.c",
+    "signature": "void(ares_slist_node_t *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ares_slist_node_find",
+    "file": "/data/csong/opensource/grpc/third_party/cares/cares/src/lib/dsa/ares_slist.c",
+    "signature": "ares_slist_node_t *(const ares_slist_t *, const void *)",
+    "container_type": "skiplist",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 10,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ares_slist_node_next",
+    "file": "/data/csong/opensource/grpc/third_party/cares/cares/src/lib/dsa/ares_slist.c",
+    "signature": "ares_slist_node_t *(const ares_slist_node_t *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ares_slist_first_val",
+    "file": "/data/csong/opensource/grpc/third_party/cares/cares/src/lib/dsa/ares_slist.c",
+    "signature": "void *(const ares_slist_t *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ares_slist_last_val",
+    "file": "/data/csong/opensource/grpc/third_party/cares/cares/src/lib/dsa/ares_slist.c",
+    "signature": "void *(const ares_slist_t *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ares_parse_txt_reply_int",
+    "file": "/data/csong/opensource/grpc/third_party/cares/cares/src/lib/legacy/ares_parse_txt_reply.c",
+    "signature": "int(const unsigned char *, size_t, ares_bool_t, void **)",
+    "container_type": "linked_list",
+    "container_arg": 3,
+    "store_args": [
+      3
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ares_dns_multistring_add_own",
+    "file": "/data/csong/opensource/grpc/third_party/cares/cares/src/lib/record/ares_dns_multistring.c",
+    "signature": "ares_status_t(ares_dns_multistring_t *, unsigned char *, size_t)",
+    "container_type": "dynamic_array",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ares_dns_multistring_combined",
+    "file": "/data/csong/opensource/grpc/third_party/cares/cares/src/lib/record/ares_dns_multistring.c",
+    "signature": "const unsigned char *(ares_dns_multistring_t *, size_t *)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ares_nameoffset_find",
+    "file": "/data/csong/opensource/grpc/third_party/cares/cares/src/lib/record/ares_dns_name.c",
+    "signature": "const ares_nameoffset_t *(ares_llist_t *, const char *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ares_dns_record_rr_add",
+    "file": "/data/csong/opensource/grpc/third_party/cares/cares/src/lib/record/ares_dns_record.c",
+    "signature": "ares_status_t(ares_dns_rr_t **, ares_dns_record_t *, ares_dns_section_t, const char *, ares_dns_rec_type_t, ares_dns_class_t, unsigned int)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ares_dns_rr_get_opt",
+    "file": "/data/csong/opensource/grpc/third_party/cares/cares/src/lib/record/ares_dns_record.c",
+    "signature": "unsigned short(const ares_dns_rr_t *, ares_dns_rr_key_t, size_t, const unsigned char **, size_t *)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "google::protobuf::internal::cleanup::ChunkList::PeekForTesting",
+    "file": "/data/csong/opensource/grpc/third_party/protobuf/src/google/protobuf/arena.cc",
+    "signature": "std::vector<void *>()",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "google::protobuf::internal::SerialArena::PeekCleanupListForTesting",
+    "file": "/data/csong/opensource/grpc/third_party/protobuf/src/google/protobuf/arena.cc",
+    "signature": "std::vector<void *>()",
+    "container_type": "vector",
+    "container_arg": -1,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "google::protobuf::Arena::PeekCleanupListForTesting",
+    "file": "/data/csong/opensource/grpc/third_party/protobuf/src/google/protobuf/arena.cc",
+    "signature": "std::vector<void *>()",
+    "container_type": "vector",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "google::protobuf::internal::ExtensionSet::MutableRawRepeatedField",
+    "file": "/data/csong/opensource/grpc/third_party/protobuf/src/google/protobuf/extension_set.cc",
+    "signature": "void *(int, FieldType, bool, const FieldDescriptor *)",
+    "container_type": "repeated_field",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 11,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "google::protobuf::internal::ExtensionSet::MutableString",
+    "file": "/data/csong/opensource/grpc/third_party/protobuf/src/google/protobuf/extension_set.cc",
+    "signature": "std::string *(int, FieldType, const FieldDescriptor *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "google::protobuf::internal::UntypedMapBase::UntypedMergeFrom",
+    "file": "/data/csong/opensource/grpc/third_party/protobuf/src/google/protobuf/map.cc",
+    "signature": "void(const UntypedMapBase &)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "google::protobuf::internal::UntypedMapBase::ClearTableImpl",
+    "file": "/data/csong/opensource/grpc/third_party/protobuf/src/google/protobuf/map.cc",
+    "signature": "void(bool)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "google::protobuf::FileDescriptorTables::FindFieldByLowercaseName",
+    "file": "/data/csong/opensource/grpc/third_party/protobuf/src/google/protobuf/descriptor.cc",
+    "signature": "const FieldDescriptor *(const void *, absl::string_view)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 9,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "google::protobuf::FileDescriptorTables::FindFieldByCamelcaseName",
+    "file": "/data/csong/opensource/grpc/third_party/protobuf/src/google/protobuf/descriptor.cc",
+    "signature": "const FieldDescriptor *(const void *, absl::string_view)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 9,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "google::protobuf::DescriptorPool::Tables::FindExtension",
+    "file": "/data/csong/opensource/grpc/third_party/protobuf/src/google/protobuf/descriptor.cc",
+    "signature": "const FieldDescriptor *(const Descriptor *, int)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "google::protobuf::FileDescriptorTables::AddAliasUnderParent",
+    "file": "/data/csong/opensource/grpc/third_party/protobuf/src/google/protobuf/descriptor.cc",
+    "signature": "bool(const void *, absl::string_view, Symbol)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "google::protobuf::DescriptorPool::InternalAddGeneratedFile",
+    "file": "/data/csong/opensource/grpc/third_party/protobuf/src/google/protobuf/descriptor.cc",
+    "signature": "void(const void *, int)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      0
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "google::protobuf::Reflection::MutableRawRepeatedString",
+    "file": "/data/csong/opensource/grpc/third_party/protobuf/src/google/protobuf/generated_message_reflection.cc",
+    "signature": "void *(Message *, const FieldDescriptor *, bool)",
+    "container_type": "repeated_field",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "google::protobuf::UnknownFieldSet::AddGroup",
+    "file": "/data/csong/opensource/grpc/third_party/protobuf/src/google/protobuf/unknown_field_set.cc",
+    "signature": "UnknownFieldSet *(int)",
+    "container_type": "dynamic_array",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "google::protobuf::util::MessageDifferencer::GetMapKeyComparator",
+    "file": "/data/csong/opensource/grpc/third_party/protobuf/src/google/protobuf/util/message_differencer.cc",
+    "signature": "const MessageDifferencer::MapKeyComparator *(const FieldDescriptor *)",
+    "container_type": "hash_table",
+    "container_arg": -1,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "google::protobuf::compiler::objectivec::PrefixModeStorage::prefix_from_proto_package_mappings",
+    "file": "/data/csong/opensource/grpc/third_party/protobuf/src/google/protobuf/compiler/objectivec/names.cc",
+    "signature": "absl::string_view(const FileDescriptor *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "insert",
+    "file": "/data/csong/opensource/grpc/third_party/protobuf/upb/hash/common.c",
+    "signature": "void(upb_table *, lookupkey_t, upb_key, upb_value, uint32_t, hashfunc_t *, eqlfunc_t *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "upb_strtable_resize",
+    "file": "/data/csong/opensource/grpc/third_party/protobuf/upb/hash/common.c",
+    "signature": "_Bool(upb_strtable *, size_t, upb_Arena *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "upb_strtable_insert",
+    "file": "/data/csong/opensource/grpc/third_party/protobuf/upb/hash/common.c",
+    "signature": "_Bool(upb_strtable *, const char *, size_t, upb_value, upb_Arena *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      3
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "upb_strtable_lookup2",
+    "file": "/data/csong/opensource/grpc/third_party/protobuf/upb/hash/common.c",
+    "signature": "_Bool(const upb_strtable *, const char *, size_t, upb_value *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "upb_strtable_remove2",
+    "file": "/data/csong/opensource/grpc/third_party/protobuf/upb/hash/common.c",
+    "signature": "_Bool(upb_strtable *, const char *, size_t, upb_value *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "upb_strtable_removeiter",
+    "file": "/data/csong/opensource/grpc/third_party/protobuf/upb/hash/common.c",
+    "signature": "void(upb_strtable *, intptr_t *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "inttable_array_get",
+    "file": "/data/csong/opensource/grpc/third_party/protobuf/upb/hash/common.c",
+    "signature": "const upb_value *(const upb_inttable *, uintptr_t)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "upb_inttable_insert",
+    "file": "/data/csong/opensource/grpc/third_party/protobuf/upb/hash/common.c",
+    "signature": "_Bool(upb_inttable *, uintptr_t, upb_value, upb_Arena *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "upb_inttable_lookup",
+    "file": "/data/csong/opensource/grpc/third_party/protobuf/upb/hash/common.c",
+    "signature": "_Bool(const upb_inttable *, uintptr_t, upb_value *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "upb_inttable_remove",
+    "file": "/data/csong/opensource/grpc/third_party/protobuf/upb/hash/common.c",
+    "signature": "_Bool(upb_inttable *, uintptr_t, upb_value *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "upb_inttable_compact",
+    "file": "/data/csong/opensource/grpc/third_party/protobuf/upb/hash/common.c",
+    "signature": "_Bool(upb_inttable *, upb_Arena *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "upb_inttable_removeiter",
+    "file": "/data/csong/opensource/grpc/third_party/protobuf/upb/hash/common.c",
+    "signature": "void(upb_inttable *, intptr_t *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "upb_Map_Get",
+    "file": "/data/csong/opensource/grpc/third_party/protobuf/upb/message/map.c",
+    "signature": "_Bool(const upb_Map *, upb_MessageValue, upb_MessageValue *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "upb_Map_Insert",
+    "file": "/data/csong/opensource/grpc/third_party/protobuf/upb/message/map.c",
+    "signature": "upb_MapInsertStatus(upb_Map *, upb_MessageValue, upb_MessageValue, upb_Arena *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "upb_Map_Delete",
+    "file": "/data/csong/opensource/grpc/third_party/protobuf/upb/message/map.c",
+    "signature": "_Bool(upb_Map *, upb_MessageValue, upb_MessageValue *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "_upb_mapsorter_intkeys",
+    "file": "/data/csong/opensource/grpc/third_party/protobuf/upb/message/map_sorter.c",
+    "signature": "int(const void *, const void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "_upb_mapsorter_getkeys",
+    "file": "/data/csong/opensource/grpc/third_party/protobuf/upb/message/map_sorter.c",
+    "signature": "void(const void *, const void *, void *, void *, size_t)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2,
+      3
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "_upb_mapsorter_cmpu64",
+    "file": "/data/csong/opensource/grpc/third_party/protobuf/upb/message/map_sorter.c",
+    "signature": "int(const void *, const void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "_upb_mapsorter_cmpi32",
+    "file": "/data/csong/opensource/grpc/third_party/protobuf/upb/message/map_sorter.c",
+    "signature": "int(const void *, const void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "_upb_mapsorter_cmpstr",
+    "file": "/data/csong/opensource/grpc/third_party/protobuf/upb/message/map_sorter.c",
+    "signature": "int(const void *, const void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "_upb_mapsorter_cmpext",
+    "file": "/data/csong/opensource/grpc/third_party/protobuf/upb/message/map_sorter.c",
+    "signature": "int(const void *, const void *)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "upb_MtDecoder_DoBuildMiniTableEnum",
+    "file": "/data/csong/opensource/grpc/third_party/protobuf/upb/mini_descriptor/build_enum.c",
+    "signature": "upb_MiniTableEnum *(upb_MdEnumDecoder *, const char *, size_t)",
+    "container_type": "dynamic_array",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "_upb_DefPool_Unpack",
+    "file": "/data/csong/opensource/grpc/third_party/protobuf/upb/reflection/def_pool.c",
+    "signature": "const void *(const upb_DefPool *, const char *, size_t, upb_deftype_t)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "upb_DefBuilder_AddFileToPool",
+    "file": "/data/csong/opensource/grpc/third_party/protobuf/upb/reflection/def_pool.c",
+    "signature": "const upb_FileDef *(upb_DefBuilder *const, upb_DefPool *const, const google_protobuf_FileDescriptorProto *const, const upb_StringView, upb_Status *const)",
+    "container_type": "hash_table",
+    "container_arg": 1,
+    "store_args": [
+      3
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "re2::Compiler::CachedRuneByteSuffix",
+    "file": "/data/csong/opensource/grpc/third_party/re2/re2/compile.cc",
+    "signature": "int(uint8_t, uint8_t, bool, int)",
+    "container_type": "hash_table",
+    "container_arg": -1,
+    "store_args": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "lh_ASN1_STRING_TABLE_call_cmp_func",
+    "file": "/data/csong/opensource/grpc/third_party/boringssl-with-bazel/src/crypto/asn1/a_strnid.cc",
+    "signature": "int(lhash_cmp_func, const void *, const void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "lh_ASN1_STRING_TABLE_retrieve",
+    "file": "/data/csong/opensource/grpc/third_party/boringssl-with-bazel/src/crypto/asn1/a_strnid.cc",
+    "signature": "ASN1_STRING_TABLE *(const struct lhash_st_ASN1_STRING_TABLE *, const ASN1_STRING_TABLE *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "lh_ASN1_STRING_TABLE_retrieve_key",
+    "file": "/data/csong/opensource/grpc/third_party/boringssl-with-bazel/src/crypto/asn1/a_strnid.cc",
+    "signature": "ASN1_STRING_TABLE *(const struct lhash_st_ASN1_STRING_TABLE *, const void *, uint32_t, int (*)(const void *, const ASN1_STRING_TABLE *))",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "lh_ASN1_STRING_TABLE_insert",
+    "file": "/data/csong/opensource/grpc/third_party/boringssl-with-bazel/src/crypto/asn1/a_strnid.cc",
+    "signature": "int(struct lhash_st_ASN1_STRING_TABLE *, ASN1_STRING_TABLE **, ASN1_STRING_TABLE *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "lh_ASN1_STRING_TABLE_delete",
+    "file": "/data/csong/opensource/grpc/third_party/boringssl-with-bazel/src/crypto/asn1/a_strnid.cc",
+    "signature": "ASN1_STRING_TABLE *(struct lhash_st_ASN1_STRING_TABLE *, const ASN1_STRING_TABLE *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "lh_ASN1_STRING_TABLE_call_doall_arg",
+    "file": "/data/csong/opensource/grpc/third_party/boringssl-with-bazel/src/crypto/asn1/a_strnid.cc",
+    "signature": "void(void *, void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "lh_ASN1_STRING_TABLE_doall_arg",
+    "file": "/data/csong/opensource/grpc/third_party/boringssl-with-bazel/src/crypto/asn1/a_strnid.cc",
+    "signature": "void(struct lhash_st_ASN1_STRING_TABLE *, void (*)(ASN1_STRING_TABLE *, void *), void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "asn1_string_table_get",
+    "file": "/data/csong/opensource/grpc/third_party/boringssl-with-bazel/src/crypto/asn1/a_strnid.cc",
+    "signature": "const ASN1_STRING_TABLE *(int)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ASN1_STRING_TABLE_add",
+    "file": "/data/csong/opensource/grpc/third_party/boringssl-with-bazel/src/crypto/asn1/a_strnid.cc",
+    "signature": "int(int, long, long, unsigned long, unsigned long)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      0,
+      1,
+      2,
+      3,
+      4
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "NCONF_get_string",
+    "file": "/data/csong/opensource/grpc/third_party/boringssl-with-bazel/src/crypto/conf/conf.cc",
+    "signature": "const char *(const CONF *, const char *, const char *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 9,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "add_string",
+    "file": "/data/csong/opensource/grpc/third_party/boringssl-with-bazel/src/crypto/conf/conf.cc",
+    "signature": "int(const CONF *, CONF_SECTION *, CONF_VALUE *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "DSA_set_ex_data",
+    "file": "/data/csong/opensource/grpc/third_party/boringssl-with-bazel/src/crypto/dsa/dsa.cc",
+    "signature": "int(DSA *, int, void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "err_string_lookup",
+    "file": "/data/csong/opensource/grpc/third_party/boringssl-with-bazel/src/crypto/err/err.cc",
+    "signature": "const char *(uint32_t, uint32_t, const uint32_t *, size_t, const char *)",
+    "container_type": "sorted_array",
+    "container_arg": 2,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "CRYPTO_get_ex_new_index_ex",
+    "file": "/data/csong/opensource/grpc/third_party/boringssl-with-bazel/src/crypto/ex_data.cc",
+    "signature": "int(CRYPTO_EX_DATA_CLASS *, long, void *, CRYPTO_EX_free *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      3
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "CRYPTO_set_ex_data",
+    "file": "/data/csong/opensource/grpc/third_party/boringssl-with-bazel/src/crypto/ex_data.cc",
+    "signature": "int(CRYPTO_EX_DATA *, int, void *)",
+    "container_type": "dynamic_array_stack",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "CRYPTO_get_ex_data",
+    "file": "/data/csong/opensource/grpc/third_party/boringssl-with-bazel/src/crypto/ex_data.cc",
+    "signature": "void *(const CRYPTO_EX_DATA *, int)",
+    "container_type": "dynamic_array",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "get_next_ptr_and_hash",
+    "file": "/data/csong/opensource/grpc/third_party/boringssl-with-bazel/src/crypto/lhash/lhash.cc",
+    "signature": "LHASH_ITEM **(const _LHASH *, uint32_t *, const void *, lhash_hash_func_helper, lhash_cmp_func_helper)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 12,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "get_next_ptr_by_key",
+    "file": "/data/csong/opensource/grpc/third_party/boringssl-with-bazel/src/crypto/lhash/lhash.cc",
+    "signature": "LHASH_ITEM **(const _LHASH *, const void *, uint32_t, int (*)(const void *, const void *))",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "OPENSSL_lh_retrieve",
+    "file": "/data/csong/opensource/grpc/third_party/boringssl-with-bazel/src/crypto/lhash/lhash.cc",
+    "signature": "void *(const _LHASH *, const void *, lhash_hash_func_helper, lhash_cmp_func_helper)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 9,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "OPENSSL_lh_retrieve_key",
+    "file": "/data/csong/opensource/grpc/third_party/boringssl-with-bazel/src/crypto/lhash/lhash.cc",
+    "signature": "void *(const _LHASH *, const void *, uint32_t, int (*)(const void *, const void *))",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 9,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "lh_rebucket",
+    "file": "/data/csong/opensource/grpc/third_party/boringssl-with-bazel/src/crypto/lhash/lhash.cc",
+    "signature": "void(_LHASH *, const size_t)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "OPENSSL_lh_insert",
+    "file": "/data/csong/opensource/grpc/third_party/boringssl-with-bazel/src/crypto/lhash/lhash.cc",
+    "signature": "int(_LHASH *, void **, void *, lhash_hash_func_helper, lhash_cmp_func_helper)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 11,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "OPENSSL_lh_delete",
+    "file": "/data/csong/opensource/grpc/third_party/boringssl-with-bazel/src/crypto/lhash/lhash.cc",
+    "signature": "void *(_LHASH *, const void *, lhash_hash_func_helper, lhash_cmp_func_helper)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 9,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "OPENSSL_lh_doall_arg",
+    "file": "/data/csong/opensource/grpc/third_party/boringssl-with-bazel/src/crypto/lhash/lhash.cc",
+    "signature": "void(_LHASH *, void (*)(void *, void *), void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "lh_ASN1_OBJECT_retrieve",
+    "file": "/data/csong/opensource/grpc/third_party/boringssl-with-bazel/src/crypto/obj/obj.cc",
+    "signature": "ASN1_OBJECT *(const struct lhash_st_ASN1_OBJECT *, const ASN1_OBJECT *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "lh_ASN1_OBJECT_retrieve_key",
+    "file": "/data/csong/opensource/grpc/third_party/boringssl-with-bazel/src/crypto/obj/obj.cc",
+    "signature": "ASN1_OBJECT *(const struct lhash_st_ASN1_OBJECT *, const void *, uint32_t, int (*)(const void *, const ASN1_OBJECT *))",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "OPENSSL_sk_set",
+    "file": "/data/csong/opensource/grpc/third_party/boringssl-with-bazel/src/crypto/stack/stack.cc",
+    "signature": "void *(OPENSSL_STACK *, size_t, void *)",
+    "container_type": "dynamic_array",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "OPENSSL_sk_insert",
+    "file": "/data/csong/opensource/grpc/third_party/boringssl-with-bazel/src/crypto/stack/stack.cc",
+    "signature": "size_t(OPENSSL_STACK *, void *, size_t)",
+    "container_type": "array_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 9,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "OPENSSL_sk_delete",
+    "file": "/data/csong/opensource/grpc/third_party/boringssl-with-bazel/src/crypto/stack/stack.cc",
+    "signature": "void *(OPENSSL_STACK *, size_t)",
+    "container_type": "dynamic_array",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "OPENSSL_sk_delete_ptr",
+    "file": "/data/csong/opensource/grpc/third_party/boringssl-with-bazel/src/crypto/stack/stack.cc",
+    "signature": "void *(OPENSSL_STACK *, const void *)",
+    "container_type": "array_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "OPENSSL_sk_pop",
+    "file": "/data/csong/opensource/grpc/third_party/boringssl-with-bazel/src/crypto/stack/stack.cc",
+    "signature": "void *(OPENSSL_STACK *)",
+    "container_type": "stack",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "sk_pop",
+    "file": "/data/csong/opensource/grpc/third_party/boringssl-with-bazel/src/crypto/stack/stack.cc",
+    "signature": "void *(OPENSSL_STACK *)",
+    "container_type": "stack",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "CRYPTO_set_thread_local",
+    "file": "/data/csong/opensource/grpc/third_party/boringssl-with-bazel/src/crypto/thread_pthread.cc",
+    "signature": "int(thread_local_data_t, void *, thread_local_destructor_t)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "sk_BY_DIR_HASH_call_free_func",
+    "file": "/data/csong/opensource/grpc/third_party/boringssl-with-bazel/src/crypto/x509/by_dir.cc",
+    "signature": "void(OPENSSL_sk_free_func, void *)",
+    "container_type": "stack",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "sk_BY_DIR_HASH_call_copy_func",
+    "file": "/data/csong/opensource/grpc/third_party/boringssl-with-bazel/src/crypto/x509/by_dir.cc",
+    "signature": "void *(OPENSSL_sk_copy_func, const void *)",
+    "container_type": "stack",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "sk_BY_DIR_HASH_call_delete_if_func",
+    "file": "/data/csong/opensource/grpc/third_party/boringssl-with-bazel/src/crypto/x509/by_dir.cc",
+    "signature": "int(OPENSSL_sk_delete_if_func, void *, void *)",
+    "container_type": "stack",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "sk_BY_DIR_HASH_pop_free",
+    "file": "/data/csong/opensource/grpc/third_party/boringssl-with-bazel/src/crypto/x509/by_dir.cc",
+    "signature": "void(struct stack_st_BY_DIR_HASH *, sk_BY_DIR_HASH_free_func)",
+    "container_type": "stack",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "sk_BY_DIR_HASH_insert",
+    "file": "/data/csong/opensource/grpc/third_party/boringssl-with-bazel/src/crypto/x509/by_dir.cc",
+    "signature": "size_t(struct stack_st_BY_DIR_HASH *, BY_DIR_HASH *, size_t)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "sk_BY_DIR_HASH_delete",
+    "file": "/data/csong/opensource/grpc/third_party/boringssl-with-bazel/src/crypto/x509/by_dir.cc",
+    "signature": "BY_DIR_HASH *(struct stack_st_BY_DIR_HASH *, size_t)",
+    "container_type": "stack",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "sk_BY_DIR_HASH_delete_ptr",
+    "file": "/data/csong/opensource/grpc/third_party/boringssl-with-bazel/src/crypto/x509/by_dir.cc",
+    "signature": "BY_DIR_HASH *(struct stack_st_BY_DIR_HASH *, const BY_DIR_HASH *)",
+    "container_type": "stack",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "sk_BY_DIR_HASH_delete_if",
+    "file": "/data/csong/opensource/grpc/third_party/boringssl-with-bazel/src/crypto/x509/by_dir.cc",
+    "signature": "void(struct stack_st_BY_DIR_HASH *, sk_BY_DIR_HASH_delete_if_func, void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "sk_BY_DIR_HASH_find",
+    "file": "/data/csong/opensource/grpc/third_party/boringssl-with-bazel/src/crypto/x509/by_dir.cc",
+    "signature": "int(const struct stack_st_BY_DIR_HASH *, size_t *, const BY_DIR_HASH *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "sk_BY_DIR_HASH_push",
+    "file": "/data/csong/opensource/grpc/third_party/boringssl-with-bazel/src/crypto/x509/by_dir.cc",
+    "signature": "size_t(struct stack_st_BY_DIR_HASH *, BY_DIR_HASH *)",
+    "container_type": "stack",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "sk_BY_DIR_HASH_pop",
+    "file": "/data/csong/opensource/grpc/third_party/boringssl-with-bazel/src/crypto/x509/by_dir.cc",
+    "signature": "BY_DIR_HASH *(struct stack_st_BY_DIR_HASH *)",
+    "container_type": "stack",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "delete_if_mapped",
+    "file": "/data/csong/opensource/grpc/third_party/boringssl-with-bazel/src/crypto/x509/policy.cc",
+    "signature": "int(X509_POLICY_NODE *, void *)",
+    "container_type": "stack_or_list",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "v2i_AUTHORITY_KEYID",
+    "file": "/data/csong/opensource/grpc/third_party/boringssl-with-bazel/src/crypto/x509/v3_akey.cc",
+    "signature": "void *(const X509V3_EXT_METHOD *, const X509V3_CTX *, const struct stack_st_CONF_VALUE *)",
+    "container_type": "stack",
+    "container_arg": 2,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "v2i_issuer_alt",
+    "file": "/data/csong/opensource/grpc/third_party/boringssl-with-bazel/src/crypto/x509/v3_alt.cc",
+    "signature": "void *(const X509V3_EXT_METHOD *, const X509V3_CTX *, const struct stack_st_CONF_VALUE *)",
+    "container_type": "stack",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "v2i_subject_alt",
+    "file": "/data/csong/opensource/grpc/third_party/boringssl-with-bazel/src/crypto/x509/v3_alt.cc",
+    "signature": "void *(const X509V3_EXT_METHOD *, const X509V3_CTX *, const struct stack_st_CONF_VALUE *)",
+    "container_type": "dynamic_array",
+    "container_arg": -1,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "i2v_ASN1_BIT_STRING",
+    "file": "/data/csong/opensource/grpc/third_party/boringssl-with-bazel/src/crypto/x509/v3_bitst.cc",
+    "signature": "struct stack_st_CONF_VALUE *(const X509V3_EXT_METHOD *, void *, struct stack_st_CONF_VALUE *)",
+    "container_type": "stack",
+    "container_arg": -1,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "r2i_certpol",
+    "file": "/data/csong/opensource/grpc/third_party/boringssl-with-bazel/src/crypto/x509/v3_cpols.cc",
+    "signature": "void *(const X509V3_EXT_METHOD *, const X509V3_CTX *, const char *)",
+    "container_type": "dynamic_array",
+    "container_arg": 2,
+    "store_args": [
+      2
+    ],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "X509V3_get_d2i",
+    "file": "/data/csong/opensource/grpc/third_party/boringssl-with-bazel/src/crypto/x509/v3_lib.cc",
+    "signature": "void *(const struct stack_st_X509_EXTENSION *, int, int *, int *)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "v2i_NAME_CONSTRAINTS",
+    "file": "/data/csong/opensource/grpc/third_party/boringssl-with-bazel/src/crypto/x509/v3_ncons.cc",
+    "signature": "void *(const X509V3_EXT_METHOD *, const X509V3_CTX *, const struct stack_st_CONF_VALUE *)",
+    "container_type": "stack",
+    "container_arg": 2,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "v2i_POLICY_MAPPINGS",
+    "file": "/data/csong/opensource/grpc/third_party/boringssl-with-bazel/src/crypto/x509/v3_pmaps.cc",
+    "signature": "void *(const X509V3_EXT_METHOD *, const X509V3_CTX *, const struct stack_st_CONF_VALUE *)",
+    "container_type": "stack",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "x509V3_add_value_asn1_string",
+    "file": "/data/csong/opensource/grpc/third_party/boringssl-with-bazel/src/crypto/x509/v3_utl.cc",
+    "signature": "int(const char *, const ASN1_STRING *, struct stack_st_CONF_VALUE **)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "X509_ATTRIBUTE_set1_data",
+    "file": "/data/csong/opensource/grpc/third_party/boringssl-with-bazel/src/crypto/x509/x509_att.cc",
+    "signature": "int(X509_ATTRIBUTE *, int, const void *, int)",
+    "container_type": "stack_or_list",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "X509_STORE_set_default_paths",
+    "file": "/data/csong/opensource/grpc/third_party/boringssl-with-bazel/src/crypto/x509/x509_d2.cc",
+    "signature": "int(X509_STORE *)",
+    "container_type": "list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "X509_OBJECT_retrieve_by_subject",
+    "file": "/data/csong/opensource/grpc/third_party/boringssl-with-bazel/src/crypto/x509/x509_lu.cc",
+    "signature": "X509_OBJECT *(struct stack_st_X509_OBJECT *, int, X509_NAME *)",
+    "container_type": "stack/array",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "X509_OBJECT_retrieve_match",
+    "file": "/data/csong/opensource/grpc/third_party/boringssl-with-bazel/src/crypto/x509/x509_lu.cc",
+    "signature": "X509_OBJECT *(struct stack_st_X509_OBJECT *, X509_OBJECT *)",
+    "container_type": "stack_array",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "X509_STORE_CTX_set_chain",
+    "file": "/data/csong/opensource/grpc/third_party/boringssl-with-bazel/src/crypto/x509/x509_vfy.cc",
+    "signature": "void(X509_STORE_CTX *, struct stack_st_X509 *)",
+    "container_type": "stack",
+    "container_arg": 1,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "X509_STORE_CTX_set0_crls",
+    "file": "/data/csong/opensource/grpc/third_party/boringssl-with-bazel/src/crypto/x509/x509_vfy.cc",
+    "signature": "void(X509_STORE_CTX *, struct stack_st_X509_CRL *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "X509_STORE_CTX_set0_trusted_stack",
+    "file": "/data/csong/opensource/grpc/third_party/boringssl-with-bazel/src/crypto/x509/x509_vfy.cc",
+    "signature": "void(X509_STORE_CTX *, struct stack_st_X509 *)",
+    "container_type": "stack",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "X509_STORE_CTX_trusted_stack",
+    "file": "/data/csong/opensource/grpc/third_party/boringssl-with-bazel/src/crypto/x509/x509_vfy.cc",
+    "signature": "void(X509_STORE_CTX *, struct stack_st_X509 *)",
+    "container_type": "stack",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "sk_STACK_OF_X509_NAME_ENTRY_call_cmp_func",
+    "file": "/data/csong/opensource/grpc/third_party/boringssl-with-bazel/src/crypto/x509/x_name.cc",
+    "signature": "int(OPENSSL_sk_cmp_func, const void *, const void *)",
+    "container_type": "stack",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "sk_STACK_OF_X509_NAME_ENTRY_call_delete_if_func",
+    "file": "/data/csong/opensource/grpc/third_party/boringssl-with-bazel/src/crypto/x509/x_name.cc",
+    "signature": "int(OPENSSL_sk_delete_if_func, void *, void *)",
+    "container_type": "stack",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "sk_STACK_OF_X509_NAME_ENTRY_pop_free",
+    "file": "/data/csong/opensource/grpc/third_party/boringssl-with-bazel/src/crypto/x509/x_name.cc",
+    "signature": "void(struct stack_st_STACK_OF_X509_NAME_ENTRY *, sk_STACK_OF_X509_NAME_ENTRY_free_func)",
+    "container_type": "stack",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "sk_STACK_OF_X509_NAME_ENTRY_insert",
+    "file": "/data/csong/opensource/grpc/third_party/boringssl-with-bazel/src/crypto/x509/x_name.cc",
+    "signature": "size_t(struct stack_st_STACK_OF_X509_NAME_ENTRY *, STACK_OF_X509_NAME_ENTRY *, size_t)",
+    "container_type": "stack",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "sk_STACK_OF_X509_NAME_ENTRY_delete",
+    "file": "/data/csong/opensource/grpc/third_party/boringssl-with-bazel/src/crypto/x509/x_name.cc",
+    "signature": "STACK_OF_X509_NAME_ENTRY *(struct stack_st_STACK_OF_X509_NAME_ENTRY *, size_t)",
+    "container_type": "stack",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "sk_STACK_OF_X509_NAME_ENTRY_delete_ptr",
+    "file": "/data/csong/opensource/grpc/third_party/boringssl-with-bazel/src/crypto/x509/x_name.cc",
+    "signature": "STACK_OF_X509_NAME_ENTRY *(struct stack_st_STACK_OF_X509_NAME_ENTRY *, const STACK_OF_X509_NAME_ENTRY *)",
+    "container_type": "stack",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "sk_STACK_OF_X509_NAME_ENTRY_delete_if",
+    "file": "/data/csong/opensource/grpc/third_party/boringssl-with-bazel/src/crypto/x509/x_name.cc",
+    "signature": "void(struct stack_st_STACK_OF_X509_NAME_ENTRY *, sk_STACK_OF_X509_NAME_ENTRY_delete_if_func, void *)",
+    "container_type": "stack",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "sk_STACK_OF_X509_NAME_ENTRY_find",
+    "file": "/data/csong/opensource/grpc/third_party/boringssl-with-bazel/src/crypto/x509/x_name.cc",
+    "signature": "int(const struct stack_st_STACK_OF_X509_NAME_ENTRY *, size_t *, const STACK_OF_X509_NAME_ENTRY *)",
+    "container_type": "stack",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "sk_STACK_OF_X509_NAME_ENTRY_push",
+    "file": "/data/csong/opensource/grpc/third_party/boringssl-with-bazel/src/crypto/x509/x_name.cc",
+    "signature": "size_t(struct stack_st_STACK_OF_X509_NAME_ENTRY *, STACK_OF_X509_NAME_ENTRY *)",
+    "container_type": "stack",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "sk_STACK_OF_X509_NAME_ENTRY_pop",
+    "file": "/data/csong/opensource/grpc/third_party/boringssl-with-bazel/src/crypto/x509/x_name.cc",
+    "signature": "STACK_OF_X509_NAME_ENTRY *(struct stack_st_STACK_OF_X509_NAME_ENTRY *)",
+    "container_type": "stack",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "X509_set_ex_data",
+    "file": "/data/csong/opensource/grpc/third_party/boringssl-with-bazel/src/crypto/x509/x_x509.cc",
+    "signature": "int(X509 *, int, void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "bssl::ll_append_tail",
+    "file": "/data/csong/opensource/grpc/third_party/boringssl-with-bazel/src/ssl/ssl_cipher.cc",
+    "signature": "void(CIPHER_ORDER **, CIPHER_ORDER *, CIPHER_ORDER **)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      0,
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "bssl::ll_append_head",
+    "file": "/data/csong/opensource/grpc/third_party/boringssl-with-bazel/src/ssl/ssl_cipher.cc",
+    "signature": "void(CIPHER_ORDER **, CIPHER_ORDER *, CIPHER_ORDER **)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      0,
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "bssl::ssl_create_cipher_list",
+    "file": "/data/csong/opensource/grpc/third_party/boringssl-with-bazel/src/ssl/ssl_cipher.cc",
+    "signature": "bool(UniquePtr<SSLCipherPreferenceList> *, const bool, const char *, bool)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "bssl::ssl_get_full_credential_list",
+    "file": "/data/csong/opensource/grpc/third_party/boringssl-with-bazel/src/ssl/ssl_credential.cc",
+    "signature": "bool(SSL_HANDSHAKE *, Array<SSL_CREDENTIAL *> *)",
+    "container_type": "dynamic_array",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "add_bio_cert_subjects_to_stack",
+    "file": "/data/csong/opensource/grpc/third_party/boringssl-with-bazel/src/ssl/ssl_file.cc",
+    "signature": "int(struct stack_st_X509_NAME *, BIO *, bool)",
+    "container_type": "stack",
+    "container_arg": 0,
+    "store_args": [
+      0
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "SSL_add_bio_cert_subjects_to_stack",
+    "file": "/data/csong/opensource/grpc/third_party/boringssl-with-bazel/src/ssl/ssl_file.cc",
+    "signature": "int(struct stack_st_X509_NAME *, BIO *)",
+    "container_type": "stack",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "SSL_add_file_cert_subjects_to_stack",
+    "file": "/data/csong/opensource/grpc/third_party/boringssl-with-bazel/src/ssl/ssl_file.cc",
+    "signature": "int(struct stack_st_X509_NAME *, const char *)",
+    "container_type": "stack",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "SSL_add_application_settings",
+    "file": "/data/csong/opensource/grpc/third_party/boringssl-with-bazel/src/ssl/ssl_lib.cc",
+    "signature": "int(SSL *, const uint8_t *, size_t, const uint8_t *, size_t)",
+    "container_type": "vector",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "SSL_set_ex_data",
+    "file": "/data/csong/opensource/grpc/third_party/boringssl-with-bazel/src/ssl/ssl_lib.cc",
+    "signature": "int(SSL *, int, void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "SSL_CTX_set_ex_data",
+    "file": "/data/csong/opensource/grpc/third_party/boringssl-with-bazel/src/ssl/ssl_lib.cc",
+    "signature": "int(SSL_CTX *, int, void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "bssl::SSL_SESSION_list_remove",
+    "file": "/data/csong/opensource/grpc/third_party/boringssl-with-bazel/src/ssl/ssl_session.cc",
+    "signature": "void(SSL_CTX *, SSL_SESSION *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "bssl::SSL_SESSION_list_add",
+    "file": "/data/csong/opensource/grpc/third_party/boringssl-with-bazel/src/ssl/ssl_session.cc",
+    "signature": "void(SSL_CTX *, SSL_SESSION *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "SSL_SESSION_set_ex_data",
+    "file": "/data/csong/opensource/grpc/third_party/boringssl-with-bazel/src/ssl/ssl_session.cc",
+    "signature": "int(SSL_SESSION *, int, void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "SSL_get_client_CA_list",
+    "file": "/data/csong/opensource/grpc/third_party/boringssl-with-bazel/src/ssl/ssl_x509.cc",
+    "signature": "struct stack_st_X509_NAME *(const SSL *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "SSL_CTX_get_client_CA_list",
+    "file": "/data/csong/opensource/grpc/third_party/boringssl-with-bazel/src/ssl/ssl_x509.cc",
+    "signature": "struct stack_st_X509_NAME *(const SSL_CTX *)",
+    "container_type": "stack",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "SSL_CTX_set0_verify_cert_store",
+    "file": "/data/csong/opensource/grpc/third_party/boringssl-with-bazel/src/ssl/ssl_x509.cc",
+    "signature": "int(SSL_CTX *, X509_STORE *)",
+    "container_type": "X509_STORE",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "slide_hash",
+    "file": "/data/csong/opensource/grpc/third_party/zlib/deflate.c",
+    "signature": "void(deflate_state *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "deflateSetDictionary",
+    "file": "/data/csong/opensource/grpc/third_party/zlib/deflate.c",
+    "signature": "int(z_streamp, const Bytef *, uInt)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  }
+]

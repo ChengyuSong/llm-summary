@@ -1,0 +1,269 @@
+[
+  {
+    "function": "keyacc_new_push",
+    "file": "/data/csong/opensource/ntp/libntp/authkeys.c",
+    "signature": "int *(int *, const int *, unsigned int)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1,
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "auth_resize_hashtable",
+    "file": "/data/csong/opensource/ntp/libntp/authkeys.c",
+    "signature": "void()",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "dequeue_events",
+    "file": "/data/csong/opensource/ntp/libntp/lib/isc/task.c",
+    "signature": "unsigned int(isc__task_t *, void *, int, int, void *, int *, int)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      5
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "get_key",
+    "file": "/data/csong/opensource/ntp/sntp/crypto.c",
+    "signature": "void(int, struct key **)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "append_gen_fifo",
+    "file": "/data/csong/opensource/ntp/ntpd/ntp_config.c",
+    "signature": "void *(void *, void *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 9,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "concat_gen_fifos",
+    "file": "/data/csong/opensource/ntp/ntpd/ntp_config.c",
+    "signature": "void *(void *, void *)",
+    "container_type": "queue",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "destroy_gen_fifo",
+    "file": "/data/csong/opensource/ntp/ntpd/ntp_config.c",
+    "signature": "void *(void *, int)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "add_fd_to_list",
+    "file": "/data/csong/opensource/ntp/ntpd/ntp_io.c",
+    "signature": "void(int, enum desc_type)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "close_and_delete_fd_from_list",
+    "file": "/data/csong/opensource/ntp/ntpd/ntp_io.c",
+    "signature": "void(int, int *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "add_addr_to_list",
+    "file": "/data/csong/opensource/ntp/ntpd/ntp_io.c",
+    "signature": "void(int *, int *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "delete_addr_from_list",
+    "file": "/data/csong/opensource/ntp/ntpd/ntp_io.c",
+    "signature": "void(int *)",
+    "container_type": "singly_linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "delete_interface_from_list",
+    "file": "/data/csong/opensource/ntp/ntpd/ntp_io.c",
+    "signature": "void(int *)",
+    "container_type": "singly_linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "find_addr_in_list",
+    "file": "/data/csong/opensource/ntp/ntpd/ntp_io.c",
+    "signature": "int *(int *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 9,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "find_flagged_addr_in_list",
+    "file": "/data/csong/opensource/ntp/ntpd/ntp_io.c",
+    "signature": "int *(int *, int)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 9,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "read_mru_list",
+    "file": "/data/csong/opensource/ntp/ntpd/ntp_control.c",
+    "signature": "void(struct recvbuf *, int)",
+    "container_type": "hash_table_and_doubly_linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "remove_from_hash",
+    "file": "/data/csong/opensource/ntp/ntpd/ntp_monitor.c",
+    "signature": "void(int *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ntp_monitor",
+    "file": "/data/csong/opensource/ntp/ntpd/ntp_monitor.c",
+    "signature": "int(struct recvbuf *, int)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "filegen_get",
+    "file": "/data/csong/opensource/ntp/ntpd/ntp_filegen.c",
+    "signature": "int *(const char *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 10,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "clockdev_remove",
+    "file": "/data/csong/opensource/ntp/ntpd/ntp_clockdev.c",
+    "signature": "int(const int *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "peerlist",
+    "file": "/data/csong/opensource/ntp/ntpdc/ntpdc_ops.c",
+    "signature": "void(struct parse *, FILE *)",
+    "container_type": "array",
+    "container_arg": 2,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "collect_mru_list",
+    "file": "/data/csong/opensource/ntp/ntpq/ntpq-subs.c",
+    "signature": "int(const char *, int *)",
+    "container_type": "hash_table_and_doubly_linked_list",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  }
+]

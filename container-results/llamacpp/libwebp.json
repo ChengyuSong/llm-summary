@@ -1,0 +1,210 @@
+[
+  {
+    "function": "WebPISetIOHooks",
+    "file": "/data/csong/opensource/libwebp/src/dec/idec_dec.c",
+    "signature": "int(WebPIDecoder *const, VP8IoPutHook, VP8IoSetupHook, VP8IoTeardownHook, void *)",
+    "container_type": "other",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "low",
+    "heuristic_score": 5,
+    "model_used": "heuristic_only"
+  },
+  {
+    "function": "CostIntervalAddToFreeList",
+    "file": "/data/csong/opensource/libwebp/src/enc/backward_references_cost_enc.c",
+    "signature": "void(CostManager *const, CostInterval *const)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "DeleteIntervalList",
+    "file": "/data/csong/opensource/libwebp/src/enc/backward_references_cost_enc.c",
+    "signature": "void(CostManager *const, const CostInterval *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "HistoQueuePush",
+    "file": "/data/csong/opensource/libwebp/src/enc/histogram_enc.c",
+    "signature": "int64_t(HistoQueue *const, VP8LHistogram **const, int, int, int64_t)",
+    "container_type": "other",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "low",
+    "heuristic_score": 7,
+    "model_used": "heuristic_only"
+  },
+  {
+    "function": "VP8LBuildHuffmanTable",
+    "file": "/data/csong/opensource/libwebp/src/utils/huffman_utils.c",
+    "signature": "int(HuffmanTables *const, int, const int[], int)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "VP8LHuffmanTablesAllocate",
+    "file": "/data/csong/opensource/libwebp/src/utils/huffman_utils.c",
+    "signature": "int(int, HuffmanTables *)",
+    "container_type": "other",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "low",
+    "heuristic_score": 6,
+    "model_used": "heuristic_only"
+  },
+  {
+    "function": "VP8LHuffmanTablesDeallocate",
+    "file": "/data/csong/opensource/libwebp/src/utils/huffman_utils.c",
+    "signature": "void(HuffmanTables *const)",
+    "container_type": "other",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "low",
+    "heuristic_score": 6,
+    "model_used": "heuristic_only"
+  },
+  {
+    "function": "CompareHuffmanTrees",
+    "file": "/data/csong/opensource/libwebp/src/utils/huffman_encode_utils.c",
+    "signature": "int(const void *, const void *)",
+    "container_type": "other",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "low",
+    "heuristic_score": 5,
+    "model_used": "heuristic_only"
+  },
+  {
+    "function": "ImageListDiskSize",
+    "file": "/data/csong/opensource/libwebp/src/mux/muxedit.c",
+    "signature": "size_t(const WebPMuxImage *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ImageListEmit",
+    "file": "/data/csong/opensource/libwebp/src/mux/muxedit.c",
+    "signature": "uint8_t *(const WebPMuxImage *, uint8_t *)",
+    "container_type": "other",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "low",
+    "heuristic_score": 6,
+    "model_used": "heuristic_only"
+  },
+  {
+    "function": "ChunkSearchNextInList",
+    "file": "/data/csong/opensource/libwebp/src/mux/muxinternal.c",
+    "signature": "WebPChunk *(WebPChunk *, uint32_t)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ChunkSearchList",
+    "file": "/data/csong/opensource/libwebp/src/mux/muxinternal.c",
+    "signature": "WebPChunk *(WebPChunk *, uint32_t, uint32_t)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ChunkSetHead",
+    "file": "/data/csong/opensource/libwebp/src/mux/muxinternal.c",
+    "signature": "WebPMuxError(WebPChunk *const, WebPChunk **const)",
+    "container_type": "linked_list",
+    "container_arg": 1,
+    "store_args": [
+      0
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ChunkListEmit",
+    "file": "/data/csong/opensource/libwebp/src/mux/muxinternal.c",
+    "signature": "uint8_t *(const WebPChunk *, uint8_t *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ChunkListDiskSize",
+    "file": "/data/csong/opensource/libwebp/src/mux/muxinternal.c",
+    "signature": "size_t(const WebPChunk *)",
+    "container_type": "other",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "low",
+    "heuristic_score": 6,
+    "model_used": "heuristic_only"
+  },
+  {
+    "function": "MyMapFile",
+    "file": "/data/csong/opensource/libwebp/imageio/tiffdec.c",
+    "signature": "int(thandle_t, void **, toff_t *)",
+    "container_type": "other",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "low",
+    "heuristic_score": 5,
+    "model_used": "heuristic_only"
+  },
+  {
+    "function": "MyUnmapFile",
+    "file": "/data/csong/opensource/libwebp/imageio/tiffdec.c",
+    "signature": "void(thandle_t, void *, toff_t)",
+    "container_type": "other",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "low",
+    "heuristic_score": 5,
+    "model_used": "heuristic_only"
+  }
+]

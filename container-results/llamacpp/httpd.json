@@ -1,0 +1,2324 @@
+[
+  {
+    "function": "TO_QUEUE_APPEND",
+    "file": "/data/csong/opensource/httpd/server/mpm/event/event.c",
+    "signature": "void(struct timeout_queue *, event_conn_state_t *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "TO_QUEUE_REMOVE",
+    "file": "/data/csong/opensource/httpd/server/mpm/event/event.c",
+    "signature": "void(struct timeout_queue *, event_conn_state_t *)",
+    "container_type": "ring_buffer",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "process_timeout_queue",
+    "file": "/data/csong/opensource/httpd/server/mpm/event/event.c",
+    "signature": "void(struct timeout_queue *, int, int (*)(event_conn_state_t *))",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "setup_slave_conn",
+    "file": "/data/csong/opensource/httpd/server/mpm/event/event.c",
+    "signature": "void(conn_rec *, void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "event_post_config",
+    "file": "/data/csong/opensource/httpd/server/mpm/event/event.c",
+    "signature": "int(int *, int *, int *, server_rec *)",
+    "container_type": "hash_table",
+    "container_arg": 3,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ap_add_common_vars",
+    "file": "/data/csong/opensource/httpd/server/util_script.c",
+    "signature": "void(request_rec *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "set_cookie_doo_doo",
+    "file": "/data/csong/opensource/httpd/server/util_script.c",
+    "signature": "int(void *, const char *, const char *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "get_addresses",
+    "file": "/data/csong/opensource/httpd/server/vhost.c",
+    "signature": "const char *(int *, const char *, server_addr_rec ***, int)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "add_name_vhost_config",
+    "file": "/data/csong/opensource/httpd/server/vhost.c",
+    "signature": "void(int *, server_rec *, server_rec *, server_addr_rec *, ipaddr_chain *)",
+    "container_type": "linked_list",
+    "container_arg": 4,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ap_fini_vhost_config",
+    "file": "/data/csong/opensource/httpd/server/vhost.c",
+    "signature": "void(int *, server_rec *)",
+    "container_type": "hash_table",
+    "container_arg": 1,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ap_vhost_iterate_given_conn",
+    "file": "/data/csong/opensource/httpd/server/vhost.c",
+    "signature": "int(conn_rec *, ap_vhost_iterate_conn_cb, void *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "find_listeners",
+    "file": "/data/csong/opensource/httpd/server/listen.c",
+    "signature": "int(ap_listen_rec **, ap_listen_rec **, const char *, int, const char *, int *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "alloc_listener",
+    "file": "/data/csong/opensource/httpd/server/listen.c",
+    "signature": "const char *(process_rec *, const char *, int, const char *, const char *, void *, int *, int)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      5,
+      7
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ap_setup_listeners",
+    "file": "/data/csong/opensource/httpd/server/listen.c",
+    "signature": "int(server_rec *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ap_duplicate_listeners",
+    "file": "/data/csong/opensource/httpd/server/listen.c",
+    "signature": "int()",
+    "container_type": "linked_list",
+    "container_arg": 2,
+    "store_args": [
+      2,
+      3
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ap_set_mutex",
+    "file": "/data/csong/opensource/httpd/server/util_mutex.c",
+    "signature": "const char *(cmd_parms *, void *, const char *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ap_add_module_commands",
+    "file": "/data/csong/opensource/httpd/server/config.c",
+    "signature": "void(module *, int *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ap_remove_module",
+    "file": "/data/csong/opensource/httpd/server/config.c",
+    "signature": "void(module *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ap_find_linked_module",
+    "file": "/data/csong/opensource/httpd/server/config.c",
+    "signature": "module *(const char *)",
+    "container_type": "linked_list",
+    "container_arg": -1,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "table_do_fn_check_lengths",
+    "file": "/data/csong/opensource/httpd/server/protocol.c",
+    "signature": "int(void *, const char *, const char *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "get_filter_handle",
+    "file": "/data/csong/opensource/httpd/server/util_filter.c",
+    "signature": "ap_filter_rec_t *(const char *, const filter_trie_node *)",
+    "container_type": "trie",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "get_spare",
+    "file": "/data/csong/opensource/httpd/server/util_filter.c",
+    "signature": "void *(conn_rec *, struct spare_ring *)",
+    "container_type": "linked_list",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "add_any_filter_handle",
+    "file": "/data/csong/opensource/httpd/server/util_filter.c",
+    "signature": "ap_filter_t *(ap_filter_rec_t *, void *, request_rec *, conn_rec *, ap_filter_t **, ap_filter_t **, ap_filter_t **)",
+    "container_type": "linked_list",
+    "container_arg": 4,
+    "store_args": [
+      4,
+      5,
+      6
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "remove_any_filter",
+    "file": "/data/csong/opensource/httpd/server/util_filter.c",
+    "signature": "void(ap_filter_t *, ap_filter_t **, ap_filter_t **, ap_filter_t **)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1,
+      2,
+      3
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ap_remove_output_filter_byhandle",
+    "file": "/data/csong/opensource/httpd/server/util_filter.c",
+    "signature": "int()",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ap_lookup_provider",
+    "file": "/data/csong/opensource/httpd/server/provider.c",
+    "signature": "void *(const char *, const char *, const char *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "set_define",
+    "file": "/data/csong/opensource/httpd/server/core.c",
+    "signature": "const char *(cmd_parms *, void *, const char *, const char *)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "unset_define",
+    "file": "/data/csong/opensource/httpd/server/core.c",
+    "signature": "const char *(cmd_parms *, void *, const char *)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 9,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "set_error_document",
+    "file": "/data/csong/opensource/httpd/server/core.c",
+    "signature": "const char *(cmd_parms *, void *, const char *, const char *)",
+    "container_type": "hash_table",
+    "container_arg": 1,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "set_cgi_var",
+    "file": "/data/csong/opensource/httpd/server/core.c",
+    "signature": "const char *(cmd_parms *, void *, const char *, const char *)",
+    "container_type": "hash_table",
+    "container_arg": 1,
+    "store_args": [
+      3
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "set_override_list",
+    "file": "/data/csong/opensource/httpd/server/core.c",
+    "signature": "const char *(cmd_parms *, void *, int, char *const[])",
+    "container_type": "hash_table",
+    "container_arg": 1,
+    "store_args": [
+      3
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "set_server_alias",
+    "file": "/data/csong/opensource/httpd/server/core.c",
+    "signature": "const char *(cmd_parms *, void *, const char *)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "set_accf_map",
+    "file": "/data/csong/opensource/httpd/server/core.c",
+    "signature": "const char *(cmd_parms *, void *, const char *, const char *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2,
+      3
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "set_loglevel_override",
+    "file": "/data/csong/opensource/httpd/server/core.c",
+    "signature": "const char *(cmd_parms *, void *, int, char *const[])",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "set_protocols",
+    "file": "/data/csong/opensource/httpd/server/core.c",
+    "signature": "const char *(cmd_parms *, void *, const char *)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "set_errorlog_format",
+    "file": "/data/csong/opensource/httpd/server/core.c",
+    "signature": "const char *(cmd_parms *, void *, const char *, const char *)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [
+      2,
+      3
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "core_insert_network_bucket",
+    "file": "/data/csong/opensource/httpd/server/core.c",
+    "signature": "int()",
+    "container_type": "linked_list",
+    "container_arg": 1,
+    "store_args": [
+      1,
+      0
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ap_add_node",
+    "file": "/data/csong/opensource/httpd/server/util_cfgtree.c",
+    "signature": "ap_directive_t *(ap_directive_t **, ap_directive_t *, ap_directive_t *, int)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "req_table_func",
+    "file": "/data/csong/opensource/httpd/server/util_expr_eval.c",
+    "signature": "const char *(ap_expr_eval_ctx_t *, const void *, const char *)",
+    "container_type": "hash_table",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "cgi_jar",
+    "file": "/data/csong/opensource/httpd/server/apreq_module_cgi.c",
+    "signature": "int()",
+    "container_type": "hash_table",
+    "container_arg": 1,
+    "store_args": [
+      2
+    ],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "cgi_hook_add",
+    "file": "/data/csong/opensource/httpd/server/apreq_module_cgi.c",
+    "signature": "int()",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "authn_cache_socache",
+    "file": "/data/csong/opensource/httpd/modules/aaa/mod_authn_socache.c",
+    "signature": "const char *(cmd_parms *, void *, const char *)",
+    "container_type": "socache_provider_instance",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "authn_cache_setprovider",
+    "file": "/data/csong/opensource/httpd/modules/aaa/mod_authn_socache.c",
+    "signature": "const char *(cmd_parms *, void *, const char *)",
+    "container_type": "dynamic_array",
+    "container_arg": 1,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ap_authn_cache_store",
+    "file": "/data/csong/opensource/httpd/modules/aaa/mod_authn_socache.c",
+    "signature": "void(request_rec *, const char *, const char *, const char *, const char *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "get_realm_hash",
+    "file": "/data/csong/opensource/httpd/modules/aaa/mod_authn_socache.c",
+    "signature": "authn_status(request_rec *, const char *, const char *, char **)",
+    "container_type": "hash_table",
+    "container_arg": -1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "merge_authz_core_dir_config",
+    "file": "/data/csong/opensource/httpd/modules/aaa/mod_authz_core.c",
+    "signature": "void *(int *, void *, void *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "create_authz_core_svr_config",
+    "file": "/data/csong/opensource/httpd/modules/aaa/mod_authz_core.c",
+    "signature": "void *(int *, server_rec *)",
+    "container_type": "hash_table",
+    "container_arg": -1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "add_authz_provider",
+    "file": "/data/csong/opensource/httpd/modules/aaa/mod_authz_core.c",
+    "signature": "const char *(cmd_parms *, void *, const char *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "add_authz_section",
+    "file": "/data/csong/opensource/httpd/modules/aaa/mod_authz_core.c",
+    "signature": "const char *(cmd_parms *, void *, const char *)",
+    "container_type": "linked_list",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "create_access_compat_dir_config",
+    "file": "/data/csong/opensource/httpd/modules/aaa/mod_access_compat.c",
+    "signature": "void *(int *, char *)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [
+      88,
+      87
+    ],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "add_authn_provider",
+    "file": "/data/csong/opensource/httpd/modules/aaa/mod_auth_digest.c",
+    "signature": "const char *(cmd_parms *, void *, const char *)",
+    "container_type": "linked_list",
+    "container_arg": 1,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "set_qop",
+    "file": "/data/csong/opensource/httpd/modules/aaa/mod_auth_digest.c",
+    "signature": "const char *(cmd_parms *, void *, const char *)",
+    "container_type": "array",
+    "container_arg": 1,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "get_client",
+    "file": "/data/csong/opensource/httpd/modules/aaa/mod_auth_digest.c",
+    "signature": "client_entry *(unsigned long, const request_rec *)",
+    "container_type": "hash_table_with_linked_list_buckets",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "add_client",
+    "file": "/data/csong/opensource/httpd/modules/aaa/mod_auth_digest.c",
+    "signature": "client_entry *(unsigned long, client_entry *, server_rec *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "create_autht_alias_svr_config",
+    "file": "/data/csong/opensource/httpd/modules/aaa/mod_autht_core.c",
+    "signature": "void *(int *, server_rec *)",
+    "container_type": "hash_table",
+    "container_arg": -1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "set_allowed_handlers",
+    "file": "/data/csong/opensource/httpd/modules/aaa/mod_allowhandlers.c",
+    "signature": "const char *(cmd_parms *, void *, int, char *const[])",
+    "container_type": "hash_table",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "get_dbm_realm_hash",
+    "file": "/data/csong/opensource/httpd/modules/aaa/mod_authn_dbm.c",
+    "signature": "authn_status(request_rec *, const char *, const char *, char **)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "anon_set_string_slots",
+    "file": "/data/csong/opensource/httpd/modules/aaa/mod_authn_anon.c",
+    "signature": "const char *(cmd_parms *, void *, const char *)",
+    "container_type": "linked_list",
+    "container_arg": 1,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 9,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "create_authn_alias_svr_config",
+    "file": "/data/csong/opensource/httpd/modules/aaa/mod_authn_core.c",
+    "signature": "void *(int *, server_rec *)",
+    "container_type": "hash_table",
+    "container_arg": -1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "add_authn_provider",
+    "file": "/data/csong/opensource/httpd/modules/aaa/mod_auth_form.c",
+    "signature": "const char *(cmd_parms *, void *, const char *)",
+    "container_type": "linked_list",
+    "container_arg": 1,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "set_notes_auth",
+    "file": "/data/csong/opensource/httpd/modules/aaa/mod_auth_form.c",
+    "signature": "void(request_rec *, const char *, const char *, const char *, const char *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      1,
+      2,
+      3,
+      4
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "get_notes_auth",
+    "file": "/data/csong/opensource/httpd/modules/aaa/mod_auth_form.c",
+    "signature": "void(request_rec *, const char **, const char **, const char **, const char **)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "add_authn_provider",
+    "file": "/data/csong/opensource/httpd/modules/aaa/mod_auth_basic.c",
+    "signature": "const char *(cmd_parms *, void *, const char *)",
+    "container_type": "linked_list",
+    "container_arg": 1,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "add_autht_provider",
+    "file": "/data/csong/opensource/httpd/modules/aaa/mod_auth_bearer.c",
+    "signature": "const char *(cmd_parms *, void *, const char *)",
+    "container_type": "linked_list",
+    "container_arg": 1,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "apache2_hook_add",
+    "file": "/data/csong/opensource/httpd/modules/apreq/handle.c",
+    "signature": "int()",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "store_table",
+    "file": "/data/csong/opensource/httpd/modules/cache/mod_cache_socache.c",
+    "signature": "int()",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "socache_post_config",
+    "file": "/data/csong/opensource/httpd/modules/cache/mod_cache_socache.c",
+    "signature": "int(int *, int *, int *, server_rec *)",
+    "container_type": "cache",
+    "container_arg": -1,
+    "store_args": [
+      3
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "cache_handler",
+    "file": "/data/csong/opensource/httpd/modules/cache/mod_cache.c",
+    "signature": "int(request_rec *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "cache_save_store",
+    "file": "/data/csong/opensource/httpd/modules/cache/mod_cache.c",
+    "signature": "int(ap_filter_t *, struct apr_bucket_brigade *, cache_server_conf *, cache_request_rec *)",
+    "container_type": "brigade_cache",
+    "container_arg": 3,
+    "store_args": [
+      3
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "cache_save_filter",
+    "file": "/data/csong/opensource/httpd/modules/cache/mod_cache.c",
+    "signature": "int()",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "create_cache_config",
+    "file": "/data/csong/opensource/httpd/modules/cache/mod_cache.c",
+    "signature": "void *(int *, server_rec *)",
+    "container_type": "array",
+    "container_arg": -1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "add_cache_enable",
+    "file": "/data/csong/opensource/httpd/modules/cache/mod_cache.c",
+    "signature": "const char *(cmd_parms *, void *, const char *, const char *)",
+    "container_type": "array",
+    "container_arg": 1,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "add_cache_disable",
+    "file": "/data/csong/opensource/httpd/modules/cache/mod_cache.c",
+    "signature": "const char *(cmd_parms *, void *, const char *)",
+    "container_type": "array",
+    "container_arg": 1,
+    "store_args": [
+      0
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "socache_mc_store",
+    "file": "/data/csong/opensource/httpd/modules/cache/mod_socache_memcache.c",
+    "signature": "int()",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2,
+      3,
+      4,
+      5
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "socache_mc_remove",
+    "file": "/data/csong/opensource/httpd/modules/cache/mod_socache_memcache.c",
+    "signature": "int()",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "socache_dbm_store",
+    "file": "/data/csong/opensource/httpd/modules/cache/mod_socache_dbm.c",
+    "signature": "int()",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "socache_dbm_retrieve",
+    "file": "/data/csong/opensource/httpd/modules/cache/mod_socache_dbm.c",
+    "signature": "int()",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "socache_dbm_remove",
+    "file": "/data/csong/opensource/httpd/modules/cache/mod_socache_dbm.c",
+    "signature": "int()",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "cache_remove_url",
+    "file": "/data/csong/opensource/httpd/modules/cache/cache_storage.c",
+    "signature": "int(cache_request_rec *, request_rec *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "cache_create_entity",
+    "file": "/data/csong/opensource/httpd/modules/cache/cache_storage.c",
+    "signature": "int(cache_request_rec *, request_rec *, int, struct apr_bucket_brigade *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "cache_select",
+    "file": "/data/csong/opensource/httpd/modules/cache/cache_storage.c",
+    "signature": "int(cache_request_rec *, request_rec *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "cache_invalidate",
+    "file": "/data/csong/opensource/httpd/modules/cache/cache_storage.c",
+    "signature": "int(cache_request_rec *, request_rec *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "store_table",
+    "file": "/data/csong/opensource/httpd/modules/cache/mod_cache_disk.c",
+    "signature": "int()",
+    "container_type": "hash_table",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "socache_shmcb_store",
+    "file": "/data/csong/opensource/httpd/modules/cache/mod_socache_shmcb.c",
+    "signature": "int()",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2,
+      3,
+      4,
+      5,
+      6
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "socache_shmcb_retrieve",
+    "file": "/data/csong/opensource/httpd/modules/cache/mod_socache_shmcb.c",
+    "signature": "int()",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "socache_shmcb_remove",
+    "file": "/data/csong/opensource/httpd/modules/cache/mod_socache_shmcb.c",
+    "signature": "int()",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "shmcb_subcache_store",
+    "file": "/data/csong/opensource/httpd/modules/cache/mod_socache_shmcb.c",
+    "signature": "int(server_rec *, SHMCBHeader *, SHMCBSubcache *, unsigned char *, unsigned int, const unsigned char *, unsigned int, int)",
+    "container_type": "hash_table",
+    "container_arg": 2,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "shmcb_subcache_remove",
+    "file": "/data/csong/opensource/httpd/modules/cache/mod_socache_shmcb.c",
+    "signature": "int(server_rec *, SHMCBHeader *, SHMCBSubcache *, const unsigned char *, unsigned int)",
+    "container_type": "hash_table",
+    "container_arg": 2,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "get_provider",
+    "file": "/data/csong/opensource/httpd/modules/cache/cache_util.c",
+    "signature": "cache_provider_list *(request_rec *, struct cache_enable *, cache_provider_list *)",
+    "container_type": "linked_list",
+    "container_arg": 2,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "cache_control_remove",
+    "file": "/data/csong/opensource/httpd/modules/cache/cache_util.c",
+    "signature": "int(request_rec *, const char *, int *)",
+    "container_type": "hash_table",
+    "container_arg": 2,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "cache_table_getm_do",
+    "file": "/data/csong/opensource/httpd/modules/cache/cache_util.c",
+    "signature": "int(void *, const char *, const char *)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ap_find_loaded_module_symbol",
+    "file": "/data/csong/opensource/httpd/modules/core/mod_so.c",
+    "signature": "module *(server_rec *, const char *)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "merge_dbd_config",
+    "file": "/data/csong/opensource/httpd/modules/database/mod_dbd.c",
+    "signature": "void *(int *, void *, void *)",
+    "container_type": "hash_table",
+    "container_arg": -1,
+    "store_args": [
+      1,
+      2
+    ],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "dbd_post_config",
+    "file": "/data/csong/opensource/httpd/modules/database/mod_dbd.c",
+    "signature": "int(int *, int *, int *, server_rec *)",
+    "container_type": "hash_table",
+    "container_arg": 3,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "dbd_setup_init",
+    "file": "/data/csong/opensource/httpd/modules/database/mod_dbd.c",
+    "signature": "int()",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "append_bucket",
+    "file": "/data/csong/opensource/httpd/modules/filters/mod_sed.c",
+    "signature": "int()",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1,
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ap_ssi_parse_string",
+    "file": "/data/csong/opensource/httpd/modules/filters/mod_include.c",
+    "signature": "char *(include_ctx_t *, const char *, char *, int, int)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "find_argument",
+    "file": "/data/csong/opensource/httpd/modules/filters/mod_include.c",
+    "signature": "int(include_ctx_t *, const char *, int, char ***, int **)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      3,
+      4
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "set_pattern",
+    "file": "/data/csong/opensource/httpd/modules/filters/mod_substitute.c",
+    "signature": "const char *(cmd_parms *, void *, const char *)",
+    "container_type": "array",
+    "container_arg": 1,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ap_request_remove_filter",
+    "file": "/data/csong/opensource/httpd/modules/filters/mod_request.c",
+    "signature": "void(request_rec *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "filter_lookup",
+    "file": "/data/csong/opensource/httpd/modules/filters/mod_filter.c",
+    "signature": "int(ap_filter_t *, ap_filter_rec_t *)",
+    "container_type": "linked_list",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "filter_declare",
+    "file": "/data/csong/opensource/httpd/modules/filters/mod_filter.c",
+    "signature": "const char *(cmd_parms *, void *, const char *, const char *)",
+    "container_type": "hash_table",
+    "container_arg": 1,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "add_filter",
+    "file": "/data/csong/opensource/httpd/modules/filters/mod_filter.c",
+    "signature": "const char *(cmd_parms *, void *, const char *, const char *, const char *, const char **)",
+    "container_type": "hash_table",
+    "container_arg": 1,
+    "store_args": [
+      4
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "filter_chain",
+    "file": "/data/csong/opensource/httpd/modules/filters/mod_filter.c",
+    "signature": "const char *(cmd_parms *, void *, const char *)",
+    "container_type": "linked_list",
+    "container_arg": 1,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "filter_insert",
+    "file": "/data/csong/opensource/httpd/modules/filters/mod_filter.c",
+    "signature": "void(request_rec *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "filter_merge",
+    "file": "/data/csong/opensource/httpd/modules/filters/mod_filter.c",
+    "signature": "void *(int *, void *, void *)",
+    "container_type": "linked_list",
+    "container_arg": -1,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "set_skipto",
+    "file": "/data/csong/opensource/httpd/modules/filters/mod_xml2enc.c",
+    "signature": "const char *(cmd_parms *, void *, const char *)",
+    "container_type": "array",
+    "container_arg": 1,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "set_urlmap",
+    "file": "/data/csong/opensource/httpd/modules/filters/mod_proxy_html.c",
+    "signature": "const char *(cmd_parms *, void *, const char *)",
+    "container_type": "linked_list",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "set_events",
+    "file": "/data/csong/opensource/httpd/modules/filters/mod_proxy_html.c",
+    "signature": "const char *(cmd_parms *, void *, const char *)",
+    "container_type": "array",
+    "container_arg": 1,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "set_links",
+    "file": "/data/csong/opensource/httpd/modules/filters/mod_proxy_html.c",
+    "signature": "const char *(cmd_parms *, void *, const char *, const char *)",
+    "container_type": "hash_table",
+    "container_arg": 1,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ap_method_list_add",
+    "file": "/data/csong/opensource/httpd/modules/http/http_protocol.c",
+    "signature": "void(ap_method_list_t *, const char *)",
+    "container_type": "dynamic_array",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ap_method_list_remove",
+    "file": "/data/csong/opensource/httpd/modules/http/http_protocol.c",
+    "signature": "void(ap_method_list_t *, const char *)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "find_ct",
+    "file": "/data/csong/opensource/httpd/modules/http/mod_mime.c",
+    "signature": "int(request_rec *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "uldap_connection_find",
+    "file": "/data/csong/opensource/httpd/modules/ldap/util_ldap.c",
+    "signature": "int *(request_rec *, const char *, int, const char *, const char *, int, int)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "util_ldap_set_trusted_global_cert",
+    "file": "/data/csong/opensource/httpd/modules/ldap/util_ldap.c",
+    "signature": "const char *(cmd_parms *, void *, const char *, const char *, const char *)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "util_ldap_set_trusted_client_cert",
+    "file": "/data/csong/opensource/httpd/modules/ldap/util_ldap.c",
+    "signature": "const char *(cmd_parms *, void *, const char *, const char *, const char *)",
+    "container_type": "array",
+    "container_arg": 1,
+    "store_args": [
+      3
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "find_multiple_headers",
+    "file": "/data/csong/opensource/httpd/modules/loggers/mod_log_config.c",
+    "signature": "int *(int *, const int *, const char *)",
+    "container_type": "linked_list",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "add_env_module_vars_set",
+    "file": "/data/csong/opensource/httpd/modules/metadata/mod_env.c",
+    "signature": "const char *(cmd_parms *, void *, const char *, const char *)",
+    "container_type": "hash_table",
+    "container_arg": 1,
+    "store_args": [
+      2,
+      3
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "add_env_module_vars_unset",
+    "file": "/data/csong/opensource/httpd/modules/metadata/mod_env.c",
+    "signature": "const char *(cmd_parms *, void *, const char *)",
+    "container_type": "hash_table",
+    "container_arg": 1,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "merge_setenvif_config",
+    "file": "/data/csong/opensource/httpd/modules/metadata/mod_setenvif.c",
+    "signature": "void *(int *, void *, void *)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [
+      1,
+      2
+    ],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "add_setenvif_core",
+    "file": "/data/csong/opensource/httpd/modules/metadata/mod_setenvif.c",
+    "signature": "const char *(cmd_parms *, void *, char *, const char *)",
+    "container_type": "dynamic_array",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "add_setenvifexpr",
+    "file": "/data/csong/opensource/httpd/modules/metadata/mod_setenvif.c",
+    "signature": "const char *(cmd_parms *, void *, const char *)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "magic_rsl_add",
+    "file": "/data/csong/opensource/httpd/modules/metadata/mod_mime_magic.c",
+    "signature": "int(request_rec *, const char *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "set_expiresbytype",
+    "file": "/data/csong/opensource/httpd/modules/metadata/mod_expires.c",
+    "signature": "const char *(cmd_parms *, void *, const char *, const char *)",
+    "container_type": "hash_table",
+    "container_arg": 1,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "push_string",
+    "file": "/data/csong/opensource/httpd/modules/metadata/mod_headers.c",
+    "signature": "void(int *, const char *, int)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "proxies_set",
+    "file": "/data/csong/opensource/httpd/modules/metadata/mod_remoteip.c",
+    "signature": "const char *(cmd_parms *, void *, const char *)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "remoteip_enable_proxy_protocol",
+    "file": "/data/csong/opensource/httpd/modules/metadata/mod_remoteip.c",
+    "signature": "const char *(cmd_parms *, void *, int)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "cmd_setenv",
+    "file": "/data/csong/opensource/httpd/modules/proxy/mod_proxy_fcgi.c",
+    "signature": "const char *(cmd_parms *, void *, const char *, const char *, const char *)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "create_proxy_dir_config",
+    "file": "/data/csong/opensource/httpd/modules/proxy/mod_proxy.c",
+    "signature": "void *(int *, char *)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "add_pass",
+    "file": "/data/csong/opensource/httpd/modules/proxy/mod_proxy.c",
+    "signature": "const char *(cmd_parms *, void *, const char *, int)",
+    "container_type": "array",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "set_proxy_exclude",
+    "file": "/data/csong/opensource/httpd/modules/proxy/mod_proxy.c",
+    "signature": "const char *(cmd_parms *, void *, const char *)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "set_proxy_dirconn",
+    "file": "/data/csong/opensource/httpd/modules/proxy/mod_proxy.c",
+    "signature": "const char *(cmd_parms *, void *, const char *)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "set_proxy_error_override",
+    "file": "/data/csong/opensource/httpd/modules/proxy/mod_proxy.c",
+    "signature": "const char *(cmd_parms *, void *, const char *)",
+    "container_type": "dynamic_array",
+    "container_arg": 1,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "add_pollset",
+    "file": "/data/csong/opensource/httpd/modules/proxy/proxy_util.c",
+    "signature": "void(int *, int *, int)",
+    "container_type": "pollset",
+    "container_arg": 0,
+    "store_args": [
+      1,
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "set_allowed_ports",
+    "file": "/data/csong/opensource/httpd/modules/proxy/mod_proxy_connect.c",
+    "signature": "const char *(cmd_parms *, void *, const char *)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "set_hc_condition",
+    "file": "/data/csong/opensource/httpd/modules/proxy/mod_proxy_hcheck.c",
+    "signature": "const char *(cmd_parms *, void *, const char *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "set_hc_template",
+    "file": "/data/csong/opensource/httpd/modules/proxy/mod_proxy_hcheck.c",
+    "signature": "const char *(cmd_parms *, void *, const char *)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [
+      0
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "stapling_get_cached_response",
+    "file": "/data/csong/opensource/httpd/modules/ssl/ssl_util_stapling.c",
+    "signature": "void(server_rec *, OCSP_RESPONSE **, unsigned int *, certinfo *, int *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ssl_scache_store",
+    "file": "/data/csong/opensource/httpd/modules/ssl/ssl_scache.c",
+    "signature": "unsigned int(server_rec *, const unsigned char *, int, int, SSL_SESSION *, int *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2,
+      3,
+      4
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ssl_scache_remove",
+    "file": "/data/csong/opensource/httpd/modules/ssl/ssl_scache.c",
+    "signature": "void(server_rec *, const unsigned char *, int, int *)",
+    "container_type": "cache",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ssl_cmd_SSLStaplingCache",
+    "file": "/data/csong/opensource/httpd/modules/ssl/ssl_engine_config.c",
+    "signature": "const char *(cmd_parms *, void *, const char *)",
+    "container_type": "socache_provider",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "dav_lock_get_activelock",
+    "file": "/data/csong/opensource/httpd/modules/dav/main/util_lock.c",
+    "signature": "const char *(request_rec *, dav_lock *, dav_buffer *)",
+    "container_type": "linked_list",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 9,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "dav_get_props",
+    "file": "/data/csong/opensource/httpd/modules/dav/main/props.c",
+    "signature": "dav_get_props_result(dav_propdb *, int *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "dav_add_response",
+    "file": "/data/csong/opensource/httpd/modules/dav/main/mod_dav.c",
+    "signature": "void(dav_walk_resource *, int, dav_get_props_result *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "dav_find_next_ns",
+    "file": "/data/csong/opensource/httpd/modules/dav/main/util.c",
+    "signature": "int *(const int *, int, const char *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "dav_add_if_state",
+    "file": "/data/csong/opensource/httpd/modules/dav/main/util.c",
+    "signature": "dav_error *(int *, dav_if_header *, const char *, dav_if_state_type, int, const dav_hooks_locks *)",
+    "container_type": "linked_list",
+    "container_arg": 1,
+    "store_args": [
+      2,
+      3,
+      4
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "dav_find_submitted_locktoken",
+    "file": "/data/csong/opensource/httpd/modules/dav/main/util.c",
+    "signature": "int(const dav_if_header *, const dav_lock *, const dav_hooks_locks *)",
+    "container_type": "linked_list",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "dav_get_locktoken_list",
+    "file": "/data/csong/opensource/httpd/modules/dav/main/util.c",
+    "signature": "dav_error *(request_rec *, dav_locktoken_list **)",
+    "container_type": "linked_list",
+    "container_arg": 1,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "add_alt",
+    "file": "/data/csong/opensource/httpd/modules/generators/mod_autoindex.c",
+    "signature": "const char *(cmd_parms *, void *, const char *, const char *)",
+    "container_type": "linked_list",
+    "container_arg": 1,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "add_icon",
+    "file": "/data/csong/opensource/httpd/modules/generators/mod_autoindex.c",
+    "signature": "const char *(cmd_parms *, void *, const char *, const char *)",
+    "container_type": "linked_list",
+    "container_arg": 1,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "find_item",
+    "file": "/data/csong/opensource/httpd/modules/generators/mod_autoindex.c",
+    "signature": "char *(const char *, const char *, char *, int *, int)",
+    "container_type": "array",
+    "container_arg": 3,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "find_desc",
+    "file": "/data/csong/opensource/httpd/modules/generators/mod_autoindex.c",
+    "signature": "char *(autoindex_config_rec *, const char *)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "get_sorted_modules",
+    "file": "/data/csong/opensource/httpd/modules/generators/mod_info.c",
+    "signature": "int *(int *)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [
+      0
+    ],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "dav_fs_get_locks",
+    "file": "/data/csong/opensource/httpd/modules/dav/fs/lock.c",
+    "signature": "dav_error *(dav_lockdb *, const dav_resource *, int, dav_lock **)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      3
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "dav_fs_find_lock",
+    "file": "/data/csong/opensource/httpd/modules/dav/fs/lock.c",
+    "signature": "dav_error *(dav_lockdb *, const dav_resource *, const dav_locktoken *, int, dav_lock **)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      4
+    ],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "dav_fs_append_locks",
+    "file": "/data/csong/opensource/httpd/modules/dav/fs/lock.c",
+    "signature": "dav_error *(dav_lockdb *, const dav_resource *, int, const dav_lock *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      2,
+      3
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "dav_fs_remove_lock",
+    "file": "/data/csong/opensource/httpd/modules/dav/fs/lock.c",
+    "signature": "dav_error *(dav_lockdb *, const dav_resource *, const dav_locktoken *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "dav_generic_get_locks",
+    "file": "/data/csong/opensource/httpd/modules/dav/lock/locks.c",
+    "signature": "dav_error *(dav_lockdb *, const dav_resource *, int, dav_lock **)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "dav_generic_find_lock",
+    "file": "/data/csong/opensource/httpd/modules/dav/lock/locks.c",
+    "signature": "dav_error *(dav_lockdb *, const dav_resource *, const dav_locktoken *, int, dav_lock **)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      4
+    ],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "dav_generic_append_locks",
+    "file": "/data/csong/opensource/httpd/modules/dav/lock/locks.c",
+    "signature": "dav_error *(dav_lockdb *, const dav_resource *, int, const dav_lock *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      3
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "dav_generic_remove_lock",
+    "file": "/data/csong/opensource/httpd/modules/dav/lock/locks.c",
+    "signature": "dav_error *(dav_lockdb *, const dav_resource *, const dav_locktoken *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "get_cache_value",
+    "file": "/data/csong/opensource/httpd/modules/mappers/mod_rewrite.c",
+    "signature": "char *(const char *, int, char *, int *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "lookup_map_dbmfile",
+    "file": "/data/csong/opensource/httpd/modules/mappers/mod_rewrite.c",
+    "signature": "char *(request_rec *, const char *, const char *, char *)",
+    "container_type": "hash_table",
+    "container_arg": -1,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "lookup_map_program",
+    "file": "/data/csong/opensource/httpd/modules/mappers/mod_rewrite.c",
+    "signature": "char *(request_rec *, int *, int *, char *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "lookup_map",
+    "file": "/data/csong/opensource/httpd/modules/mappers/mod_rewrite.c",
+    "signature": "char *(request_rec *, char *, char *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "config_server_create",
+    "file": "/data/csong/opensource/httpd/modules/mappers/mod_rewrite.c",
+    "signature": "void *(int *, server_rec *)",
+    "container_type": "hash_table",
+    "container_arg": -1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "config_server_merge",
+    "file": "/data/csong/opensource/httpd/modules/mappers/mod_rewrite.c",
+    "signature": "void *(int *, void *, void *)",
+    "container_type": "hash_table",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "config_perdir_merge",
+    "file": "/data/csong/opensource/httpd/modules/mappers/mod_rewrite.c",
+    "signature": "void *(int *, void *, void *)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "cmd_rewritemap",
+    "file": "/data/csong/opensource/httpd/modules/mappers/mod_rewrite.c",
+    "signature": "const char *(cmd_parms *, void *, const char *, const char *, const char *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "cmd_rewriterule_setflag",
+    "file": "/data/csong/opensource/httpd/modules/mappers/mod_rewrite.c",
+    "signature": "const char *(int *, void *, char *, char *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      2,
+      3
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "set_language_priority",
+    "file": "/data/csong/opensource/httpd/modules/mappers/mod_negotiation.c",
+    "signature": "const char *(cmd_parms *, void *, const char *)",
+    "container_type": "array",
+    "container_arg": 1,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "read_types_multi",
+    "file": "/data/csong/opensource/httpd/modules/mappers/mod_negotiation.c",
+    "signature": "int(negotiation_state *)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [
+      0
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "set_user_dir",
+    "file": "/data/csong/opensource/httpd/modules/mappers/mod_userdir.c",
+    "signature": "const char *(cmd_parms *, void *, const char *)",
+    "container_type": "hash_table",
+    "container_arg": 2,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  }
+]

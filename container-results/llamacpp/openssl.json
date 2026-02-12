@@ -1,0 +1,2505 @@
+[
+  {
+    "function": "set_cert_cb",
+    "file": "/data/csong/opensource/openssl/apps/lib/s_cb.c",
+    "signature": "int(SSL *, void *)",
+    "container_type": "linked_list",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ssl_excert_prepend",
+    "file": "/data/csong/opensource/openssl/apps/lib/s_cb.c",
+    "signature": "int(int **)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      0
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "stable_get",
+    "file": "/data/csong/opensource/openssl/crypto/asn1/a_strnid.c",
+    "signature": "ASN1_STRING_TABLE *(int)",
+    "container_type": "list",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ASYNC_WAIT_CTX_set_wait_fd",
+    "file": "/data/csong/opensource/openssl/crypto/async/async_wait.c",
+    "signature": "int(ASYNC_WAIT_CTX *, const void *, int, void *, void (*)(ASYNC_WAIT_CTX *, const void *, int, void *))",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1,
+      3
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ASYNC_WAIT_CTX_get_fd",
+    "file": "/data/csong/opensource/openssl/crypto/async/async_wait.c",
+    "signature": "int(ASYNC_WAIT_CTX *, const void *, int *, void **)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 9,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ASYNC_WAIT_CTX_get_all_fds",
+    "file": "/data/csong/opensource/openssl/crypto/async/async_wait.c",
+    "signature": "int(ASYNC_WAIT_CTX *, int *, size_t *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ASYNC_WAIT_CTX_get_changed_fds",
+    "file": "/data/csong/opensource/openssl/crypto/async/async_wait.c",
+    "signature": "int(ASYNC_WAIT_CTX *, int *, size_t *, int *, size_t *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1,
+      3
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ASYNC_WAIT_CTX_clear_fd",
+    "file": "/data/csong/opensource/openssl/crypto/async/async_wait.c",
+    "signature": "int(ASYNC_WAIT_CTX *, const void *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "async_get_pool_job",
+    "file": "/data/csong/opensource/openssl/crypto/async/async.c",
+    "signature": "ASYNC_JOB *()",
+    "container_type": "stack",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "BIO_set_ex_data",
+    "file": "/data/csong/opensource/openssl/crypto/bio/bio_lib.c",
+    "signature": "int(BIO *, int, void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "BN_STACK_push",
+    "file": "/data/csong/opensource/openssl/crypto/bn/bn_ctx.c",
+    "signature": "int(BN_STACK *, unsigned int)",
+    "container_type": "dynamic_array",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "BN_POOL_finish",
+    "file": "/data/csong/opensource/openssl/crypto/bn/bn_ctx.c",
+    "signature": "void(BN_POOL *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "BN_POOL_get",
+    "file": "/data/csong/opensource/openssl/crypto/bn/bn_ctx.c",
+    "signature": "BIGNUM *(BN_POOL *, int)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 12,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ossl_cmp_sk_ASN1_UTF8STRING_push_str",
+    "file": "/data/csong/opensource/openssl/crypto/cmp/cmp_util.c",
+    "signature": "int(struct stack_st_ASN1_UTF8STRING *, const char *, int)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1,
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "_CONF_add_string",
+    "file": "/data/csong/opensource/openssl/crypto/conf/conf_api.c",
+    "signature": "int(CONF *, CONF_VALUE *, CONF_VALUE *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "_CONF_get_string",
+    "file": "/data/csong/opensource/openssl/crypto/conf/conf_api.c",
+    "signature": "char *(const CONF *, const char *, const char *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 10,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "CONF_get_string",
+    "file": "/data/csong/opensource/openssl/crypto/conf/conf_lib.c",
+    "signature": "char *(struct lhash_st_CONF_VALUE *, const char *, const char *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "DH_set_ex_data",
+    "file": "/data/csong/opensource/openssl/crypto/dh/dh_lib.c",
+    "signature": "int(DH *, int, void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "DSA_set_ex_data",
+    "file": "/data/csong/opensource/openssl/crypto/dsa/dsa_lib.c",
+    "signature": "int(DSA *, int, void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "EC_KEY_set_ex_data",
+    "file": "/data/csong/opensource/openssl/crypto/ec/ec_lib.c",
+    "signature": "int(EC_KEY *, int, void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "get_decoder_from_store",
+    "file": "/data/csong/opensource/openssl/crypto/encode_decode/decoder_meth.c",
+    "signature": "void *(void *, const OSSL_PROVIDER **, void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ossl_decoder_store_cache_flush",
+    "file": "/data/csong/opensource/openssl/crypto/encode_decode/decoder_meth.c",
+    "signature": "int(OSSL_LIB_CTX *)",
+    "container_type": "cache",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ossl_decoder_cache_new",
+    "file": "/data/csong/opensource/openssl/crypto/encode_decode/decoder_pkey.c",
+    "signature": "void *(OSSL_LIB_CTX *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ossl_decoder_cache_free",
+    "file": "/data/csong/opensource/openssl/crypto/encode_decode/decoder_pkey.c",
+    "signature": "void(void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "get_tmp_encoder_store",
+    "file": "/data/csong/opensource/openssl/crypto/encode_decode/encoder_meth.c",
+    "signature": "void *(void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      0
+    ],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 10,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "get_encoder_from_store",
+    "file": "/data/csong/opensource/openssl/crypto/encode_decode/encoder_meth.c",
+    "signature": "void *(void *, const OSSL_PROVIDER **, void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ossl_encoder_store_cache_flush",
+    "file": "/data/csong/opensource/openssl/crypto/encode_decode/encoder_meth.c",
+    "signature": "int(OSSL_LIB_CTX *)",
+    "container_type": "cache",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "get_tmp_evp_method_store",
+    "file": "/data/csong/opensource/openssl/crypto/evp/evp_fetch.c",
+    "signature": "void *(void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 11,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "get_evp_method_from_store",
+    "file": "/data/csong/opensource/openssl/crypto/evp/evp_fetch.c",
+    "signature": "void *(void *, const OSSL_PROVIDER **, void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "inner_evp_generic_fetch",
+    "file": "/data/csong/opensource/openssl/crypto/evp/evp_fetch.c",
+    "signature": "void *(struct evp_method_data_st *, OSSL_PROVIDER *, int, const char *, const char *, void *(*)(int, const OSSL_ALGORITHM *, OSSL_PROVIDER *), int (*)(void *), void (*)(void *))",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      1,
+      2,
+      4
+    ],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "evp_method_store_cache_flush",
+    "file": "/data/csong/opensource/openssl/crypto/evp/evp_fetch.c",
+    "signature": "int(OSSL_LIB_CTX *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "evp_keymgmt_util_export_to_provider",
+    "file": "/data/csong/opensource/openssl/crypto/evp/keymgmt_lib.c",
+    "signature": "void *(EVP_PKEY *, EVP_KEYMGMT *, int)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "evp_keymgmt_util_find_operation_cache",
+    "file": "/data/csong/opensource/openssl/crypto/evp/keymgmt_lib.c",
+    "signature": "int *(EVP_PKEY *, EVP_KEYMGMT *, int)",
+    "container_type": "dynamic_array",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "evp_keymgmt_util_cache_keydata",
+    "file": "/data/csong/opensource/openssl/crypto/evp/keymgmt_lib.c",
+    "signature": "int(EVP_PKEY *, EVP_KEYMGMT *, void *, int)",
+    "container_type": "array_list",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "EVP_PKEY_set_ex_data",
+    "file": "/data/csong/opensource/openssl/crypto/evp/p_lib.c",
+    "signature": "int(EVP_PKEY *, int, void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "evp_pkey_ctx_store_cached_data",
+    "file": "/data/csong/opensource/openssl/crypto/evp/pmeth_lib.c",
+    "signature": "int(EVP_PKEY_CTX *, int, int, int, const char *, const void *, size_t)",
+    "container_type": "cache",
+    "container_arg": 0,
+    "store_args": [
+      5,
+      6
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "grow_hashtable",
+    "file": "/data/csong/opensource/openssl/crypto/hashtable/hashtable.c",
+    "signature": "int(int *, size_t)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "OPENSSL_LH_insert",
+    "file": "/data/csong/opensource/openssl/crypto/lhash/lhash.c",
+    "signature": "void *(OPENSSL_LHASH *, void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 11,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "OPENSSL_LH_delete",
+    "file": "/data/csong/opensource/openssl/crypto/lhash/lhash.c",
+    "signature": "void *(OPENSSL_LHASH *, const void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 9,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "OPENSSL_LH_retrieve",
+    "file": "/data/csong/opensource/openssl/crypto/lhash/lhash.c",
+    "signature": "void *(OPENSSL_LHASH *, const void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 9,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "doall_util_fn",
+    "file": "/data/csong/opensource/openssl/crypto/lhash/lhash.c",
+    "signature": "void(OPENSSL_LHASH *, int, int, OPENSSL_LH_DOALL_FUNC, OPENSSL_LH_DOALL_FUNCARG, int, void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "expand",
+    "file": "/data/csong/opensource/openssl/crypto/lhash/lhash.c",
+    "signature": "int(OPENSSL_LHASH *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "getrn",
+    "file": "/data/csong/opensource/openssl/crypto/lhash/lhash.c",
+    "signature": "OPENSSL_LH_NODE **(OPENSSL_LHASH *, const void *, unsigned long *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ossl_namemap_doall_names",
+    "file": "/data/csong/opensource/openssl/crypto/core_namemap.c",
+    "signature": "int(const int *, int, void (*)(const char *, void *), void *)",
+    "container_type": "stack",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "namemap_add_name",
+    "file": "/data/csong/opensource/openssl/crypto/core_namemap.c",
+    "signature": "int(int *, int, const char *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ossl_namemap_add_name",
+    "file": "/data/csong/opensource/openssl/crypto/core_namemap.c",
+    "signature": "int(int *, int, const char *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ossl_namemap_add_names",
+    "file": "/data/csong/opensource/openssl/crypto/core_namemap.c",
+    "signature": "int(int *, int, const char *, const char)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "CRYPTO_set_ex_data",
+    "file": "/data/csong/opensource/openssl/crypto/ex_data.c",
+    "signature": "int(int *, int, void *)",
+    "container_type": "dynamic_array",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "CRYPTO_get_ex_data",
+    "file": "/data/csong/opensource/openssl/crypto/ex_data.c",
+    "signature": "void *(const int *, int)",
+    "container_type": "array_stack",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "init_thread_stop",
+    "file": "/data/csong/opensource/openssl/crypto/initthread.c",
+    "signature": "void(void *, THREAD_EVENT_HANDLER **)",
+    "container_type": "linked_list",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ossl_init_thread_start",
+    "file": "/data/csong/opensource/openssl/crypto/initthread.c",
+    "signature": "int(const void *, void *, OSSL_thread_stop_handler_fn)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "init_thread_deregister",
+    "file": "/data/csong/opensource/openssl/crypto/initthread.c",
+    "signature": "int(void *, int)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "sh_add_to_list",
+    "file": "/data/csong/opensource/openssl/crypto/mem_sec.c",
+    "signature": "void(char **, char *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "sh_remove_from_list",
+    "file": "/data/csong/opensource/openssl/crypto/mem_sec.c",
+    "signature": "void(char *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "provider_flush_store_cache",
+    "file": "/data/csong/opensource/openssl/crypto/provider_core.c",
+    "signature": "int(const OSSL_PROVIDER *)",
+    "container_type": "cache",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ossl_sa_get",
+    "file": "/data/csong/opensource/openssl/crypto/sparse_array.c",
+    "signature": "void *(const int *, ossl_uintmax_t)",
+    "container_type": "sparse_array",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ossl_sa_set",
+    "file": "/data/csong/opensource/openssl/crypto/sparse_array.c",
+    "signature": "int(int *, ossl_uintmax_t, void *)",
+    "container_type": "sparse_array",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "CRYPTO_THREAD_get_local_ex",
+    "file": "/data/csong/opensource/openssl/crypto/threads_common.c",
+    "signature": "void *(int, OSSL_LIB_CTX *)",
+    "container_type": "sparse_array",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "CRYPTO_THREAD_set_local_ex",
+    "file": "/data/csong/opensource/openssl/crypto/threads_common.c",
+    "signature": "int(int, OSSL_LIB_CTX *, void *)",
+    "container_type": "sparse_array",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ossl_rcu_call",
+    "file": "/data/csong/opensource/openssl/crypto/threads_pthread.c",
+    "signature": "int(int *, int, void *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "add_object",
+    "file": "/data/csong/opensource/openssl/crypto/objects/obj_dat.c",
+    "signature": "int(const ASN1_OBJECT *, int)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "PKCS7_get_signer_info",
+    "file": "/data/csong/opensource/openssl/crypto/pkcs7/pk7_lib.c",
+    "signature": "struct stack_st_PKCS7_SIGNER_INFO *(PKCS7 *)",
+    "container_type": "stack",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ossl_method_store_retrieve",
+    "file": "/data/csong/opensource/openssl/crypto/property/property.c",
+    "signature": "ALGORITHM *(STORED_ALGORITHMS *, int)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ossl_method_store_add",
+    "file": "/data/csong/opensource/openssl/crypto/property/property.c",
+    "signature": "int(int *, const OSSL_PROVIDER *, int, const char *, void *, int (*)(void *), void (*)(void *))",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      4,
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ossl_method_store_fetch",
+    "file": "/data/csong/opensource/openssl/crypto/property/property.c",
+    "signature": "int(int *, int, const char *, const OSSL_PROVIDER **, void **)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ossl_method_store_cache_flush_all",
+    "file": "/data/csong/opensource/openssl/crypto/property/property.c",
+    "signature": "int(int *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "impl_cache_flush_one_alg",
+    "file": "/data/csong/opensource/openssl/crypto/property/property.c",
+    "signature": "void(ossl_uintmax_t, ALGORITHM *, void *)",
+    "container_type": "hash_table",
+    "container_arg": 1,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ossl_method_store_cache_get",
+    "file": "/data/csong/opensource/openssl/crypto/property/property.c",
+    "signature": "int(int *, OSSL_PROVIDER *, int, const char *, void **)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ossl_method_store_cache_set",
+    "file": "/data/csong/opensource/openssl/crypto/property/property.c",
+    "signature": "int(int *, OSSL_PROVIDER *, int, const char *, void *, int (*)(void *), void (*)(void *))",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      4,
+      5,
+      6
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ossl_prop_defn_get",
+    "file": "/data/csong/opensource/openssl/crypto/property/defn_cache.c",
+    "signature": "int *(OSSL_LIB_CTX *, const char *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ossl_property_string_data_new",
+    "file": "/data/csong/opensource/openssl/crypto/property/property_string.c",
+    "signature": "void *(OSSL_LIB_CTX *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ossl_rand_pool_add",
+    "file": "/data/csong/opensource/openssl/crypto/rand/rand_pool.c",
+    "signature": "int(int *, const unsigned char *, size_t, size_t)",
+    "container_type": "dynamic_buffer",
+    "container_arg": 0,
+    "store_args": [
+      1,
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ossl_rand_pool_add_begin",
+    "file": "/data/csong/opensource/openssl/crypto/rand/rand_pool.c",
+    "signature": "unsigned char *(int *, size_t)",
+    "container_type": "buffer_pool",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "RSA_set_ex_data",
+    "file": "/data/csong/opensource/openssl/crypto/rsa/rsa_lib.c",
+    "signature": "int(RSA *, int, void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "SRP_gN_place_bn",
+    "file": "/data/csong/opensource/openssl/crypto/srp/srp_vfy.c",
+    "signature": "BIGNUM *(struct stack_st_SRP_gN_cache *, char *)",
+    "container_type": "stack",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "OPENSSL_sk_insert",
+    "file": "/data/csong/opensource/openssl/crypto/stack/stack.c",
+    "signature": "int(OPENSSL_STACK *, const void *, int)",
+    "container_type": "dynamic_array",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "internal_delete",
+    "file": "/data/csong/opensource/openssl/crypto/stack/stack.c",
+    "signature": "void *(OPENSSL_STACK *, int)",
+    "container_type": "array_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "OPENSSL_sk_delete_ptr",
+    "file": "/data/csong/opensource/openssl/crypto/stack/stack.c",
+    "signature": "void *(OPENSSL_STACK *, const void *)",
+    "container_type": "array_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "OPENSSL_sk_delete",
+    "file": "/data/csong/opensource/openssl/crypto/stack/stack.c",
+    "signature": "void *(OPENSSL_STACK *, int)",
+    "container_type": "dynamic_array",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "internal_find",
+    "file": "/data/csong/opensource/openssl/crypto/stack/stack.c",
+    "signature": "int(const OPENSSL_STACK *, const void *, int, int *)",
+    "container_type": "dynamic_array",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "OPENSSL_sk_pop",
+    "file": "/data/csong/opensource/openssl/crypto/stack/stack.c",
+    "signature": "void *(OPENSSL_STACK *)",
+    "container_type": "stack",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "OPENSSL_sk_value",
+    "file": "/data/csong/opensource/openssl/crypto/stack/stack.c",
+    "signature": "void *(const OPENSSL_STACK *, int)",
+    "container_type": "array_based_stack",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "OPENSSL_sk_set",
+    "file": "/data/csong/opensource/openssl/crypto/stack/stack.c",
+    "signature": "void *(OPENSSL_STACK *, int, const void *)",
+    "container_type": "dynamic_array",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "get_tmp_loader_store",
+    "file": "/data/csong/opensource/openssl/crypto/store/store_meth.c",
+    "signature": "void *(void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 10,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "get_loader_from_store",
+    "file": "/data/csong/opensource/openssl/crypto/store/store_meth.c",
+    "signature": "void *(void *, const OSSL_PROVIDER **, void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ossl_store_loader_store_cache_flush",
+    "file": "/data/csong/opensource/openssl/crypto/store/store_meth.c",
+    "signature": "int(OSSL_LIB_CTX *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "sk_CACHED_STORE_num",
+    "file": "/data/csong/opensource/openssl/crypto/x509/by_store.c",
+    "signature": "int(const struct stack_st_CACHED_STORE *)",
+    "container_type": "stack",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "sk_CACHED_STORE_reserve",
+    "file": "/data/csong/opensource/openssl/crypto/x509/by_store.c",
+    "signature": "int(struct stack_st_CACHED_STORE *, int)",
+    "container_type": "dynamic_array",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "sk_CACHED_STORE_free",
+    "file": "/data/csong/opensource/openssl/crypto/x509/by_store.c",
+    "signature": "void(struct stack_st_CACHED_STORE *)",
+    "container_type": "stack",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "sk_CACHED_STORE_delete",
+    "file": "/data/csong/opensource/openssl/crypto/x509/by_store.c",
+    "signature": "CACHED_STORE *(struct stack_st_CACHED_STORE *, int)",
+    "container_type": "stack",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "sk_CACHED_STORE_delete_ptr",
+    "file": "/data/csong/opensource/openssl/crypto/x509/by_store.c",
+    "signature": "CACHED_STORE *(struct stack_st_CACHED_STORE *, CACHED_STORE *)",
+    "container_type": "stack",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "sk_CACHED_STORE_push",
+    "file": "/data/csong/opensource/openssl/crypto/x509/by_store.c",
+    "signature": "int(struct stack_st_CACHED_STORE *, CACHED_STORE *)",
+    "container_type": "stack",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "sk_CACHED_STORE_unshift",
+    "file": "/data/csong/opensource/openssl/crypto/x509/by_store.c",
+    "signature": "int(struct stack_st_CACHED_STORE *, CACHED_STORE *)",
+    "container_type": "stack",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "sk_CACHED_STORE_pop",
+    "file": "/data/csong/opensource/openssl/crypto/x509/by_store.c",
+    "signature": "CACHED_STORE *(struct stack_st_CACHED_STORE *)",
+    "container_type": "stack",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "sk_CACHED_STORE_shift",
+    "file": "/data/csong/opensource/openssl/crypto/x509/by_store.c",
+    "signature": "CACHED_STORE *(struct stack_st_CACHED_STORE *)",
+    "container_type": "stack",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "sk_CACHED_STORE_pop_free",
+    "file": "/data/csong/opensource/openssl/crypto/x509/by_store.c",
+    "signature": "void(struct stack_st_CACHED_STORE *, sk_CACHED_STORE_freefunc)",
+    "container_type": "stack",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "sk_CACHED_STORE_insert",
+    "file": "/data/csong/opensource/openssl/crypto/x509/by_store.c",
+    "signature": "int(struct stack_st_CACHED_STORE *, CACHED_STORE *, int)",
+    "container_type": "stack",
+    "container_arg": 0,
+    "store_args": [
+      1,
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "sk_CACHED_STORE_set",
+    "file": "/data/csong/opensource/openssl/crypto/x509/by_store.c",
+    "signature": "CACHED_STORE *(struct stack_st_CACHED_STORE *, int, CACHED_STORE *)",
+    "container_type": "stack",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "sk_CACHED_STORE_find",
+    "file": "/data/csong/opensource/openssl/crypto/x509/by_store.c",
+    "signature": "int(struct stack_st_CACHED_STORE *, CACHED_STORE *)",
+    "container_type": "stack",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "sk_CACHED_STORE_find_ex",
+    "file": "/data/csong/opensource/openssl/crypto/x509/by_store.c",
+    "signature": "int(struct stack_st_CACHED_STORE *, CACHED_STORE *)",
+    "container_type": "stack",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "sk_CACHED_STORE_sort",
+    "file": "/data/csong/opensource/openssl/crypto/x509/by_store.c",
+    "signature": "void(struct stack_st_CACHED_STORE *)",
+    "container_type": "stack",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "sk_CACHED_STORE_set_cmp_func",
+    "file": "/data/csong/opensource/openssl/crypto/x509/by_store.c",
+    "signature": "sk_CACHED_STORE_compfunc(struct stack_st_CACHED_STORE *, sk_CACHED_STORE_compfunc)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ossl_policy_cache_find_data",
+    "file": "/data/csong/opensource/openssl/crypto/x509/pcy_cache.c",
+    "signature": "X509_POLICY_DATA *(const X509_POLICY_CACHE *, const ASN1_OBJECT *)",
+    "container_type": "dynamic_array",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ossl_policy_tree_find_sk",
+    "file": "/data/csong/opensource/openssl/crypto/x509/pcy_node.c",
+    "signature": "X509_POLICY_NODE *(struct stack_st_X509_POLICY_NODE *, const ASN1_OBJECT *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ossl_policy_level_find_node",
+    "file": "/data/csong/opensource/openssl/crypto/x509/pcy_node.c",
+    "signature": "X509_POLICY_NODE *(const X509_POLICY_LEVEL *, const X509_POLICY_NODE *, const ASN1_OBJECT *)",
+    "container_type": "dynamic_array",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ossl_policy_level_add_node",
+    "file": "/data/csong/opensource/openssl/crypto/x509/pcy_node.c",
+    "signature": "X509_POLICY_NODE *(X509_POLICY_LEVEL *, X509_POLICY_DATA *, X509_POLICY_NODE *, X509_POLICY_TREE *, int)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "tree_add_unmatched",
+    "file": "/data/csong/opensource/openssl/crypto/x509/pcy_tree.c",
+    "signature": "int(X509_POLICY_LEVEL *, const X509_POLICY_CACHE *, const ASN1_OBJECT *, X509_POLICY_NODE *, X509_POLICY_TREE *)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [
+      4
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "tree_prune",
+    "file": "/data/csong/opensource/openssl/crypto/x509/pcy_tree.c",
+    "signature": "int(X509_POLICY_TREE *, X509_POLICY_LEVEL *)",
+    "container_type": "tree",
+    "container_arg": 1,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "tree_add_auth_node",
+    "file": "/data/csong/opensource/openssl/crypto/x509/pcy_tree.c",
+    "signature": "int(struct stack_st_X509_POLICY_NODE **, X509_POLICY_NODE *)",
+    "container_type": "stack",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "tree_calculate_authority_set",
+    "file": "/data/csong/opensource/openssl/crypto/x509/pcy_tree.c",
+    "signature": "int(X509_POLICY_TREE *, struct stack_st_X509_POLICY_NODE **)",
+    "container_type": "stack",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "tree_calculate_user_set",
+    "file": "/data/csong/opensource/openssl/crypto/x509/pcy_tree.c",
+    "signature": "int(X509_POLICY_TREE *, struct stack_st_ASN1_OBJECT *, struct stack_st_X509_POLICY_NODE *)",
+    "container_type": "stack",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "v2i_IPAddrBlocks",
+    "file": "/data/csong/opensource/openssl/crypto/x509/v3_addr.c",
+    "signature": "void *(const struct v3_ext_method *, struct v3_ext_ctx *, struct stack_st_CONF_VALUE *)",
+    "container_type": "stack",
+    "container_arg": 2,
+    "store_args": [
+      2
+    ],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "conf_lhash_get_section",
+    "file": "/data/csong/opensource/openssl/crypto/x509/v3_conf.c",
+    "signature": "struct stack_st_CONF_VALUE *(void *, const char *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "X509V3_get_d2i",
+    "file": "/data/csong/opensource/openssl/crypto/x509/v3_lib.c",
+    "signature": "void *(const struct stack_st_X509_EXTENSION *, int, int *, int *)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "v2i_POLICY_MAPPINGS",
+    "file": "/data/csong/opensource/openssl/crypto/x509/v3_pmaps.c",
+    "signature": "void *(const X509V3_EXT_METHOD *, X509V3_CTX *, struct stack_st_CONF_VALUE *)",
+    "container_type": "stack",
+    "container_arg": -1,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "X509_ATTRIBUTE_set1_data",
+    "file": "/data/csong/opensource/openssl/crypto/x509/x509_att.c",
+    "signature": "int(X509_ATTRIBUTE *, int, const void *, int)",
+    "container_type": "stack_like",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "X509_STORE_set_default_paths_ex",
+    "file": "/data/csong/opensource/openssl/crypto/x509/x509_d2.c",
+    "signature": "int(X509_STORE *, OSSL_LIB_CTX *, const char *)",
+    "container_type": "dynamic_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ossl_x509_store_ht_get_by_name",
+    "file": "/data/csong/opensource/openssl/crypto/x509/x509_lu.c",
+    "signature": "struct stack_st_X509_OBJECT *(const X509_STORE *, const X509_NAME *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "X509_OBJECT_retrieve_by_subject",
+    "file": "/data/csong/opensource/openssl/crypto/x509/x509_lu.c",
+    "signature": "X509_OBJECT *(struct stack_st_X509_OBJECT *, X509_LOOKUP_TYPE, const X509_NAME *)",
+    "container_type": "stack/array",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "X509_STORE_get0_objects",
+    "file": "/data/csong/opensource/openssl/crypto/x509/x509_lu.c",
+    "signature": "struct stack_st_X509_OBJECT *(const X509_STORE *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "X509_OBJECT_retrieve_match",
+    "file": "/data/csong/opensource/openssl/crypto/x509/x509_lu.c",
+    "signature": "X509_OBJECT *(struct stack_st_X509_OBJECT *, X509_OBJECT *)",
+    "container_type": "stack_array",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "X509_STORE_CTX_set_ex_data",
+    "file": "/data/csong/opensource/openssl/crypto/x509/x509_vfy.c",
+    "signature": "int(X509_STORE_CTX *, int, void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "X509_STORE_CTX_set0_crls",
+    "file": "/data/csong/opensource/openssl/crypto/x509/x509_vfy.c",
+    "signature": "void(X509_STORE_CTX *, struct stack_st_X509_CRL *)",
+    "container_type": "stack",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "X509_STORE_CTX_set0_trusted_stack",
+    "file": "/data/csong/opensource/openssl/crypto/x509/x509_vfy.c",
+    "signature": "void(X509_STORE_CTX *, struct stack_st_X509 *)",
+    "container_type": "stack",
+    "container_arg": 1,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "X509_STORE_CTX_cleanup",
+    "file": "/data/csong/opensource/openssl/crypto/x509/x509_vfy.c",
+    "signature": "void(X509_STORE_CTX *)",
+    "container_type": "dynamic_collection",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "X509_STORE_CTX_set0_untrusted",
+    "file": "/data/csong/opensource/openssl/crypto/x509/x509_vfy.c",
+    "signature": "void(X509_STORE_CTX *, struct stack_st_X509 *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "X509_STORE_CTX_set0_verified_chain",
+    "file": "/data/csong/opensource/openssl/crypto/x509/x509_vfy.c",
+    "signature": "void(X509_STORE_CTX *, struct stack_st_X509 *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "OSSL_IETF_ATTR_SYNTAX_get0_value",
+    "file": "/data/csong/opensource/openssl/crypto/x509/x_ietfatt.c",
+    "signature": "void *(const int *, int, int *)",
+    "container_type": "stack",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "X509_set_ex_data",
+    "file": "/data/csong/opensource/openssl/crypto/x509/x_x509.c",
+    "signature": "int(X509 *, int, void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ecdh_set_peer",
+    "file": "/data/csong/opensource/openssl/providers/implementations/exchange/ecdh_exch.c",
+    "signature": "int(void *, void *)",
+    "container_type": "struct_field",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "kdf_tls1_prf_set_ctx_params",
+    "file": "/data/csong/opensource/openssl/providers/implementations/kdfs/tls1_prf.c",
+    "signature": "int(void *, const OSSL_PARAM[])",
+    "container_type": "dynamic_array",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ossl_pool_add_nonce_data",
+    "file": "/data/csong/opensource/openssl/providers/implementations/rands/seeding/rand_unix.c",
+    "signature": "int(int *)",
+    "container_type": "pool",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "sk_OSSL_STORE_INFO_set",
+    "file": "/data/csong/opensource/openssl/providers/implementations/storemgmt/file_store.c",
+    "signature": "OSSL_STORE_INFO *(struct stack_st_OSSL_STORE_INFO *, int, OSSL_STORE_INFO *)",
+    "container_type": "stack",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "sk_OSSL_STORE_INFO_set_cmp_func",
+    "file": "/data/csong/opensource/openssl/providers/implementations/storemgmt/file_store.c",
+    "signature": "sk_OSSL_STORE_INFO_compfunc(struct stack_st_OSSL_STORE_INFO *, sk_OSSL_STORE_INFO_compfunc)",
+    "container_type": "stack",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "SSL_get_srtp_profiles",
+    "file": "/data/csong/opensource/openssl/ssl/d1_srtp.c",
+    "signature": "struct stack_st_SRTP_PROTECTION_PROFILE *(SSL *)",
+    "container_type": "stack",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ossl_pqueue_push",
+    "file": "/data/csong/opensource/openssl/ssl/priority_queue.c",
+    "signature": "int(int *, void *, size_t *)",
+    "container_type": "priority_queue",
+    "container_arg": 0,
+    "store_args": [
+      1,
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ossl_pqueue_pop",
+    "file": "/data/csong/opensource/openssl/ssl/priority_queue.c",
+    "signature": "void *(int *)",
+    "container_type": "priority_queue",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 9,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ossl_pqueue_remove",
+    "file": "/data/csong/opensource/openssl/ssl/priority_queue.c",
+    "signature": "void *(int *, size_t)",
+    "container_type": "priority_queue",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 9,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ossl_pqueue_new",
+    "file": "/data/csong/opensource/openssl/ssl/priority_queue.c",
+    "signature": "int *(int (*)(const void *, const void *))",
+    "container_type": "priority_queue",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "SSL_CTX_get_client_CA_list",
+    "file": "/data/csong/opensource/openssl/ssl/ssl_cert.c",
+    "signature": "struct stack_st_X509_NAME *(const SSL_CTX *)",
+    "container_type": "stack",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 9,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "add_file_cert_subjects_to_stack",
+    "file": "/data/csong/opensource/openssl/ssl/ssl_cert.c",
+    "signature": "int(struct stack_st_X509_NAME *, const char *, struct lhash_st_X509_NAME *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "SSL_add_file_cert_subjects_to_stack",
+    "file": "/data/csong/opensource/openssl/ssl/ssl_cert.c",
+    "signature": "int(struct stack_st_X509_NAME *, const char *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "SSL_add_dir_cert_subjects_to_stack",
+    "file": "/data/csong/opensource/openssl/ssl/ssl_cert.c",
+    "signature": "int(struct stack_st_X509_NAME *, const char *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "SSL_add_store_cert_subjects_to_stack",
+    "file": "/data/csong/opensource/openssl/ssl/ssl_cert.c",
+    "signature": "int(struct stack_st_X509_NAME *, const char *)",
+    "container_type": "stack",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ssl_cert_set_cert_store",
+    "file": "/data/csong/opensource/openssl/ssl/ssl_cert.c",
+    "signature": "int(CERT *, X509_STORE *, int, int)",
+    "container_type": "struct_field",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "pqueue_insert",
+    "file": "/data/csong/opensource/openssl/ssl/pqueue.c",
+    "signature": "pitem *(pqueue *, pitem *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 9,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "pqueue_pop",
+    "file": "/data/csong/opensource/openssl/ssl/pqueue.c",
+    "signature": "pitem *(pqueue *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "pqueue_find",
+    "file": "/data/csong/opensource/openssl/ssl/pqueue.c",
+    "signature": "pitem *(pqueue *, unsigned char *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 9,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "pqueue_size",
+    "file": "/data/csong/opensource/openssl/ssl/pqueue.c",
+    "signature": "size_t(pqueue *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ll_append_tail",
+    "file": "/data/csong/opensource/openssl/ssl/ssl_ciph.c",
+    "signature": "void(CIPHER_ORDER **, CIPHER_ORDER *, CIPHER_ORDER **)",
+    "container_type": "doubly_linked_list",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ll_append_head",
+    "file": "/data/csong/opensource/openssl/ssl/ssl_ciph.c",
+    "signature": "void(CIPHER_ORDER **, CIPHER_ORDER *, CIPHER_ORDER **)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ssl_create_cipher_list",
+    "file": "/data/csong/opensource/openssl/ssl/ssl_ciph.c",
+    "signature": "struct stack_st_SSL_CIPHER *(SSL_CTX *, struct stack_st_SSL_CIPHER *, struct stack_st_SSL_CIPHER **, struct stack_st_SSL_CIPHER **, const char *, CERT *)",
+    "container_type": "linked_list",
+    "container_arg": 2,
+    "store_args": [
+      2,
+      3
+    ],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "SSL_CTX_set_default_verify_store",
+    "file": "/data/csong/opensource/openssl/ssl/ssl_lib.c",
+    "signature": "int(SSL_CTX *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "SSL_set_ex_data",
+    "file": "/data/csong/opensource/openssl/ssl/ssl_lib.c",
+    "signature": "int(SSL *, int, void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "SSL_CTX_set_ex_data",
+    "file": "/data/csong/opensource/openssl/ssl/ssl_lib.c",
+    "signature": "int(SSL_CTX *, int, void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "SSL_SESSION_set_ex_data",
+    "file": "/data/csong/opensource/openssl/ssl/ssl_sess.c",
+    "signature": "int(SSL_SESSION *, int, void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "lookup_sess_in_cache",
+    "file": "/data/csong/opensource/openssl/ssl/ssl_sess.c",
+    "signature": "SSL_SESSION *(int *, const unsigned char *, size_t)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "SSL_SESSION_list_remove",
+    "file": "/data/csong/opensource/openssl/ssl/ssl_sess.c",
+    "signature": "void(SSL_CTX *, SSL_SESSION *)",
+    "container_type": "doubly_linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "SSL_SESSION_list_add",
+    "file": "/data/csong/opensource/openssl/ssl/ssl_sess.c",
+    "signature": "void(SSL_CTX *, SSL_SESSION *)",
+    "container_type": "doubly_linked_list",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "list_remove",
+    "file": "/data/csong/opensource/openssl/ssl/quic/quic_cfq.c",
+    "signature": "void(QUIC_CFQ_ITEM_LIST *, QUIC_CFQ_ITEM_EX *)",
+    "container_type": "doubly_linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "list_insert_head",
+    "file": "/data/csong/opensource/openssl/ssl/quic/quic_cfq.c",
+    "signature": "void(QUIC_CFQ_ITEM_LIST *, QUIC_CFQ_ITEM_EX *)",
+    "container_type": "doubly_linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "list_insert_tail",
+    "file": "/data/csong/opensource/openssl/ssl/quic/quic_cfq.c",
+    "signature": "void(QUIC_CFQ_ITEM_LIST *, QUIC_CFQ_ITEM_EX *)",
+    "container_type": "doubly_linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "list_insert_after",
+    "file": "/data/csong/opensource/openssl/ssl/quic/quic_cfq.c",
+    "signature": "void(QUIC_CFQ_ITEM_LIST *, QUIC_CFQ_ITEM_EX *, QUIC_CFQ_ITEM_EX *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "list_insert_sorted",
+    "file": "/data/csong/opensource/openssl/ssl/quic/quic_cfq.c",
+    "signature": "void(QUIC_CFQ_ITEM_LIST *, QUIC_CFQ_ITEM_EX *, int (*)(const QUIC_CFQ_ITEM_EX *, const QUIC_CFQ_ITEM_EX *))",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "free_list_items",
+    "file": "/data/csong/opensource/openssl/ssl/quic/quic_cfq.c",
+    "signature": "void(QUIC_CFQ_ITEM_LIST *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ossl_quic_cfq_get_priority_head",
+    "file": "/data/csong/opensource/openssl/ssl/quic/quic_cfq.c",
+    "signature": "int *(const int *, int)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "append_frame",
+    "file": "/data/csong/opensource/openssl/ssl/quic/quic_sf_list.c",
+    "signature": "int(int *, int *, int *, const unsigned char *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1,
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ossl_sframe_list_insert",
+    "file": "/data/csong/opensource/openssl/ssl/quic/quic_sf_list.c",
+    "signature": "int(int *, int *, int *, const unsigned char *, int)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ossl_sframe_list_peek",
+    "file": "/data/csong/opensource/openssl/ssl/quic/quic_sf_list.c",
+    "signature": "int(const int *, void **, int *, const unsigned char **, int *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1,
+      2,
+      3,
+      4
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ossl_sframe_list_drop_frames",
+    "file": "/data/csong/opensource/openssl/ssl/quic/quic_sf_list.c",
+    "signature": "int(int *, int)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ossl_sframe_list_move_data",
+    "file": "/data/csong/opensource/openssl/ssl/quic/quic_sf_list.c",
+    "signature": "int(int *, int *, void *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "list_insert_tail",
+    "file": "/data/csong/opensource/openssl/ssl/quic/quic_stream_map.c",
+    "signature": "void(int *, int *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "list_remove",
+    "file": "/data/csong/opensource/openssl/ssl/quic/quic_stream_map.c",
+    "signature": "void(int *, int *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "list_next",
+    "file": "/data/csong/opensource/openssl/ssl/quic/quic_stream_map.c",
+    "signature": "int *(int *, int *, int)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ossl_quic_stream_map_init",
+    "file": "/data/csong/opensource/openssl/ssl/quic/quic_stream_map.c",
+    "signature": "int(int *, int (int *), void *, int *, int *, int *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ossl_quic_stream_map_visit",
+    "file": "/data/csong/opensource/openssl/ssl/quic/quic_stream_map.c",
+    "signature": "void(int *, void (*)(int *, void *), void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ossl_quic_stream_map_release",
+    "file": "/data/csong/opensource/openssl/ssl/quic/quic_stream_map.c",
+    "signature": "void(int *, int *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ossl_quic_stream_map_get_by_id",
+    "file": "/data/csong/opensource/openssl/ssl/quic/quic_stream_map.c",
+    "signature": "int *(int *, int)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ossl_quic_stream_map_find_in_accept_queue",
+    "file": "/data/csong/opensource/openssl/ssl/quic/quic_stream_map.c",
+    "signature": "int *(int *, int)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ossl_quic_stream_map_push_accept_queue",
+    "file": "/data/csong/opensource/openssl/ssl/quic/quic_stream_map.c",
+    "signature": "void(int *, int *)",
+    "container_type": "doubly_linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ossl_quic_stream_map_remove_from_accept_queue",
+    "file": "/data/csong/opensource/openssl/ssl/quic/quic_stream_map.c",
+    "signature": "void(int *, int *, int)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ossl_quic_tserver_pop_incoming_stream",
+    "file": "/data/csong/opensource/openssl/ssl/quic/quic_tserver.c",
+    "signature": "uint64_t(int *)",
+    "container_type": "queue",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "list_remove",
+    "file": "/data/csong/opensource/openssl/ssl/quic/quic_txpim.c",
+    "signature": "void(QUIC_TXPIM_PKT_EX_LIST *, QUIC_TXPIM_PKT_EX *)",
+    "container_type": "doubly_linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "list_insert_tail",
+    "file": "/data/csong/opensource/openssl/ssl/quic/quic_txpim.c",
+    "signature": "void(QUIC_TXPIM_PKT_EX_LIST *, QUIC_TXPIM_PKT_EX *)",
+    "container_type": "doubly_linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ossl_uint_set_insert",
+    "file": "/data/csong/opensource/openssl/ssl/quic/uint_set.c",
+    "signature": "int(int *, const int *)",
+    "container_type": "doubly_linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ossl_uint_set_remove",
+    "file": "/data/csong/opensource/openssl/ssl/quic/uint_set.c",
+    "signature": "int(int *, const int *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "dtls_retrieve_rlayer_buffered_record",
+    "file": "/data/csong/opensource/openssl/ssl/record/methods/dtls_meth.c",
+    "signature": "int(int *, struct pqueue_st *)",
+    "container_type": "priority_queue",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "dtls1_retrieve_buffered_fragment",
+    "file": "/data/csong/opensource/openssl/ssl/statem/statem_dtls.c",
+    "signature": "int(int *, size_t *)",
+    "container_type": "queue",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "sk_OSSL_STORE_LOADER_set",
+    "file": "/data/csong/opensource/openssl/apps/list.c",
+    "signature": "OSSL_STORE_LOADER *(struct stack_st_OSSL_STORE_LOADER *, int, OSSL_STORE_LOADER *)",
+    "container_type": "stack",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "sk_OSSL_STORE_LOADER_set_cmp_func",
+    "file": "/data/csong/opensource/openssl/apps/list.c",
+    "signature": "sk_OSSL_STORE_LOADER_compfunc(struct stack_st_OSSL_STORE_LOADER *, sk_OSSL_STORE_LOADER_compfunc)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "list_store_loaders",
+    "file": "/data/csong/opensource/openssl/apps/list.c",
+    "signature": "void()",
+    "container_type": "dynamic_array",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "add_session",
+    "file": "/data/csong/opensource/openssl/apps/s_server.c",
+    "signature": "int(SSL *, SSL_SESSION *)",
+    "container_type": "linked_list",
+    "container_arg": 1,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  }
+]

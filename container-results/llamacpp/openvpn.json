@@ -1,0 +1,621 @@
+[
+  {
+    "function": "gc_addspecial",
+    "file": "/data/csong/opensource/openvpn/src/openvpn/buffer.c",
+    "signature": "void(void *, void (*)(void *), struct gc_arena *)",
+    "container_type": "linked_list",
+    "container_arg": 2,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "buffer_list_push",
+    "file": "/data/csong/opensource/openvpn/src/openvpn/buffer.c",
+    "signature": "void(struct buffer_list *, const char *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "buffer_list_push_data",
+    "file": "/data/csong/opensource/openvpn/src/openvpn/buffer.c",
+    "signature": "struct buffer_entry *(struct buffer_list *, const void *, size_t)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 10,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "buffer_list_aggregate_separator",
+    "file": "/data/csong/opensource/openvpn/src/openvpn/buffer.c",
+    "signature": "void(struct buffer_list *, const size_t, const char *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "buffer_list_pop",
+    "file": "/data/csong/opensource/openvpn/src/openvpn/buffer.c",
+    "signature": "void(struct buffer_list *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "add_client_nat_to_option_list",
+    "file": "/data/csong/opensource/openvpn/src/openvpn/clinat.c",
+    "signature": "void(struct client_nat_option_list *, const char *, const char *, const char *, const char *, msglvl_t)",
+    "container_type": "list",
+    "container_arg": 0,
+    "store_args": [
+      0
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "dns_domain_list_append",
+    "file": "/data/csong/opensource/openvpn/src/openvpn/dns.c",
+    "signature": "_Bool(struct dns_domain **, char **, struct gc_arena *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "dns_server_get",
+    "file": "/data/csong/opensource/openvpn/src/openvpn/dns.c",
+    "signature": "struct dns_server *(struct dns_server **, long, struct gc_arena *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      0,
+      2
+    ],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "remove_env_item",
+    "file": "/data/csong/opensource/openvpn/src/openvpn/env_set.c",
+    "signature": "_Bool(const char *, const _Bool, struct env_item **)",
+    "container_type": "linked_list",
+    "container_arg": 2,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "add_env_item",
+    "file": "/data/csong/opensource/openvpn/src/openvpn/env_set.c",
+    "signature": "void(char *, const _Bool, struct env_item **, struct gc_arena *)",
+    "container_type": "linked_list",
+    "container_arg": 2,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "env_set_add_nolock",
+    "file": "/data/csong/opensource/openvpn/src/openvpn/env_set.c",
+    "signature": "void(struct env_set *, const char *)",
+    "container_type": "list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "env_set_print",
+    "file": "/data/csong/opensource/openvpn/src/openvpn/env_set.c",
+    "signature": "void(msglvl_t, const struct env_set *)",
+    "container_type": "linked_list",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "env_set_write_file",
+    "file": "/data/csong/opensource/openvpn/src/openvpn/env_set.c",
+    "signature": "void(const char *, const struct env_set *)",
+    "container_type": "linked_list",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "env_set_inherit",
+    "file": "/data/csong/opensource/openvpn/src/openvpn/env_set.c",
+    "signature": "void(struct env_set *, const struct env_set *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      0
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "hash_init",
+    "file": "/data/csong/opensource/openvpn/src/openvpn/list.c",
+    "signature": "struct hash *(const uint32_t, const uint32_t, uint32_t (*)(const void *, uint32_t), _Bool (*)(const void *, const void *))",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "hash_free",
+    "file": "/data/csong/opensource/openvpn/src/openvpn/list.c",
+    "signature": "void(struct hash *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "hash_lookup_fast",
+    "file": "/data/csong/opensource/openvpn/src/openvpn/list.c",
+    "signature": "struct hash_element *(struct hash *, struct hash_bucket *, const void *, uint32_t)",
+    "container_type": "hash_table",
+    "container_arg": 1,
+    "store_args": [
+      2
+    ],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 10,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "hash_remove_fast",
+    "file": "/data/csong/opensource/openvpn/src/openvpn/list.c",
+    "signature": "_Bool(struct hash *, struct hash_bucket *, const void *, uint32_t)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 10,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "hash_add",
+    "file": "/data/csong/opensource/openvpn/src/openvpn/list.c",
+    "signature": "_Bool(struct hash *, const void *, void *, _Bool)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 9,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "hash_remove_by_value",
+    "file": "/data/csong/opensource/openvpn/src/openvpn/list.c",
+    "signature": "void(struct hash *, void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "hash_remove_marked",
+    "file": "/data/csong/opensource/openvpn/src/openvpn/list.c",
+    "signature": "void(struct hash *, struct hash_bucket *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "hash_iterator_init_range",
+    "file": "/data/csong/opensource/openvpn/src/openvpn/list.c",
+    "signature": "void(struct hash *, struct hash_iterator *, uint32_t, uint32_t)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 9,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "hash_iterator_unlock",
+    "file": "/data/csong/opensource/openvpn/src/openvpn/list.c",
+    "signature": "void(struct hash_iterator *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "hash_iterator_advance",
+    "file": "/data/csong/opensource/openvpn/src/openvpn/list.c",
+    "signature": "void(struct hash_iterator *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "hash_iterator_delete_element",
+    "file": "/data/csong/opensource/openvpn/src/openvpn/list.c",
+    "signature": "void(struct hash_iterator *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "delete_all_dhcp_fo",
+    "file": "/data/csong/opensource/openvpn/src/openvpn/options.c",
+    "signature": "void(struct options *, struct env_item **)",
+    "container_type": "linked_list",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "parse_hash_fingerprint_multiline",
+    "file": "/data/csong/opensource/openvpn/src/openvpn/options.c",
+    "signature": "struct verify_hash_list *(const char *, int, msglvl_t, struct gc_arena *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "show_pull_filter_list",
+    "file": "/data/csong/opensource/openvpn/src/openvpn/options.c",
+    "signature": "void(const struct pull_filter_list *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "alloc_connection_list_if_undef",
+    "file": "/data/csong/opensource/openvpn/src/openvpn/options.c",
+    "signature": "struct connection_list *(struct options *)",
+    "container_type": "list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "has_udp_in_local_list",
+    "file": "/data/csong/opensource/openvpn/src/openvpn/options.c",
+    "signature": "_Bool(const struct options *)",
+    "container_type": "array_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "send_push_options",
+    "file": "/data/csong/opensource/openvpn/src/openvpn/push.c",
+    "signature": "_Bool(struct context *, struct buffer *, struct push_list *, int, _Bool *, _Bool *)",
+    "container_type": "linked_list",
+    "container_arg": 2,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "push_option_ex",
+    "file": "/data/csong/opensource/openvpn/src/openvpn/push.c",
+    "signature": "void(struct gc_arena *, struct push_list *, const char *, _Bool, msglvl_t)",
+    "container_type": "linked_list",
+    "container_arg": 1,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "clone_push_list",
+    "file": "/data/csong/opensource/openvpn/src/openvpn/push.c",
+    "signature": "void(struct options *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "push_remove_option",
+    "file": "/data/csong/opensource/openvpn/src/openvpn/push.c",
+    "signature": "void(struct options *, const char *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "remove_iroutes_from_push_route_list",
+    "file": "/data/csong/opensource/openvpn/src/openvpn/push.c",
+    "signature": "void(struct options *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 9,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "add_route_to_option_list",
+    "file": "/data/csong/opensource/openvpn/src/openvpn/route.c",
+    "signature": "void(struct route_option_list *, const char *, const char *, const char *, const char *, int)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      0
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "add_route_ipv6_to_option_list",
+    "file": "/data/csong/opensource/openvpn/src/openvpn/route.c",
+    "signature": "void(struct route_ipv6_option_list *, const char *, const char *, const char *, int)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "add_block_local_item",
+    "file": "/data/csong/opensource/openvpn/src/openvpn/route.c",
+    "signature": "void(struct route_list *, const struct route_gateway_address *, int)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      0
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "init_route_list",
+    "file": "/data/csong/opensource/openvpn/src/openvpn/route.c",
+    "signature": "_Bool(struct route_list *, const struct route_option_list *, const char *, int, int, struct env_set *, openvpn_net_ctx_t *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "init_route_ipv6_list",
+    "file": "/data/csong/opensource/openvpn/src/openvpn/route.c",
+    "signature": "_Bool(struct route_ipv6_list *, const struct route_ipv6_option_list *, const char *, int, const struct in6_addr *, struct env_set *, openvpn_net_ctx_t *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "add_routes",
+    "file": "/data/csong/opensource/openvpn/src/openvpn/route.c",
+    "signature": "_Bool(struct route_list *, struct route_ipv6_list *, const struct tuntap *, unsigned int, const struct env_set *, openvpn_net_ctx_t *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "setenv_routes",
+    "file": "/data/csong/opensource/openvpn/src/openvpn/route.c",
+    "signature": "void(struct env_set *, const struct route_list *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "setenv_routes_ipv6",
+    "file": "/data/csong/opensource/openvpn/src/openvpn/route.c",
+    "signature": "void(struct env_set *, const struct route_ipv6_list *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "schedule_insert",
+    "file": "/data/csong/opensource/openvpn/src/openvpn/schedule.c",
+    "signature": "void(struct schedule *, struct schedule_entry *)",
+    "container_type": "binary_search_tree",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "schedule_add_modify",
+    "file": "/data/csong/opensource/openvpn/src/openvpn/schedule.c",
+    "signature": "void(struct schedule *, struct schedule_entry *)",
+    "container_type": "treap",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "get_cached_dns_entry",
+    "file": "/data/csong/opensource/openvpn/src/openvpn/socket.c",
+    "signature": "int(struct cached_dns_entry *, const char *, const char *, int, unsigned int, struct addrinfo **)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "verify_cert",
+    "file": "/data/csong/opensource/openvpn/src/openvpn/ssl_verify.c",
+    "signature": "result_t(struct tls_session *, int *, int)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  }
+]

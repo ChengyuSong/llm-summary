@@ -1,0 +1,1258 @@
+[
+  {
+    "function": "Action_add",
+    "file": "/data/csong/opensource/lighttpd/src/lemon.c",
+    "signature": "void(struct action **, enum e_action, struct symbol *, char *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "FindFirstSets",
+    "file": "/data/csong/opensource/lighttpd/src/lemon.c",
+    "signature": "void(struct lemon *)",
+    "container_type": "set",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "FindFollowSets",
+    "file": "/data/csong/opensource/lighttpd/src/lemon.c",
+    "signature": "void(struct lemon *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "Configlist_add",
+    "file": "/data/csong/opensource/lighttpd/src/lemon.c",
+    "signature": "struct config *(struct rule *, int)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "Configlist_addbasis",
+    "file": "/data/csong/opensource/lighttpd/src/lemon.c",
+    "signature": "struct config *(struct rule *, int)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "Configlist_sort",
+    "file": "/data/csong/opensource/lighttpd/src/lemon.c",
+    "signature": "void()",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "Plink_add",
+    "file": "/data/csong/opensource/lighttpd/src/lemon.c",
+    "signature": "void(struct plink **, struct config *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "print_stack_union",
+    "file": "/data/csong/opensource/lighttpd/src/lemon.c",
+    "signature": "void(FILE *, struct lemon *, int *, int)",
+    "container_type": "hash_table",
+    "container_arg": 1,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ReportTable",
+    "file": "/data/csong/opensource/lighttpd/src/lemon.c",
+    "signature": "void(struct lemon *, int, int)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "Strsafe_insert",
+    "file": "/data/csong/opensource/lighttpd/src/lemon.c",
+    "signature": "int(const char *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      0
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "Strsafe_find",
+    "file": "/data/csong/opensource/lighttpd/src/lemon.c",
+    "signature": "const char *(const char *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "Symbol_insert",
+    "file": "/data/csong/opensource/lighttpd/src/lemon.c",
+    "signature": "int(struct symbol *, const char *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "Symbol_find",
+    "file": "/data/csong/opensource/lighttpd/src/lemon.c",
+    "signature": "struct symbol *(const char *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "State_insert",
+    "file": "/data/csong/opensource/lighttpd/src/lemon.c",
+    "signature": "int(struct state *, struct config *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "State_find",
+    "file": "/data/csong/opensource/lighttpd/src/lemon.c",
+    "signature": "struct state *(struct config *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "Configtable_insert",
+    "file": "/data/csong/opensource/lighttpd/src/lemon.c",
+    "signature": "int(struct config *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      0
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "Configtable_find",
+    "file": "/data/csong/opensource/lighttpd/src/lemon.c",
+    "signature": "struct config *(struct config *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "connections_pool_clear",
+    "file": "/data/csong/opensource/lighttpd/src/connections.c",
+    "signature": "void(server *const)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "configparser_push_data_config_list",
+    "file": "/data/csong/build-artifacts/lighttpd/build/configparser.c",
+    "signature": "void(data_config_list *, data_config *)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "configparser_push",
+    "file": "/data/csong/build-artifacts/lighttpd/build/configparser.c",
+    "signature": "void(config_t *, data_config *, int)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1,
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "configparser_get_variable",
+    "file": "/data/csong/build-artifacts/lighttpd/build/configparser.c",
+    "signature": "data_unset *(config_t *, const buffer *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "yy_pop_parser_stack",
+    "file": "/data/csong/build-artifacts/lighttpd/build/configparser.c",
+    "signature": "void(yyParser *)",
+    "container_type": "stack",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "chunk_pop_oversized",
+    "file": "/data/csong/opensource/lighttpd/src/chunk.c",
+    "signature": "chunk *(size_t)",
+    "container_type": "linked_list",
+    "container_arg": -1,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "chunk_push_oversized",
+    "file": "/data/csong/opensource/lighttpd/src/chunk.c",
+    "signature": "void(chunk *const, const size_t)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "chunkqueue_chunk_pool_clear",
+    "file": "/data/csong/opensource/lighttpd/src/chunk.c",
+    "signature": "void()",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "chunkqueue_release_chunks",
+    "file": "/data/csong/opensource/lighttpd/src/chunk.c",
+    "signature": "void(chunkqueue *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "chunkqueue_prepend_chunk",
+    "file": "/data/csong/opensource/lighttpd/src/chunk.c",
+    "signature": "void(chunkqueue *const restrict, chunk *const restrict)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "chunkqueue_append_chunk",
+    "file": "/data/csong/opensource/lighttpd/src/chunk.c",
+    "signature": "void(chunkqueue *const restrict, chunk *const restrict)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "chunkqueue_prepend_mem_chunk",
+    "file": "/data/csong/opensource/lighttpd/src/chunk.c",
+    "signature": "chunk *(chunkqueue *, size_t)",
+    "container_type": "queue",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "chunkqueue_append_mem_chunk",
+    "file": "/data/csong/opensource/lighttpd/src/chunk.c",
+    "signature": "chunk *(chunkqueue *, size_t)",
+    "container_type": "queue",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "chunkqueue_append_file_chunk",
+    "file": "/data/csong/opensource/lighttpd/src/chunk.c",
+    "signature": "chunk *(chunkqueue *const restrict, const buffer *const restrict, off_t, off_t)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "chunkqueue_append_file_fd",
+    "file": "/data/csong/opensource/lighttpd/src/chunk.c",
+    "signature": "void(chunkqueue *const restrict, const buffer *const restrict, int, off_t, off_t)",
+    "container_type": "queue",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "chunkqueue_append_file",
+    "file": "/data/csong/opensource/lighttpd/src/chunk.c",
+    "signature": "void(chunkqueue *const restrict, const buffer *const restrict, off_t, off_t)",
+    "container_type": "queue",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "chunkqueue_append_buffer",
+    "file": "/data/csong/opensource/lighttpd/src/chunk.c",
+    "signature": "void(chunkqueue *const restrict, buffer *const restrict)",
+    "container_type": "queue",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "chunkqueue_append_mem",
+    "file": "/data/csong/opensource/lighttpd/src/chunk.c",
+    "signature": "void(chunkqueue *const restrict, const char *const restrict, size_t)",
+    "container_type": "queue",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "chunkqueue_append_mem_min",
+    "file": "/data/csong/opensource/lighttpd/src/chunk.c",
+    "signature": "void(chunkqueue *const restrict, const char *const restrict, size_t)",
+    "container_type": "queue",
+    "container_arg": 0,
+    "store_args": [
+      1,
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "chunkqueue_append_chunkqueue",
+    "file": "/data/csong/opensource/lighttpd/src/chunk.c",
+    "signature": "void(chunkqueue *const restrict, chunkqueue *const restrict)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      0,
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "chunkqueue_use_memory",
+    "file": "/data/csong/opensource/lighttpd/src/chunk.c",
+    "signature": "void(chunkqueue *const restrict, chunk *, size_t)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "chunkqueue_steal",
+    "file": "/data/csong/opensource/lighttpd/src/chunk.c",
+    "signature": "void(chunkqueue *const restrict, chunkqueue *const restrict, off_t)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      0,
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "chunkqueue_get_append_newtempfile",
+    "file": "/data/csong/opensource/lighttpd/src/chunk.c",
+    "signature": "chunk *(chunkqueue *const restrict, log_error_st *const restrict)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "chunkqueue_get_append_tempfile",
+    "file": "/data/csong/opensource/lighttpd/src/chunk.c",
+    "signature": "chunk *(chunkqueue *const restrict, log_error_st *const restrict)",
+    "container_type": "queue",
+    "container_arg": 0,
+    "store_args": [
+      0
+    ],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "chunkqueue_append_mem_to_tempfile",
+    "file": "/data/csong/opensource/lighttpd/src/chunk.c",
+    "signature": "int(chunkqueue *const restrict, const char *restrict, size_t, log_error_st *const restrict)",
+    "container_type": "queue",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "chunkqueue_append_cqmem_to_tempfile_partial",
+    "file": "/data/csong/opensource/lighttpd/src/chunk.c",
+    "signature": "ssize_t(chunkqueue *const, chunk *const, ssize_t, log_error_st *const restrict)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "chunkqueue_append_cqmem_to_tempfile",
+    "file": "/data/csong/opensource/lighttpd/src/chunk.c",
+    "signature": "ssize_t(chunkqueue *const restrict, chunkqueue *const restrict, off_t, log_error_st *const restrict)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "chunkqueue_append_drain_pipe_tempfile",
+    "file": "/data/csong/opensource/lighttpd/src/chunk.c",
+    "signature": "ssize_t(chunkqueue *const restrict, const int, unsigned int, log_error_st *const restrict)",
+    "container_type": "queue",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "chunkqueue_append_splice_pipe_tempfile",
+    "file": "/data/csong/opensource/lighttpd/src/chunk.c",
+    "signature": "ssize_t(chunkqueue *const restrict, const int, unsigned int, log_error_st *const restrict)",
+    "container_type": "queue",
+    "container_arg": 0,
+    "store_args": [
+      1,
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "chunkqueue_append_cq_range",
+    "file": "/data/csong/opensource/lighttpd/src/chunk.c",
+    "signature": "void(chunkqueue *const, const chunkqueue *const, off_t, off_t)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "chunkqueue_mark_written",
+    "file": "/data/csong/opensource/lighttpd/src/chunk.c",
+    "signature": "void(chunkqueue *, off_t)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "chunkqueue_remove_finished_chunks",
+    "file": "/data/csong/opensource/lighttpd/src/chunk.c",
+    "signature": "void(chunkqueue *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "chunkqueue_remove_empty_chunks",
+    "file": "/data/csong/opensource/lighttpd/src/chunk.c",
+    "signature": "void(chunkqueue *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "chunkqueue_compact_mem",
+    "file": "/data/csong/opensource/lighttpd/src/chunk.c",
+    "signature": "void(chunkqueue *, size_t)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "chunkqueue_small_resp_optim",
+    "file": "/data/csong/opensource/lighttpd/src/chunk.c",
+    "signature": "void(chunkqueue *const restrict)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      0
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "chunkqueue_peek_data",
+    "file": "/data/csong/opensource/lighttpd/src/chunk.c",
+    "signature": "int(chunkqueue *const, char **const, uint32_t *const, log_error_st *const, int)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "chunkqueue_read_squash",
+    "file": "/data/csong/opensource/lighttpd/src/chunk.c",
+    "signature": "chunk *(chunkqueue *const restrict, log_error_st *const restrict)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      0
+    ],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 10,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "gw_set_defaults_backend",
+    "file": "/data/csong/opensource/lighttpd/src/gw_backend.c",
+    "signature": "int(server *, gw_plugin_data *, const array *, gw_plugin_config *, int, const char *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "gw_handle_waitpid_cb",
+    "file": "/data/csong/opensource/lighttpd/src/gw_backend.c",
+    "signature": "handler_t(server *, void *, pid_t, int)",
+    "container_type": "linked_list",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "stat_cache_sptree_ndx",
+    "file": "/data/csong/opensource/lighttpd/src/stat_cache.c",
+    "signature": "void *(splay_tree **const, int *const, const char *const, uint32_t)",
+    "container_type": "splay_tree",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "stat_cache_sptree_find",
+    "file": "/data/csong/opensource/lighttpd/src/stat_cache.c",
+    "signature": "void *(splay_tree **const, const char *const, uint32_t)",
+    "container_type": "splay_tree",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 9,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "fam_dir_invalidate_tree",
+    "file": "/data/csong/opensource/lighttpd/src/stat_cache.c",
+    "signature": "void(splay_tree *, const char *, size_t)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "stat_cache_delete_entry",
+    "file": "/data/csong/opensource/lighttpd/src/stat_cache.c",
+    "signature": "void(const char *, uint32_t)",
+    "container_type": "splay_tree",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "stat_cache_invalidate_dir_tree_walk",
+    "file": "/data/csong/opensource/lighttpd/src/stat_cache.c",
+    "signature": "void(splay_tree *, const char *, size_t)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "stat_cache_tag_dir_tree",
+    "file": "/data/csong/opensource/lighttpd/src/stat_cache.c",
+    "signature": "void(splay_tree *, const char *, size_t, int *, int *)",
+    "container_type": "binary_search_tree",
+    "container_arg": 0,
+    "store_args": [
+      3
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "stat_cache_delete_dir",
+    "file": "/data/csong/opensource/lighttpd/src/stat_cache.c",
+    "signature": "void(const char *, uint32_t)",
+    "container_type": "splay_tree",
+    "container_arg": 0,
+    "store_args": [
+      0,
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "stat_cache_get_entry",
+    "file": "/data/csong/opensource/lighttpd/src/stat_cache.c",
+    "signature": "stat_cache_entry *(const buffer *const)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "array_get_data_unset",
+    "file": "/data/csong/opensource/lighttpd/src/array.c",
+    "signature": "data_unset *(const array *const, const char *, const uint32_t)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "array_insert_string_at_pos",
+    "file": "/data/csong/opensource/lighttpd/src/array.c",
+    "signature": "data_string *(array *const, const uint_fast32_t)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "splaytree_splay_nonnull",
+    "file": "/data/csong/opensource/lighttpd/src/algo_splaytree.c",
+    "signature": "splay_tree *(splay_tree *, int)",
+    "container_type": "binary_search_tree",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "splaytree_insert_splayed",
+    "file": "/data/csong/opensource/lighttpd/src/algo_splaytree.c",
+    "signature": "splay_tree *(splay_tree *, int, void *)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 10,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "splaytree_insert",
+    "file": "/data/csong/opensource/lighttpd/src/algo_splaytree.c",
+    "signature": "splay_tree *(splay_tree *, int, void *)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "splaytree_delete_splayed_node",
+    "file": "/data/csong/opensource/lighttpd/src/algo_splaytree.c",
+    "signature": "splay_tree *(splay_tree *)",
+    "container_type": "splay_tree",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "splaytree_delete",
+    "file": "/data/csong/opensource/lighttpd/src/algo_splaytree.c",
+    "signature": "splay_tree *(splay_tree *, int)",
+    "container_type": "binary_search_tree",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "strftime_cache_get",
+    "file": "/data/csong/opensource/lighttpd/src/http-header-glue.c",
+    "signature": "const buffer *(const unix_time64_t)",
+    "container_type": "array_cache",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "request_pool_push",
+    "file": "/data/csong/opensource/lighttpd/src/reqpool.c",
+    "signature": "void(request_st *const)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      0
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "request_pool_pop",
+    "file": "/data/csong/opensource/lighttpd/src/reqpool.c",
+    "signature": "request_st *()",
+    "container_type": "stack",
+    "container_arg": -1,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "mod_rewrite_set_defaults",
+    "file": "/data/csong/opensource/lighttpd/src/mod_rewrite.c",
+    "signature": "handler_t(server *, void *)",
+    "container_type": "hash_table",
+    "container_arg": 1,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "mod_setenv_uri_handler",
+    "file": "/data/csong/opensource/lighttpd/src/mod_setenv.c",
+    "signature": "handler_t(request_st *, void *)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "mod_setenv_handle_request_env",
+    "file": "/data/csong/opensource/lighttpd/src/mod_setenv.c",
+    "signature": "handler_t(request_st *, void *)",
+    "container_type": "array",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "mod_setenv_handle_response_start",
+    "file": "/data/csong/opensource/lighttpd/src/mod_setenv.c",
+    "signature": "handler_t(request_st *, void *)",
+    "container_type": "array",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "mod_fastcgi_set_defaults",
+    "file": "/data/csong/opensource/lighttpd/src/mod_fastcgi.c",
+    "signature": "handler_t(server *, void *)",
+    "container_type": "hash_table",
+    "container_arg": 1,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "mod_ajp13_set_defaults",
+    "file": "/data/csong/opensource/lighttpd/src/mod_ajp13.c",
+    "signature": "handler_t(server *, void *)",
+    "container_type": "array",
+    "container_arg": 1,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "medium",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "http_auth_cache_insert",
+    "file": "/data/csong/opensource/lighttpd/src/mod_auth.c",
+    "signature": "void(splay_tree **const, const int, void *const, void (void *))",
+    "container_type": "splay_tree",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "mod_auth_tag_old_entries",
+    "file": "/data/csong/opensource/lighttpd/src/mod_auth.c",
+    "signature": "void(splay_tree *const, int *const, int *const, const time_t, const unix_time64_t)",
+    "container_type": "splay_tree",
+    "container_arg": 0,
+    "store_args": [
+      1,
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "mod_auth_digest_get",
+    "file": "/data/csong/opensource/lighttpd/src/mod_auth.c",
+    "signature": "handler_t(request_st *const, void *, const struct http_auth_require_t *const, const struct http_auth_backend_t *const, http_auth_info_t *const)",
+    "container_type": "hash_table",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "mod_authn_file_set_defaults",
+    "file": "/data/csong/opensource/lighttpd/src/mod_authn_file.c",
+    "signature": "handler_t(server *, void *)",
+    "container_type": "hash_table",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "cgi_pid_add",
+    "file": "/data/csong/opensource/lighttpd/src/mod_cgi.c",
+    "signature": "cgi_pid_t *(pid_t, handler_ctx *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "mod_dirlisting_free",
+    "file": "/data/csong/opensource/lighttpd/src/mod_dirlisting.c",
+    "signature": "void(void *)",
+    "container_type": "array_of_structures",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "mod_dirlisting_reset",
+    "file": "/data/csong/opensource/lighttpd/src/mod_dirlisting.c",
+    "signature": "handler_t(request_st *, void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "mod_proxy_set_defaults",
+    "file": "/data/csong/opensource/lighttpd/src/mod_proxy.c",
+    "signature": "handler_t(server *, void *)",
+    "container_type": "hash_table",
+    "container_arg": 1,
+    "store_args": [
+      0
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "http_header_remap_host_match",
+    "file": "/data/csong/opensource/lighttpd/src/mod_proxy.c",
+    "signature": "const buffer *(buffer *, size_t, http_header_remap_opts *, int, size_t)",
+    "container_type": "array",
+    "container_arg": 2,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "mod_rrd_set_defaults",
+    "file": "/data/csong/opensource/lighttpd/src/mod_rrdtool.c",
+    "signature": "handler_t(server *, void *)",
+    "container_type": "hash_table",
+    "container_arg": 1,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "mod_sockproxy_set_defaults",
+    "file": "/data/csong/opensource/lighttpd/src/mod_sockproxy.c",
+    "signature": "handler_t(server *, void *)",
+    "container_type": "array_of_structures",
+    "container_arg": 1,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "mod_status_html_rtable",
+    "file": "/data/csong/opensource/lighttpd/src/mod_status.c",
+    "signature": "void(request_st *const, const server *const, const unix_time64_t)",
+    "container_type": "linked_list",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "mod_vhostdb_cache_insert",
+    "file": "/data/csong/opensource/lighttpd/src/mod_vhostdb.c",
+    "signature": "void(request_st *const, plugin_config *const, vhostdb_cache_entry *const)",
+    "container_type": "hash_table",
+    "container_arg": 1,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "mod_vhostdb_tag_old_entries",
+    "file": "/data/csong/opensource/lighttpd/src/mod_vhostdb.c",
+    "signature": "void(splay_tree *const, int *const, int *const, const time_t, const unix_time64_t)",
+    "container_type": "splay_tree",
+    "container_arg": 0,
+    "store_args": [
+      1,
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "mod_webdav_handle_reset",
+    "file": "/data/csong/opensource/lighttpd/src/mod_webdav.c",
+    "signature": "handler_t(request_st *, void *)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "henc_find_table_id",
+    "file": "/data/csong/opensource/lighttpd/src/ls-hpack/lshpack.c",
+    "signature": "unsigned int(struct lshpack_enc *, lsxpack_header_t *, int *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 10,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "hdec_get_table_entry",
+    "file": "/data/csong/opensource/lighttpd/src/ls-hpack/lshpack.c",
+    "signature": "struct dec_table_entry *(struct lshpack_dec *, uint32_t)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  }
+]

@@ -1,0 +1,881 @@
+[
+  {
+    "function": "absl::lts_20260107::base_internal::LLA_SkiplistSearch",
+    "file": "/data/csong/build-artifacts/tink/_deps/abseil-src/absl/base/internal/low_level_alloc.cc",
+    "signature": "AllocList *(AllocList *, AllocList *, AllocList **)",
+    "container_type": "skiplist",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "absl::lts_20260107::base_internal::LLA_SkiplistInsert",
+    "file": "/data/csong/build-artifacts/tink/_deps/abseil-src/absl/base/internal/low_level_alloc.cc",
+    "signature": "void(AllocList *, AllocList *, AllocList **)",
+    "container_type": "skiplist",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "absl::lts_20260107::base_internal::LLA_SkiplistDelete",
+    "file": "/data/csong/build-artifacts/tink/_deps/abseil-src/absl/base/internal/low_level_alloc.cc",
+    "signature": "void(AllocList *, AllocList *, AllocList **)",
+    "container_type": "skiplist",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "absl::lts_20260107::base_internal::AddToFreelist",
+    "file": "/data/csong/build-artifacts/tink/_deps/abseil-src/absl/base/internal/low_level_alloc.cc",
+    "signature": "void(void *, LowLevelAlloc::Arena *)",
+    "container_type": "skiplist",
+    "container_arg": 1,
+    "store_args": [
+      0,
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "absl::lts_20260107::container_internal::DropDeletesWithoutResizeAndPrepareInsert",
+    "file": "/data/csong/build-artifacts/tink/_deps/abseil-src/absl/container/internal/raw_hash_set.cc",
+    "signature": "size_t(CommonFields &, const PolicyFunctions &__restrict, size_t)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "absl::lts_20260107::container_internal::FindNewPositionsAndTransferSlots",
+    "file": "/data/csong/build-artifacts/tink/_deps/abseil-src/absl/container/internal/raw_hash_set.cc",
+    "signature": "size_t(CommonFields &, const PolicyFunctions &__restrict, ctrl_t *, void *, size_t)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      3
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "absl::lts_20260107::container_internal::DecodeAndInsertToTable",
+    "file": "/data/csong/build-artifacts/tink/_deps/abseil-src/absl/container/internal/raw_hash_set.cc",
+    "signature": "size_t(CommonFields &, const PolicyFunctions &__restrict, void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "absl::lts_20260107::container_internal::DecodeAndInsertToTableOverflow",
+    "file": "/data/csong/build-artifacts/tink/_deps/abseil-src/absl/container/internal/raw_hash_set.cc",
+    "signature": "size_t(CommonFields &, const PolicyFunctions &__restrict, void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "absl::lts_20260107::internal_stacktrace::GetStackTraceNoFixup",
+    "file": "/data/csong/build-artifacts/tink/_deps/abseil-src/absl/debugging/stacktrace.cc",
+    "signature": "int(void **, int, int)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "absl::lts_20260107::GetStackTrace",
+    "file": "/data/csong/build-artifacts/tink/_deps/abseil-src/absl/debugging/stacktrace.cc",
+    "signature": "int(void **, int, int)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "absl::lts_20260107::flags_internal::AddToFreelist",
+    "file": "/data/csong/build-artifacts/tink/_deps/abseil-src/absl/flags/internal/flag.cc",
+    "signature": "void(void *)",
+    "container_type": "dynamic_array",
+    "container_arg": 0,
+    "store_args": [
+      0
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "absl::lts_20260107::cord_internal::CordRepBtree::Rebuild",
+    "file": "/data/csong/build-artifacts/tink/_deps/abseil-src/absl/strings/internal/cord_rep_btree.cc",
+    "signature": "void(CordRepBtree **, CordRepBtree *, bool)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "absl::lts_20260107::cord_internal::Substring",
+    "file": "/data/csong/build-artifacts/tink/_deps/abseil-src/absl/strings/internal/cord_rep_btree_navigator.cc",
+    "signature": "CordRep *(CordRep *, size_t, size_t)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      0
+    ],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 10,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "absl::lts_20260107::cord_internal::CordzInfo::FillParentStack",
+    "file": "/data/csong/build-artifacts/tink/_deps/abseil-src/absl/strings/internal/cordz_info.cc",
+    "signature": "size_t(const CordzInfo *, void **)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 10,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "absl::lts_20260107::cord_internal::CordzInfo::GetStack",
+    "file": "/data/csong/build-artifacts/tink/_deps/abseil-src/absl/strings/internal/cordz_info.cc",
+    "signature": "absl::Span<void *const>()",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "absl::lts_20260107::synchronization_internal::NodeSet::FindIndex",
+    "file": "/data/csong/build-artifacts/tink/_deps/abseil-src/absl/synchronization/internal/graphcycles.cc",
+    "signature": "uint32_t(int32_t)",
+    "container_type": "hash_table",
+    "container_arg": -1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "absl::lts_20260107::synchronization_internal::PointerMap::Find",
+    "file": "/data/csong/build-artifacts/tink/_deps/abseil-src/absl/synchronization/internal/graphcycles.cc",
+    "signature": "int32_t(void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "absl::lts_20260107::synchronization_internal::PointerMap::Add",
+    "file": "/data/csong/build-artifacts/tink/_deps/abseil-src/absl/synchronization/internal/graphcycles.cc",
+    "signature": "void(void *, int32_t)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "absl::lts_20260107::synchronization_internal::PointerMap::Remove",
+    "file": "/data/csong/build-artifacts/tink/_deps/abseil-src/absl/synchronization/internal/graphcycles.cc",
+    "signature": "int32_t(void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "absl::lts_20260107::synchronization_internal::PointerMap::Hash",
+    "file": "/data/csong/build-artifacts/tink/_deps/abseil-src/absl/synchronization/internal/graphcycles.cc",
+    "signature": "uint32_t(void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "absl::lts_20260107::synchronization_internal::GraphCycles::UpdateStackTrace",
+    "file": "/data/csong/build-artifacts/tink/_deps/abseil-src/absl/synchronization/internal/graphcycles.cc",
+    "signature": "void(GraphId, int, int (*)(void **, int))",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "absl::lts_20260107::synchronization_internal::ReclaimThreadIdentity",
+    "file": "/data/csong/build-artifacts/tink/_deps/abseil-src/absl/synchronization/internal/create_thread_identity.cc",
+    "signature": "void(void *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      0
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "absl::lts_20260107::GetSynchEvent",
+    "file": "/data/csong/build-artifacts/tink/_deps/abseil-src/absl/synchronization/mutex.cc",
+    "signature": "SynchEvent *(const void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "absl::lts_20260107::Enqueue",
+    "file": "/data/csong/build-artifacts/tink/_deps/abseil-src/absl/synchronization/mutex.cc",
+    "signature": "PerThreadSynch *(PerThreadSynch *, SynchWaitParams *, intptr_t, int)",
+    "container_type": "singly_linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "absl::lts_20260107::Dequeue",
+    "file": "/data/csong/build-artifacts/tink/_deps/abseil-src/absl/synchronization/mutex.cc",
+    "signature": "PerThreadSynch *(PerThreadSynch *, PerThreadSynch *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "absl::lts_20260107::DequeueAllWakeable",
+    "file": "/data/csong/build-artifacts/tink/_deps/abseil-src/absl/synchronization/mutex.cc",
+    "signature": "PerThreadSynch *(PerThreadSynch *, PerThreadSynch *, PerThreadSynch **)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "absl::lts_20260107::GetStack",
+    "file": "/data/csong/build-artifacts/tink/_deps/abseil-src/absl/synchronization/mutex.cc",
+    "signature": "int(void **, int)",
+    "container_type": "stack",
+    "container_arg": 0,
+    "store_args": [
+      0
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "absl::lts_20260107::CondVarEnqueue",
+    "file": "/data/csong/build-artifacts/tink/_deps/abseil-src/absl/synchronization/mutex.cc",
+    "signature": "void(SynchWaitParams *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      0
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "google::protobuf::internal::cleanup::ChunkList::AddFallback",
+    "file": "/data/csong/build-artifacts/tink/_deps/protobuf-src/src/google/protobuf/arena.cc",
+    "signature": "void(void *, void (*)(void *), SerialArena &)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "google::protobuf::internal::cleanup::ChunkList::PeekForTesting",
+    "file": "/data/csong/build-artifacts/tink/_deps/protobuf-src/src/google/protobuf/arena.cc",
+    "signature": "std::vector<void *>()",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "google::protobuf::internal::SerialArena::PeekCleanupListForTesting",
+    "file": "/data/csong/build-artifacts/tink/_deps/protobuf-src/src/google/protobuf/arena.cc",
+    "signature": "std::vector<void *>()",
+    "container_type": "vector",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "google::protobuf::Arena::PeekCleanupListForTesting",
+    "file": "/data/csong/build-artifacts/tink/_deps/protobuf-src/src/google/protobuf/arena.cc",
+    "signature": "std::vector<void *>()",
+    "container_type": "vector",
+    "container_arg": -1,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "google::protobuf::internal::ExtensionSet::MutableRawRepeatedField",
+    "file": "/data/csong/build-artifacts/tink/_deps/protobuf-src/src/google/protobuf/extension_set.cc",
+    "signature": "void *(int, FieldType, bool, const FieldDescriptor *)",
+    "container_type": "repeated_field",
+    "container_arg": -1,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 11,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "google::protobuf::internal::ExtensionSet::MutableString",
+    "file": "/data/csong/build-artifacts/tink/_deps/protobuf-src/src/google/protobuf/extension_set.cc",
+    "signature": "std::string *(int, FieldType, const FieldDescriptor *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "google::protobuf::internal::UntypedMapBase::UntypedMergeFrom",
+    "file": "/data/csong/build-artifacts/tink/_deps/protobuf-src/src/google/protobuf/map.cc",
+    "signature": "void(const UntypedMapBase &)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "google::protobuf::internal::UntypedMapBase::ClearTableImpl",
+    "file": "/data/csong/build-artifacts/tink/_deps/protobuf-src/src/google/protobuf/map.cc",
+    "signature": "void(bool)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "google::protobuf::FileDescriptorTables::FindFieldByLowercaseName",
+    "file": "/data/csong/build-artifacts/tink/_deps/protobuf-src/src/google/protobuf/descriptor.cc",
+    "signature": "const FieldDescriptor *(const void *, absl::string_view)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 9,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "google::protobuf::FileDescriptorTables::FindFieldByCamelcaseName",
+    "file": "/data/csong/build-artifacts/tink/_deps/protobuf-src/src/google/protobuf/descriptor.cc",
+    "signature": "const FieldDescriptor *(const void *, absl::string_view)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 9,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "google::protobuf::DescriptorPool::Tables::FindExtension",
+    "file": "/data/csong/build-artifacts/tink/_deps/protobuf-src/src/google/protobuf/descriptor.cc",
+    "signature": "const FieldDescriptor *(const Descriptor *, int)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "google::protobuf::FileDescriptorTables::AddAliasUnderParent",
+    "file": "/data/csong/build-artifacts/tink/_deps/protobuf-src/src/google/protobuf/descriptor.cc",
+    "signature": "bool(const void *, absl::string_view, Symbol)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "google::protobuf::DescriptorPool::Tables::AllocateBytes",
+    "file": "/data/csong/build-artifacts/tink/_deps/protobuf-src/src/google/protobuf/descriptor.cc",
+    "signature": "void *(int)",
+    "container_type": "vector",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "google::protobuf::DescriptorPool::InternalAddGeneratedFile",
+    "file": "/data/csong/build-artifacts/tink/_deps/protobuf-src/src/google/protobuf/descriptor.cc",
+    "signature": "void(const void *, int)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "google::protobuf::UnknownFieldSet::AddGroup",
+    "file": "/data/csong/build-artifacts/tink/_deps/protobuf-src/src/google/protobuf/unknown_field_set.cc",
+    "signature": "UnknownFieldSet *(int)",
+    "container_type": "dynamic_array",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "google::protobuf::util::MessageDifferencer::GetMapKeyComparator",
+    "file": "/data/csong/build-artifacts/tink/_deps/protobuf-src/src/google/protobuf/util/message_differencer.cc",
+    "signature": "const MessageDifferencer::MapKeyComparator *(const FieldDescriptor *)",
+    "container_type": "hash_table",
+    "container_arg": -1,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "google::protobuf::compiler::objectivec::PrefixModeStorage::prefix_from_proto_package_mappings",
+    "file": "/data/csong/build-artifacts/tink/_deps/protobuf-src/src/google/protobuf/compiler/objectivec/names.cc",
+    "signature": "absl::string_view(const FileDescriptor *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "insert",
+    "file": "/data/csong/build-artifacts/tink/_deps/protobuf-src/upb/hash/common.c",
+    "signature": "void(upb_table *, lookupkey_t, upb_tabkey, upb_value, uint32_t, hashfunc_t *, eqlfunc_t *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "upb_strtable_insert",
+    "file": "/data/csong/build-artifacts/tink/_deps/protobuf-src/upb/hash/common.c",
+    "signature": "_Bool(upb_strtable *, const char *, size_t, upb_value, upb_Arena *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      3
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "upb_strtable_lookup2",
+    "file": "/data/csong/build-artifacts/tink/_deps/protobuf-src/upb/hash/common.c",
+    "signature": "_Bool(const upb_strtable *, const char *, size_t, upb_value *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "upb_strtable_remove2",
+    "file": "/data/csong/build-artifacts/tink/_deps/protobuf-src/upb/hash/common.c",
+    "signature": "_Bool(upb_strtable *, const char *, size_t, upb_value *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "upb_inttable_insert",
+    "file": "/data/csong/build-artifacts/tink/_deps/protobuf-src/upb/hash/common.c",
+    "signature": "_Bool(upb_inttable *, uintptr_t, upb_value, upb_Arena *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "upb_inttable_lookup",
+    "file": "/data/csong/build-artifacts/tink/_deps/protobuf-src/upb/hash/common.c",
+    "signature": "_Bool(const upb_inttable *, uintptr_t, upb_value *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "upb_inttable_remove",
+    "file": "/data/csong/build-artifacts/tink/_deps/protobuf-src/upb/hash/common.c",
+    "signature": "_Bool(upb_inttable *, uintptr_t, upb_value *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "upb_inttable_compact",
+    "file": "/data/csong/build-artifacts/tink/_deps/protobuf-src/upb/hash/common.c",
+    "signature": "void(upb_inttable *, upb_Arena *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "upb_inttable_removeiter",
+    "file": "/data/csong/build-artifacts/tink/_deps/protobuf-src/upb/hash/common.c",
+    "signature": "void(upb_inttable *, intptr_t *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "upb_strtable_removeiter",
+    "file": "/data/csong/build-artifacts/tink/_deps/protobuf-src/upb/hash/common.c",
+    "signature": "void(upb_strtable *, intptr_t *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "_upb_Arena_AddBlock",
+    "file": "/data/csong/build-artifacts/tink/_deps/protobuf-src/upb/mem/arena.c",
+    "signature": "void(upb_Arena *, void *, size_t, size_t)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "_upb_Arena_DoFuseArenaLists",
+    "file": "/data/csong/build-artifacts/tink/_deps/protobuf-src/upb/mem/arena.c",
+    "signature": "void(upb_ArenaInternal *const, upb_ArenaInternal *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      0,
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "upb_Map_Get",
+    "file": "/data/csong/build-artifacts/tink/_deps/protobuf-src/upb/message/map.c",
+    "signature": "_Bool(const upb_Map *, upb_MessageValue, upb_MessageValue *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "upb_Map_Insert",
+    "file": "/data/csong/build-artifacts/tink/_deps/protobuf-src/upb/message/map.c",
+    "signature": "upb_MapInsertStatus(upb_Map *, upb_MessageValue, upb_MessageValue, upb_Arena *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "upb_Map_Delete",
+    "file": "/data/csong/build-artifacts/tink/_deps/protobuf-src/upb/message/map.c",
+    "signature": "_Bool(upb_Map *, upb_MessageValue, upb_MessageValue *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "_upb_mapsorter_getkeys",
+    "file": "/data/csong/build-artifacts/tink/_deps/protobuf-src/upb/message/map_sorter.c",
+    "signature": "void(const void *, const void *, void *, void *, size_t)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2,
+      3
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "_upb_mapsorter_cmpi64",
+    "file": "/data/csong/build-artifacts/tink/_deps/protobuf-src/upb/message/map_sorter.c",
+    "signature": "int(const void *, const void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "_upb_mapsorter_cmpu64",
+    "file": "/data/csong/build-artifacts/tink/_deps/protobuf-src/upb/message/map_sorter.c",
+    "signature": "int(const void *, const void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "_upb_mapsorter_cmpu32",
+    "file": "/data/csong/build-artifacts/tink/_deps/protobuf-src/upb/message/map_sorter.c",
+    "signature": "int(const void *, const void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "_upb_mapsorter_cmpbool",
+    "file": "/data/csong/build-artifacts/tink/_deps/protobuf-src/upb/message/map_sorter.c",
+    "signature": "int(const void *, const void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "_upb_mapsorter_cmpstr",
+    "file": "/data/csong/build-artifacts/tink/_deps/protobuf-src/upb/message/map_sorter.c",
+    "signature": "int(const void *, const void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "_upb_DefPool_Unpack",
+    "file": "/data/csong/build-artifacts/tink/_deps/protobuf-src/upb/reflection/def_pool.c",
+    "signature": "const void *(const upb_DefPool *, const char *, size_t, upb_deftype_t)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "upb_DefBuilder_AddFileToPool",
+    "file": "/data/csong/build-artifacts/tink/_deps/protobuf-src/upb/reflection/def_pool.c",
+    "signature": "const upb_FileDef *(upb_DefBuilder *const, upb_DefPool *const, const google_protobuf_FileDescriptorProto *const, const upb_StringView, upb_Status *const)",
+    "container_type": "hash_table",
+    "container_arg": 1,
+    "store_args": [
+      3
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  }
+]

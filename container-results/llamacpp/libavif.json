@@ -1,0 +1,98 @@
+[
+  {
+    "function": "avifToGammaPQ",
+    "file": "/data/csong/opensource/libavif/src/colr.c",
+    "signature": "float(float)",
+    "container_type": "other",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "low",
+    "heuristic_score": 7,
+    "model_used": "heuristic_only"
+  },
+  {
+    "function": "avifGetGainMapWeight",
+    "file": "/data/csong/opensource/libavif/src/gainmap.c",
+    "signature": "float(float, const avifGainMap *)",
+    "container_type": "other",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "low",
+    "heuristic_score": 7,
+    "model_used": "heuristic_only"
+  },
+  {
+    "function": "avifSampleTableGetImageDelta",
+    "file": "/data/csong/opensource/libavif/src/read.c",
+    "signature": "uint32_t(const avifSampleTable *, uint32_t)",
+    "container_type": "other",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "low",
+    "heuristic_score": 7,
+    "model_used": "heuristic_only"
+  },
+  {
+    "function": "avifMemset16",
+    "file": "/data/csong/opensource/libavif/src/reformat.c",
+    "signature": "void *(void *, int, size_t)",
+    "container_type": "other",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "low",
+    "heuristic_score": 7,
+    "model_used": "heuristic_only"
+  },
+  {
+    "function": "avifROStreamOffset",
+    "file": "/data/csong/opensource/libavif/src/stream.c",
+    "signature": "size_t(const avifROStream *)",
+    "container_type": "other",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "low",
+    "heuristic_score": 7,
+    "model_used": "heuristic_only"
+  },
+  {
+    "function": "avifRWStreamOffset",
+    "file": "/data/csong/opensource/libavif/src/stream.c",
+    "signature": "size_t(const avifRWStream *)",
+    "container_type": "other",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "low",
+    "heuristic_score": 7,
+    "model_used": "heuristic_only"
+  },
+  {
+    "function": "avifEncoderGetGainMapSizeBytes",
+    "file": "/data/csong/opensource/libavif/src/write.c",
+    "signature": "size_t(avifEncoder *)",
+    "container_type": "other",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "low",
+    "heuristic_score": 7,
+    "model_used": "heuristic_only"
+  },
+  {
+    "function": "avifGuessBufferFileFormat",
+    "file": "/data/csong/opensource/libavif/apps/shared/avifutil.c",
+    "signature": "avifAppFileFormat(const uint8_t *, size_t)",
+    "container_type": "other",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "low",
+    "heuristic_score": 5,
+    "model_used": "heuristic_only"
+  }
+]

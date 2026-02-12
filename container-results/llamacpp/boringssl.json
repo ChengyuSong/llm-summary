@@ -1,0 +1,1039 @@
+[
+  {
+    "function": "bssl::lh_ASN1_STRING_TABLE_call_cmp_func",
+    "file": "/data/csong/opensource/boringssl/crypto/asn1/a_strnid.cc",
+    "signature": "int(lhash_cmp_func, const void *, const void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "bssl::lh_ASN1_STRING_TABLE_retrieve",
+    "file": "/data/csong/opensource/boringssl/crypto/asn1/a_strnid.cc",
+    "signature": "ASN1_STRING_TABLE *(const struct bssl::ASN1_STRING_TABLE_lhash_st *, const ASN1_STRING_TABLE *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "bssl::lh_ASN1_STRING_TABLE_retrieve_key",
+    "file": "/data/csong/opensource/boringssl/crypto/asn1/a_strnid.cc",
+    "signature": "ASN1_STRING_TABLE *(const struct bssl::ASN1_STRING_TABLE_lhash_st *, const void *, uint32_t, int (*)(const void *, const ASN1_STRING_TABLE *))",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "bssl::lh_ASN1_STRING_TABLE_insert",
+    "file": "/data/csong/opensource/boringssl/crypto/asn1/a_strnid.cc",
+    "signature": "int(struct bssl::ASN1_STRING_TABLE_lhash_st *, ASN1_STRING_TABLE **, ASN1_STRING_TABLE *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "bssl::lh_ASN1_STRING_TABLE_delete",
+    "file": "/data/csong/opensource/boringssl/crypto/asn1/a_strnid.cc",
+    "signature": "ASN1_STRING_TABLE *(struct bssl::ASN1_STRING_TABLE_lhash_st *, const ASN1_STRING_TABLE *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "asn1_string_table_get",
+    "file": "/data/csong/opensource/boringssl/crypto/asn1/a_strnid.cc",
+    "signature": "const ASN1_STRING_TABLE *(int)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ASN1_STRING_TABLE_add",
+    "file": "/data/csong/opensource/boringssl/crypto/asn1/a_strnid.cc",
+    "signature": "int(int, long, long, unsigned long, unsigned long)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      0,
+      1,
+      2,
+      3,
+      4
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "BIO_set_ex_data",
+    "file": "/data/csong/opensource/boringssl/crypto/bio/bio.cc",
+    "signature": "int(BIO *, int, void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "NCONF_get_string",
+    "file": "/data/csong/opensource/boringssl/crypto/conf/conf.cc",
+    "signature": "const char *(const CONF *, const char *, const char *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 9,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "add_string",
+    "file": "/data/csong/opensource/boringssl/crypto/conf/conf.cc",
+    "signature": "int(const CONF *, CONF_SECTION *, CONF_VALUE *)",
+    "container_type": "hash_table",
+    "container_arg": 1,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "DSA_set_ex_data",
+    "file": "/data/csong/opensource/boringssl/crypto/dsa/dsa.cc",
+    "signature": "int(DSA *, int, void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "bssl::CRYPTO_get_ex_new_index_ex",
+    "file": "/data/csong/opensource/boringssl/crypto/ex_data.cc",
+    "signature": "int(CRYPTO_EX_DATA_CLASS *, long, void *, CRYPTO_EX_free *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "bssl::CRYPTO_set_ex_data",
+    "file": "/data/csong/opensource/boringssl/crypto/ex_data.cc",
+    "signature": "int(CRYPTO_EX_DATA *, int, void *)",
+    "container_type": "dynamic_array_stack",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "bssl::CRYPTO_get_ex_data",
+    "file": "/data/csong/opensource/boringssl/crypto/ex_data.cc",
+    "signature": "void *(const CRYPTO_EX_DATA *, int)",
+    "container_type": "dynamic_array",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "bssl::get_next_ptr_and_hash",
+    "file": "/data/csong/opensource/boringssl/crypto/lhash/lhash.cc",
+    "signature": "LHASH_ITEM **(const _LHASH *, uint32_t *, const void *, lhash_hash_func_helper, lhash_cmp_func_helper)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 10,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "bssl::get_next_ptr_by_key",
+    "file": "/data/csong/opensource/boringssl/crypto/lhash/lhash.cc",
+    "signature": "LHASH_ITEM **(const _LHASH *, const void *, uint32_t, int (*)(const void *, const void *))",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "bssl::OPENSSL_lh_retrieve",
+    "file": "/data/csong/opensource/boringssl/crypto/lhash/lhash.cc",
+    "signature": "void *(const _LHASH *, const void *, lhash_hash_func_helper, lhash_cmp_func_helper)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 9,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "bssl::OPENSSL_lh_retrieve_key",
+    "file": "/data/csong/opensource/boringssl/crypto/lhash/lhash.cc",
+    "signature": "void *(const _LHASH *, const void *, uint32_t, int (*)(const void *, const void *))",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 9,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "bssl::lh_rebucket",
+    "file": "/data/csong/opensource/boringssl/crypto/lhash/lhash.cc",
+    "signature": "void(_LHASH *, const size_t)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "bssl::OPENSSL_lh_insert",
+    "file": "/data/csong/opensource/boringssl/crypto/lhash/lhash.cc",
+    "signature": "int(_LHASH *, void **, void *, lhash_hash_func_helper, lhash_cmp_func_helper)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 11,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "bssl::OPENSSL_lh_delete",
+    "file": "/data/csong/opensource/boringssl/crypto/lhash/lhash.cc",
+    "signature": "void *(_LHASH *, const void *, lhash_hash_func_helper, lhash_cmp_func_helper)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 9,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "bssl::OPENSSL_lh_doall_arg",
+    "file": "/data/csong/opensource/boringssl/crypto/lhash/lhash.cc",
+    "signature": "void(_LHASH *, void (*)(void *, void *), void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "bssl::lh_ASN1_OBJECT_retrieve",
+    "file": "/data/csong/opensource/boringssl/crypto/obj/obj.cc",
+    "signature": "ASN1_OBJECT *(const struct bssl::ASN1_OBJECT_lhash_st *, const ASN1_OBJECT *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "bssl::lh_ASN1_OBJECT_retrieve_key",
+    "file": "/data/csong/opensource/boringssl/crypto/obj/obj.cc",
+    "signature": "ASN1_OBJECT *(const struct bssl::ASN1_OBJECT_lhash_st *, const void *, uint32_t, int (*)(const void *, const ASN1_OBJECT *))",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "OPENSSL_sk_set",
+    "file": "/data/csong/opensource/boringssl/crypto/stack/stack.cc",
+    "signature": "void *(OPENSSL_STACK *, size_t, void *)",
+    "container_type": "dynamic_array",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "OPENSSL_sk_insert",
+    "file": "/data/csong/opensource/boringssl/crypto/stack/stack.cc",
+    "signature": "size_t(OPENSSL_STACK *, void *, size_t)",
+    "container_type": "array_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 9,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "OPENSSL_sk_delete",
+    "file": "/data/csong/opensource/boringssl/crypto/stack/stack.cc",
+    "signature": "void *(OPENSSL_STACK *, size_t)",
+    "container_type": "dynamic_array",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "OPENSSL_sk_delete_ptr",
+    "file": "/data/csong/opensource/boringssl/crypto/stack/stack.cc",
+    "signature": "void *(OPENSSL_STACK *, const void *)",
+    "container_type": "array_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "OPENSSL_sk_pop",
+    "file": "/data/csong/opensource/boringssl/crypto/stack/stack.cc",
+    "signature": "void *(OPENSSL_STACK *)",
+    "container_type": "stack",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "sk_pop",
+    "file": "/data/csong/opensource/boringssl/crypto/stack/stack.cc",
+    "signature": "void *(OPENSSL_STACK *)",
+    "container_type": "stack",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "bssl::CRYPTO_set_thread_local",
+    "file": "/data/csong/opensource/boringssl/crypto/thread_pthread.cc",
+    "signature": "int(thread_local_data_t, void *, thread_local_destructor_t)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "bssl::sk_BY_DIR_HASH_call_copy_func",
+    "file": "/data/csong/opensource/boringssl/crypto/x509/by_dir.cc",
+    "signature": "void *(OPENSSL_sk_copy_func, const void *)",
+    "container_type": "hash_table",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "bssl::sk_BY_DIR_HASH_call_delete_if_func",
+    "file": "/data/csong/opensource/boringssl/crypto/x509/by_dir.cc",
+    "signature": "int(OPENSSL_sk_delete_if_func, void *, void *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "bssl::sk_BY_DIR_HASH_pop_free",
+    "file": "/data/csong/opensource/boringssl/crypto/x509/by_dir.cc",
+    "signature": "void(struct stack_st_BY_DIR_HASH *, sk_BY_DIR_HASH_free_func)",
+    "container_type": "stack",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "bssl::sk_BY_DIR_HASH_insert",
+    "file": "/data/csong/opensource/boringssl/crypto/x509/by_dir.cc",
+    "signature": "size_t(struct stack_st_BY_DIR_HASH *, BY_DIR_HASH *, size_t)",
+    "container_type": "array_list",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "bssl::sk_BY_DIR_HASH_delete",
+    "file": "/data/csong/opensource/boringssl/crypto/x509/by_dir.cc",
+    "signature": "BY_DIR_HASH *(struct stack_st_BY_DIR_HASH *, size_t)",
+    "container_type": "stack",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "bssl::sk_BY_DIR_HASH_delete_ptr",
+    "file": "/data/csong/opensource/boringssl/crypto/x509/by_dir.cc",
+    "signature": "BY_DIR_HASH *(struct stack_st_BY_DIR_HASH *, const BY_DIR_HASH *)",
+    "container_type": "array_stack",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "bssl::sk_BY_DIR_HASH_delete_if",
+    "file": "/data/csong/opensource/boringssl/crypto/x509/by_dir.cc",
+    "signature": "void(struct stack_st_BY_DIR_HASH *, sk_BY_DIR_HASH_delete_if_func, void *)",
+    "container_type": "dynamic_array",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "bssl::sk_BY_DIR_HASH_find",
+    "file": "/data/csong/opensource/boringssl/crypto/x509/by_dir.cc",
+    "signature": "int(const struct stack_st_BY_DIR_HASH *, size_t *, const BY_DIR_HASH *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "bssl::sk_BY_DIR_HASH_push",
+    "file": "/data/csong/opensource/boringssl/crypto/x509/by_dir.cc",
+    "signature": "size_t(struct stack_st_BY_DIR_HASH *, BY_DIR_HASH *)",
+    "container_type": "array_stack",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "bssl::sk_BY_DIR_HASH_pop",
+    "file": "/data/csong/opensource/boringssl/crypto/x509/by_dir.cc",
+    "signature": "BY_DIR_HASH *(struct stack_st_BY_DIR_HASH *)",
+    "container_type": "stack",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "delete_if_mapped",
+    "file": "/data/csong/opensource/boringssl/crypto/x509/policy.cc",
+    "signature": "int(X509_POLICY_NODE *, void *)",
+    "container_type": "stack",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "v2i_issuer_alt",
+    "file": "/data/csong/opensource/boringssl/crypto/x509/v3_alt.cc",
+    "signature": "void *(const X509V3_EXT_METHOD *, const X509V3_CTX *, const struct stack_st_CONF_VALUE *)",
+    "container_type": "stack",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "v2i_subject_alt",
+    "file": "/data/csong/opensource/boringssl/crypto/x509/v3_alt.cc",
+    "signature": "void *(const X509V3_EXT_METHOD *, const X509V3_CTX *, const struct stack_st_CONF_VALUE *)",
+    "container_type": "dynamic_array",
+    "container_arg": -1,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "i2v_ASN1_BIT_STRING",
+    "file": "/data/csong/opensource/boringssl/crypto/x509/v3_bitst.cc",
+    "signature": "struct stack_st_CONF_VALUE *(const X509V3_EXT_METHOD *, void *, struct stack_st_CONF_VALUE *)",
+    "container_type": "stack",
+    "container_arg": -1,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "r2i_certpol",
+    "file": "/data/csong/opensource/boringssl/crypto/x509/v3_cpols.cc",
+    "signature": "void *(const X509V3_EXT_METHOD *, const X509V3_CTX *, const char *)",
+    "container_type": "stack",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "X509V3_get_d2i",
+    "file": "/data/csong/opensource/boringssl/crypto/x509/v3_lib.cc",
+    "signature": "void *(const struct stack_st_X509_EXTENSION *, int, int *, int *)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "v2i_NAME_CONSTRAINTS",
+    "file": "/data/csong/opensource/boringssl/crypto/x509/v3_ncons.cc",
+    "signature": "void *(const X509V3_EXT_METHOD *, const X509V3_CTX *, const struct stack_st_CONF_VALUE *)",
+    "container_type": "stack",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "v2i_POLICY_MAPPINGS",
+    "file": "/data/csong/opensource/boringssl/crypto/x509/v3_pmaps.cc",
+    "signature": "void *(const X509V3_EXT_METHOD *, const X509V3_CTX *, const struct stack_st_CONF_VALUE *)",
+    "container_type": "stack",
+    "container_arg": -1,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "bssl::x509V3_add_value_asn1_string",
+    "file": "/data/csong/opensource/boringssl/crypto/x509/v3_utl.cc",
+    "signature": "int(const char *, const ASN1_STRING *, struct stack_st_CONF_VALUE **)",
+    "container_type": "linked_list",
+    "container_arg": 2,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "X509_ATTRIBUTE_set1_data",
+    "file": "/data/csong/opensource/boringssl/crypto/x509/x509_att.cc",
+    "signature": "int(X509_ATTRIBUTE *, int, const void *, int)",
+    "container_type": "stack_like",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "X509_STORE_set_default_paths",
+    "file": "/data/csong/opensource/boringssl/crypto/x509/x509_d2.cc",
+    "signature": "int(X509_STORE *)",
+    "container_type": "list",
+    "container_arg": 0,
+    "store_args": [
+      0
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "X509_OBJECT_retrieve_by_subject",
+    "file": "/data/csong/opensource/boringssl/crypto/x509/x509_lu.cc",
+    "signature": "X509_OBJECT *(struct stack_st_X509_OBJECT *, int, const X509_NAME *)",
+    "container_type": "array_stack",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "X509_OBJECT_retrieve_match",
+    "file": "/data/csong/opensource/boringssl/crypto/x509/x509_lu.cc",
+    "signature": "X509_OBJECT *(struct stack_st_X509_OBJECT *, X509_OBJECT *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "X509_STORE_CTX_set_chain",
+    "file": "/data/csong/opensource/boringssl/crypto/x509/x509_vfy.cc",
+    "signature": "void(X509_STORE_CTX *, struct stack_st_X509 *)",
+    "container_type": "stack",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "X509_STORE_CTX_set0_crls",
+    "file": "/data/csong/opensource/boringssl/crypto/x509/x509_vfy.cc",
+    "signature": "void(X509_STORE_CTX *, struct stack_st_X509_CRL *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "X509_STORE_CTX_set0_trusted_stack",
+    "file": "/data/csong/opensource/boringssl/crypto/x509/x509_vfy.cc",
+    "signature": "void(X509_STORE_CTX *, struct stack_st_X509 *)",
+    "container_type": "stack",
+    "container_arg": 1,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "X509_STORE_CTX_trusted_stack",
+    "file": "/data/csong/opensource/boringssl/crypto/x509/x509_vfy.cc",
+    "signature": "void(X509_STORE_CTX *, struct stack_st_X509 *)",
+    "container_type": "stack",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "X509_set_ex_data",
+    "file": "/data/csong/opensource/boringssl/crypto/x509/x_x509.cc",
+    "signature": "int(X509 *, int, void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "bssl::ssl_add_client_CA_list",
+    "file": "/data/csong/opensource/boringssl/ssl/ssl_cert.cc",
+    "signature": "bool(const SSL_HANDSHAKE *, CBB *)",
+    "container_type": "list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "bssl::ll_append_tail",
+    "file": "/data/csong/opensource/boringssl/ssl/ssl_cipher.cc",
+    "signature": "void(CIPHER_ORDER **, CIPHER_ORDER *, CIPHER_ORDER **)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      0,
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "bssl::ll_append_head",
+    "file": "/data/csong/opensource/boringssl/ssl/ssl_cipher.cc",
+    "signature": "void(CIPHER_ORDER **, CIPHER_ORDER *, CIPHER_ORDER **)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      0,
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "bssl::ssl_create_cipher_list",
+    "file": "/data/csong/opensource/boringssl/ssl/ssl_cipher.cc",
+    "signature": "bool(UniquePtr<SSLCipherPreferenceList> *, const bool, const char *, bool)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "bssl::ssl_get_full_credential_list",
+    "file": "/data/csong/opensource/boringssl/ssl/ssl_credential.cc",
+    "signature": "bool(SSL_HANDSHAKE *, Array<SSL_CREDENTIAL *> *)",
+    "container_type": "array",
+    "container_arg": 1,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "add_bio_cert_subjects_to_stack",
+    "file": "/data/csong/opensource/boringssl/ssl/ssl_file.cc",
+    "signature": "int(struct stack_st_X509_NAME *, BIO *, bool)",
+    "container_type": "stack",
+    "container_arg": 0,
+    "store_args": [
+      0
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "SSL_add_bio_cert_subjects_to_stack",
+    "file": "/data/csong/opensource/boringssl/ssl/ssl_file.cc",
+    "signature": "int(struct stack_st_X509_NAME *, BIO *)",
+    "container_type": "stack",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "SSL_add_file_cert_subjects_to_stack",
+    "file": "/data/csong/opensource/boringssl/ssl/ssl_file.cc",
+    "signature": "int(struct stack_st_X509_NAME *, const char *)",
+    "container_type": "stack",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "SSL_add_application_settings",
+    "file": "/data/csong/opensource/boringssl/ssl/ssl_lib.cc",
+    "signature": "int(SSL *, const uint8_t *, size_t, const uint8_t *, size_t)",
+    "container_type": "dynamic_array",
+    "container_arg": 0,
+    "store_args": [
+      1,
+      3
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "SSL_CTX_set_ex_data",
+    "file": "/data/csong/opensource/boringssl/ssl/ssl_lib.cc",
+    "signature": "int(SSL_CTX *, int, void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "bssl::SSL_SESSION_list_remove",
+    "file": "/data/csong/opensource/boringssl/ssl/ssl_session.cc",
+    "signature": "void(SSL_CTX *, SSL_SESSION *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "bssl::SSL_SESSION_list_add",
+    "file": "/data/csong/opensource/boringssl/ssl/ssl_session.cc",
+    "signature": "void(SSL_CTX *, SSL_SESSION *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "SSL_SESSION_set_ex_data",
+    "file": "/data/csong/opensource/boringssl/ssl/ssl_session.cc",
+    "signature": "int(SSL_SESSION *, int, void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "SSL_get_client_CA_list",
+    "file": "/data/csong/opensource/boringssl/ssl/ssl_x509.cc",
+    "signature": "struct stack_st_X509_NAME *(const SSL *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "SSL_CTX_get_client_CA_list",
+    "file": "/data/csong/opensource/boringssl/ssl/ssl_x509.cc",
+    "signature": "struct stack_st_X509_NAME *(const SSL_CTX *)",
+    "container_type": "stack",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "SSL_add_dir_cert_subjects_to_stack",
+    "file": "/data/csong/opensource/boringssl/decrepit/ssl/ssl_decrepit.cc",
+    "signature": "int(struct stack_st_X509_NAME *, const char *)",
+    "container_type": "stack",
+    "container_arg": 0,
+    "store_args": [
+      0
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "bssl::RegistrationCache::Get",
+    "file": "/data/csong/opensource/boringssl/crypto/spake2plus/spake2plus_test.cc",
+    "signature": "const Result &(const std::pair<std::string, std::string> &, const std::string &)",
+    "container_type": "hash_table",
+    "container_arg": -1,
+    "store_args": [
+      0,
+      1,
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "bssl::CacheEquals",
+    "file": "/data/csong/opensource/boringssl/ssl/ssl_test.cc",
+    "signature": "bool(SSL_CTX *, const std::vector<SSL_SESSION *> &)",
+    "container_type": "hash_table_and_linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "bssl::MockSignatureVerifyCache::Check",
+    "file": "/data/csong/opensource/boringssl/pki/mock_signature_verify_cache.cc",
+    "signature": "SignatureVerifyCache::Value(const std::string &)",
+    "container_type": "hash_table",
+    "container_arg": -1,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  }
+]

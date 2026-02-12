@@ -1,0 +1,858 @@
+[
+  {
+    "function": "Jim_InitHashTable",
+    "file": "/data/csong/opensource/sqlite3/autosetup/jimsh0.c",
+    "signature": "int(Jim_HashTable *, const Jim_HashTableType *, void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "Jim_ExpandHashTable",
+    "file": "/data/csong/opensource/sqlite3/autosetup/jimsh0.c",
+    "signature": "void(Jim_HashTable *, unsigned int)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "Jim_AddHashEntry",
+    "file": "/data/csong/opensource/sqlite3/autosetup/jimsh0.c",
+    "signature": "int(Jim_HashTable *, const void *, void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "Jim_ReplaceHashEntry",
+    "file": "/data/csong/opensource/sqlite3/autosetup/jimsh0.c",
+    "signature": "int(Jim_HashTable *, const void *, void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "Jim_DeleteHashEntry",
+    "file": "/data/csong/opensource/sqlite3/autosetup/jimsh0.c",
+    "signature": "int(Jim_HashTable *, const void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "Jim_ClearHashTable",
+    "file": "/data/csong/opensource/sqlite3/autosetup/jimsh0.c",
+    "signature": "void(Jim_HashTable *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "Jim_FindHashEntry",
+    "file": "/data/csong/opensource/sqlite3/autosetup/jimsh0.c",
+    "signature": "Jim_HashEntry *(Jim_HashTable *, const void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "Jim_NextHashEntry",
+    "file": "/data/csong/opensource/sqlite3/autosetup/jimsh0.c",
+    "signature": "Jim_HashEntry *(Jim_HashTableIterator *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 10,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "JimInsertHashEntry",
+    "file": "/data/csong/opensource/sqlite3/autosetup/jimsh0.c",
+    "signature": "Jim_HashEntry *(Jim_HashTable *, const void *, int)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "JimStringCopyHTHashFunction",
+    "file": "/data/csong/opensource/sqlite3/autosetup/jimsh0.c",
+    "signature": "unsigned int(const void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "JimStringCopyHTDup",
+    "file": "/data/csong/opensource/sqlite3/autosetup/jimsh0.c",
+    "signature": "void *(void *, const void *)",
+    "container_type": "hash_table",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "JimAssocDataHashTableValueDestructor",
+    "file": "/data/csong/opensource/sqlite3/autosetup/jimsh0.c",
+    "signature": "void(void *, void *)",
+    "container_type": "hash_table",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "Jim_StackPush",
+    "file": "/data/csong/opensource/sqlite3/autosetup/jimsh0.c",
+    "signature": "void(Jim_Stack *, void *)",
+    "container_type": "dynamic_array",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "Jim_StackPop",
+    "file": "/data/csong/opensource/sqlite3/autosetup/jimsh0.c",
+    "signature": "void *(Jim_Stack *)",
+    "container_type": "stack",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "Jim_StackPeek",
+    "file": "/data/csong/opensource/sqlite3/autosetup/jimsh0.c",
+    "signature": "void *(Jim_Stack *)",
+    "container_type": "stack",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "Jim_FreeStackElements",
+    "file": "/data/csong/opensource/sqlite3/autosetup/jimsh0.c",
+    "signature": "void(Jim_Stack *, void (*)(void *))",
+    "container_type": "stack",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "JimObjectHTHashFunction",
+    "file": "/data/csong/opensource/sqlite3/autosetup/jimsh0.c",
+    "signature": "unsigned int(const void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "JimVariablesHTValDup",
+    "file": "/data/csong/opensource/sqlite3/autosetup/jimsh0.c",
+    "signature": "void *(void *, const void *)",
+    "container_type": "hash_table",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "JimCommandsHT_HashFunction",
+    "file": "/data/csong/opensource/sqlite3/autosetup/jimsh0.c",
+    "signature": "unsigned int(const void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "JimGetCallFrameByInteger",
+    "file": "/data/csong/opensource/sqlite3/autosetup/jimsh0.c",
+    "signature": "Jim_CallFrame *(Jim_Interp *, long)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "Jim_SetAssocData",
+    "file": "/data/csong/opensource/sqlite3/autosetup/jimsh0.c",
+    "signature": "int(Jim_Interp *, const char *, Jim_InterpDeleteProc *, void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      3
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "Jim_GetAssocData",
+    "file": "/data/csong/opensource/sqlite3/autosetup/jimsh0.c",
+    "signature": "void *(Jim_Interp *, const char *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "JimDictHashFind",
+    "file": "/data/csong/opensource/sqlite3/autosetup/jimsh0.c",
+    "signature": "int(Jim_Dict *, Jim_Obj *, int)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "JimDictExpandHashTable",
+    "file": "/data/csong/opensource/sqlite3/autosetup/jimsh0.c",
+    "signature": "void(Jim_Dict *, unsigned int)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "Jim_DictPairs",
+    "file": "/data/csong/opensource/sqlite3/autosetup/jimsh0.c",
+    "signature": "Jim_Obj **(Jim_Interp *, Jim_Obj *, int *)",
+    "container_type": "hash_table",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ExprTreeCreateTree",
+    "file": "/data/csong/opensource/sqlite3/autosetup/jimsh0.c",
+    "signature": "struct ExprTree *(Jim_Interp *, const ParseTokenList *, Jim_Obj *, Jim_Obj *)",
+    "container_type": "tree",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "JimVariablesList",
+    "file": "/data/csong/opensource/sqlite3/autosetup/jimsh0.c",
+    "signature": "Jim_Obj *(Jim_Interp *, Jim_Obj *, int)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "Action_add",
+    "file": "/data/csong/opensource/sqlite3/tool/lemon.c",
+    "signature": "void(struct action **, enum e_action, struct symbol *, char *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "FindFirstSets",
+    "file": "/data/csong/opensource/sqlite3/tool/lemon.c",
+    "signature": "void(struct lemon *)",
+    "container_type": "set",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "FindFollowSets",
+    "file": "/data/csong/opensource/sqlite3/tool/lemon.c",
+    "signature": "void(struct lemon *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "Configlist_add",
+    "file": "/data/csong/opensource/sqlite3/tool/lemon.c",
+    "signature": "struct config *(struct rule *, int)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "Configlist_addbasis",
+    "file": "/data/csong/opensource/sqlite3/tool/lemon.c",
+    "signature": "struct config *(struct rule *, int)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      0
+    ],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "Configlist_sort",
+    "file": "/data/csong/opensource/sqlite3/tool/lemon.c",
+    "signature": "void()",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "Plink_add",
+    "file": "/data/csong/opensource/sqlite3/tool/lemon.c",
+    "signature": "void(struct plink **, struct config *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "Plink_delete",
+    "file": "/data/csong/opensource/sqlite3/tool/lemon.c",
+    "signature": "void(struct plink *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "print_stack_union",
+    "file": "/data/csong/opensource/sqlite3/tool/lemon.c",
+    "signature": "void(FILE *, struct lemon *, int *, int)",
+    "container_type": "hash_table",
+    "container_arg": 1,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ReportTable",
+    "file": "/data/csong/opensource/sqlite3/tool/lemon.c",
+    "signature": "void(struct lemon *, int, int)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "Strsafe_insert",
+    "file": "/data/csong/opensource/sqlite3/tool/lemon.c",
+    "signature": "int(const char *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "Strsafe_find",
+    "file": "/data/csong/opensource/sqlite3/tool/lemon.c",
+    "signature": "const char *(const char *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "Symbol_insert",
+    "file": "/data/csong/opensource/sqlite3/tool/lemon.c",
+    "signature": "int(struct symbol *, const char *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "Symbol_find",
+    "file": "/data/csong/opensource/sqlite3/tool/lemon.c",
+    "signature": "struct symbol *(const char *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "State_insert",
+    "file": "/data/csong/opensource/sqlite3/tool/lemon.c",
+    "signature": "int(struct state *, struct config *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      0,
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "State_find",
+    "file": "/data/csong/opensource/sqlite3/tool/lemon.c",
+    "signature": "struct state *(struct config *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "Configtable_insert",
+    "file": "/data/csong/opensource/sqlite3/tool/lemon.c",
+    "signature": "int(struct config *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      0
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "Configtable_find",
+    "file": "/data/csong/opensource/sqlite3/tool/lemon.c",
+    "signature": "struct config *(struct config *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "sqlite3HashClear",
+    "file": "/data/csong/build-artifacts/sqlite3/sqlite3.c",
+    "signature": "void(Hash *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "rehash",
+    "file": "/data/csong/build-artifacts/sqlite3/sqlite3.c",
+    "signature": "int(Hash *, unsigned int)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "findElementWithHash",
+    "file": "/data/csong/build-artifacts/sqlite3/sqlite3.c",
+    "signature": "HashElem *(const Hash *, const char *, unsigned int *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "sqlite3HashFind",
+    "file": "/data/csong/build-artifacts/sqlite3/sqlite3.c",
+    "signature": "void *(const Hash *, const char *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "sqlite3HashInsert",
+    "file": "/data/csong/build-artifacts/sqlite3/sqlite3.c",
+    "signature": "void *(Hash *, const char *, void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "unixShmMap",
+    "file": "/data/csong/build-artifacts/sqlite3/sqlite3.c",
+    "signature": "int(sqlite3_file *, int, int, int, volatile void **)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [
+      4
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "sqlite3PCacheBufferSetup",
+    "file": "/data/csong/build-artifacts/sqlite3/sqlite3.c",
+    "signature": "void(void *, int, int)",
+    "container_type": "freelist",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "pcache1Free",
+    "file": "/data/csong/build-artifacts/sqlite3/sqlite3.c",
+    "signature": "void(void *)",
+    "container_type": "free_list",
+    "container_arg": 0,
+    "store_args": [
+      0
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "sqlite3RowSetClear",
+    "file": "/data/csong/build-artifacts/sqlite3/sqlite3.c",
+    "signature": "void(void *)",
+    "container_type": "forest_of_trees",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "rowSetEntryMerge",
+    "file": "/data/csong/build-artifacts/sqlite3/sqlite3.c",
+    "signature": "struct RowSetEntry *(struct RowSetEntry *, struct RowSetEntry *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      0,
+      1
+    ],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "pagerAcquireMapPage",
+    "file": "/data/csong/build-artifacts/sqlite3/sqlite3.c",
+    "signature": "int(Pager *, Pgno, void *, PgHdr **)",
+    "container_type": "freelist",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "sqlite3_set_auxdata",
+    "file": "/data/csong/build-artifacts/sqlite3/sqlite3.c",
+    "signature": "void(sqlite3_context *, int, void *, void (*)(void *))",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "sqlite3ExprListDeleteGeneric",
+    "file": "/data/csong/build-artifacts/sqlite3/sqlite3.c",
+    "signature": "void(sqlite3 *, void *)",
+    "container_type": "list",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "sqlite3RenameTokenMap",
+    "file": "/data/csong/build-artifacts/sqlite3/sqlite3.c",
+    "signature": "const void *(Parse *, const void *, const Token *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "sqlite3LocateTable",
+    "file": "/data/csong/build-artifacts/sqlite3/sqlite3.c",
+    "signature": "Table *(Parse *, u32, const char *, const char *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "sqlite3ColumnsFromExprList",
+    "file": "/data/csong/build-artifacts/sqlite3/sqlite3.c",
+    "signature": "int(Parse *, ExprList *, i16 *, Column **)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      3
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "sqlite3_get_table_cb",
+    "file": "/data/csong/build-artifacts/sqlite3/sqlite3.c",
+    "signature": "int(void *, int, char **, char **)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "whereLoopAddBtreeIndex",
+    "file": "/data/csong/build-artifacts/sqlite3/sqlite3.c",
+    "signature": "int(WhereLoopBuilder *, SrcItem *, Index *, LogEst)",
+    "container_type": "btree",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "yy_pop_parser_stack",
+    "file": "/data/csong/build-artifacts/sqlite3/sqlite3.c",
+    "signature": "void(yyParser *)",
+    "container_type": "stack",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "sqlite3_get_clientdata",
+    "file": "/data/csong/build-artifacts/sqlite3/sqlite3.c",
+    "signature": "void *(sqlite3 *, const char *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "sqlite3_set_clientdata",
+    "file": "/data/csong/build-artifacts/sqlite3/sqlite3.c",
+    "signature": "int(sqlite3 *, const char *, void *, void (*)(void *))",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "jsonCacheDeleteGeneric",
+    "file": "/data/csong/build-artifacts/sqlite3/sqlite3.c",
+    "signature": "void(void *)",
+    "container_type": "cache",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  }
+]
