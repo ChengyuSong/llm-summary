@@ -1,0 +1,42 @@
+[
+  {
+    "function": "CInOutTempBuffer::GetBuf",
+    "file": "/data/csong/opensource/7z/CPP/7zip/Common/InOutTempBuffer.cpp",
+    "signature": "void *(size_t)",
+    "container_type": "array",
+    "container_arg": -1,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "CCachedInStream::Read",
+    "file": "/data/csong/opensource/7z/CPP/7zip/Common/StreamObjects.cpp",
+    "signature": "LONG(void *, UInt32, UInt32 *)",
+    "container_type": "cache",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "NHash::CHandler::GetRawProp",
+    "file": "/data/csong/opensource/7z/CPP/7zip/UI/Common/HashCalc.cpp",
+    "signature": "LONG(UInt32, PROPID, const void **, UInt32 *, UInt32 *)",
+    "container_type": "array",
+    "container_arg": -1,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  }
+]

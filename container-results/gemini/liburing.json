@@ -1,0 +1,28 @@
+[
+  {
+    "function": "_io_uring_get_cqe",
+    "file": "/data/csong/opensource/liburing/src/queue.c",
+    "signature": "int(struct io_uring *, struct io_uring_cqe **, struct get_data *)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "__io_uring_get_cqe",
+    "file": "/data/csong/opensource/liburing/src/queue.c",
+    "signature": "int(struct io_uring *, struct io_uring_cqe **, unsigned int, unsigned int, sigset_t *)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  }
+]

@@ -1,0 +1,138 @@
+[
+  {
+    "function": "_zip_ef_delete_by_id",
+    "file": "/data/csong/opensource/libzip/lib/zip_extra_field.c",
+    "signature": "zip_extra_field_t *(zip_extra_field_t *, zip_uint16_t, zip_uint16_t, zip_flags_t)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "_zip_ef_get_by_id",
+    "file": "/data/csong/opensource/libzip/lib/zip_extra_field.c",
+    "signature": "const zip_uint8_t *(const zip_extra_field_t *, zip_uint16_t *, zip_uint16_t, zip_uint16_t, zip_flags_t, zip_error_t *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "_zip_ef_remove_internal",
+    "file": "/data/csong/opensource/libzip/lib/zip_extra_field.c",
+    "signature": "zip_extra_field_t *(zip_extra_field_t *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "zip_file_extra_field_get",
+    "file": "/data/csong/opensource/libzip/lib/zip_extra_field_api.c",
+    "signature": "const zip_uint8_t *(zip_t *, zip_uint64_t, zip_uint16_t, zip_uint16_t *, zip_uint16_t *, zip_flags_t)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "zip_file_extra_field_set",
+    "file": "/data/csong/opensource/libzip/lib/zip_extra_field_api.c",
+    "signature": "int(zip_t *, zip_uint64_t, zip_uint16_t, zip_uint16_t, const zip_uint8_t *, zip_uint16_t, zip_flags_t)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      4
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "hash_resize",
+    "file": "/data/csong/opensource/libzip/lib/zip_hash.c",
+    "signature": "_Bool(zip_hash_t *, zip_uint32_t, zip_error_t *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "_zip_hash_free",
+    "file": "/data/csong/opensource/libzip/lib/zip_hash.c",
+    "signature": "void(zip_hash_t *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "_zip_hash_add",
+    "file": "/data/csong/opensource/libzip/lib/zip_hash.c",
+    "signature": "_Bool(zip_hash_t *, const zip_uint8_t *, zip_uint64_t, zip_flags_t, zip_error_t *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 11,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "_zip_hash_delete",
+    "file": "/data/csong/opensource/libzip/lib/zip_hash.c",
+    "signature": "_Bool(zip_hash_t *, const zip_uint8_t *, zip_error_t *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 11,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "_zip_hash_lookup",
+    "file": "/data/csong/opensource/libzip/lib/zip_hash.c",
+    "signature": "zip_int64_t(zip_hash_t *, const zip_uint8_t *, zip_flags_t, zip_error_t *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 12,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "_zip_hash_revert",
+    "file": "/data/csong/opensource/libzip/lib/zip_hash.c",
+    "signature": "_Bool(zip_hash_t *, zip_error_t *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  }
+]

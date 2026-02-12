@@ -53,6 +53,8 @@ def main():
 
         try:
             summaries = db.get_all_container_summaries()
+            # Skip heuristic-only entries (not LLM-confirmed)
+            summaries = [s for s in summaries if s.model_used != "heuristic_only"]
             if not summaries:
                 continue
 

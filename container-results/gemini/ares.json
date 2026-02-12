@@ -1,0 +1,1340 @@
+[
+  {
+    "function": "ares_free_data",
+    "file": "/data/csong/opensource/ares/src/lib/ares_data.c",
+    "signature": "void(void *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ares_append_addrinfo_cname",
+    "file": "/data/csong/opensource/ares/src/lib/ares_getaddrinfo.c",
+    "signature": "struct ares_addrinfo_cname *(struct ares_addrinfo_cname **)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ares_append_requeue_int",
+    "file": "/data/csong/opensource/ares/src/lib/ares_process.c",
+    "signature": "ares_status_t(ares_array_t **, requeue_type_t, ares_query_t *, ares_server_t *, ares_status_t, ares_dns_record_t *)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [
+      3,
+      5
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ares_append_requeue",
+    "file": "/data/csong/opensource/ares/src/lib/ares_process.c",
+    "signature": "ares_status_t(ares_array_t **, ares_query_t *, ares_server_t *)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [
+      1,
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ares_append_endqueue",
+    "file": "/data/csong/opensource/ares/src/lib/ares_process.c",
+    "signature": "ares_status_t(ares_array_t **, ares_query_t *, ares_status_t, ares_dns_record_t *)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [
+      1,
+      3
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ares_qcache_insert_int",
+    "file": "/data/csong/opensource/ares/src/lib/ares_qcache.c",
+    "signature": "ares_status_t(ares_qcache_t *, ares_dns_record_t *, const ares_dns_record_t *, const ares_timeval_t *)",
+    "container_type": "cache",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ares_qcache_fetch",
+    "file": "/data/csong/opensource/ares/src/lib/ares_qcache.c",
+    "signature": "ares_status_t(ares_channel_t *, const ares_timeval_t *, const ares_dns_record_t *, const ares_dns_record_t **)",
+    "container_type": "cache",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ares_qcache_insert",
+    "file": "/data/csong/opensource/ares/src/lib/ares_qcache.c",
+    "signature": "ares_status_t(ares_channel_t *, const ares_timeval_t *, const ares_query_t *, const ares_dns_record_t *)",
+    "container_type": "cache",
+    "container_arg": 0,
+    "store_args": [
+      2,
+      3
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ares_search_name_list",
+    "file": "/data/csong/opensource/ares/src/lib/ares_search.c",
+    "signature": "ares_status_t(const ares_channel_t *, const char *, char ***, size_t *)",
+    "container_type": "array",
+    "container_arg": 2,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "sortlist_append",
+    "file": "/data/csong/opensource/ares/src/lib/ares_sysconfig_files.c",
+    "signature": "ares_bool_t(struct apattern **, size_t *, const struct apattern *)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ares_addr_node_to_sconfig_llist",
+    "file": "/data/csong/opensource/ares/src/lib/ares_update_servers.c",
+    "signature": "ares_status_t(const struct ares_addr_node *, ares_llist_t **)",
+    "container_type": "linked_list",
+    "container_arg": 1,
+    "store_args": [
+      0
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ares_addrpnode_to_sconfig_llist",
+    "file": "/data/csong/opensource/ares/src/lib/ares_update_servers.c",
+    "signature": "ares_status_t(const struct ares_addr_port_node *, ares_llist_t **)",
+    "container_type": "linked_list",
+    "container_arg": 1,
+    "store_args": [
+      0
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ares_get_servers",
+    "file": "/data/csong/opensource/ares/src/lib/ares_update_servers.c",
+    "signature": "int(const ares_channel_t *, struct ares_addr_node **)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ares_get_servers_ports",
+    "file": "/data/csong/opensource/ares/src/lib/ares_update_servers.c",
+    "signature": "int(const ares_channel_t *, struct ares_addr_port_node **)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ares_htable_create",
+    "file": "/data/csong/opensource/ares/src/lib/dsa/ares_htable.c",
+    "signature": "ares_htable_t *(ares_htable_hashfunc_t, ares_htable_bucket_key_t, ares_htable_bucket_free_t, ares_htable_key_eq_t)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ares_htable_all_buckets",
+    "file": "/data/csong/opensource/ares/src/lib/dsa/ares_htable.c",
+    "signature": "const void **(const ares_htable_t *, size_t *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ares_htable_find",
+    "file": "/data/csong/opensource/ares/src/lib/dsa/ares_htable.c",
+    "signature": "ares_llist_node_t *(const ares_htable_t *, unsigned int, const void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ares_htable_insert",
+    "file": "/data/csong/opensource/ares/src/lib/dsa/ares_htable.c",
+    "signature": "ares_bool_t(ares_htable_t *, void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 9,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ares_htable_get",
+    "file": "/data/csong/opensource/ares/src/lib/dsa/ares_htable.c",
+    "signature": "void *(const ares_htable_t *, const void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 9,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ares_htable_remove",
+    "file": "/data/csong/opensource/ares/src/lib/dsa/ares_htable.c",
+    "signature": "ares_bool_t(ares_htable_t *, const void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "hash_func",
+    "file": "/data/csong/opensource/ares/src/lib/dsa/ares_htable_asvp.c",
+    "signature": "unsigned int(const void *, unsigned int)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "bucket_key",
+    "file": "/data/csong/opensource/ares/src/lib/dsa/ares_htable_asvp.c",
+    "signature": "const void *(const void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "bucket_free",
+    "file": "/data/csong/opensource/ares/src/lib/dsa/ares_htable_asvp.c",
+    "signature": "void(void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ares_htable_asvp_create",
+    "file": "/data/csong/opensource/ares/src/lib/dsa/ares_htable_asvp.c",
+    "signature": "ares_htable_asvp_t *(ares_htable_asvp_val_free_t)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ares_htable_asvp_insert",
+    "file": "/data/csong/opensource/ares/src/lib/dsa/ares_htable_asvp.c",
+    "signature": "ares_bool_t(ares_htable_asvp_t *, ares_socket_t, void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 12,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ares_htable_asvp_get",
+    "file": "/data/csong/opensource/ares/src/lib/dsa/ares_htable_asvp.c",
+    "signature": "ares_bool_t(const ares_htable_asvp_t *, ares_socket_t, void **)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 9,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ares_htable_asvp_get_direct",
+    "file": "/data/csong/opensource/ares/src/lib/dsa/ares_htable_asvp.c",
+    "signature": "void *(const ares_htable_asvp_t *, ares_socket_t)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 9,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ares_htable_asvp_remove",
+    "file": "/data/csong/opensource/ares/src/lib/dsa/ares_htable_asvp.c",
+    "signature": "ares_bool_t(ares_htable_asvp_t *, ares_socket_t)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "bucket_key",
+    "file": "/data/csong/opensource/ares/src/lib/dsa/ares_htable_dict.c",
+    "signature": "const void *(const void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "bucket_free",
+    "file": "/data/csong/opensource/ares/src/lib/dsa/ares_htable_dict.c",
+    "signature": "void(void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ares_htable_dict_create",
+    "file": "/data/csong/opensource/ares/src/lib/dsa/ares_htable_dict.c",
+    "signature": "ares_htable_dict_t *()",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ares_htable_dict_insert",
+    "file": "/data/csong/opensource/ares/src/lib/dsa/ares_htable_dict.c",
+    "signature": "ares_bool_t(ares_htable_dict_t *, const char *, const char *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 10,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ares_htable_dict_get",
+    "file": "/data/csong/opensource/ares/src/lib/dsa/ares_htable_dict.c",
+    "signature": "ares_bool_t(const ares_htable_dict_t *, const char *, const char **)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ares_htable_dict_get_direct",
+    "file": "/data/csong/opensource/ares/src/lib/dsa/ares_htable_dict.c",
+    "signature": "const char *(const ares_htable_dict_t *, const char *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ares_htable_dict_remove",
+    "file": "/data/csong/opensource/ares/src/lib/dsa/ares_htable_dict.c",
+    "signature": "ares_bool_t(ares_htable_dict_t *, const char *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "bucket_key",
+    "file": "/data/csong/opensource/ares/src/lib/dsa/ares_htable_strvp.c",
+    "signature": "const void *(const void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "bucket_free",
+    "file": "/data/csong/opensource/ares/src/lib/dsa/ares_htable_strvp.c",
+    "signature": "void(void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ares_htable_strvp_create",
+    "file": "/data/csong/opensource/ares/src/lib/dsa/ares_htable_strvp.c",
+    "signature": "ares_htable_strvp_t *(ares_htable_strvp_val_free_t)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ares_htable_strvp_insert",
+    "file": "/data/csong/opensource/ares/src/lib/dsa/ares_htable_strvp.c",
+    "signature": "ares_bool_t(ares_htable_strvp_t *, const char *, void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 12,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ares_htable_strvp_get",
+    "file": "/data/csong/opensource/ares/src/lib/dsa/ares_htable_strvp.c",
+    "signature": "ares_bool_t(const ares_htable_strvp_t *, const char *, void **)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 9,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ares_htable_strvp_get_direct",
+    "file": "/data/csong/opensource/ares/src/lib/dsa/ares_htable_strvp.c",
+    "signature": "void *(const ares_htable_strvp_t *, const char *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 9,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ares_htable_strvp_remove",
+    "file": "/data/csong/opensource/ares/src/lib/dsa/ares_htable_strvp.c",
+    "signature": "ares_bool_t(ares_htable_strvp_t *, const char *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ares_htable_strvp_claim",
+    "file": "/data/csong/opensource/ares/src/lib/dsa/ares_htable_strvp.c",
+    "signature": "void *(ares_htable_strvp_t *, const char *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 9,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "hash_func",
+    "file": "/data/csong/opensource/ares/src/lib/dsa/ares_htable_szvp.c",
+    "signature": "unsigned int(const void *, unsigned int)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "bucket_key",
+    "file": "/data/csong/opensource/ares/src/lib/dsa/ares_htable_szvp.c",
+    "signature": "const void *(const void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "bucket_free",
+    "file": "/data/csong/opensource/ares/src/lib/dsa/ares_htable_szvp.c",
+    "signature": "void(void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ares_htable_szvp_create",
+    "file": "/data/csong/opensource/ares/src/lib/dsa/ares_htable_szvp.c",
+    "signature": "ares_htable_szvp_t *(ares_htable_szvp_val_free_t)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ares_htable_szvp_insert",
+    "file": "/data/csong/opensource/ares/src/lib/dsa/ares_htable_szvp.c",
+    "signature": "ares_bool_t(ares_htable_szvp_t *, size_t, void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 12,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ares_htable_szvp_get",
+    "file": "/data/csong/opensource/ares/src/lib/dsa/ares_htable_szvp.c",
+    "signature": "ares_bool_t(const ares_htable_szvp_t *, size_t, void **)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 9,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ares_htable_szvp_get_direct",
+    "file": "/data/csong/opensource/ares/src/lib/dsa/ares_htable_szvp.c",
+    "signature": "void *(const ares_htable_szvp_t *, size_t)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 9,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ares_htable_szvp_remove",
+    "file": "/data/csong/opensource/ares/src/lib/dsa/ares_htable_szvp.c",
+    "signature": "ares_bool_t(ares_htable_szvp_t *, size_t)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "hash_func",
+    "file": "/data/csong/opensource/ares/src/lib/dsa/ares_htable_vpstr.c",
+    "signature": "unsigned int(const void *, unsigned int)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "bucket_key",
+    "file": "/data/csong/opensource/ares/src/lib/dsa/ares_htable_vpstr.c",
+    "signature": "const void *(const void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "bucket_free",
+    "file": "/data/csong/opensource/ares/src/lib/dsa/ares_htable_vpstr.c",
+    "signature": "void(void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ares_htable_vpstr_create",
+    "file": "/data/csong/opensource/ares/src/lib/dsa/ares_htable_vpstr.c",
+    "signature": "ares_htable_vpstr_t *()",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ares_htable_vpstr_insert",
+    "file": "/data/csong/opensource/ares/src/lib/dsa/ares_htable_vpstr.c",
+    "signature": "ares_bool_t(ares_htable_vpstr_t *, void *, const char *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      1,
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 12,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ares_htable_vpstr_get",
+    "file": "/data/csong/opensource/ares/src/lib/dsa/ares_htable_vpstr.c",
+    "signature": "ares_bool_t(const ares_htable_vpstr_t *, const void *, const char **)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 9,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ares_htable_vpstr_get_direct",
+    "file": "/data/csong/opensource/ares/src/lib/dsa/ares_htable_vpstr.c",
+    "signature": "const char *(const ares_htable_vpstr_t *, const void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ares_htable_vpstr_remove",
+    "file": "/data/csong/opensource/ares/src/lib/dsa/ares_htable_vpstr.c",
+    "signature": "ares_bool_t(ares_htable_vpstr_t *, const void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "hash_func",
+    "file": "/data/csong/opensource/ares/src/lib/dsa/ares_htable_vpvp.c",
+    "signature": "unsigned int(const void *, unsigned int)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "bucket_key",
+    "file": "/data/csong/opensource/ares/src/lib/dsa/ares_htable_vpvp.c",
+    "signature": "const void *(const void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "bucket_free",
+    "file": "/data/csong/opensource/ares/src/lib/dsa/ares_htable_vpvp.c",
+    "signature": "void(void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ares_htable_vpvp_create",
+    "file": "/data/csong/opensource/ares/src/lib/dsa/ares_htable_vpvp.c",
+    "signature": "ares_htable_vpvp_t *(ares_htable_vpvp_key_free_t, ares_htable_vpvp_val_free_t)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ares_htable_vpvp_insert",
+    "file": "/data/csong/opensource/ares/src/lib/dsa/ares_htable_vpvp.c",
+    "signature": "ares_bool_t(ares_htable_vpvp_t *, void *, void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      1,
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 12,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ares_htable_vpvp_get",
+    "file": "/data/csong/opensource/ares/src/lib/dsa/ares_htable_vpvp.c",
+    "signature": "ares_bool_t(const ares_htable_vpvp_t *, const void *, void **)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 11,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ares_htable_vpvp_get_direct",
+    "file": "/data/csong/opensource/ares/src/lib/dsa/ares_htable_vpvp.c",
+    "signature": "void *(const ares_htable_vpvp_t *, const void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 9,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ares_htable_vpvp_remove",
+    "file": "/data/csong/opensource/ares/src/lib/dsa/ares_htable_vpvp.c",
+    "signature": "ares_bool_t(ares_htable_vpvp_t *, const void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ares_llist_attach_at",
+    "file": "/data/csong/opensource/ares/src/lib/dsa/ares_llist.c",
+    "signature": "void(ares_llist_t *, ares_llist_insert_type_t, ares_llist_node_t *, ares_llist_node_t *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      3
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ares_llist_insert_at",
+    "file": "/data/csong/opensource/ares/src/lib/dsa/ares_llist.c",
+    "signature": "ares_llist_node_t *(ares_llist_t *, ares_llist_insert_type_t, ares_llist_node_t *, void *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      3
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ares_llist_insert_first",
+    "file": "/data/csong/opensource/ares/src/lib/dsa/ares_llist.c",
+    "signature": "ares_llist_node_t *(ares_llist_t *, void *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ares_llist_insert_last",
+    "file": "/data/csong/opensource/ares/src/lib/dsa/ares_llist.c",
+    "signature": "ares_llist_node_t *(ares_llist_t *, void *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ares_llist_insert_before",
+    "file": "/data/csong/opensource/ares/src/lib/dsa/ares_llist.c",
+    "signature": "ares_llist_node_t *(ares_llist_node_t *, void *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 10,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ares_llist_insert_after",
+    "file": "/data/csong/opensource/ares/src/lib/dsa/ares_llist.c",
+    "signature": "ares_llist_node_t *(ares_llist_node_t *, void *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 10,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ares_llist_node_first",
+    "file": "/data/csong/opensource/ares/src/lib/dsa/ares_llist.c",
+    "signature": "ares_llist_node_t *(ares_llist_t *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ares_llist_node_idx",
+    "file": "/data/csong/opensource/ares/src/lib/dsa/ares_llist.c",
+    "signature": "ares_llist_node_t *(ares_llist_t *, size_t)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ares_llist_node_last",
+    "file": "/data/csong/opensource/ares/src/lib/dsa/ares_llist.c",
+    "signature": "ares_llist_node_t *(ares_llist_t *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ares_llist_node_next",
+    "file": "/data/csong/opensource/ares/src/lib/dsa/ares_llist.c",
+    "signature": "ares_llist_node_t *(ares_llist_node_t *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ares_llist_node_prev",
+    "file": "/data/csong/opensource/ares/src/lib/dsa/ares_llist.c",
+    "signature": "ares_llist_node_t *(ares_llist_node_t *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ares_llist_node_val",
+    "file": "/data/csong/opensource/ares/src/lib/dsa/ares_llist.c",
+    "signature": "void *(ares_llist_node_t *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ares_llist_node_parent",
+    "file": "/data/csong/opensource/ares/src/lib/dsa/ares_llist.c",
+    "signature": "ares_llist_t *(ares_llist_node_t *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ares_llist_first_val",
+    "file": "/data/csong/opensource/ares/src/lib/dsa/ares_llist.c",
+    "signature": "void *(ares_llist_t *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ares_llist_last_val",
+    "file": "/data/csong/opensource/ares/src/lib/dsa/ares_llist.c",
+    "signature": "void *(ares_llist_t *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ares_llist_node_detach",
+    "file": "/data/csong/opensource/ares/src/lib/dsa/ares_llist.c",
+    "signature": "void(ares_llist_node_t *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ares_llist_node_claim",
+    "file": "/data/csong/opensource/ares/src/lib/dsa/ares_llist.c",
+    "signature": "void *(ares_llist_node_t *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ares_llist_node_destroy",
+    "file": "/data/csong/opensource/ares/src/lib/dsa/ares_llist.c",
+    "signature": "void(ares_llist_node_t *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ares_llist_node_replace",
+    "file": "/data/csong/opensource/ares/src/lib/dsa/ares_llist.c",
+    "signature": "void(ares_llist_node_t *, void *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ares_slist_node_push",
+    "file": "/data/csong/opensource/ares/src/lib/dsa/ares_slist.c",
+    "signature": "void(ares_slist_t *, ares_slist_node_t *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ares_slist_insert",
+    "file": "/data/csong/opensource/ares/src/lib/dsa/ares_slist.c",
+    "signature": "ares_slist_node_t *(ares_slist_t *, void *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 10,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ares_slist_node_pop",
+    "file": "/data/csong/opensource/ares/src/lib/dsa/ares_slist.c",
+    "signature": "void(ares_slist_node_t *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ares_slist_node_claim",
+    "file": "/data/csong/opensource/ares/src/lib/dsa/ares_slist.c",
+    "signature": "void *(ares_slist_node_t *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 10,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ares_slist_node_reinsert",
+    "file": "/data/csong/opensource/ares/src/lib/dsa/ares_slist.c",
+    "signature": "void(ares_slist_node_t *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      0
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ares_slist_node_find",
+    "file": "/data/csong/opensource/ares/src/lib/dsa/ares_slist.c",
+    "signature": "ares_slist_node_t *(const ares_slist_t *, const void *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 10,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ares_slist_node_next",
+    "file": "/data/csong/opensource/ares/src/lib/dsa/ares_slist.c",
+    "signature": "ares_slist_node_t *(const ares_slist_node_t *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ares_slist_node_prev",
+    "file": "/data/csong/opensource/ares/src/lib/dsa/ares_slist.c",
+    "signature": "ares_slist_node_t *(const ares_slist_node_t *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ares_slist_node_val",
+    "file": "/data/csong/opensource/ares/src/lib/dsa/ares_slist.c",
+    "signature": "void *(ares_slist_node_t *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ares_slist_node_parent",
+    "file": "/data/csong/opensource/ares/src/lib/dsa/ares_slist.c",
+    "signature": "ares_slist_t *(ares_slist_node_t *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ares_slist_first_val",
+    "file": "/data/csong/opensource/ares/src/lib/dsa/ares_slist.c",
+    "signature": "void *(const ares_slist_t *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ares_slist_last_val",
+    "file": "/data/csong/opensource/ares/src/lib/dsa/ares_slist.c",
+    "signature": "void *(const ares_slist_t *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ares_slist_node_destroy",
+    "file": "/data/csong/opensource/ares/src/lib/dsa/ares_slist.c",
+    "signature": "void(ares_slist_node_t *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ares_parse_txt_reply_int",
+    "file": "/data/csong/opensource/ares/src/lib/legacy/ares_parse_txt_reply.c",
+    "signature": "int(const unsigned char *, size_t, ares_bool_t, void **)",
+    "container_type": "linked_list",
+    "container_arg": 3,
+    "store_args": [
+      0
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ares_dns_multistring_add_own",
+    "file": "/data/csong/opensource/ares/src/lib/record/ares_dns_multistring.c",
+    "signature": "ares_status_t(ares_dns_multistring_t *, unsigned char *, size_t)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ares_dns_multistring_get",
+    "file": "/data/csong/opensource/ares/src/lib/record/ares_dns_multistring.c",
+    "signature": "const unsigned char *(const ares_dns_multistring_t *, size_t, size_t *)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ares_nameoffset_find",
+    "file": "/data/csong/opensource/ares/src/lib/record/ares_dns_name.c",
+    "signature": "const ares_nameoffset_t *(ares_llist_t *, const char *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ares_dns_record_rr_add",
+    "file": "/data/csong/opensource/ares/src/lib/record/ares_dns_record.c",
+    "signature": "ares_status_t(ares_dns_rr_t **, ares_dns_record_t *, ares_dns_section_t, const char *, ares_dns_rec_type_t, ares_dns_class_t, unsigned int)",
+    "container_type": "array",
+    "container_arg": 1,
+    "store_args": [
+      3
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ares_dns_rr_get_opt",
+    "file": "/data/csong/opensource/ares/src/lib/record/ares_dns_record.c",
+    "signature": "unsigned short(const ares_dns_rr_t *, ares_dns_rr_key_t, size_t, const unsigned char **, size_t *)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  }
+]

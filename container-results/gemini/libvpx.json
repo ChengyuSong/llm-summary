@@ -1,0 +1,68 @@
+[
+  {
+    "function": "vpx_codec_pkt_list_add",
+    "file": "/data/csong/opensource/libvpx/vpx/src/vpx_encoder.c",
+    "signature": "int(struct vpx_codec_pkt_list *, const struct vpx_codec_cx_pkt *)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "vpx_codec_pkt_list_get",
+    "file": "/data/csong/opensource/libvpx/vpx/src/vpx_encoder.c",
+    "signature": "const vpx_codec_cx_pkt_t *(struct vpx_codec_pkt_list *, vpx_codec_iter_t *)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "vp9_enc_grp_get_next_job",
+    "file": "/data/csong/opensource/libvpx/vp9/encoder/vp9_multi_thread.c",
+    "signature": "void *(MultiThreadHandle *, int)",
+    "container_type": "queue",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 9,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "vp9_jobq_queue",
+    "file": "/data/csong/opensource/libvpx/vp9/decoder/vp9_job_queue.c",
+    "signature": "int(JobQueueRowMt *, void *, size_t)",
+    "container_type": "queue",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "vp9_jobq_dequeue",
+    "file": "/data/csong/opensource/libvpx/vp9/decoder/vp9_job_queue.c",
+    "signature": "int(JobQueueRowMt *, void *, size_t, int)",
+    "container_type": "queue",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "gemini-3-flash-preview"
+  }
+]

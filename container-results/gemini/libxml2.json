@@ -1,0 +1,1520 @@
+[
+  {
+    "function": "xmlDictOwns",
+    "file": "/data/csong/opensource/libxml2/dict.c",
+    "signature": "int(xmlDict *, const xmlChar *)",
+    "container_type": "pool",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "xmlHashFree",
+    "file": "/data/csong/opensource/libxml2/hash.c",
+    "signature": "void(xmlHashTable *, xmlHashDeallocator)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "xmlHashUpdateInternal",
+    "file": "/data/csong/opensource/libxml2/hash.c",
+    "signature": "int(xmlHashTable *, const xmlChar *, const xmlChar *, const xmlChar *, void *, xmlHashDeallocator, int)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      4
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "xmlHashAdd",
+    "file": "/data/csong/opensource/libxml2/hash.c",
+    "signature": "int(xmlHashTable *, const xmlChar *, void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "xmlHashAdd2",
+    "file": "/data/csong/opensource/libxml2/hash.c",
+    "signature": "int(xmlHashTable *, const xmlChar *, const xmlChar *, void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      3
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "xmlHashAdd3",
+    "file": "/data/csong/opensource/libxml2/hash.c",
+    "signature": "int(xmlHashTable *, const xmlChar *, const xmlChar *, const xmlChar *, void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      4
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "xmlHashAddEntry",
+    "file": "/data/csong/opensource/libxml2/hash.c",
+    "signature": "int(xmlHashTable *, const xmlChar *, void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "xmlHashAddEntry2",
+    "file": "/data/csong/opensource/libxml2/hash.c",
+    "signature": "int(xmlHashTable *, const xmlChar *, const xmlChar *, void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      3
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "xmlHashAddEntry3",
+    "file": "/data/csong/opensource/libxml2/hash.c",
+    "signature": "int(xmlHashTable *, const xmlChar *, const xmlChar *, const xmlChar *, void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      4
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "xmlHashUpdateEntry",
+    "file": "/data/csong/opensource/libxml2/hash.c",
+    "signature": "int(xmlHashTable *, const xmlChar *, void *, xmlHashDeallocator)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "xmlHashUpdateEntry2",
+    "file": "/data/csong/opensource/libxml2/hash.c",
+    "signature": "int(xmlHashTable *, const xmlChar *, const xmlChar *, void *, xmlHashDeallocator)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      3
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "xmlHashUpdateEntry3",
+    "file": "/data/csong/opensource/libxml2/hash.c",
+    "signature": "int(xmlHashTable *, const xmlChar *, const xmlChar *, const xmlChar *, void *, xmlHashDeallocator)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      4
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "xmlHashLookup",
+    "file": "/data/csong/opensource/libxml2/hash.c",
+    "signature": "void *(xmlHashTable *, const xmlChar *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "xmlHashLookup2",
+    "file": "/data/csong/opensource/libxml2/hash.c",
+    "signature": "void *(xmlHashTable *, const xmlChar *, const xmlChar *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "xmlHashQLookup",
+    "file": "/data/csong/opensource/libxml2/hash.c",
+    "signature": "void *(xmlHashTable *, const xmlChar *, const xmlChar *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "xmlHashQLookup2",
+    "file": "/data/csong/opensource/libxml2/hash.c",
+    "signature": "void *(xmlHashTable *, const xmlChar *, const xmlChar *, const xmlChar *, const xmlChar *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "xmlHashLookup3",
+    "file": "/data/csong/opensource/libxml2/hash.c",
+    "signature": "void *(xmlHashTable *, const xmlChar *, const xmlChar *, const xmlChar *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 9,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "xmlHashQLookup3",
+    "file": "/data/csong/opensource/libxml2/hash.c",
+    "signature": "void *(xmlHashTable *, const xmlChar *, const xmlChar *, const xmlChar *, const xmlChar *, const xmlChar *, const xmlChar *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 9,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "xmlHashScan",
+    "file": "/data/csong/opensource/libxml2/hash.c",
+    "signature": "void(xmlHashTable *, xmlHashScanner, void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "xmlHashScanFull",
+    "file": "/data/csong/opensource/libxml2/hash.c",
+    "signature": "void(xmlHashTable *, xmlHashScannerFull, void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "xmlHashScan3",
+    "file": "/data/csong/opensource/libxml2/hash.c",
+    "signature": "void(xmlHashTable *, const xmlChar *, const xmlChar *, const xmlChar *, xmlHashScanner, void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "xmlHashScanFull3",
+    "file": "/data/csong/opensource/libxml2/hash.c",
+    "signature": "void(xmlHashTable *, const xmlChar *, const xmlChar *, const xmlChar *, xmlHashScannerFull, void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "xmlHashCopySafe",
+    "file": "/data/csong/opensource/libxml2/hash.c",
+    "signature": "xmlHashTable *(xmlHashTable *, xmlHashCopier, xmlHashDeallocator)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "xmlHashRemoveEntry3",
+    "file": "/data/csong/opensource/libxml2/hash.c",
+    "signature": "int(xmlHashTable *, const xmlChar *, const xmlChar *, const xmlChar *, xmlHashDeallocator)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "xmlListLowerSearch",
+    "file": "/data/csong/opensource/libxml2/list.c",
+    "signature": "xmlLinkPtr(xmlListPtr, void *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "xmlListHigherSearch",
+    "file": "/data/csong/opensource/libxml2/list.c",
+    "signature": "xmlLinkPtr(xmlListPtr, void *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "xmlListLinkSearch",
+    "file": "/data/csong/opensource/libxml2/list.c",
+    "signature": "xmlLinkPtr(xmlListPtr, void *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "xmlListLinkReverseSearch",
+    "file": "/data/csong/opensource/libxml2/list.c",
+    "signature": "xmlLinkPtr(xmlListPtr, void *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "xmlListSearch",
+    "file": "/data/csong/opensource/libxml2/list.c",
+    "signature": "void *(xmlList *, void *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "xmlListReverseSearch",
+    "file": "/data/csong/opensource/libxml2/list.c",
+    "signature": "void *(xmlList *, void *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "xmlListInsert",
+    "file": "/data/csong/opensource/libxml2/list.c",
+    "signature": "int(xmlList *, void *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "xmlListAppend",
+    "file": "/data/csong/opensource/libxml2/list.c",
+    "signature": "int(xmlList *, void *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "xmlListRemoveFirst",
+    "file": "/data/csong/opensource/libxml2/list.c",
+    "signature": "int(xmlList *, void *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "xmlListRemoveLast",
+    "file": "/data/csong/opensource/libxml2/list.c",
+    "signature": "int(xmlList *, void *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "xmlListRemoveAll",
+    "file": "/data/csong/opensource/libxml2/list.c",
+    "signature": "int(xmlList *, void *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "xmlListClear",
+    "file": "/data/csong/opensource/libxml2/list.c",
+    "signature": "void(xmlList *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "xmlListEmpty",
+    "file": "/data/csong/opensource/libxml2/list.c",
+    "signature": "int(xmlList *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "xmlListFront",
+    "file": "/data/csong/opensource/libxml2/list.c",
+    "signature": "xmlLink *(xmlList *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "xmlListEnd",
+    "file": "/data/csong/opensource/libxml2/list.c",
+    "signature": "xmlLink *(xmlList *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "xmlListSize",
+    "file": "/data/csong/opensource/libxml2/list.c",
+    "signature": "int(xmlList *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "xmlListPopFront",
+    "file": "/data/csong/opensource/libxml2/list.c",
+    "signature": "void(xmlList *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "xmlListPopBack",
+    "file": "/data/csong/opensource/libxml2/list.c",
+    "signature": "void(xmlList *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "xmlListPushFront",
+    "file": "/data/csong/opensource/libxml2/list.c",
+    "signature": "int(xmlList *, void *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "xmlListPushBack",
+    "file": "/data/csong/opensource/libxml2/list.c",
+    "signature": "int(xmlList *, void *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "xmlLinkGetData",
+    "file": "/data/csong/opensource/libxml2/list.c",
+    "signature": "void *(xmlLink *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "xmlListReverse",
+    "file": "/data/csong/opensource/libxml2/list.c",
+    "signature": "void(xmlList *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "xmlListWalk",
+    "file": "/data/csong/opensource/libxml2/list.c",
+    "signature": "void(xmlList *, xmlListWalker, void *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "xmlListReverseWalk",
+    "file": "/data/csong/opensource/libxml2/list.c",
+    "signature": "void(xmlList *, xmlListWalker, void *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "xmlListCopy",
+    "file": "/data/csong/opensource/libxml2/list.c",
+    "signature": "int(xmlList *, xmlList *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "xmlAttrHashInsert",
+    "file": "/data/csong/opensource/libxml2/parser.c",
+    "signature": "int(xmlParserCtxtPtr, unsigned int, const xmlChar *, const xmlChar *, unsigned int, int)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "xmlSAX2StartElementNs",
+    "file": "/data/csong/opensource/libxml2/SAX2.c",
+    "signature": "void(void *, const xmlChar *, const xmlChar *, const xmlChar *, int, const xmlChar **, int, int, const xmlChar **)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [
+      1,
+      2,
+      3,
+      5,
+      8
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "xmlGetIntSubset",
+    "file": "/data/csong/opensource/libxml2/tree.c",
+    "signature": "xmlDtd *(const xmlDoc *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "xmlCreateIntSubset",
+    "file": "/data/csong/opensource/libxml2/tree.c",
+    "signature": "xmlDtd *(xmlDoc *, const xmlChar *, const xmlChar *, const xmlChar *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "xmlFreePropList",
+    "file": "/data/csong/opensource/libxml2/tree.c",
+    "signature": "void(xmlAttr *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "xmlSetListDoc",
+    "file": "/data/csong/opensource/libxml2/tree.c",
+    "signature": "int(xmlNode *, xmlDoc *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "xmlAddChildList",
+    "file": "/data/csong/opensource/libxml2/tree.c",
+    "signature": "xmlNode *(xmlNode *, xmlNode *)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "xmlFreeNodeList",
+    "file": "/data/csong/opensource/libxml2/tree.c",
+    "signature": "void(xmlNode *)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "xmlCopyNamespaceList",
+    "file": "/data/csong/opensource/libxml2/tree.c",
+    "signature": "xmlNs *(xmlNs *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      0
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "xmlCopyPropList",
+    "file": "/data/csong/opensource/libxml2/tree.c",
+    "signature": "xmlAttr *(xmlNode *, xmlAttr *)",
+    "container_type": "linked_list",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "xmlStaticCopyNodeList",
+    "file": "/data/csong/opensource/libxml2/tree.c",
+    "signature": "xmlNode *(xmlNode *, xmlDoc *, xmlNode *)",
+    "container_type": "linked_list",
+    "container_arg": 2,
+    "store_args": [
+      0
+    ],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "xmlDocSetRootElement",
+    "file": "/data/csong/opensource/libxml2/tree.c",
+    "signature": "xmlNode *(xmlDoc *, xmlNode *)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "xmlGetNsListSafe",
+    "file": "/data/csong/opensource/libxml2/tree.c",
+    "signature": "int(const xmlDoc *, const xmlNode *, xmlNs ***)",
+    "container_type": "array",
+    "container_arg": 2,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "xmlSetNsProp",
+    "file": "/data/csong/opensource/libxml2/tree.c",
+    "signature": "xmlAttr *(xmlNode *, xmlNs *, const xmlChar *, const xmlChar *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1,
+      2,
+      3
+    ],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "xmlDOMWrapNsMapAddItem",
+    "file": "/data/csong/opensource/libxml2/tree.c",
+    "signature": "xmlNsMapItemPtr(xmlNsMapPtr *, int, xmlNsPtr, xmlNsPtr, int)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      2,
+      3
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "xmlTreeNSListLookupByPrefix",
+    "file": "/data/csong/opensource/libxml2/tree.c",
+    "signature": "xmlNsPtr(xmlNsPtr, const xmlChar *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "xmlC14NIsNodeInNodeset",
+    "file": "/data/csong/opensource/libxml2/c14n.c",
+    "signature": "int(void *, xmlNodePtr, xmlNodePtr)",
+    "container_type": "set",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "xmlFreeCatalogEntryList",
+    "file": "/data/csong/opensource/libxml2/catalog.c",
+    "signature": "void(xmlCatalogEntryPtr)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "xmlFreeCatalogHashEntryList",
+    "file": "/data/csong/opensource/libxml2/catalog.c",
+    "signature": "void(void *, const xmlChar *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "xmlCatalogConvertEntry",
+    "file": "/data/csong/opensource/libxml2/catalog.c",
+    "signature": "void(void *, void *, const xmlChar *)",
+    "container_type": "linked_list",
+    "container_arg": 1,
+    "store_args": [
+      0
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "xmlParseXMLCatalogNodeList",
+    "file": "/data/csong/opensource/libxml2/catalog.c",
+    "signature": "void(xmlNodePtr, xmlCatalogPrefer, xmlCatalogEntryPtr, xmlCatalogEntryPtr)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "xmlCatalogListXMLResolve",
+    "file": "/data/csong/opensource/libxml2/catalog.c",
+    "signature": "xmlChar *(xmlCatalogEntryPtr, const xmlChar *, const xmlChar *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "xmlCatalogListXMLResolveURI",
+    "file": "/data/csong/opensource/libxml2/catalog.c",
+    "signature": "xmlChar *(xmlCatalogEntryPtr, const xmlChar *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "xmlCatalogAddLocal",
+    "file": "/data/csong/opensource/libxml2/catalog.c",
+    "signature": "void *(void *, const xmlChar *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "xmlCtxtDumpNamespaceList",
+    "file": "/data/csong/opensource/libxml2/debugXML.c",
+    "signature": "void(xmlDebugCtxtPtr, xmlNsPtr)",
+    "container_type": "linked_list",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "xmlCtxtDumpAttrList",
+    "file": "/data/csong/opensource/libxml2/debugXML.c",
+    "signature": "void(xmlDebugCtxtPtr, xmlAttrPtr)",
+    "container_type": "linked_list",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "xmlCtxtDumpNodeList",
+    "file": "/data/csong/opensource/libxml2/debugXML.c",
+    "signature": "void(xmlDebugCtxtPtr, xmlNodePtr)",
+    "container_type": "linked_list",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "htmlAttrHashInsert",
+    "file": "/data/csong/opensource/libxml2/HTMLparser.c",
+    "signature": "int(xmlParserCtxtPtr, unsigned int, const xmlChar *, unsigned int, int)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "htmlSetMetaEncoding",
+    "file": "/data/csong/opensource/libxml2/HTMLtree.c",
+    "signature": "int(xmlDoc *, const xmlChar *)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "xmlNsListDumpOutput",
+    "file": "/data/csong/opensource/libxml2/xmlsave.c",
+    "signature": "void(xmlOutputBuffer *, xmlNs *)",
+    "container_type": "linked_list",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "xmlFreePatternList",
+    "file": "/data/csong/opensource/libxml2/pattern.c",
+    "signature": "void(xmlPattern *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "xmlTextReaderFreeNodeList",
+    "file": "/data/csong/opensource/libxml2/xmlreader.c",
+    "signature": "void(xmlTextReaderPtr, xmlNodePtr)",
+    "container_type": "pool",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "xmlTextReaderNextTree",
+    "file": "/data/csong/opensource/libxml2/xmlreader.c",
+    "signature": "int(xmlTextReaderPtr)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "xmlTextReaderReadTree",
+    "file": "/data/csong/opensource/libxml2/xmlreader.c",
+    "signature": "int(xmlTextReaderPtr)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "xmlFARegExecSaveInputString",
+    "file": "/data/csong/opensource/libxml2/xmlregexp.c",
+    "signature": "void(xmlRegExecCtxtPtr, const xmlChar *, void *)",
+    "container_type": "stack",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "xmlRegExecPushStringInternal",
+    "file": "/data/csong/opensource/libxml2/xmlregexp.c",
+    "signature": "int(xmlRegExecCtxtPtr, const xmlChar *, void *, int)",
+    "container_type": "stack",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "xmlRelaxNGFreeDocumentList",
+    "file": "/data/csong/opensource/libxml2/relaxng.c",
+    "signature": "void(xmlRelaxNGDocumentPtr)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "xmlRelaxNGCleanupTree",
+    "file": "/data/csong/opensource/libxml2/relaxng.c",
+    "signature": "void(xmlRelaxNGParserCtxtPtr, xmlNodePtr)",
+    "container_type": "tree",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "xmlSchemaItemListAddSize",
+    "file": "/data/csong/opensource/libxml2/xmlschemas.c",
+    "signature": "int(xmlSchemaItemListPtr, int, void *)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "xmlSchemaItemListAdd",
+    "file": "/data/csong/opensource/libxml2/xmlschemas.c",
+    "signature": "int(xmlSchemaItemListPtr, void *)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "xmlSchemaItemListInsert",
+    "file": "/data/csong/opensource/libxml2/xmlschemas.c",
+    "signature": "int(xmlSchemaItemListPtr, void *, int)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "xmlSchemaFreeTypeLinkList",
+    "file": "/data/csong/opensource/libxml2/xmlschemas.c",
+    "signature": "void(xmlSchemaTypeLinkPtr)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "xmlSchemaFreeIDCStateObjList",
+    "file": "/data/csong/opensource/libxml2/xmlschemas.c",
+    "signature": "void(xmlSchemaIDCStateObjPtr)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "xmlSchemaFindRedefCompInGraph",
+    "file": "/data/csong/opensource/libxml2/xmlschemas.c",
+    "signature": "xmlSchemaBasicItemPtr(xmlSchemaBucketPtr, xmlSchemaTypeType, const xmlChar *, const xmlChar *)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "xmlSchemaAddRedef",
+    "file": "/data/csong/opensource/libxml2/xmlschemas.c",
+    "signature": "xmlSchemaRedefPtr(xmlSchemaParserCtxtPtr, xmlSchemaBucketPtr, void *, const xmlChar *, const xmlChar *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1,
+      2,
+      3,
+      4
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "xmlSchemaParseWildcardNs",
+    "file": "/data/csong/opensource/libxml2/xmlschemas.c",
+    "signature": "int(xmlSchemaParserCtxtPtr, xmlSchemaPtr, xmlSchemaWildcardPtr, xmlNodePtr)",
+    "container_type": "linked_list",
+    "container_arg": 2,
+    "store_args": [
+      0
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "xmlSchemaParseAttributeGroupDefinition",
+    "file": "/data/csong/opensource/libxml2/xmlschemas.c",
+    "signature": "xmlSchemaAttributeGroupPtr(xmlSchemaParserCtxtPtr, xmlSchemaPtr, xmlNodePtr)",
+    "container_type": "hash_table",
+    "container_arg": 1,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "xmlSchemaParseUnion",
+    "file": "/data/csong/opensource/libxml2/xmlschemas.c",
+    "signature": "int(xmlSchemaParserCtxtPtr, xmlSchemaPtr, xmlNodePtr)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "xmlSchemaRedefListFree",
+    "file": "/data/csong/opensource/libxml2/xmlschemas.c",
+    "signature": "void(xmlSchemaRedefPtr)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "xmlSchemaParseModelGroup",
+    "file": "/data/csong/opensource/libxml2/xmlschemas.c",
+    "signature": "xmlSchemaTreeItemPtr(xmlSchemaParserCtxtPtr, xmlSchemaPtr, xmlNodePtr, xmlSchemaTypeType, int)",
+    "container_type": "linked_list",
+    "container_arg": 1,
+    "store_args": [
+      2
+    ],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "xmlSchemaParseRestriction",
+    "file": "/data/csong/opensource/libxml2/xmlschemas.c",
+    "signature": "xmlSchemaTypePtr(xmlSchemaParserCtxtPtr, xmlSchemaPtr, xmlNodePtr, xmlSchemaTypeType)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "xmlSchemaAddComponents",
+    "file": "/data/csong/opensource/libxml2/xmlschemas.c",
+    "signature": "int(xmlSchemaParserCtxtPtr, xmlSchemaBucketPtr)",
+    "container_type": "hash_table",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "xmlSchemaAugmentIDC",
+    "file": "/data/csong/opensource/libxml2/xmlschemas.c",
+    "signature": "void(void *, void *, const xmlChar *)",
+    "container_type": "linked_list",
+    "container_arg": 1,
+    "store_args": [
+      0
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "xmlSchemaIDCFreeIDCTable",
+    "file": "/data/csong/opensource/libxml2/xmlschemas.c",
+    "signature": "void(xmlSchemaPSVIIDCBindingPtr)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "xmlFreeIDCHashEntry",
+    "file": "/data/csong/opensource/libxml2/xmlschemas.c",
+    "signature": "void(void *, const xmlChar *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "xmlSchemaIDCFreeMatcherList",
+    "file": "/data/csong/opensource/libxml2/xmlschemas.c",
+    "signature": "void(xmlSchemaIDCMatcherPtr)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "xmlSchemaIDCReleaseMatcherList",
+    "file": "/data/csong/opensource/libxml2/xmlschemas.c",
+    "signature": "void(xmlSchemaValidCtxtPtr, xmlSchemaIDCMatcherPtr)",
+    "container_type": "cache",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "xmlSchemaBubbleIDCNodeTables",
+    "file": "/data/csong/opensource/libxml2/xmlschemas.c",
+    "signature": "int(xmlSchemaValidCtxtPtr)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "xmlXPathNodeSetDupNs",
+    "file": "/data/csong/opensource/libxml2/xpath.c",
+    "signature": "xmlNodePtr(xmlNodePtr, xmlNsPtr)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      0
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "xmlXPathNodeSetCreate",
+    "file": "/data/csong/opensource/libxml2/xpath.c",
+    "signature": "xmlNodeSet *(xmlNode *)",
+    "container_type": "array",
+    "container_arg": -1,
+    "store_args": [
+      0
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "xmlXPathNodeSetContains",
+    "file": "/data/csong/opensource/libxml2/xpath.c",
+    "signature": "int(xmlNodeSet *, xmlNode *)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "xmlXPathNodeSetAdd",
+    "file": "/data/csong/opensource/libxml2/xpath.c",
+    "signature": "int(xmlNodeSet *, xmlNode *)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "xmlXPathNodeSetAddUnique",
+    "file": "/data/csong/opensource/libxml2/xpath.c",
+    "signature": "int(xmlNodeSet *, xmlNode *)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "xmlXPathNodeSetMerge",
+    "file": "/data/csong/opensource/libxml2/xpath.c",
+    "signature": "xmlNodeSet *(xmlNodeSet *, xmlNodeSet *)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "xmllintShellList",
+    "file": "/data/csong/opensource/libxml2/shell.c",
+    "signature": "int(xmllintShellCtxtPtr, char *, xmlNodePtr, xmlNodePtr)",
+    "container_type": "tree",
+    "container_arg": 2,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "pool_bulk_insert",
+    "file": "/data/csong/opensource/libxml2/testdict.c",
+    "signature": "int(StringPool *, xmlHashTablePtr, size_t)",
+    "container_type": "pool",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "pool_bulk_lookup",
+    "file": "/data/csong/opensource/libxml2/testdict.c",
+    "signature": "int(StringPool *, xmlHashTablePtr, size_t, int)",
+    "container_type": "hash_table",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "pool_bulk_remove",
+    "file": "/data/csong/opensource/libxml2/testdict.c",
+    "signature": "int(StringPool *, xmlHashTablePtr, size_t)",
+    "container_type": "hash_table",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "hugeOpen",
+    "file": "/data/csong/opensource/libxml2/testrecurse.c",
+    "signature": "void *(const char *)",
+    "container_type": "array",
+    "container_arg": -1,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  }
+]

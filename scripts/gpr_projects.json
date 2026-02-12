@@ -575,7 +575,7 @@
   {
     "name": "Linux kernel",
     "url": "https://github.com/torvalds/linux",
-    "tier": 1,
+    "tier": 2,
     "area": "Security-critical, commonly used components of the Linux kernel (including KVM)",
     "project_dir": "linux",
     "language": "C"
@@ -735,5 +735,12 @@
     "area": "Widespread database",
     "project_dir": "sqlite3",
     "language": "C"
+  },
+  {
+    "name": "PHP",
+    "url": "https://github.com/php/php-src.git",
+    "tier": 2,
+    "area": "Widespread web application framework",
+    "project_dir": "php"
   }
 ]

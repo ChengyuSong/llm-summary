@@ -1,0 +1,179 @@
+[
+  {
+    "function": "index_tree_node_end",
+    "file": "/data/csong/opensource/xz/src/liblzma/common/index.c",
+    "signature": "void(index_tree_node *, const lzma_allocator *, void (*)(void *, const lzma_allocator *))",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "index_tree_end",
+    "file": "/data/csong/opensource/xz/src/liblzma/common/index.c",
+    "signature": "void(index_tree *, const lzma_allocator *, void (*)(void *, const lzma_allocator *))",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "index_tree_append",
+    "file": "/data/csong/opensource/xz/src/liblzma/common/index.c",
+    "signature": "void(index_tree *, index_tree_node *)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "index_tree_next",
+    "file": "/data/csong/opensource/xz/src/liblzma/common/index.c",
+    "signature": "void *(const index_tree_node *)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 11,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "index_tree_locate",
+    "file": "/data/csong/opensource/xz/src/liblzma/common/index.c",
+    "signature": "void *(const index_tree *, lzma_vli)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 11,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "iter_set_info",
+    "file": "/data/csong/opensource/xz/src/liblzma/common/index.c",
+    "signature": "void(lzma_index_iter *)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "move_head_to_cache",
+    "file": "/data/csong/opensource/xz/src/liblzma/common/outqueue.c",
+    "signature": "void(lzma_outq *, const lzma_allocator *)",
+    "container_type": "cache",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "free_one_cached_buffer",
+    "file": "/data/csong/opensource/xz/src/liblzma/common/outqueue.c",
+    "signature": "void(lzma_outq *, const lzma_allocator *)",
+    "container_type": "cache",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "lzma_outq_clear_cache2",
+    "file": "/data/csong/opensource/xz/src/liblzma/common/outqueue.c",
+    "signature": "void(lzma_outq *, const lzma_allocator *, size_t)",
+    "container_type": "cache",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "lzma_outq_get_buf",
+    "file": "/data/csong/opensource/xz/src/liblzma/common/outqueue.c",
+    "signature": "lzma_outbuf *(lzma_outq *, void *)",
+    "container_type": "queue",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "get_thread",
+    "file": "/data/csong/opensource/xz/src/liblzma/common/stream_encoder_mt.c",
+    "signature": "lzma_ret(lzma_stream_coder *, const lzma_allocator *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "lzma_index_hash_append",
+    "file": "/data/csong/opensource/xz/src/liblzma/common/index_hash.c",
+    "signature": "lzma_ret(lzma_index_hash *, lzma_vli, lzma_vli)",
+    "container_type": "list",
+    "container_arg": 0,
+    "store_args": [
+      1,
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "get_thread",
+    "file": "/data/csong/opensource/xz/src/liblzma/common/stream_decoder_mt.c",
+    "signature": "lzma_ret(struct lzma_stream_coder *, const lzma_allocator *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "test_lzma_index_hash_append",
+    "file": "/data/csong/opensource/xz/tests/test_index_hash.c",
+    "signature": "void()",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  }
+]

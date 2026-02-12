@@ -1,0 +1,840 @@
+[
+  {
+    "function": "convert_options",
+    "file": "/data/csong/opensource/tar/gnu/argp-parse.c",
+    "signature": "struct group *(const struct argp *, struct group *, unsigned int, struct group *, struct parser_convert_state *)",
+    "container_type": "linked_list",
+    "container_arg": 4,
+    "store_args": [
+      3
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "parser_init",
+    "file": "/data/csong/opensource/tar/gnu/argp-parse.c",
+    "signature": "error_t(struct parser *, const struct argp *, int, char **, int, void *)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [
+      5
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 10,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "hol_add_cluster",
+    "file": "/data/csong/opensource/tar/gnu/argp-help.c",
+    "signature": "struct hol_cluster *(struct hol *, int, const char *, int, struct hol_cluster *, const struct argp *)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [
+      2,
+      4,
+      5
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 9,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "hol_free",
+    "file": "/data/csong/opensource/tar/gnu/argp-help.c",
+    "signature": "void(struct hol *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "exclude_add_pattern_buffer",
+    "file": "/data/csong/opensource/tar/gnu/exclude.c",
+    "signature": "void(struct exclude *, char *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "hash_get_n_buckets_used",
+    "file": "/data/csong/opensource/tar/gnu/hash.c",
+    "signature": "size_t(const Hash_table *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 9,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "hash_get_max_bucket_length",
+    "file": "/data/csong/opensource/tar/gnu/hash.c",
+    "signature": "size_t(const Hash_table *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 10,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "hash_table_ok",
+    "file": "/data/csong/opensource/tar/gnu/hash.c",
+    "signature": "int()",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "safe_hasher",
+    "file": "/data/csong/opensource/tar/gnu/hash.c",
+    "signature": "struct hash_entry *(const Hash_table *, const void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "hash_lookup",
+    "file": "/data/csong/opensource/tar/gnu/hash.c",
+    "signature": "void *(const Hash_table *, const void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 15,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "hash_get_first",
+    "file": "/data/csong/opensource/tar/gnu/hash.c",
+    "signature": "void *(const Hash_table *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 12,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "hash_get_next",
+    "file": "/data/csong/opensource/tar/gnu/hash.c",
+    "signature": "void *(const Hash_table *, const void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 15,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "hash_get_entries",
+    "file": "/data/csong/opensource/tar/gnu/hash.c",
+    "signature": "size_t(const Hash_table *, void **, size_t)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 12,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "hash_do_for_each",
+    "file": "/data/csong/opensource/tar/gnu/hash.c",
+    "signature": "size_t(const Hash_table *, int, void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 10,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "raw_hasher",
+    "file": "/data/csong/opensource/tar/gnu/hash.c",
+    "signature": "size_t(const void *, size_t)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "hash_initialize",
+    "file": "/data/csong/opensource/tar/gnu/hash.c",
+    "signature": "Hash_table *(size_t, const Hash_tuning *, Hash_hasher, Hash_comparator, Hash_data_freer)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "hash_clear",
+    "file": "/data/csong/opensource/tar/gnu/hash.c",
+    "signature": "void(Hash_table *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "hash_free",
+    "file": "/data/csong/opensource/tar/gnu/hash.c",
+    "signature": "void(Hash_table *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "find_entry",
+    "file": "/data/csong/opensource/tar/gnu/hash.c",
+    "signature": "void *(Hash_table *, const void *, struct hash_entry **, bool)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 11,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "transfer_entries",
+    "file": "/data/csong/opensource/tar/gnu/hash.c",
+    "signature": "int()",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "hash_rehash",
+    "file": "/data/csong/opensource/tar/gnu/hash.c",
+    "signature": "int()",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "hash_insert_if_absent",
+    "file": "/data/csong/opensource/tar/gnu/hash.c",
+    "signature": "int(Hash_table *, const void *, const void **)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 13,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "hash_insert",
+    "file": "/data/csong/opensource/tar/gnu/hash.c",
+    "signature": "void *(Hash_table *, const void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 10,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "hash_remove",
+    "file": "/data/csong/opensource/tar/gnu/hash.c",
+    "signature": "void *(Hash_table *, const void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 12,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "_obstack_begin_worker",
+    "file": "/data/csong/opensource/tar/gnu/obstack.c",
+    "signature": "int(struct obstack *, int, int)",
+    "container_type": "obstack",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "_obstack_allocated_p",
+    "file": "/data/csong/opensource/tar/gnu/obstack.c",
+    "signature": "int(struct obstack *, void *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 9,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "populate_local_time_zone_table",
+    "file": "/data/csong/opensource/tar/gnu/parse-datetime.c",
+    "signature": "void(parser_control *, const struct tm *)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "hash_string_insert_prefix",
+    "file": "/data/csong/opensource/tar/paxutils/paxlib/names.c",
+    "signature": "int()",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "wsnode_append",
+    "file": "/data/csong/opensource/tar/lib/wordsplit.c",
+    "signature": "void(struct wordsplit *, struct wordsplit_node *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "wsnode_remove",
+    "file": "/data/csong/opensource/tar/lib/wordsplit.c",
+    "signature": "void(struct wordsplit *, struct wordsplit_node *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "wsnode_insert",
+    "file": "/data/csong/opensource/tar/lib/wordsplit.c",
+    "signature": "void(struct wordsplit *, struct wordsplit_node *, struct wordsplit_node *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "wordsplit_finish",
+    "file": "/data/csong/opensource/tar/lib/wordsplit.c",
+    "signature": "int(struct wordsplit *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "add_exclusion_tag",
+    "file": "/data/csong/opensource/tar/src/create.c",
+    "signature": "void(const char *, enum exclusion_tag_type, int (int *))",
+    "container_type": "linked_list",
+    "container_arg": -1,
+    "store_args": [
+      0,
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "excfile_add",
+    "file": "/data/csong/opensource/tar/src/exclist.c",
+    "signature": "void(const char *, int)",
+    "container_type": "linked_list",
+    "container_arg": -1,
+    "store_args": [
+      0
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "info_attach_exclist",
+    "file": "/data/csong/opensource/tar/src/exclist.c",
+    "signature": "void(struct tar_stat_info *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "info_free_exclist",
+    "file": "/data/csong/opensource/tar/src/exclist.c",
+    "signature": "void(struct tar_stat_info *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "dl_hash",
+    "file": "/data/csong/opensource/tar/src/extract.c",
+    "signature": "size_t(const void *, size_t)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "find_direct_ancestor",
+    "file": "/data/csong/opensource/tar/src/extract.c",
+    "signature": "struct delayed_set_stat *(const char *)",
+    "container_type": "linked_list",
+    "container_arg": -1,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "mark_metadata_set",
+    "file": "/data/csong/opensource/tar/src/extract.c",
+    "signature": "void(struct delayed_set_stat *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "delay_set_stat",
+    "file": "/data/csong/opensource/tar/src/extract.c",
+    "signature": "void(const char *, const struct tar_stat_info *, mode_t, mode_t, mode_t, int)",
+    "container_type": "hash_table",
+    "container_arg": -1,
+    "store_args": [
+      0,
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "remove_delayed_set_stat",
+    "file": "/data/csong/opensource/tar/src/extract.c",
+    "signature": "void(const char *)",
+    "container_type": "linked_list",
+    "container_arg": -1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "fixup_delayed_set_stat",
+    "file": "/data/csong/opensource/tar/src/extract.c",
+    "signature": "void(const char *, const char *)",
+    "container_type": "linked_list",
+    "container_arg": -1,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "apply_nonancestor_delayed_set_stat",
+    "file": "/data/csong/opensource/tar/src/extract.c",
+    "signature": "void(const char *, bool)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "bufmap_locate",
+    "file": "/data/csong/opensource/tar/src/buffer.c",
+    "signature": "struct bufmap *(idx_t)",
+    "container_type": "linked_list",
+    "container_arg": -1,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "bufmap_free",
+    "file": "/data/csong/opensource/tar/src/buffer.c",
+    "signature": "void(struct bufmap *)",
+    "container_type": "linked_list",
+    "container_arg": -1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "bufmap_reset",
+    "file": "/data/csong/opensource/tar/src/buffer.c",
+    "signature": "void(struct bufmap *, ptrdiff_t)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "clear_directory_table",
+    "file": "/data/csong/opensource/tar/src/incremen.c",
+    "signature": "void()",
+    "container_type": "hash_table",
+    "container_arg": -1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "append_incremental_renames",
+    "file": "/data/csong/opensource/tar/src/incremen.c",
+    "signature": "void(struct directory *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "name_list_adjust",
+    "file": "/data/csong/opensource/tar/src/names.c",
+    "signature": "void()",
+    "container_type": "linked_list",
+    "container_arg": -1,
+    "store_args": [
+      0
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "name_list_advance",
+    "file": "/data/csong/opensource/tar/src/names.c",
+    "signature": "void()",
+    "container_type": "linked_list",
+    "container_arg": -1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "add_file_id",
+    "file": "/data/csong/opensource/tar/src/names.c",
+    "signature": "int(const char *)",
+    "container_type": "linked_list",
+    "container_arg": -1,
+    "store_args": [
+      0
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "add_starting_file",
+    "file": "/data/csong/opensource/tar/src/names.c",
+    "signature": "void(const char *)",
+    "container_type": "linked_list",
+    "container_arg": -1,
+    "store_args": [
+      0
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "namelist_match_from",
+    "file": "/data/csong/opensource/tar/src/names.c",
+    "signature": "struct name *(struct name *, const char *, int)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "register_match",
+    "file": "/data/csong/opensource/tar/src/names.c",
+    "signature": "void(struct name *, const char *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "add_hierarchy_to_namelist",
+    "file": "/data/csong/opensource/tar/src/names.c",
+    "signature": "void(struct tar_stat_info *, struct name *)",
+    "container_type": "linked_list",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 9,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "map_hash",
+    "file": "/data/csong/opensource/tar/src/map.c",
+    "signature": "size_t(const void *, size_t)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "sparse_add_map",
+    "file": "/data/csong/opensource/tar/src/sparse.c",
+    "signature": "void(struct tar_stat_info *, const struct sp_array *)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "xheader_list_append",
+    "file": "/data/csong/opensource/tar/src/xheader.c",
+    "signature": "void(struct keyword_list **, const char *, const char *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1,
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "xheader_list_destroy",
+    "file": "/data/csong/opensource/tar/src/xheader.c",
+    "signature": "void(struct keyword_list **)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "run_override_list",
+    "file": "/data/csong/opensource/tar/src/xheader.c",
+    "signature": "void(struct keyword_list *, struct tar_stat_info *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "optloc_lookup",
+    "file": "/data/csong/opensource/tar/src/tar.c",
+    "signature": "struct option_locus *(enum option_class)",
+    "container_type": "linked_list",
+    "container_arg": -1,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "xattr_map_add",
+    "file": "/data/csong/opensource/tar/src/xattrs.c",
+    "signature": "void(struct xattr_map *, const char *, const char *, idx_t)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [
+      1,
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "dunlink_insert",
+    "file": "/data/csong/opensource/tar/src/unlink.c",
+    "signature": "void(struct deferred_unlink *, struct deferred_unlink *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "queue_deferred_unlink",
+    "file": "/data/csong/opensource/tar/src/unlink.c",
+    "signature": "void(const char *, int)",
+    "container_type": "linked_list",
+    "container_arg": -1,
+    "store_args": [
+      0
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "add_segment",
+    "file": "/data/csong/opensource/tar/src/transform.c",
+    "signature": "struct replace_segm *(struct transform *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  }
+]

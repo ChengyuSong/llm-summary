@@ -1,0 +1,60 @@
+[
+  {
+    "function": "JxlDecoderSetExtraChannelBuffer",
+    "file": "/data/csong/opensource/jpegxl/lib/jxl/decode.cc",
+    "signature": "JxlDecoderStatus(JxlDecoder *, const JxlPixelFormat *, void *, size_t, uint32_t)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "JxlEncoderSetExtraChannelBuffer",
+    "file": "/data/csong/opensource/jpegxl/lib/jxl/encode.cc",
+    "signature": "JxlEncoderStatus(const JxlEncoderFrameSettings *, const JxlPixelFormat *, const void *, size_t, uint32_t)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "jxl::extras::DecodeImageJXL",
+    "file": "/data/csong/opensource/jpegxl/lib/extras/dec/jxl.cc",
+    "signature": "bool(const uint8_t *, size_t, const JXLDecompressParams &, size_t *, PackedPixelFile *, std::vector<uint8_t> *, const SizeConstraints *)",
+    "container_type": "vector",
+    "container_arg": 4,
+    "store_args": [
+      2,
+      4,
+      5
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "jpeg_add_quant_table",
+    "file": "/data/csong/opensource/jpegxl/lib/jpegli/libjpeg_wrapper.cc",
+    "signature": "void(j_compress_ptr, int, const unsigned int *, int, boolean)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  }
+]

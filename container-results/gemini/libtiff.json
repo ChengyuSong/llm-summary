@@ -1,0 +1,90 @@
+[
+  {
+    "function": "TIFFGetClientInfo",
+    "file": "/data/csong/opensource/libtiff/libtiff/tif_extension.c",
+    "signature": "void *(TIFF *, const char *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 9,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "TIFFSetClientInfo",
+    "file": "/data/csong/opensource/libtiff/libtiff/tif_extension.c",
+    "signature": "void(TIFF *, void *, const char *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 9,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "TIFFHashSetFindPtr",
+    "file": "/data/csong/opensource/libtiff/libtiff/tif_hash_set.c",
+    "signature": "void **(TIFFHashSet *, const void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "TIFFHashSetInsert",
+    "file": "/data/csong/opensource/libtiff/libtiff/tif_hash_set.c",
+    "signature": "_Bool(TIFFHashSet *, void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "TIFFHashSetLookup",
+    "file": "/data/csong/opensource/libtiff/libtiff/tif_hash_set.c",
+    "signature": "void *(TIFFHashSet *, const void *)",
+    "container_type": "set",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "TIFFHashSetRemoveInternal",
+    "file": "/data/csong/opensource/libtiff/libtiff/tif_hash_set.c",
+    "signature": "_Bool(TIFFHashSet *, const void *, _Bool)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "TIFFHashSetRemove",
+    "file": "/data/csong/opensource/libtiff/libtiff/tif_hash_set.c",
+    "signature": "_Bool(TIFFHashSet *, const void *)",
+    "container_type": "set",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  }
+]

@@ -1,0 +1,167 @@
+[
+  {
+    "function": "POOL_thread",
+    "file": "/data/csong/opensource/zstdlib/lib/common/pool.c",
+    "signature": "void *(void *)",
+    "container_type": "queue",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "POOL_add_internal",
+    "file": "/data/csong/opensource/zstdlib/lib/common/pool.c",
+    "signature": "void(POOL_ctx *, POOL_function, void *)",
+    "container_type": "queue",
+    "container_arg": 0,
+    "store_args": [
+      1,
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "POOL_add",
+    "file": "/data/csong/opensource/zstdlib/lib/common/pool.c",
+    "signature": "void(POOL_ctx *, POOL_function, void *)",
+    "container_type": "queue",
+    "container_arg": 0,
+    "store_args": [
+      1,
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "POOL_tryAdd",
+    "file": "/data/csong/opensource/zstdlib/lib/common/pool.c",
+    "signature": "int(POOL_ctx *, POOL_function, void *)",
+    "container_type": "pool",
+    "container_arg": 0,
+    "store_args": [
+      1,
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ZSTD_loadDictionaryContent",
+    "file": "/data/csong/opensource/zstdlib/lib/compress/zstd_compress.c",
+    "signature": "size_t(ZSTD_MatchState_t *, ldmState_t *, ZSTD_cwksp *, const ZSTD_CCtx_params *, const void *, size_t, ZSTD_dictTableLoadMethod_e, ZSTD_tableFillPurpose_e)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      4
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ZSTD_fillDoubleHashTable",
+    "file": "/data/csong/opensource/zstdlib/lib/compress/zstd_double_fast.c",
+    "signature": "void(ZSTD_MatchState_t *, const void *const, ZSTD_dictTableLoadMethod_e, ZSTD_tableFillPurpose_e)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ZSTD_compressBlock_doubleFast_extDict_generic",
+    "file": "/data/csong/opensource/zstdlib/lib/compress/zstd_double_fast.c",
+    "signature": "size_t(ZSTD_MatchState_t *, SeqStore_t *, U32[3], const void *, size_t, const U32)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      3
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ZSTD_compressBlock_fast_noDict_generic",
+    "file": "/data/csong/opensource/zstdlib/lib/compress/zstd_fast.c",
+    "signature": "size_t(ZSTD_MatchState_t *, SeqStore_t *, U32[3], const void *, size_t, const U32, int)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      3
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ZSTD_dedicatedDictSearch_lazy_search",
+    "file": "/data/csong/opensource/zstdlib/lib/compress/zstd_lazy.c",
+    "signature": "size_t(size_t *, size_t, U32, const ZSTD_MatchState_t *const, const BYTE *const, const BYTE *const, const BYTE *const, const U32, const U32, const size_t)",
+    "container_type": "hash_table",
+    "container_arg": 3,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ZSTD_ldm_fillHashTable",
+    "file": "/data/csong/opensource/zstdlib/lib/compress/zstd_ldm.c",
+    "signature": "void(ldmState_t *, const BYTE *, const BYTE *, const ldmParams_t *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "COVER_map_index",
+    "file": "/data/csong/opensource/zstdlib/lib/dictBuilder/cover.c",
+    "signature": "U32(COVER_map_t *, U32)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ZDICT_insertDictItem",
+    "file": "/data/csong/opensource/zstdlib/lib/dictBuilder/zdict.c",
+    "signature": "void(dictItem *, U32, dictItem, const void *)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  }
+]

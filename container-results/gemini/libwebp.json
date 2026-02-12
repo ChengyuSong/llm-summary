@@ -1,0 +1,102 @@
+[
+  {
+    "function": "CostIntervalAddToFreeList",
+    "file": "/data/csong/opensource/libwebp/src/enc/backward_references_cost_enc.c",
+    "signature": "void(CostManager *const, CostInterval *const)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "DeleteIntervalList",
+    "file": "/data/csong/opensource/libwebp/src/enc/backward_references_cost_enc.c",
+    "signature": "void(CostManager *const, const CostInterval *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "VP8LBuildHuffmanTable",
+    "file": "/data/csong/opensource/libwebp/src/utils/huffman_utils.c",
+    "signature": "int(HuffmanTables *const, int, const int[], int)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ImageListDiskSize",
+    "file": "/data/csong/opensource/libwebp/src/mux/muxedit.c",
+    "signature": "size_t(const WebPMuxImage *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ChunkSearchNextInList",
+    "file": "/data/csong/opensource/libwebp/src/mux/muxinternal.c",
+    "signature": "WebPChunk *(WebPChunk *, uint32_t)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ChunkSearchList",
+    "file": "/data/csong/opensource/libwebp/src/mux/muxinternal.c",
+    "signature": "WebPChunk *(WebPChunk *, uint32_t, uint32_t)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ChunkSetHead",
+    "file": "/data/csong/opensource/libwebp/src/mux/muxinternal.c",
+    "signature": "WebPMuxError(WebPChunk *const, WebPChunk **const)",
+    "container_type": "linked_list",
+    "container_arg": 1,
+    "store_args": [
+      0
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ChunkListEmit",
+    "file": "/data/csong/opensource/libwebp/src/mux/muxinternal.c",
+    "signature": "uint8_t *(const WebPChunk *, uint8_t *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  }
+]

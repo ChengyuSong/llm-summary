@@ -878,6 +878,18 @@ class SummaryDB:
         ).fetchone()
         return row is not None
 
+    def delete_container_summaries(self, function_ids: list[int]) -> int:
+        """Delete container summaries for the given function IDs. Returns count deleted."""
+        if not function_ids:
+            return 0
+        placeholders = ",".join("?" for _ in function_ids)
+        cursor = self.conn.execute(
+            f"DELETE FROM container_summaries WHERE function_id IN ({placeholders})",
+            function_ids,
+        )
+        self.conn.commit()
+        return cursor.rowcount
+
     # ========== Utility Operations ==========
 
     def clear_all(self) -> None:

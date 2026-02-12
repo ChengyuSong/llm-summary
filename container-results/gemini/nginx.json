@@ -1,0 +1,1850 @@
+[
+  {
+    "function": "ngx_log_get_file_log",
+    "file": "/data/csong/opensource/nginx/src/core/ngx_log.c",
+    "signature": "ngx_log_t *(ngx_log_t *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ngx_log_insert",
+    "file": "/data/csong/opensource/nginx/src/core/ngx_log.c",
+    "signature": "void(ngx_log_t *, ngx_log_t *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ngx_hash_find",
+    "file": "/data/csong/opensource/nginx/src/core/ngx_hash.c",
+    "signature": "void *(ngx_hash_t *, ngx_uint_t, int *, int)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 11,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ngx_hash_find_wc_head",
+    "file": "/data/csong/opensource/nginx/src/core/ngx_hash.c",
+    "signature": "void *(ngx_hash_wildcard_t *, int *, int)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 11,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ngx_hash_find_wc_tail",
+    "file": "/data/csong/opensource/nginx/src/core/ngx_hash.c",
+    "signature": "void *(ngx_hash_wildcard_t *, int *, int)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 10,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ngx_hash_find_combined",
+    "file": "/data/csong/opensource/nginx/src/core/ngx_hash.c",
+    "signature": "void *(ngx_hash_combined_t *, ngx_uint_t, int *, int)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 9,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ngx_hash_init",
+    "file": "/data/csong/opensource/nginx/src/core/ngx_hash.c",
+    "signature": "ngx_int_t(ngx_hash_init_t *, ngx_hash_key_t *, ngx_uint_t)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ngx_hash_wildcard_init",
+    "file": "/data/csong/opensource/nginx/src/core/ngx_hash.c",
+    "signature": "ngx_int_t(ngx_hash_init_t *, ngx_hash_key_t *, ngx_uint_t)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ngx_hash_add_key",
+    "file": "/data/csong/opensource/nginx/src/core/ngx_hash.c",
+    "signature": "ngx_int_t(ngx_hash_keys_arrays_t *, ngx_str_t *, void *, ngx_uint_t)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ngx_list_push",
+    "file": "/data/csong/opensource/nginx/src/core/ngx_list.c",
+    "signature": "void *(ngx_list_t *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 12,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ngx_set_env",
+    "file": "/data/csong/opensource/nginx/src/core/nginx.c",
+    "signature": "char *(ngx_conf_t *, ngx_command_t *, void *)",
+    "container_type": "array",
+    "container_arg": 2,
+    "store_args": [
+      0
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ngx_output_chain_add_copy",
+    "file": "/data/csong/opensource/nginx/src/core/ngx_output_chain.c",
+    "signature": "ngx_int_t(ngx_pool_t *, ngx_chain_t **, ngx_chain_t *)",
+    "container_type": "linked_list",
+    "container_arg": 1,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ngx_chain_writer",
+    "file": "/data/csong/opensource/nginx/src/core/ngx_output_chain.c",
+    "signature": "ngx_int_t(void *, ngx_chain_t *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ngx_array_push",
+    "file": "/data/csong/opensource/nginx/src/core/ngx_array.c",
+    "signature": "void *(ngx_array_t *)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ngx_array_push_n",
+    "file": "/data/csong/opensource/nginx/src/core/ngx_array.c",
+    "signature": "void *(ngx_array_t *, ngx_uint_t)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ngx_destroy_pool",
+    "file": "/data/csong/opensource/nginx/src/core/ngx_palloc.c",
+    "signature": "void(ngx_pool_t *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ngx_reset_pool",
+    "file": "/data/csong/opensource/nginx/src/core/ngx_palloc.c",
+    "signature": "void(ngx_pool_t *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ngx_palloc_block",
+    "file": "/data/csong/opensource/nginx/src/core/ngx_palloc.c",
+    "signature": "void *(ngx_pool_t *, int)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      0
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ngx_pool_cleanup_add",
+    "file": "/data/csong/opensource/nginx/src/core/ngx_palloc.c",
+    "signature": "ngx_pool_cleanup_t *(ngx_pool_t *, int)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ngx_pool_run_cleanup_file",
+    "file": "/data/csong/opensource/nginx/src/core/ngx_palloc.c",
+    "signature": "void(ngx_pool_t *, int)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ngx_chain_add_copy",
+    "file": "/data/csong/opensource/nginx/src/core/ngx_buf.c",
+    "signature": "ngx_int_t(ngx_pool_t *, ngx_chain_t **, ngx_chain_t *)",
+    "container_type": "linked_list",
+    "container_arg": 1,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ngx_chain_get_free_buf",
+    "file": "/data/csong/opensource/nginx/src/core/ngx_buf.c",
+    "signature": "ngx_chain_t *(ngx_pool_t *, ngx_chain_t **)",
+    "container_type": "linked_list",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ngx_str_rbtree_insert_value",
+    "file": "/data/csong/opensource/nginx/src/core/ngx_string.c",
+    "signature": "void(ngx_rbtree_node_t *, ngx_rbtree_node_t *, ngx_rbtree_node_t *)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ngx_str_rbtree_lookup",
+    "file": "/data/csong/opensource/nginx/src/core/ngx_string.c",
+    "signature": "ngx_str_node_t *(ngx_rbtree_t *, ngx_str_t *, int)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ngx_rbtree_insert",
+    "file": "/data/csong/opensource/nginx/src/core/ngx_rbtree.c",
+    "signature": "void(ngx_rbtree_t *, ngx_rbtree_node_t *)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ngx_rbtree_insert_value",
+    "file": "/data/csong/opensource/nginx/src/core/ngx_rbtree.c",
+    "signature": "void(ngx_rbtree_node_t *, ngx_rbtree_node_t *, ngx_rbtree_node_t *)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ngx_rbtree_insert_timer_value",
+    "file": "/data/csong/opensource/nginx/src/core/ngx_rbtree.c",
+    "signature": "void(ngx_rbtree_node_t *, ngx_rbtree_node_t *, ngx_rbtree_node_t *)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ngx_rbtree_delete",
+    "file": "/data/csong/opensource/nginx/src/core/ngx_rbtree.c",
+    "signature": "void(ngx_rbtree_t *, ngx_rbtree_node_t *)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ngx_rbtree_left_rotate",
+    "file": "/data/csong/opensource/nginx/src/core/ngx_rbtree.c",
+    "signature": "void(ngx_rbtree_node_t **, ngx_rbtree_node_t *, ngx_rbtree_node_t *)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ngx_rbtree_right_rotate",
+    "file": "/data/csong/opensource/nginx/src/core/ngx_rbtree.c",
+    "signature": "void(ngx_rbtree_node_t **, ngx_rbtree_node_t *, ngx_rbtree_node_t *)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ngx_rbtree_next",
+    "file": "/data/csong/opensource/nginx/src/core/ngx_rbtree.c",
+    "signature": "ngx_rbtree_node_t *(ngx_rbtree_t *, ngx_rbtree_node_t *)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ngx_shared_memory_add",
+    "file": "/data/csong/opensource/nginx/src/core/ngx_cycle.c",
+    "signature": "ngx_shm_zone_t *(ngx_conf_t *, ngx_str_t *, int, void *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1,
+      3
+    ],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ngx_slab_alloc_locked",
+    "file": "/data/csong/opensource/nginx/src/core/ngx_slab.c",
+    "signature": "void *(ngx_slab_pool_t *, int)",
+    "container_type": "slab_allocator",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 10,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ngx_radix_tree_create",
+    "file": "/data/csong/opensource/nginx/src/core/ngx_radix_tree.c",
+    "signature": "ngx_radix_tree_t *(ngx_pool_t *, ngx_int_t)",
+    "container_type": "radix_tree",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ngx_radix32tree_insert",
+    "file": "/data/csong/opensource/nginx/src/core/ngx_radix_tree.c",
+    "signature": "ngx_int_t(ngx_radix_tree_t *, int, int, int)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [
+      3
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ngx_radix32tree_delete",
+    "file": "/data/csong/opensource/nginx/src/core/ngx_radix_tree.c",
+    "signature": "ngx_int_t(ngx_radix_tree_t *, int, int)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ngx_radix32tree_find",
+    "file": "/data/csong/opensource/nginx/src/core/ngx_radix_tree.c",
+    "signature": "int(ngx_radix_tree_t *, int)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ngx_conf_set_str_array_slot",
+    "file": "/data/csong/opensource/nginx/src/core/ngx_conf_file.c",
+    "signature": "char *(ngx_conf_t *, ngx_command_t *, void *)",
+    "container_type": "array",
+    "container_arg": 2,
+    "store_args": [
+      0
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ngx_conf_set_keyval_slot",
+    "file": "/data/csong/opensource/nginx/src/core/ngx_conf_file.c",
+    "signature": "char *(ngx_conf_t *, ngx_command_t *, void *)",
+    "container_type": "array",
+    "container_arg": 2,
+    "store_args": [
+      0
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ngx_resolver_cleanup_tree",
+    "file": "/data/csong/opensource/nginx/src/core/ngx_resolver.c",
+    "signature": "void(ngx_resolver_t *, ngx_rbtree_t *)",
+    "container_type": "tree",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ngx_resolve_name_locked",
+    "file": "/data/csong/opensource/nginx/src/core/ngx_resolver.c",
+    "signature": "ngx_int_t(ngx_resolver_t *, ngx_resolver_ctx_t *, ngx_str_t *)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ngx_resolve_addr",
+    "file": "/data/csong/opensource/nginx/src/core/ngx_resolver.c",
+    "signature": "ngx_int_t(ngx_resolver_ctx_t *)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [
+      0
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ngx_resolver_process_a",
+    "file": "/data/csong/opensource/nginx/src/core/ngx_resolver.c",
+    "signature": "void(ngx_resolver_t *, int *, int, ngx_uint_t, ngx_uint_t, ngx_uint_t, ngx_uint_t, ngx_uint_t, ngx_uint_t)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ngx_resolver_process_srv",
+    "file": "/data/csong/opensource/nginx/src/core/ngx_resolver.c",
+    "signature": "void(ngx_resolver_t *, int *, int, ngx_uint_t, ngx_uint_t, ngx_uint_t, ngx_uint_t, ngx_uint_t)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ngx_resolver_process_ptr",
+    "file": "/data/csong/opensource/nginx/src/core/ngx_resolver.c",
+    "signature": "void(ngx_resolver_t *, int *, int, ngx_uint_t, ngx_uint_t, ngx_uint_t)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ngx_resolver_lookup_name",
+    "file": "/data/csong/opensource/nginx/src/core/ngx_resolver.c",
+    "signature": "ngx_resolver_node_t *(ngx_resolver_t *, ngx_str_t *, int)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ngx_resolver_lookup_srv",
+    "file": "/data/csong/opensource/nginx/src/core/ngx_resolver.c",
+    "signature": "ngx_resolver_node_t *(ngx_resolver_t *, ngx_str_t *, int)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ngx_resolver_lookup_addr",
+    "file": "/data/csong/opensource/nginx/src/core/ngx_resolver.c",
+    "signature": "ngx_resolver_node_t *(ngx_resolver_t *, int)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ngx_resolver_rbtree_insert_value",
+    "file": "/data/csong/opensource/nginx/src/core/ngx_resolver.c",
+    "signature": "void(ngx_rbtree_node_t *, ngx_rbtree_node_t *, ngx_rbtree_node_t *)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ngx_open_file_cache_cleanup",
+    "file": "/data/csong/opensource/nginx/src/core/ngx_open_file_cache.c",
+    "signature": "void(void *)",
+    "container_type": "cache",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ngx_open_cached_file",
+    "file": "/data/csong/opensource/nginx/src/core/ngx_open_file_cache.c",
+    "signature": "ngx_int_t(ngx_open_file_cache_t *, ngx_str_t *, ngx_open_file_info_t *, ngx_pool_t *)",
+    "container_type": "cache",
+    "container_arg": 0,
+    "store_args": [
+      1,
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ngx_open_file_cache_rbtree_insert_value",
+    "file": "/data/csong/opensource/nginx/src/core/ngx_open_file_cache.c",
+    "signature": "void(ngx_rbtree_node_t *, ngx_rbtree_node_t *, ngx_rbtree_node_t *)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ngx_open_file_lookup",
+    "file": "/data/csong/opensource/nginx/src/core/ngx_open_file_cache.c",
+    "signature": "ngx_cached_open_file_t *(ngx_open_file_cache_t *, ngx_str_t *, int)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ngx_open_file_cache_remove",
+    "file": "/data/csong/opensource/nginx/src/core/ngx_open_file_cache.c",
+    "signature": "void(ngx_event_t *)",
+    "container_type": "cache",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ngx_udp_rbtree_insert_value",
+    "file": "/data/csong/opensource/nginx/src/event/ngx_event_udp.c",
+    "signature": "void(int *, int *, int *)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ngx_lookup_udp_connection",
+    "file": "/data/csong/opensource/nginx/src/event/ngx_event_udp.c",
+    "signature": "int *(int *, struct sockaddr *, int, struct sockaddr *, int)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ngx_event_pipe_add_free_buf",
+    "file": "/data/csong/opensource/nginx/src/event/ngx_event_pipe.c",
+    "signature": "int()",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ngx_bpf_map_update",
+    "file": "/data/csong/opensource/nginx/src/core/ngx_bpf.c",
+    "signature": "int(int, const void *, const void *, int)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ngx_bpf_map_delete",
+    "file": "/data/csong/opensource/nginx/src/core/ngx_bpf.c",
+    "signature": "int(int, const void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ngx_bpf_map_lookup",
+    "file": "/data/csong/opensource/nginx/src/core/ngx_bpf.c",
+    "signature": "int(int, const void *, void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ngx_http_init_headers_in_hash",
+    "file": "/data/csong/opensource/nginx/src/http/ngx_http.c",
+    "signature": "int()",
+    "container_type": "hash_table",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ngx_http_create_locations_tree",
+    "file": "/data/csong/opensource/nginx/src/http/ngx_http.c",
+    "signature": "ngx_http_location_tree_node_t *(int *, int *, size_t)",
+    "container_type": "tree",
+    "container_arg": 1,
+    "store_args": [
+      1
+    ],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ngx_http_add_listen",
+    "file": "/data/csong/opensource/nginx/src/http/ngx_http.c",
+    "signature": "int()",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [
+      1,
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ngx_http_types_slot",
+    "file": "/data/csong/opensource/nginx/src/http/ngx_http.c",
+    "signature": "char *(int *, int *, void *)",
+    "container_type": "array",
+    "container_arg": 2,
+    "store_args": [
+      0
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ngx_regex_cleanup",
+    "file": "/data/csong/opensource/nginx/src/core/ngx_regex.c",
+    "signature": "void(void *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ngx_http_core_find_static_location",
+    "file": "/data/csong/opensource/nginx/src/http/ngx_http_core_module.c",
+    "signature": "int()",
+    "container_type": "tree",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ngx_http_test_content_type",
+    "file": "/data/csong/opensource/nginx/src/http/ngx_http_core_module.c",
+    "signature": "void *(ngx_http_request_t *, int *)",
+    "container_type": "hash_table",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ngx_http_set_content_type",
+    "file": "/data/csong/opensource/nginx/src/http/ngx_http_core_module.c",
+    "signature": "int()",
+    "container_type": "hash_table",
+    "container_arg": 2,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ngx_http_cleanup_add",
+    "file": "/data/csong/opensource/nginx/src/http/ngx_http_core_module.c",
+    "signature": "ngx_http_cleanup_t *(ngx_http_request_t *, size_t)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ngx_http_send_error_page",
+    "file": "/data/csong/opensource/nginx/src/http/ngx_http_special_response.c",
+    "signature": "int()",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ngx_http_parse_set_cookie_lines",
+    "file": "/data/csong/opensource/nginx/src/http/ngx_http_parse.c",
+    "signature": "int *(ngx_http_request_t *, int *, int *, int *)",
+    "container_type": "linked_list",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ngx_http_log_set_log",
+    "file": "/data/csong/opensource/nginx/src/http/modules/ngx_http_log_module.c",
+    "signature": "char *(int *, int *, void *)",
+    "container_type": "array",
+    "container_arg": 2,
+    "store_args": [
+      0
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ngx_http_log_set_format",
+    "file": "/data/csong/opensource/nginx/src/http/modules/ngx_http_log_module.c",
+    "signature": "char *(int *, int *, void *)",
+    "container_type": "array",
+    "container_arg": 2,
+    "store_args": [
+      0
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ngx_http_set_predicate_slot",
+    "file": "/data/csong/opensource/nginx/src/http/ngx_http_script.c",
+    "signature": "char *(int *, int *, void *)",
+    "container_type": "array",
+    "container_arg": 2,
+    "store_args": [
+      0
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ngx_http_script_add_code",
+    "file": "/data/csong/opensource/nginx/src/http/ngx_http_script.c",
+    "signature": "void *(int *, size_t, void *)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ngx_http_get_variable_index",
+    "file": "/data/csong/opensource/nginx/src/http/ngx_http_variables.c",
+    "signature": "int()",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ngx_http_variable_headers_internal",
+    "file": "/data/csong/opensource/nginx/src/http/ngx_http_variables.c",
+    "signature": "int()",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ngx_http_variable_unknown_header",
+    "file": "/data/csong/opensource/nginx/src/http/ngx_http_variables.c",
+    "signature": "int()",
+    "container_type": "linked_list",
+    "container_arg": 3,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ngx_http_map_find",
+    "file": "/data/csong/opensource/nginx/src/http/ngx_http_variables.c",
+    "signature": "void *(ngx_http_request_t *, ngx_http_map_t *, int *)",
+    "container_type": "hash_table",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 9,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ngx_http_upstream_get_round_robin_peer",
+    "file": "/data/csong/opensource/nginx/src/http/ngx_http_upstream_round_robin.c",
+    "signature": "int()",
+    "container_type": "linked_list",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ngx_http_upstream_get_peer",
+    "file": "/data/csong/opensource/nginx/src/http/ngx_http_upstream_round_robin.c",
+    "signature": "ngx_http_upstream_rr_peer_t *(ngx_http_upstream_rr_peer_data_t *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ngx_http_upstream_process_header_line",
+    "file": "/data/csong/opensource/nginx/src/http/ngx_http_upstream.c",
+    "signature": "int()",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ngx_http_upstream_process_last_modified",
+    "file": "/data/csong/opensource/nginx/src/http/ngx_http_upstream.c",
+    "signature": "int()",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ngx_http_upstream_process_set_cookie",
+    "file": "/data/csong/opensource/nginx/src/http/ngx_http_upstream.c",
+    "signature": "int()",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ngx_http_upstream_process_cache_control",
+    "file": "/data/csong/opensource/nginx/src/http/ngx_http_upstream.c",
+    "signature": "int()",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ngx_http_upstream_process_limit_rate",
+    "file": "/data/csong/opensource/nginx/src/http/ngx_http_upstream.c",
+    "signature": "int()",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ngx_http_upstream_rewrite_set_cookie",
+    "file": "/data/csong/opensource/nginx/src/http/ngx_http_upstream.c",
+    "signature": "int()",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ngx_http_upstream_param_set_slot",
+    "file": "/data/csong/opensource/nginx/src/http/ngx_http_upstream.c",
+    "signature": "char *(int *, int *, void *)",
+    "container_type": "array",
+    "container_arg": 2,
+    "store_args": [
+      0
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ngx_http_upstream_hide_headers_hash",
+    "file": "/data/csong/opensource/nginx/src/http/ngx_http_upstream.c",
+    "signature": "int()",
+    "container_type": "hash_table",
+    "container_arg": 4,
+    "store_args": [
+      1,
+      2,
+      3
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ngx_http_file_cache_lookup",
+    "file": "/data/csong/opensource/nginx/src/http/ngx_http_file_cache.c",
+    "signature": "int *(ngx_http_file_cache_t *, int *)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ngx_http_file_cache_rbtree_insert_value",
+    "file": "/data/csong/opensource/nginx/src/http/ngx_http_file_cache.c",
+    "signature": "void(int *, int *, int *)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ngx_http_file_cache_vary_header",
+    "file": "/data/csong/opensource/nginx/src/http/ngx_http_file_cache.c",
+    "signature": "void(ngx_http_request_t *, int *, int *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ngx_http_file_cache_delete",
+    "file": "/data/csong/opensource/nginx/src/http/ngx_http_file_cache.c",
+    "signature": "void(ngx_http_file_cache_t *, int *, int *)",
+    "container_type": "cache",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ngx_http_file_cache_loader",
+    "file": "/data/csong/opensource/nginx/src/http/ngx_http_file_cache.c",
+    "signature": "void(void *)",
+    "container_type": "file_cache",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ngx_http_file_cache_add_file",
+    "file": "/data/csong/opensource/nginx/src/http/ngx_http_file_cache.c",
+    "signature": "int()",
+    "container_type": "cache",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ngx_http_file_cache_add",
+    "file": "/data/csong/opensource/nginx/src/http/ngx_http_file_cache.c",
+    "signature": "int()",
+    "container_type": "cache",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ngx_http_file_cache_set_slot",
+    "file": "/data/csong/opensource/nginx/src/http/ngx_http_file_cache.c",
+    "signature": "char *(int *, int *, void *)",
+    "container_type": "array",
+    "container_arg": 2,
+    "store_args": [
+      0
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ngx_http_file_cache_valid_set_slot",
+    "file": "/data/csong/opensource/nginx/src/http/ngx_http_file_cache.c",
+    "signature": "char *(int *, int *, void *)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ngx_http_chunked_create_trailers",
+    "file": "/data/csong/opensource/nginx/src/http/modules/ngx_http_chunked_filter_module.c",
+    "signature": "int *(int *, ngx_http_chunked_filter_ctx_t *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ngx_http_gzip_filter_add_data",
+    "file": "/data/csong/opensource/nginx/src/http/modules/ngx_http_gzip_filter_module.c",
+    "signature": "int(int *, ngx_http_gzip_ctx_t *)",
+    "container_type": "linked_list",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ngx_http_gzip_filter_get_buf",
+    "file": "/data/csong/opensource/nginx/src/http/modules/ngx_http_gzip_filter_module.c",
+    "signature": "int(int *, ngx_http_gzip_ctx_t *)",
+    "container_type": "linked_list",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ngx_http_header_filter",
+    "file": "/data/csong/opensource/nginx/src/http/ngx_http_header_filter_module.c",
+    "signature": "int()",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ngx_http_early_hints_filter",
+    "file": "/data/csong/opensource/nginx/src/http/ngx_http_header_filter_module.c",
+    "signature": "int()",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ngx_http_postpone_filter_add",
+    "file": "/data/csong/opensource/nginx/src/http/ngx_http_postpone_filter_module.c",
+    "signature": "int()",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ngx_http_ssi_get_variable",
+    "file": "/data/csong/opensource/nginx/src/http/modules/ngx_http_ssi_filter_module.c",
+    "signature": "int *(int *, int *, int)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ngx_http_charset_body_filter",
+    "file": "/data/csong/opensource/nginx/src/http/modules/ngx_http_charset_filter_module.c",
+    "signature": "int(int *, int *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ngx_http_charset_recode_from_utf8",
+    "file": "/data/csong/opensource/nginx/src/http/modules/ngx_http_charset_filter_module.c",
+    "signature": "int *(int *, int *, ngx_http_charset_ctx_t *)",
+    "container_type": "hash_table",
+    "container_arg": 2,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ngx_http_charset_get_buf",
+    "file": "/data/csong/opensource/nginx/src/http/modules/ngx_http_charset_filter_module.c",
+    "signature": "int *(int *, ngx_http_charset_ctx_t *)",
+    "container_type": "linked_list",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ngx_http_charset_get_buffer",
+    "file": "/data/csong/opensource/nginx/src/http/modules/ngx_http_charset_filter_module.c",
+    "signature": "int *(int *, ngx_http_charset_ctx_t *, int)",
+    "container_type": "linked_list",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ngx_http_charset_map_block",
+    "file": "/data/csong/opensource/nginx/src/http/modules/ngx_http_charset_filter_module.c",
+    "signature": "char *(int *, int *, void *)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ngx_http_charset_map",
+    "file": "/data/csong/opensource/nginx/src/http/modules/ngx_http_charset_filter_module.c",
+    "signature": "char *(int *, int *, void *)",
+    "container_type": "hash_table",
+    "container_arg": -1,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ngx_http_add_charset",
+    "file": "/data/csong/opensource/nginx/src/http/modules/ngx_http_charset_filter_module.c",
+    "signature": "int(int *, int *)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ngx_http_charset_create_main_conf",
+    "file": "/data/csong/opensource/nginx/src/http/modules/ngx_http_charset_filter_module.c",
+    "signature": "void *(int *)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ngx_http_charset_merge_loc_conf",
+    "file": "/data/csong/opensource/nginx/src/http/modules/ngx_http_charset_filter_module.c",
+    "signature": "char *(int *, void *, void *)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ngx_http_userid_set_uid",
+    "file": "/data/csong/opensource/nginx/src/http/modules/ngx_http_userid_filter_module.c",
+    "signature": "int(int *, ngx_http_userid_ctx_t *, ngx_http_userid_conf_t *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ngx_http_trailers_filter",
+    "file": "/data/csong/opensource/nginx/src/http/modules/ngx_http_headers_filter_module.c",
+    "signature": "int()",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ngx_http_add_multi_header_lines",
+    "file": "/data/csong/opensource/nginx/src/http/modules/ngx_http_headers_filter_module.c",
+    "signature": "int()",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ngx_http_set_response_header",
+    "file": "/data/csong/opensource/nginx/src/http/modules/ngx_http_headers_filter_module.c",
+    "signature": "int()",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ngx_http_static_handler",
+    "file": "/data/csong/opensource/nginx/src/http/modules/ngx_http_static_module.c",
+    "signature": "int(int *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ngx_http_index_set_index",
+    "file": "/data/csong/opensource/nginx/src/http/modules/ngx_http_index_module.c",
+    "signature": "char *(int *, int *, void *)",
+    "container_type": "array",
+    "container_arg": 2,
+    "store_args": [
+      0
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ngx_http_auth_basic_set_realm",
+    "file": "/data/csong/opensource/nginx/src/http/modules/ngx_http_auth_basic_module.c",
+    "signature": "int(int *, int *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ngx_http_limit_conn_handler",
+    "file": "/data/csong/opensource/nginx/src/http/modules/ngx_http_limit_conn_module.c",
+    "signature": "int(int *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ngx_http_limit_conn_rbtree_insert_value",
+    "file": "/data/csong/opensource/nginx/src/http/modules/ngx_http_limit_conn_module.c",
+    "signature": "void(int *, int *, int *)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ngx_http_limit_conn_lookup",
+    "file": "/data/csong/opensource/nginx/src/http/modules/ngx_http_limit_conn_module.c",
+    "signature": "int *(int *, int *, int)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ngx_http_limit_req_handler",
+    "file": "/data/csong/opensource/nginx/src/http/modules/ngx_http_limit_req_module.c",
+    "signature": "int(int *)",
+    "container_type": "hash_table",
+    "container_arg": -1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ngx_http_limit_req_rbtree_insert_value",
+    "file": "/data/csong/opensource/nginx/src/http/modules/ngx_http_limit_req_module.c",
+    "signature": "void(int *, int *, int *)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ngx_http_limit_req_lookup",
+    "file": "/data/csong/opensource/nginx/src/http/modules/ngx_http_limit_req_module.c",
+    "signature": "int(ngx_http_limit_req_limit_t *, int, int *, int *, int)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ngx_http_geo_value",
+    "file": "/data/csong/opensource/nginx/src/http/modules/ngx_http_geo_module.c",
+    "signature": "int *(int *, ngx_http_geo_conf_ctx_t *, int *)",
+    "container_type": "rb_tree",
+    "container_arg": 1,
+    "store_args": [
+      1,
+      2
+    ],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ngx_http_map_block",
+    "file": "/data/csong/opensource/nginx/src/http/modules/ngx_http_map_module.c",
+    "signature": "char *(int *, int *, void *)",
+    "container_type": "hash_table",
+    "container_arg": 2,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ngx_http_map",
+    "file": "/data/csong/opensource/nginx/src/http/modules/ngx_http_map_module.c",
+    "signature": "char *(int *, int *, void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      0
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ngx_http_rewrite",
+    "file": "/data/csong/opensource/nginx/src/http/modules/ngx_http_rewrite_module.c",
+    "signature": "char *(int *, int *, void *)",
+    "container_type": "array",
+    "container_arg": 2,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ngx_http_proxy_process_header",
+    "file": "/data/csong/opensource/nginx/src/http/modules/ngx_http_proxy_module.c",
+    "signature": "int()",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      0
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ngx_http_fastcgi_non_buffered_filter",
+    "file": "/data/csong/opensource/nginx/src/http/modules/ngx_http_fastcgi_module.c",
+    "signature": "int(void *, int)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ngx_http_uwsgi_create_request",
+    "file": "/data/csong/opensource/nginx/src/http/modules/ngx_http_uwsgi_module.c",
+    "signature": "int(int *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ngx_http_memcached_filter",
+    "file": "/data/csong/opensource/nginx/src/http/modules/ngx_http_memcached_module.c",
+    "signature": "int(void *, int)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ngx_http_upstream_get_hash_peer",
+    "file": "/data/csong/opensource/nginx/src/http/modules/ngx_http_upstream_hash_module.c",
+    "signature": "int(int *, void *)",
+    "container_type": "hash_table",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 12,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ngx_http_upstream_update_chash",
+    "file": "/data/csong/opensource/nginx/src/http/modules/ngx_http_upstream_hash_module.c",
+    "signature": "int(int *, int *)",
+    "container_type": "hash_table",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ngx_http_upstream_find_chash_point",
+    "file": "/data/csong/opensource/nginx/src/http/modules/ngx_http_upstream_hash_module.c",
+    "signature": "int(ngx_http_upstream_chash_points_t *, int)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ngx_http_upstream_init_chash_peer",
+    "file": "/data/csong/opensource/nginx/src/http/modules/ngx_http_upstream_hash_module.c",
+    "signature": "int(int *, int *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ngx_http_upstream_get_chash_peer",
+    "file": "/data/csong/opensource/nginx/src/http/modules/ngx_http_upstream_hash_module.c",
+    "signature": "int(int *, void *)",
+    "container_type": "hash_table",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 10,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ngx_http_upstream_get_ip_hash_peer",
+    "file": "/data/csong/opensource/nginx/src/http/modules/ngx_http_upstream_ip_hash_module.c",
+    "signature": "int(int *, void *)",
+    "container_type": "linked_list",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 12,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ngx_http_upstream_get_least_conn_peer",
+    "file": "/data/csong/opensource/nginx/src/http/modules/ngx_http_upstream_least_conn_module.c",
+    "signature": "int(int *, void *)",
+    "container_type": "linked_list",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "gemini-3-flash-preview"
+  }
+]

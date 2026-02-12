@@ -247,6 +247,15 @@ class ContainerDetector:
 
         self._stats["candidates"] = len(candidates)
 
+        # Clean up stale summaries for functions no longer above threshold
+        candidate_ids = {func.id for func, _, _ in candidates}
+        existing = self.db.get_all_container_summaries()
+        stale_ids = [s.function_id for s in existing if s.function_id not in candidate_ids]
+        if stale_ids:
+            removed = self.db.delete_container_summaries(stale_ids)
+            if self.verbose:
+                print(f"Removed {removed} stale container summaries")
+
         if self.verbose:
             print(f"Found {len(candidates)} candidates (score >= {self.min_score})")
 

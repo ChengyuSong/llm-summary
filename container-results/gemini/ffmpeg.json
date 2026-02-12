@@ -1,0 +1,2507 @@
+[
+  {
+    "function": "ff_fbdev_get_device_list",
+    "file": "/data/csong/opensource/ffmpeg/libavdevice/fbdev_common.c",
+    "signature": "int(AVDeviceInfoList *)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "fbdev_get_device_list",
+    "file": "/data/csong/opensource/ffmpeg/libavdevice/fbdev_enc.c",
+    "signature": "int(int *, AVDeviceInfoList *)",
+    "container_type": "array",
+    "container_arg": 1,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "fbdev_get_device_list",
+    "file": "/data/csong/opensource/ffmpeg/libavdevice/fbdev_dec.c",
+    "signature": "int(int *, AVDeviceInfoList *)",
+    "container_type": "array",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "v4l2_get_device_list",
+    "file": "/data/csong/opensource/ffmpeg/libavdevice/v4l2.c",
+    "signature": "int(int *, AVDeviceInfoList *)",
+    "container_type": "array",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "frame_list_clear",
+    "file": "/data/csong/opensource/ffmpeg/libavfilter/af_amix.c",
+    "signature": "void(FrameList *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "frame_list_remove_samples",
+    "file": "/data/csong/opensource/ffmpeg/libavfilter/af_amix.c",
+    "signature": "void(FrameList *, int)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "frame_list_add_frame",
+    "file": "/data/csong/opensource/ffmpeg/libavfilter/af_amix.c",
+    "signature": "int(FrameList *, int, int)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "channel_list_pop",
+    "file": "/data/csong/opensource/ffmpeg/libavfilter/af_join.c",
+    "signature": "enum AVChannel(ChannelList *, int)",
+    "container_type": "array_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "push_single_pic",
+    "file": "/data/csong/opensource/ffmpeg/libavfilter/avf_showwaves.c",
+    "signature": "int(AVFilterLink *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "command_queue_pop",
+    "file": "/data/csong/opensource/ffmpeg/libavfilter/avfilter.c",
+    "signature": "void(AVFilterContext *)",
+    "container_type": "queue",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ff_ccfifo_init",
+    "file": "/data/csong/opensource/ffmpeg/libavfilter/ccfifo.c",
+    "signature": "int(CCFifo *, int, void *)",
+    "container_type": "queue",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ff_frame_pool_get",
+    "file": "/data/csong/opensource/ffmpeg/libavfilter/framepool.c",
+    "signature": "int *(FFFramePool *)",
+    "container_type": "pool",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "consume_from_fifos",
+    "file": "/data/csong/opensource/ffmpeg/libavfilter/framesync.c",
+    "signature": "int(FFFrameSync *)",
+    "container_type": "queue",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ff_framesync_dualinput_get",
+    "file": "/data/csong/opensource/ffmpeg/libavfilter/framesync.c",
+    "signature": "int(FFFrameSync *, int **, int **)",
+    "container_type": "queue",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ff_framesync_dualinput_get_writable",
+    "file": "/data/csong/opensource/ffmpeg/libavfilter/framesync.c",
+    "signature": "int(FFFrameSync *, int **, int **)",
+    "container_type": "queue",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "bucket",
+    "file": "/data/csong/opensource/ffmpeg/libavfilter/framequeue.c",
+    "signature": "FFFrameBucket *(FFFrameQueue *, int)",
+    "container_type": "queue",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ff_framequeue_add",
+    "file": "/data/csong/opensource/ffmpeg/libavfilter/framequeue.c",
+    "signature": "int(FFFrameQueue *, int *)",
+    "container_type": "queue",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ff_framequeue_take",
+    "file": "/data/csong/opensource/ffmpeg/libavfilter/framequeue.c",
+    "signature": "int *(FFFrameQueue *)",
+    "container_type": "queue",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ff_framequeue_peek",
+    "file": "/data/csong/opensource/ffmpeg/libavfilter/framequeue.c",
+    "signature": "int *(FFFrameQueue *, int)",
+    "container_type": "queue",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "avfilter_graph_parse",
+    "file": "/data/csong/opensource/ffmpeg/libavfilter/graphparser.c",
+    "signature": "int(AVFilterGraph *, const char *, AVFilterInOut *, AVFilterInOut *, void *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      2,
+      3
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "avfilter_graph_parse_ptr",
+    "file": "/data/csong/opensource/ffmpeg/libavfilter/graphparser.c",
+    "signature": "int(AVFilterGraph *, const char *, AVFilterInOut **, AVFilterInOut **, void *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      2,
+      3
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "get_nb_points",
+    "file": "/data/csong/opensource/ffmpeg/libavfilter/vf_curves.c",
+    "signature": "int(const struct keypoint *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "dump_curves",
+    "file": "/data/csong/opensource/ffmpeg/libavfilter/vf_curves.c",
+    "signature": "int(const char *, uint16_t *[4], struct keypoint *[4], int, void *)",
+    "container_type": "linked_list",
+    "container_arg": 2,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "set_meta",
+    "file": "/data/csong/opensource/ffmpeg/libavfilter/vf_freezedetect.c",
+    "signature": "int(void *, int *, const char *, const char *)",
+    "container_type": "hash_table",
+    "container_arg": 1,
+    "store_args": [
+      2,
+      3
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "insert_chord_set",
+    "file": "/data/csong/opensource/ffmpeg/libavfilter/vf_morpho.c",
+    "signature": "int(chord_set *, chord)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "color_get",
+    "file": "/data/csong/opensource/ffmpeg/libavfilter/vf_paletteuse.c",
+    "signature": "int(PaletteUseContext *, uint32_t)",
+    "container_type": "cache",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "child_next",
+    "file": "/data/csong/opensource/ffmpeg/libavfilter/vf_scale.c",
+    "signature": "void *(void *, void *)",
+    "container_type": "other",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "map_list_free",
+    "file": "/data/csong/opensource/ffmpeg/libavfilter/vf_ssim360.c",
+    "signature": "void(HeatmapList **)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "parse_heatmaps",
+    "file": "/data/csong/opensource/ffmpeg/libavfilter/vf_ssim360.c",
+    "signature": "int(void *, HeatmapList **, const char *, int, int)",
+    "container_type": "linked_list",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "list_add_frame",
+    "file": "/data/csong/opensource/ffmpeg/libavfilter/vf_tiltandshift.c",
+    "signature": "int(TiltandshiftContext *, int *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "list_remove_head",
+    "file": "/data/csong/opensource/ffmpeg/libavfilter/vf_tiltandshift.c",
+    "signature": "void(TiltandshiftContext *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "put_id3v2_tags",
+    "file": "/data/csong/opensource/ffmpeg/libavformat/aiffenc.c",
+    "signature": "int(AVFormatContext *, AIFFOutputContext *)",
+    "container_type": "linked_list",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "insert_dialogue",
+    "file": "/data/csong/opensource/ffmpeg/libavformat/assenc.c",
+    "signature": "void(ASSContext *, DialogueLine *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "urlcontext_child_next",
+    "file": "/data/csong/opensource/ffmpeg/libavformat/avio.c",
+    "signature": "void *(void *, void *)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "add_adaptation_set",
+    "file": "/data/csong/opensource/ffmpeg/libavformat/dashenc.c",
+    "signature": "int(AVFormatContext *, AdaptationSet **, enum AVMediaType)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "get_next_pkt",
+    "file": "/data/csong/opensource/ffmpeg/libavformat/demux.c",
+    "signature": "int *(AVFormatContext *, AVStream *, int *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "fifo_consumer_thread",
+    "file": "/data/csong/opensource/ffmpeg/libavformat/fifo.c",
+    "signature": "void *(void *)",
+    "container_type": "queue",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "flv_append_keyframe_info",
+    "file": "/data/csong/opensource/ffmpeg/libavformat/flvenc.c",
+    "signature": "int(AVFormatContext *, FLVContext *, double, int64_t)",
+    "container_type": "linked_list",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "hls_delete_old_segments",
+    "file": "/data/csong/opensource/ffmpeg/libavformat/hlsenc.c",
+    "signature": "int(AVFormatContext *, HLSContext *, VariantStream *)",
+    "container_type": "linked_list",
+    "container_arg": 2,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "find_segment_by_filename",
+    "file": "/data/csong/opensource/ffmpeg/libavformat/hlsenc.c",
+    "signature": "HLSSegment *(HLSSegment *, const char *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "hls_append_segment",
+    "file": "/data/csong/opensource/ffmpeg/libavformat/hlsenc.c",
+    "signature": "int(struct AVFormatContext *, HLSContext *, VariantStream *, double, int64_t, int64_t)",
+    "container_type": "linked_list",
+    "container_arg": 2,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "redirect_cache_get",
+    "file": "/data/csong/opensource/ffmpeg/libavformat/http.c",
+    "signature": "char *(HTTPContext *)",
+    "container_type": "cache",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "get_string",
+    "file": "/data/csong/opensource/ffmpeg/libavformat/id3v1.c",
+    "signature": "void(AVFormatContext *, const char *, const uint8_t *, int)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      1,
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "list_append",
+    "file": "/data/csong/opensource/ffmpeg/libavformat/id3v2.c",
+    "signature": "void(ID3v2ExtraMeta *, ExtraMetaList *)",
+    "container_type": "linked_list",
+    "container_arg": 1,
+    "store_args": [
+      0
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ff_id3v2_parse_priv_dict",
+    "file": "/data/csong/opensource/ffmpeg/libavformat/id3v2.c",
+    "signature": "int(int **, ID3v2ExtraMeta *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ip_parse_addr_list",
+    "file": "/data/csong/opensource/ffmpeg/libavformat/ip.c",
+    "signature": "int(void *, const char *, struct sockaddr_storage **, int *)",
+    "container_type": "dynamic_array",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ebml_writer_add_string",
+    "file": "/data/csong/opensource/ffmpeg/libavformat/matroskaenc.c",
+    "signature": "void(EbmlWriter *, uint32_t, const char *)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "find_layout_map",
+    "file": "/data/csong/opensource/ffmpeg/libavformat/mov_chan.c",
+    "signature": "const struct MovChannelLayoutMap *(uint32_t, const struct MovChannelLayoutMap *)",
+    "container_type": "array",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "sample_queue_pop",
+    "file": "/data/csong/opensource/ffmpeg/libavformat/movenchint.c",
+    "signature": "void(HintSampleQueue *)",
+    "container_type": "queue",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "sample_queue_push",
+    "file": "/data/csong/opensource/ffmpeg/libavformat/movenchint.c",
+    "signature": "void(HintSampleQueue *, const uint8_t *, int, int)",
+    "container_type": "queue",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "remove_decoded_packets",
+    "file": "/data/csong/opensource/ffmpeg/libavformat/mpegenc.c",
+    "signature": "int(AVFormatContext *, int64_t)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "buffer_pool_get",
+    "file": "/data/csong/opensource/ffmpeg/libavformat/mpegts.c",
+    "signature": "int *(MpegTSContext *, int)",
+    "container_type": "pool",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ff_interleave_add_packet",
+    "file": "/data/csong/opensource/ffmpeg/libavformat/mux.c",
+    "signature": "int(AVFormatContext *, int *, int (*)(AVFormatContext *, const int *, const int *))",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "mxf_add_metadata_set",
+    "file": "/data/csong/opensource/ffmpeg/libavformat/mxfdec.c",
+    "signature": "int(MXFContext *, MXFMetadataSet **, enum MXFMetadataSetType)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "mxf_resolve_strong_ref",
+    "file": "/data/csong/opensource/ffmpeg/libavformat/mxfdec.c",
+    "signature": "void *(MXFContext *, UID *, enum MXFMetadataSetType)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "mxf_get_sorted_table_segments",
+    "file": "/data/csong/opensource/ffmpeg/libavformat/mxfdec.c",
+    "signature": "int(MXFContext *, int *, MXFIndexTableSegment ***)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "mxf_find_index_table",
+    "file": "/data/csong/opensource/ffmpeg/libavformat/mxfdec.c",
+    "signature": "MXFIndexTable *(MXFContext *, int)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "mxf_interleave_get_packet",
+    "file": "/data/csong/opensource/ffmpeg/libavformat/mxfenc.c",
+    "signature": "int(AVFormatContext *, int *, int)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ff_rm_retrieve_cache",
+    "file": "/data/csong/opensource/ffmpeg/libavformat/rmdec.c",
+    "signature": "int(AVFormatContext *, AVIOContext *, AVStream *, RMStream *, int *)",
+    "container_type": "cache",
+    "container_arg": 3,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ff_rtp_reset_packet_queue",
+    "file": "/data/csong/opensource/ffmpeg/libavformat/rtpdec.c",
+    "signature": "void(RTPDemuxContext *)",
+    "container_type": "queue",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "enqueue_packet",
+    "file": "/data/csong/opensource/ffmpeg/libavformat/rtpdec.c",
+    "signature": "int(RTPDemuxContext *, uint8_t *, int)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "rtp_parse_queued_packet",
+    "file": "/data/csong/opensource/ffmpeg/libavformat/rtpdec.c",
+    "signature": "int(RTPDemuxContext *, int *)",
+    "container_type": "queue",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "alloc_array_elem",
+    "file": "/data/csong/opensource/ffmpeg/libavformat/sbgdec.c",
+    "signature": "void *(void **, size_t, int *, int *)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "segment_list_open",
+    "file": "/data/csong/opensource/ffmpeg/libavformat/segment.c",
+    "signature": "int(AVFormatContext *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ff_subtitles_queue_insert",
+    "file": "/data/csong/opensource/ffmpeg/libavformat/subtitles.c",
+    "signature": "int *(FFDemuxSubtitlesQueue *, const uint8_t *, size_t, int)",
+    "container_type": "queue",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ff_subtitles_queue_insert_bprint",
+    "file": "/data/csong/opensource/ffmpeg/libavformat/subtitles.c",
+    "signature": "int *(FFDemuxSubtitlesQueue *, const struct AVBPrint *, int)",
+    "container_type": "queue",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ff_subtitles_queue_finalize",
+    "file": "/data/csong/opensource/ffmpeg/libavformat/subtitles.c",
+    "signature": "void(void *, FFDemuxSubtitlesQueue *)",
+    "container_type": "array",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ff_sws_op_list_remove_at",
+    "file": "/data/csong/opensource/ffmpeg/libswscale/ops.c",
+    "signature": "void(SwsOpList *, int, int)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ff_sws_op_list_insert_at",
+    "file": "/data/csong/opensource/ffmpeg/libswscale/ops.c",
+    "signature": "int(SwsOpList *, int, SwsOp *)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ff_sws_op_list_append",
+    "file": "/data/csong/opensource/ffmpeg/libswscale/ops.c",
+    "signature": "int(SwsOpList *, SwsOp *)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ff_sws_op_chain_append",
+    "file": "/data/csong/opensource/ffmpeg/libswscale/ops_chain.c",
+    "signature": "int(SwsOpChain *, SwsFuncPtr, void (*)(void *), const SwsOpPriv *)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [
+      1,
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "fill_table",
+    "file": "/data/csong/opensource/ffmpeg/libswscale/yuv2rgb.c",
+    "signature": "void(uint8_t *[1280], const int, const int64_t, void *)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [
+      3
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "av_audio_fifo_write",
+    "file": "/data/csong/opensource/ffmpeg/libavutil/audio_fifo.c",
+    "signature": "int(AVAudioFifo *, void *const *, int)",
+    "container_type": "queue",
+    "container_arg": 0,
+    "store_args": [
+      1,
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "av_audio_fifo_peek",
+    "file": "/data/csong/opensource/ffmpeg/libavutil/audio_fifo.c",
+    "signature": "int(const AVAudioFifo *, void *const *, int)",
+    "container_type": "queue",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "av_audio_fifo_peek_at",
+    "file": "/data/csong/opensource/ffmpeg/libavutil/audio_fifo.c",
+    "signature": "int(const AVAudioFifo *, void *const *, int, int)",
+    "container_type": "circular_buffer",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "av_audio_fifo_read",
+    "file": "/data/csong/opensource/ffmpeg/libavutil/audio_fifo.c",
+    "signature": "int(AVAudioFifo *, void *const *, int)",
+    "container_type": "fifo",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "buffer_pool_flush",
+    "file": "/data/csong/opensource/ffmpeg/libavutil/buffer.c",
+    "signature": "void(AVBufferPool *)",
+    "container_type": "pool",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "pool_release_buffer",
+    "file": "/data/csong/opensource/ffmpeg/libavutil/buffer.c",
+    "signature": "void(void *, uint8_t *)",
+    "container_type": "pool",
+    "container_arg": 0,
+    "store_args": [
+      0
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "av_buffer_pool_get",
+    "file": "/data/csong/opensource/ffmpeg/libavutil/buffer.c",
+    "signature": "AVBufferRef *(AVBufferPool *)",
+    "container_type": "pool",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "av_buffer_pool_buffer_get_opaque",
+    "file": "/data/csong/opensource/ffmpeg/libavutil/buffer.c",
+    "signature": "void *(const AVBufferRef *)",
+    "container_type": "pool",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 10,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "av_crc_get_table",
+    "file": "/data/csong/opensource/ffmpeg/libavutil/crc.c",
+    "signature": "const AVCRC *(AVCRCId)",
+    "container_type": "array",
+    "container_arg": -1,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "container_fifo_init_entry",
+    "file": "/data/csong/opensource/ffmpeg/libavutil/container_fifo.c",
+    "signature": "int(AVRefStructOpaque, void *)",
+    "container_type": "queue",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "container_fifo_reset_entry",
+    "file": "/data/csong/opensource/ffmpeg/libavutil/container_fifo.c",
+    "signature": "void(AVRefStructOpaque, void *)",
+    "container_type": "queue",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "container_fifo_free_entry",
+    "file": "/data/csong/opensource/ffmpeg/libavutil/container_fifo.c",
+    "signature": "void(AVRefStructOpaque, void *)",
+    "container_type": "queue",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "av_container_fifo_alloc",
+    "file": "/data/csong/opensource/ffmpeg/libavutil/container_fifo.c",
+    "signature": "AVContainerFifo *(void *, void *(*)(void *), void (*)(void *, void *), void (*)(void *, void *), int (*)(void *, void *, void *, unsigned int), unsigned int)",
+    "container_type": "queue",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "av_container_fifo_read",
+    "file": "/data/csong/opensource/ffmpeg/libavutil/container_fifo.c",
+    "signature": "int(AVContainerFifo *, void *, unsigned int)",
+    "container_type": "queue",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "av_container_fifo_peek",
+    "file": "/data/csong/opensource/ffmpeg/libavutil/container_fifo.c",
+    "signature": "int(AVContainerFifo *, void **, size_t)",
+    "container_type": "queue",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "av_container_fifo_write",
+    "file": "/data/csong/opensource/ffmpeg/libavutil/container_fifo.c",
+    "signature": "int(AVContainerFifo *, void *, unsigned int)",
+    "container_type": "queue",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "av_dict_get",
+    "file": "/data/csong/opensource/ffmpeg/libavutil/dict.c",
+    "signature": "AVDictionaryEntry *(const AVDictionary *, const char *, const AVDictionaryEntry *, int)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "av_dict_set",
+    "file": "/data/csong/opensource/ffmpeg/libavutil/dict.c",
+    "signature": "int(AVDictionary **, const char *, const char *, int)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [
+      1,
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "av_dict_get_string",
+    "file": "/data/csong/opensource/ffmpeg/libavutil/dict.c",
+    "signature": "int(const AVDictionary *, char **, const char, const char)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "av_encryption_init_info_get_side_data",
+    "file": "/data/csong/opensource/ffmpeg/libavutil/encryption_info.c",
+    "signature": "AVEncryptionInitInfo *(const uint8_t *, size_t)",
+    "container_type": "linked_list",
+    "container_arg": -1,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "remove_task",
+    "file": "/data/csong/opensource/ffmpeg/libavutil/executor.c",
+    "signature": "AVTask *(AVTask **, AVTask *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "add_task",
+    "file": "/data/csong/opensource/ffmpeg/libavutil/executor.c",
+    "signature": "void(AVTask **, AVTask *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "fifo_write_common",
+    "file": "/data/csong/opensource/ffmpeg/libavutil/fifo.c",
+    "signature": "int(AVFifo *, const uint8_t *, size_t *, AVFifoCB, void *)",
+    "container_type": "queue",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "av_fifo_write",
+    "file": "/data/csong/opensource/ffmpeg/libavutil/fifo.c",
+    "signature": "int(AVFifo *, const void *, size_t)",
+    "container_type": "queue",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "av_fifo_write_from_cb",
+    "file": "/data/csong/opensource/ffmpeg/libavutil/fifo.c",
+    "signature": "int(AVFifo *, AVFifoCB, void *, size_t *)",
+    "container_type": "queue",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "fifo_peek_common",
+    "file": "/data/csong/opensource/ffmpeg/libavutil/fifo.c",
+    "signature": "int(const AVFifo *, uint8_t *, size_t *, size_t, AVFifoCB, void *)",
+    "container_type": "queue",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "av_fifo_read",
+    "file": "/data/csong/opensource/ffmpeg/libavutil/fifo.c",
+    "signature": "int(AVFifo *, void *, size_t)",
+    "container_type": "queue",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "av_fifo_read_to_cb",
+    "file": "/data/csong/opensource/ffmpeg/libavutil/fifo.c",
+    "signature": "int(AVFifo *, AVFifoCB, void *, size_t *)",
+    "container_type": "queue",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "av_fifo_peek",
+    "file": "/data/csong/opensource/ffmpeg/libavutil/fifo.c",
+    "signature": "int(const AVFifo *, void *, size_t, size_t)",
+    "container_type": "queue",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "av_fifo_peek_to_cb",
+    "file": "/data/csong/opensource/ffmpeg/libavutil/fifo.c",
+    "signature": "int(const AVFifo *, AVFifoCB, void *, size_t *, size_t)",
+    "container_type": "queue",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "submix_element_child_next",
+    "file": "/data/csong/opensource/ffmpeg/libavutil/iamf.c",
+    "signature": "void *(void *, void *)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "av_dynarray2_add",
+    "file": "/data/csong/opensource/ffmpeg/libavutil/mem.c",
+    "signature": "void *(void **, int *, size_t, const uint8_t *)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [
+      3
+    ],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "opt_set_init",
+    "file": "/data/csong/opensource/ffmpeg/libavutil/opt.c",
+    "signature": "int(void *, const char *, int, int, void **, const AVOption **, void **)",
+    "container_type": "other",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "set_string_dict",
+    "file": "/data/csong/opensource/ffmpeg/libavutil/opt.c",
+    "signature": "int(void *, const AVOption *, const char *, uint8_t **)",
+    "container_type": "hash_table",
+    "container_arg": 3,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "opt_set_array",
+    "file": "/data/csong/opensource/ffmpeg/libavutil/opt.c",
+    "signature": "int(void *, void *, const AVOption *, const char *, void *)",
+    "container_type": "array",
+    "container_arg": 4,
+    "store_args": [
+      3
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "av_opt_set_bin",
+    "file": "/data/csong/opensource/ffmpeg/libavutil/opt.c",
+    "signature": "int(void *, const char *, const uint8_t *, int, int)",
+    "container_type": "other",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "av_opt_set_dict_val",
+    "file": "/data/csong/opensource/ffmpeg/libavutil/opt.c",
+    "signature": "int(void *, const char *, const AVDictionary *, int)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "av_opt_get_dict_val",
+    "file": "/data/csong/opensource/ffmpeg/libavutil/opt.c",
+    "signature": "int(void *, const char *, int, AVDictionary **)",
+    "container_type": "other",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "get_opt_const_name",
+    "file": "/data/csong/opensource/ffmpeg/libavutil/opt.c",
+    "signature": "const char *(void *, const char *, int64_t)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "opt_list",
+    "file": "/data/csong/opensource/ffmpeg/libavutil/opt.c",
+    "signature": "void(void *, void *, const char *, int, int, enum AVOptionType)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "av_opt_set_dict2",
+    "file": "/data/csong/opensource/ffmpeg/libavutil/opt.c",
+    "signature": "int(void *, AVDictionary **, int)",
+    "container_type": "hash_table",
+    "container_arg": 1,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "av_opt_set_dict",
+    "file": "/data/csong/opensource/ffmpeg/libavutil/opt.c",
+    "signature": "int(void *, AVDictionary **)",
+    "container_type": "dictionary",
+    "container_arg": 1,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "av_opt_find2",
+    "file": "/data/csong/opensource/ffmpeg/libavutil/opt.c",
+    "signature": "const AVOption *(void *, const char *, const char *, int, int, void **)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "av_opt_set_array",
+    "file": "/data/csong/opensource/ffmpeg/libavutil/opt.c",
+    "signature": "int(void *, const char *, int, unsigned int, unsigned int, enum AVOptionType, const void *)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [
+      6
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "pool_return_entry",
+    "file": "/data/csong/opensource/ffmpeg/libavutil/refstruct.c",
+    "signature": "void(void *)",
+    "container_type": "pool",
+    "container_arg": -1,
+    "store_args": [
+      0
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "refstruct_pool_get_ext",
+    "file": "/data/csong/opensource/ffmpeg/libavutil/refstruct.c",
+    "signature": "int(void *, AVRefStructPool *)",
+    "container_type": "pool",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "av_refstruct_pool_get",
+    "file": "/data/csong/opensource/ffmpeg/libavutil/refstruct.c",
+    "signature": "void *(AVRefStructPool *)",
+    "container_type": "pool",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 9,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "refstruct_pool_uninit",
+    "file": "/data/csong/opensource/ffmpeg/libavutil/refstruct.c",
+    "signature": "void(AVRefStructOpaque, void *)",
+    "container_type": "linked_list",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "av_thread_message_queue_send",
+    "file": "/data/csong/opensource/ffmpeg/libavutil/threadmessage.c",
+    "signature": "int(AVThreadMessageQueue *, void *, unsigned int)",
+    "container_type": "queue",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "av_thread_message_queue_recv",
+    "file": "/data/csong/opensource/ffmpeg/libavutil/threadmessage.c",
+    "signature": "int(AVThreadMessageQueue *, void *, unsigned int)",
+    "container_type": "queue",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "av_tree_find",
+    "file": "/data/csong/opensource/ffmpeg/libavutil/tree.c",
+    "signature": "void *(const AVTreeNode *, void *, int (*)(const void *, const void *), void *[2])",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 13,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "av_tree_insert",
+    "file": "/data/csong/opensource/ffmpeg/libavutil/tree.c",
+    "signature": "void *(AVTreeNode **, void *, int (*)(const void *, const void *), AVTreeNode **)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 13,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "av_tree_enumerate",
+    "file": "/data/csong/opensource/ffmpeg/libavutil/tree.c",
+    "signature": "void(AVTreeNode *, void *, int (*)(void *, void *), int (*)(void *, void *))",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "adpcm_compress_trellis",
+    "file": "/data/csong/opensource/ffmpeg/libavcodec/adpcmenc.c",
+    "signature": "void(AVCodecContext *, const int16_t *, uint8_t *, ADPCMChannelStatus *, int, int)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "get_tree_codes",
+    "file": "/data/csong/opensource/ffmpeg/libavcodec/agm.c",
+    "signature": "void(uint32_t *, Node *, int, uint32_t, int)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ff_af_queue_add",
+    "file": "/data/csong/opensource/ffmpeg/libavcodec/audio_frame_queue.c",
+    "signature": "int(AudioFrameQueue *, const int *)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ff_af_queue_remove",
+    "file": "/data/csong/opensource/ffmpeg/libavcodec/audio_frame_queue.c",
+    "signature": "void(AudioFrameQueue *, int, int64_t *, int64_t *)",
+    "container_type": "queue",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "av_bsf_list_append",
+    "file": "/data/csong/opensource/ffmpeg/libavcodec/bsf.c",
+    "signature": "int(AVBSFList *, AVBSFContext *)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "bsf_list_append_internal",
+    "file": "/data/csong/opensource/ffmpeg/libavcodec/bsf.c",
+    "signature": "int(AVBSFList *, const char *, const char *, int **)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ff_cbs_sei_list_add",
+    "file": "/data/csong/opensource/ffmpeg/libavcodec/cbs_sei.c",
+    "signature": "int(SEIRawMessageList *)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "find_next_hier_dmix_chset",
+    "file": "/data/csong/opensource/ffmpeg/libavcodec/dca_xll.c",
+    "signature": "DCAXllChSet *(DCAXllDecoder *, DCAXllChSet *)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ff_dnxhd_get_cid_table",
+    "file": "/data/csong/opensource/ffmpeg/libavcodec/dnxhddata.c",
+    "signature": "const CIDEntry *(int)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "get_object",
+    "file": "/data/csong/opensource/ffmpeg/libavcodec/dvbsubdec.c",
+    "signature": "DVBSubObject *(DVBSubContext *, int)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "get_clut",
+    "file": "/data/csong/opensource/ffmpeg/libavcodec/dvbsubdec.c",
+    "signature": "DVBSubCLUT *(DVBSubContext *, int)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "get_region",
+    "file": "/data/csong/opensource/ffmpeg/libavcodec/dvbsubdec.c",
+    "signature": "DVBSubRegion *(DVBSubContext *, int)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "delete_region_display_list",
+    "file": "/data/csong/opensource/ffmpeg/libavcodec/dvbsubdec.c",
+    "signature": "void(DVBSubContext *, DVBSubRegion *)",
+    "container_type": "linked_list",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "delete_cluts",
+    "file": "/data/csong/opensource/ffmpeg/libavcodec/dvbsubdec.c",
+    "signature": "void(DVBSubContext *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "delete_objects",
+    "file": "/data/csong/opensource/ffmpeg/libavcodec/dvbsubdec.c",
+    "signature": "void(DVBSubContext *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "delete_regions",
+    "file": "/data/csong/opensource/ffmpeg/libavcodec/dvbsubdec.c",
+    "signature": "void(DVBSubContext *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "save_subtitle_set",
+    "file": "/data/csong/opensource/ffmpeg/libavcodec/dvbsubdec.c",
+    "signature": "int(AVCodecContext *, AVSubtitle *, int *)",
+    "container_type": "array",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "get_new_centroids",
+    "file": "/data/csong/opensource/ffmpeg/libavcodec/elbg.c",
+    "signature": "void(ELBGContext *, int, int *, int *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      2,
+      3
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "remove_task",
+    "file": "/data/csong/opensource/ffmpeg/libavcodec/executor.c",
+    "signature": "FFTask *(Queue *)",
+    "container_type": "queue",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "add_task",
+    "file": "/data/csong/opensource/ffmpeg/libavcodec/executor.c",
+    "signature": "void(Queue *, FFTask *)",
+    "container_type": "queue",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "exif_parse_ifd_list",
+    "file": "/data/csong/opensource/ffmpeg/libavcodec/exif.c",
+    "signature": "int(void *, GetByteContext *, int, int, AVExifMetadata *, int)",
+    "container_type": "array",
+    "container_arg": 4,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "exif_ifd_to_dict",
+    "file": "/data/csong/opensource/ffmpeg/libavcodec/exif.c",
+    "signature": "int(void *, const char *, const AVExifMetadata *, int **)",
+    "container_type": "hash_table",
+    "container_arg": 3,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "av_exif_ifd_to_dict",
+    "file": "/data/csong/opensource/ffmpeg/libavcodec/exif.c",
+    "signature": "int(void *, const AVExifMetadata *, int **)",
+    "container_type": "hash_table",
+    "container_arg": 2,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "av_exif_set_entry",
+    "file": "/data/csong/opensource/ffmpeg/libavcodec/exif.c",
+    "signature": "int(void *, AVExifMetadata *, uint16_t, enum AVTiffDataType, uint32_t, const uint8_t *, uint32_t, const void *)",
+    "container_type": "array",
+    "container_arg": 1,
+    "store_args": [
+      2,
+      7
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "epic_hash_find",
+    "file": "/data/csong/opensource/ffmpeg/libavcodec/g2meet.c",
+    "signature": "ePICPixHashElem *(const ePICPixHash *, uint32_t)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "epic_hash_add",
+    "file": "/data/csong/opensource/ffmpeg/libavcodec/g2meet.c",
+    "signature": "ePICPixHashElem *(ePICPixHash *, uint32_t)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "epic_add_pixel_to_cache",
+    "file": "/data/csong/opensource/ffmpeg/libavcodec/g2meet.c",
+    "signature": "int(ePICPixHash *, uint32_t, uint32_t)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "epic_free_pixel_cache",
+    "file": "/data/csong/opensource/ffmpeg/libavcodec/g2meet.c",
+    "signature": "void(ePICPixHash *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "epic_decode_from_cache",
+    "file": "/data/csong/opensource/ffmpeg/libavcodec/g2meet.c",
+    "signature": "int(ePICContext *, uint32_t, uint32_t *)",
+    "container_type": "cache",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "h264_fill_mbaff_ref_list",
+    "file": "/data/csong/opensource/ffmpeg/libavcodec/h264_refs.c",
+    "signature": "void(H264SliceContext *)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ff_hashtable_get",
+    "file": "/data/csong/opensource/ffmpeg/libavcodec/hashtable.c",
+    "signature": "int(const struct FFHashtableContext *, const void *, void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 9,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ff_hashtable_set",
+    "file": "/data/csong/opensource/ffmpeg/libavcodec/hashtable.c",
+    "signature": "int(struct FFHashtableContext *, const void *, const void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      1,
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ff_hashtable_delete",
+    "file": "/data/csong/opensource/ffmpeg/libavcodec/hashtable.c",
+    "signature": "int(struct FFHashtableContext *, const void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 9,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ff_hevc_get_ref_list",
+    "file": "/data/csong/opensource/ffmpeg/libavcodec/hevc/refs.c",
+    "signature": "const RefPicList *(const HEVCFrame *, int, int)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ff_huff_build_tree",
+    "file": "/data/csong/opensource/ffmpeg/libavcodec/huffman.c",
+    "signature": "int(void *, VLC *, int, int, Node *, HuffCmp, int)",
+    "container_type": "binary_tree",
+    "container_arg": 4,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "clearTable",
+    "file": "/data/csong/opensource/ffmpeg/libavcodec/lzwenc.c",
+    "signature": "void(LZWEncodeState *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      0
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "codec_child_next",
+    "file": "/data/csong/opensource/ffmpeg/libavcodec/options.c",
+    "signature": "void *(void *, void *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "avpriv_packet_list_put",
+    "file": "/data/csong/opensource/ffmpeg/libavcodec/packet.c",
+    "signature": "int(PacketList *, AVPacket *, int (*)(AVPacket *, const AVPacket *), int)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "avpriv_packet_list_get",
+    "file": "/data/csong/opensource/ffmpeg/libavcodec/packet.c",
+    "signature": "int(PacketList *, AVPacket *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "avpriv_packet_list_free",
+    "file": "/data/csong/opensource/ffmpeg/libavcodec/packet.c",
+    "signature": "void(PacketList *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "qdm2_search_subpacket_type_in_list",
+    "file": "/data/csong/opensource/ffmpeg/libavcodec/qdm2.c",
+    "signature": "QDM2SubPNode *(QDM2SubPNode *, int)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "srt_stack_push",
+    "file": "/data/csong/opensource/ffmpeg/libavcodec/srtenc.c",
+    "signature": "int(SRTContext *, const char)",
+    "container_type": "stack",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "srt_stack_find",
+    "file": "/data/csong/opensource/ffmpeg/libavcodec/srtenc.c",
+    "signature": "int(SRTContext *, const char)",
+    "container_type": "stack",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "srt_stack_push_pop",
+    "file": "/data/csong/opensource/ffmpeg/libavcodec/srtenc.c",
+    "signature": "void(SRTContext *, const char, int)",
+    "container_type": "stack",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "v4l2_dequeue_v4l2buf",
+    "file": "/data/csong/opensource/ffmpeg/libavcodec/v4l2_context.c",
+    "signature": "V4L2Buffer *(V4L2Context *, int)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ff_v4l2_context_enqueue_frame",
+    "file": "/data/csong/opensource/ffmpeg/libavcodec/v4l2_context.c",
+    "signature": "int(V4L2Context *, const int *)",
+    "container_type": "queue",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ff_v4l2_context_enqueue_packet",
+    "file": "/data/csong/opensource/ffmpeg/libavcodec/v4l2_context.c",
+    "signature": "int(V4L2Context *, const AVPacket *)",
+    "container_type": "queue",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ff_v4l2_context_dequeue_frame",
+    "file": "/data/csong/opensource/ffmpeg/libavcodec/v4l2_context.c",
+    "signature": "int(V4L2Context *, int *, int)",
+    "container_type": "queue",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ff_v4l2_context_dequeue_packet",
+    "file": "/data/csong/opensource/ffmpeg/libavcodec/v4l2_context.c",
+    "signature": "int(V4L2Context *, AVPacket *)",
+    "container_type": "queue",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ff_vlc_init_table_sparse",
+    "file": "/data/csong/opensource/ffmpeg/libavcodec/vlc.c",
+    "signature": "int(VLCElem[], int, int, int, const void *, int, int, const void *, int, int, const void *, int, int, int)",
+    "container_type": "table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ff_vorbis_ready_floor1_list",
+    "file": "/data/csong/opensource/ffmpeg/libavcodec/vorbis.c",
+    "signature": "int(void *, vorbis_floor1_entry *, int)",
+    "container_type": "array",
+    "container_arg": 1,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "vp56_add_predictors_dc",
+    "file": "/data/csong/opensource/ffmpeg/libavcodec/vp56.c",
+    "signature": "void(VP56Context *, VP56Frame)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ff_vvc_predict_inter",
+    "file": "/data/csong/opensource/ffmpeg/libavcodec/vvc/inter.c",
+    "signature": "int(VVCLocalContext *, const int)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ff_vvc_get_ref_list",
+    "file": "/data/csong/opensource/ffmpeg/libavcodec/vvc/refs.c",
+    "signature": "const RefPicList *(const VVCFrameContext *, const VVCFrame *, int, int)",
+    "container_type": "array",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "add_listener",
+    "file": "/data/csong/opensource/ffmpeg/libavcodec/vvc/refs.c",
+    "signature": "void(VVCProgressListener **, VVCProgressListener *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "remove_listener",
+    "file": "/data/csong/opensource/ffmpeg/libavcodec/vvc/refs.c",
+    "signature": "VVCProgressListener *(VVCProgressListener **, VVCProgressListener *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "get_done_listener",
+    "file": "/data/csong/opensource/ffmpeg/libavcodec/vvc/refs.c",
+    "signature": "VVCProgressListener *(FrameProgress *, const VVCProgress)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ff_vvc_add_progress_listener",
+    "file": "/data/csong/opensource/ffmpeg/libavcodec/vvc/refs.c",
+    "signature": "void(VVCFrame *, VVCProgressListener *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "add_progress_listener",
+    "file": "/data/csong/opensource/ffmpeg/libavcodec/vvc/thread.c",
+    "signature": "void(VVCFrame *, ProgressListener *, VVCTask *, VVCContext *, const VVCProgress, const int)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "color_cache_put",
+    "file": "/data/csong/opensource/ffmpeg/libavcodec/webp.c",
+    "signature": "int(ImageContext *, uint32_t)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "webvtt_stack_push",
+    "file": "/data/csong/opensource/ffmpeg/libavcodec/webvttenc.c",
+    "signature": "int(WebVTTContext *, const char)",
+    "container_type": "stack",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "webvtt_stack_find",
+    "file": "/data/csong/opensource/ffmpeg/libavcodec/webvttenc.c",
+    "signature": "int(WebVTTContext *, const char)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "webvtt_stack_push_pop",
+    "file": "/data/csong/opensource/ffmpeg/libavcodec/webvttenc.c",
+    "signature": "void(WebVTTContext *, const char, int)",
+    "container_type": "stack",
+    "container_arg": 0,
+    "store_args": [
+      1,
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "setup_sync_queues",
+    "file": "/data/csong/opensource/ffmpeg/fftools/ffmpeg_mux_init.c",
+    "signature": "int(Muxer *, int *, int64_t, int)",
+    "container_type": "queue",
+    "container_arg": 0,
+    "store_args": [
+      0
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "opt_map",
+    "file": "/data/csong/opensource/ffmpeg/fftools/ffmpeg_opt.c",
+    "signature": "int(void *, const char *, const char *)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "sch_add_mux",
+    "file": "/data/csong/opensource/ffmpeg/fftools/ffmpeg_sched.c",
+    "signature": "int(Scheduler *, SchThreadFunc, int (*)(void *), void *, int, unsigned int)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [
+      1,
+      2,
+      3
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "writercontext_child_next",
+    "file": "/data/csong/opensource/ffmpeg/fftools/textformat/avtextformat.c",
+    "signature": "void *(void *, void *)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ff_resman_get_string",
+    "file": "/data/csong/opensource/ffmpeg/fftools/resources/resman.c",
+    "signature": "char *(FFResourceId)",
+    "container_type": "cache",
+    "container_arg": -1,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "setup_find_stream_info_opts",
+    "file": "/data/csong/opensource/ffmpeg/fftools/cmdutils.c",
+    "signature": "int(int *, int *, int ***)",
+    "container_type": "array",
+    "container_arg": 2,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "dump_dictionary",
+    "file": "/data/csong/opensource/ffmpeg/fftools/cmdutils.c",
+    "signature": "void(void *, const int *, const char *, const char *, int)",
+    "container_type": "hash_table",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  }
+]

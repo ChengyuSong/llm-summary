@@ -1,0 +1,40 @@
+[
+  {
+    "function": "slide_hash",
+    "file": "/data/csong/opensource/zlib/deflate.c",
+    "signature": "void(deflate_state *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "deflateSetDictionary",
+    "file": "/data/csong/opensource/zlib/deflate.c",
+    "signature": "int(z_streamp, const Bytef *, uInt)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "mem_free",
+    "file": "/data/csong/opensource/zlib/test/infcover.c",
+    "signature": "void(void *, void *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  }
+]

@@ -1,0 +1,1968 @@
+[
+  {
+    "function": "add",
+    "file": "/data/csong/opensource/bind/lib/dns/gen.c",
+    "signature": "void(unsigned int, const char *, int, const char *, const char *)",
+    "container_type": "linked_list",
+    "container_arg": -1,
+    "store_args": [
+      0,
+      1,
+      2,
+      3,
+      4
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "http_get_listener_endpoints",
+    "file": "/data/csong/opensource/bind/lib/isc/netmgr/http.c",
+    "signature": "int *(int *, const int)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "dequeue_handle",
+    "file": "/data/csong/opensource/bind/lib/isc/netmgr/netmgr.c",
+    "signature": "int *(int *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "isc_nm_listenproxyudp",
+    "file": "/data/csong/opensource/bind/lib/isc/netmgr/proxyudp.c",
+    "signature": "int(uint32_t, int *, int, void *, int **)",
+    "container_type": "array",
+    "container_arg": 4,
+    "store_args": [
+      4
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "isc_nm_listentcp",
+    "file": "/data/csong/opensource/bind/lib/isc/netmgr/tcp.c",
+    "signature": "int(uint32_t, int *, int, void *, int, int *, int **)",
+    "container_type": "array",
+    "container_arg": 6,
+    "store_args": [
+      6
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "tls_get_listener_tlsctx",
+    "file": "/data/csong/opensource/bind/lib/isc/netmgr/tlsstream.c",
+    "signature": "int *(int *, const int)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "isc_nm_listenudp",
+    "file": "/data/csong/opensource/bind/lib/isc/netmgr/udp.c",
+    "signature": "int(uint32_t, int *, int, void *, int **)",
+    "container_type": "array",
+    "container_arg": 1,
+    "store_args": [
+      4
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "hashmap_node_init",
+    "file": "/data/csong/opensource/bind/lib/isc/hashmap.c",
+    "signature": "void(hashmap_node_t *, const uint32_t, const uint8_t *, void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      3
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "hashmap_dump_table",
+    "file": "/data/csong/opensource/bind/lib/isc/hashmap.c",
+    "signature": "int(const int *, const uint8_t)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "hashmap_find",
+    "file": "/data/csong/opensource/bind/lib/isc/hashmap.c",
+    "signature": "hashmap_node_t *(const int *, const uint32_t, int, const uint8_t *, uint32_t *, uint8_t *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "isc_hashmap_find",
+    "file": "/data/csong/opensource/bind/lib/isc/hashmap.c",
+    "signature": "int(const int *, const uint32_t, int, const void *, void **)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 9,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "hashmap_delete_node",
+    "file": "/data/csong/opensource/bind/lib/isc/hashmap.c",
+    "signature": "int(int *, hashmap_node_t *, uint32_t, uint32_t, const uint8_t, size_t)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "isc_hashmap_delete",
+    "file": "/data/csong/opensource/bind/lib/isc/hashmap.c",
+    "signature": "int(int *, const uint32_t, int, const void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "hashmap_add",
+    "file": "/data/csong/opensource/bind/lib/isc/hashmap.c",
+    "signature": "int(int *, const uint32_t, int, const uint8_t *, void *, void **, uint8_t)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      4
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 11,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "isc_hashmap_add",
+    "file": "/data/csong/opensource/bind/lib/isc/hashmap.c",
+    "signature": "int(int *, const uint32_t, int, const void *, void *, void **)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      3,
+      4
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 9,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "isc_hashmap_iter_current",
+    "file": "/data/csong/opensource/bind/lib/isc/hashmap.c",
+    "signature": "void(int *, void **)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "isc_hashmap_count",
+    "file": "/data/csong/opensource/bind/lib/isc/hashmap.c",
+    "signature": "unsigned int(int *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "isc_heap_insert",
+    "file": "/data/csong/opensource/bind/lib/isc/heap.c",
+    "signature": "void(int *, void *)",
+    "container_type": "heap",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "isc_heap_delete",
+    "file": "/data/csong/opensource/bind/lib/isc/heap.c",
+    "signature": "void(int *, unsigned int)",
+    "container_type": "heap",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "isc_heap_element",
+    "file": "/data/csong/opensource/bind/lib/isc/heap.c",
+    "signature": "void *(int *, unsigned int)",
+    "container_type": "heap",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "isc_heap_foreach",
+    "file": "/data/csong/opensource/bind/lib/isc/heap.c",
+    "signature": "void(int *, int, void *)",
+    "container_type": "heap",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "key_to_new_bucket",
+    "file": "/data/csong/opensource/bind/lib/isc/histo.c",
+    "signature": "hg_bucket_t *(int *, uint)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "key_to_bucket",
+    "file": "/data/csong/opensource/bind/lib/isc/histo.c",
+    "signature": "hg_bucket_t *(const int *, uint)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "hashtable_rehash_one",
+    "file": "/data/csong/opensource/bind/lib/isc/ht.c",
+    "signature": "void(int *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "hashtable_free",
+    "file": "/data/csong/opensource/bind/lib/isc/ht.c",
+    "signature": "void(int *, const uint8_t)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "isc__ht_add",
+    "file": "/data/csong/opensource/bind/lib/isc/ht.c",
+    "signature": "void(int *, const unsigned char *, const uint32_t, const uint32_t, const uint8_t, void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      5
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "isc__ht_find",
+    "file": "/data/csong/opensource/bind/lib/isc/ht.c",
+    "signature": "isc_ht_node_t *(const int *, const unsigned char *, const uint32_t, const uint32_t, const uint8_t)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "isc__ht_delete",
+    "file": "/data/csong/opensource/bind/lib/isc/ht.c",
+    "signature": "int(int *, const unsigned char *, const uint32_t, const uint32_t, const uint8_t)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "isc_loop_setup",
+    "file": "/data/csong/opensource/bind/lib/isc/loop.c",
+    "signature": "int *(int *, int, void *)",
+    "container_type": "queue",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "isc__mempool_destroy",
+    "file": "/data/csong/opensource/bind/lib/isc/mem.c",
+    "signature": "void(int **restrict)",
+    "container_type": "pool",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "isc__mempool_get",
+    "file": "/data/csong/opensource/bind/lib/isc/mem.c",
+    "signature": "void *(int *restrict)",
+    "container_type": "pool",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 12,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "isc__mempool_put",
+    "file": "/data/csong/opensource/bind/lib/isc/mem.c",
+    "signature": "void(int *restrict, void *)",
+    "container_type": "pool",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 10,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "portset_add",
+    "file": "/data/csong/opensource/bind/lib/isc/portset.c",
+    "signature": "void(int *, int)",
+    "container_type": "set",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "portset_remove",
+    "file": "/data/csong/opensource/bind/lib/isc/portset.c",
+    "signature": "void(int *, int)",
+    "container_type": "set",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "isc_portset_remove",
+    "file": "/data/csong/opensource/bind/lib/isc/portset.c",
+    "signature": "void(int *, int)",
+    "container_type": "set",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "isc_radix_insert",
+    "file": "/data/csong/opensource/bind/lib/isc/radix.c",
+    "signature": "int(int *, int **, int *, int *)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [
+      2,
+      3
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "isc_radix_remove",
+    "file": "/data/csong/opensource/bind/lib/isc/radix.c",
+    "signature": "void(int *, int *)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "isc_ratelimiter_enqueue",
+    "file": "/data/csong/opensource/bind/lib/isc/ratelimiter.c",
+    "signature": "int(int *restrict, int *restrict, int, void *, int **)",
+    "container_type": "queue",
+    "container_arg": 0,
+    "store_args": [
+      2,
+      3
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "isc_ratelimiter_dequeue",
+    "file": "/data/csong/opensource/bind/lib/isc/ratelimiter.c",
+    "signature": "int(int *restrict, int **)",
+    "container_type": "queue",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "isc_tlsctx_cache_add",
+    "file": "/data/csong/opensource/bind/lib/isc/tls.c",
+    "signature": "int(int *, const char *, const int, const uint16_t, int *, int *, int *, int **, int **, int **)",
+    "container_type": "cache",
+    "container_arg": 0,
+    "store_args": [
+      4,
+      5,
+      6
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "isc_tlsctx_cache_find",
+    "file": "/data/csong/opensource/bind/lib/isc/tls.c",
+    "signature": "int(int *, const char *, const int, const uint16_t, int **, int **, int **)",
+    "container_type": "cache",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "client_cache_entry_delete",
+    "file": "/data/csong/opensource/bind/lib/isc/tls.c",
+    "signature": "void(int *restrict, client_session_cache_entry_t *restrict)",
+    "container_type": "cache",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "isc_tlsctx_client_session_cache_keep",
+    "file": "/data/csong/opensource/bind/lib/isc/tls.c",
+    "signature": "void(int *, char *, int *)",
+    "container_type": "cache",
+    "container_arg": 0,
+    "store_args": [
+      1,
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "isc_tlsctx_client_session_cache_reuse",
+    "file": "/data/csong/opensource/bind/lib/isc/tls.c",
+    "signature": "void(int *, char *, int *)",
+    "container_type": "cache",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "isc_work_enqueue",
+    "file": "/data/csong/opensource/bind/lib/isc/work.c",
+    "signature": "void(int *, int, int, void *)",
+    "container_type": "queue",
+    "container_arg": 0,
+    "store_args": [
+      1,
+      2,
+      3
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "print_find_list",
+    "file": "/data/csong/opensource/bind/lib/dns/adb.c",
+    "signature": "void(int *, int *)",
+    "container_type": "linked_list",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "dns_badcache_add",
+    "file": "/data/csong/opensource/bind/lib/dns/badcache.c",
+    "signature": "void(int *, const int *, int, uint32_t, int)",
+    "container_type": "cache",
+    "container_arg": 0,
+    "store_args": [
+      1,
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "dns_badcache_find",
+    "file": "/data/csong/opensource/bind/lib/dns/badcache.c",
+    "signature": "int(int *, const int *, int, uint32_t *, int)",
+    "container_type": "cache",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "dns_dispatchset_get",
+    "file": "/data/csong/opensource/bind/lib/dns/dispatch.c",
+    "signature": "int *(int *)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "dns_fwdtable_add",
+    "file": "/data/csong/opensource/bind/lib/dns/forward.c",
+    "signature": "int(int *, const int *, int *, int)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [
+      1,
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "dns_fwdtable_find",
+    "file": "/data/csong/opensource/bind/lib/dns/forward.c",
+    "signature": "int(int *, const int *, int **)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "dns_kasplist_find",
+    "file": "/data/csong/opensource/bind/lib/dns/kasp.c",
+    "signature": "int(int *, const char *, int **)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "dns_keystorelist_find",
+    "file": "/data/csong/opensource/bind/lib/dns/keystore.c",
+    "signature": "int(int *, const char *, int **)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "dns_keytable_add",
+    "file": "/data/csong/opensource/bind/lib/dns/keytable.c",
+    "signature": "int(int *, _Bool, _Bool, int *, int *, int, void *)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [
+      3,
+      4,
+      6
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "dns_keytable_delete",
+    "file": "/data/csong/opensource/bind/lib/dns/keytable.c",
+    "signature": "int(int *, const int *, int, void *)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "dns_keytable_find",
+    "file": "/data/csong/opensource/bind/lib/dns/keytable.c",
+    "signature": "int(int *, const int *, int **)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "dns_keytable_forall",
+    "file": "/data/csong/opensource/bind/lib/dns/keytable.c",
+    "signature": "void(int *, void (*)(int *, int *, int *, void *), void *)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "dns_nametree_add",
+    "file": "/data/csong/opensource/bind/lib/dns/nametree.c",
+    "signature": "int(int *, const int *, int)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [
+      1,
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "dns_nametree_delete",
+    "file": "/data/csong/opensource/bind/lib/dns/nametree.c",
+    "signature": "int(int *, const int *)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "dns_nametree_find",
+    "file": "/data/csong/opensource/bind/lib/dns/nametree.c",
+    "signature": "int(int *, const int *, int **)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "dns_ncache_add",
+    "file": "/data/csong/opensource/bind/lib/dns/ncache.c",
+    "signature": "int(int *, int *, int *, int, int, int, int, _Bool, _Bool, int *)",
+    "container_type": "cache",
+    "container_arg": 1,
+    "store_args": [
+      0,
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "dns_nsec3_addnsec3",
+    "file": "/data/csong/opensource/bind/lib/dns/nsec3.c",
+    "signature": "int(int *, int *, const int *, const int *, int, _Bool, int *)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [
+      2,
+      3
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "dns_nsec3_delnsec3",
+    "file": "/data/csong/opensource/bind/lib/dns/nsec3.c",
+    "signature": "int(int *, int *, const int *, const int *, int *)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "dns_ntatable_add",
+    "file": "/data/csong/opensource/bind/lib/dns/nta.c",
+    "signature": "int(int *, const int *, _Bool, int, uint32_t)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "dns_ntatable_delete",
+    "file": "/data/csong/opensource/bind/lib/dns/nta.c",
+    "signature": "int(int *, const int *)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "dns_order_find",
+    "file": "/data/csong/opensource/bind/lib/dns/order.c",
+    "signature": "int(int *, const int *, int, int)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "peerlist_delete",
+    "file": "/data/csong/opensource/bind/lib/dns/peer.c",
+    "signature": "void(int **)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "clean_cache_node",
+    "file": "/data/csong/opensource/bind/lib/dns/qpcache.c",
+    "signature": "void(qpcache_t *, qpcnode_t *)",
+    "container_type": "linked_list",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "check_zonecut",
+    "file": "/data/csong/opensource/bind/lib/dns/qpcache.c",
+    "signature": "int(qpcnode_t *, void *)",
+    "container_type": "cache",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "find_deepest_zonecut",
+    "file": "/data/csong/opensource/bind/lib/dns/qpcache.c",
+    "signature": "int(qpc_search_t *, qpcnode_t *, int **, int *, int *, int *)",
+    "container_type": "cache",
+    "container_arg": 0,
+    "store_args": [
+      2,
+      4,
+      5
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "find_coveringnsec",
+    "file": "/data/csong/opensource/bind/lib/dns/qpcache.c",
+    "signature": "int(qpc_search_t *, const int *, int **, int *, int *, int *)",
+    "container_type": "cache",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "qpcache_find",
+    "file": "/data/csong/opensource/bind/lib/dns/qpcache.c",
+    "signature": "int(int *, const int *, int *, int, unsigned int, int, int **, int *, int *, int *)",
+    "container_type": "cache",
+    "container_arg": 0,
+    "store_args": [
+      6,
+      8,
+      9
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 9,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "qpcache_findrdataset",
+    "file": "/data/csong/opensource/bind/lib/dns/qpcache.c",
+    "signature": "int(int *, int *, int *, int, int, int, int *, int *)",
+    "container_type": "cache",
+    "container_arg": 0,
+    "store_args": [
+      6,
+      7
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "add",
+    "file": "/data/csong/opensource/bind/lib/dns/qpcache.c",
+    "signature": "int(qpcache_t *, qpcnode_t *, const int *)",
+    "container_type": "cache",
+    "container_arg": 1,
+    "store_args": [
+      3
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "dns__qpcache_create",
+    "file": "/data/csong/opensource/bind/lib/dns/qpcache.c",
+    "signature": "int(int *, const int *, int, int, unsigned int, char *[], void *)",
+    "container_type": "cache",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "rdatasetiter_first",
+    "file": "/data/csong/opensource/bind/lib/dns/qpcache.c",
+    "signature": "int(int *)",
+    "container_type": "cache",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "rdatasetiter_next",
+    "file": "/data/csong/opensource/bind/lib/dns/qpcache.c",
+    "signature": "int(int *)",
+    "container_type": "cache",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "setnsec3parameters",
+    "file": "/data/csong/opensource/bind/lib/dns/qpzone.c",
+    "signature": "void(int *, qpz_version_t *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "qpzone_findrdataset",
+    "file": "/data/csong/opensource/bind/lib/dns/qpzone.c",
+    "signature": "int(int *, int *, int *, int, int, int)",
+    "container_type": "linked_list",
+    "container_arg": 1,
+    "store_args": [
+      6,
+      7
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "add",
+    "file": "/data/csong/opensource/bind/lib/dns/qpzone.c",
+    "signature": "int(qpzonedb_t *, qpznode_t *, const int *, qpz_version_t *, int *, unsigned int, _Bool, int *, int)",
+    "container_type": "linked_list",
+    "container_arg": 1,
+    "store_args": [
+      4
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "loading_addrdataset",
+    "file": "/data/csong/opensource/bind/lib/dns/qpzone.c",
+    "signature": "int(void *, const int *, int *)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "find_wildcard",
+    "file": "/data/csong/opensource/bind/lib/dns/qpzone.c",
+    "signature": "int(qpz_search_t *, qpznode_t **, const int *, int)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "find_closest_nsec",
+    "file": "/data/csong/opensource/bind/lib/dns/qpzone.c",
+    "signature": "int(qpz_search_t *, int **, int *, int *, int *, _Bool, _Bool)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "qpzone_check_zonecut",
+    "file": "/data/csong/opensource/bind/lib/dns/qpzone.c",
+    "signature": "int(qpznode_t *, void *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "qpzone_find",
+    "file": "/data/csong/opensource/bind/lib/dns/qpzone.c",
+    "signature": "int(int *, const int *, int *, int, unsigned int, int)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [
+      6,
+      8,
+      9
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "rdatasetiter_first",
+    "file": "/data/csong/opensource/bind/lib/dns/qpzone.c",
+    "signature": "int(int *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "rdatasetiter_next",
+    "file": "/data/csong/opensource/bind/lib/dns/qpzone.c",
+    "signature": "int(int *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "qpzone_subtractrdataset",
+    "file": "/data/csong/opensource/bind/lib/dns/qpzone.c",
+    "signature": "int(int *, int *, int *, int *, unsigned int, int *)",
+    "container_type": "linked_list",
+    "container_arg": 1,
+    "store_args": [
+      3
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "glue_nsdname_cb",
+    "file": "/data/csong/opensource/bind/lib/dns/qpzone.c",
+    "signature": "int(void *, const int *, int, int *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "dns_rdataset_next",
+    "file": "/data/csong/opensource/bind/lib/dns/rdataset.c",
+    "signature": "int(int *)",
+    "container_type": "set",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "dns_rdataset_additionaldata",
+    "file": "/data/csong/opensource/bind/lib/dns/rdataset.c",
+    "signature": "int(int *, const int *, int, void *, size_t)",
+    "container_type": "rdataset",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "add_triededns",
+    "file": "/data/csong/opensource/bind/lib/dns/resolver.c",
+    "signature": "void(fetchctx_t *, int *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "delete_rrset",
+    "file": "/data/csong/opensource/bind/lib/dns/resolver.c",
+    "signature": "void(fetchctx_t *, int *, int, _Bool)",
+    "container_type": "cache",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "set_sum_pair",
+    "file": "/data/csong/opensource/bind/lib/dns/rpz.c",
+    "signature": "void(int *)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "search",
+    "file": "/data/csong/opensource/bind/lib/dns/rpz.c",
+    "signature": "int(int *, const dns_rpz_cidr_key_t *, int, const dns_rpz_addr_zbits_t *, _Bool, int **)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "dns_rriterator_nextrrset",
+    "file": "/data/csong/opensource/bind/lib/dns/rriterator.c",
+    "signature": "int(int *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "expand_rrl_hash",
+    "file": "/data/csong/opensource/bind/lib/dns/rrl.c",
+    "signature": "int(int *, int)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "dns_rdatasetstats_dump",
+    "file": "/data/csong/opensource/bind/lib/dns/stats.c",
+    "signature": "void(int *, int, void *, unsigned int)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "add_rdata_to_list",
+    "file": "/data/csong/opensource/bind/lib/dns/tkey.c",
+    "signature": "void(int *, int *, int *, uint32_t, int *)",
+    "container_type": "linked_list",
+    "container_arg": 4,
+    "store_args": [
+      1,
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "list_add",
+    "file": "/data/csong/opensource/bind/lib/dns/transport.c",
+    "signature": "int(int *, const int *, const int, int *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      3
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "dns_tsigkeyring_add",
+    "file": "/data/csong/opensource/bind/lib/dns/tsig.c",
+    "signature": "int(int *, int *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "dns_unreachcache_add",
+    "file": "/data/csong/opensource/bind/lib/dns/unreachcache.c",
+    "signature": "void(int *, const int *, const int *)",
+    "container_type": "cache",
+    "container_arg": 0,
+    "store_args": [
+      1,
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "dns_unreachcache_find",
+    "file": "/data/csong/opensource/bind/lib/dns/unreachcache.c",
+    "signature": "int(int *, const int *, const int *)",
+    "container_type": "cache",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "dns_unreachcache_remove",
+    "file": "/data/csong/opensource/bind/lib/dns/unreachcache.c",
+    "signature": "void(int *, const int *, const int *)",
+    "container_type": "cache",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "foreach_rrset",
+    "file": "/data/csong/opensource/bind/lib/dns/update.c",
+    "signature": "int(int *, int *, int *, rrset_func *, void *)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "namelist_append_name",
+    "file": "/data/csong/opensource/bind/lib/dns/update.c",
+    "signature": "void(int *, int *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "namelist_append_subdomain",
+    "file": "/data/csong/opensource/bind/lib/dns/update.c",
+    "signature": "int(int *, int *, int *)",
+    "container_type": "linked_list",
+    "container_arg": 2,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "validate_dnskey_dsset_next",
+    "file": "/data/csong/opensource/bind/lib/dns/validator.c",
+    "signature": "void(void *)",
+    "container_type": "rdataset",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "dns_viewlist_find",
+    "file": "/data/csong/opensource/bind/lib/dns/view.c",
+    "signature": "int(int *, const char *, int, int **)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "dns_view_setnewzones",
+    "file": "/data/csong/opensource/bind/lib/dns/view.c",
+    "signature": "int(int *, _Bool, void *, void (*)(void **), uint64_t)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "remove_rdataset",
+    "file": "/data/csong/opensource/bind/lib/dns/zone.c",
+    "signature": "void(int *, int *, int *)",
+    "container_type": "set",
+    "container_arg": 2,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "dns__zone_lookup_nsec3param",
+    "file": "/data/csong/opensource/bind/lib/dns/zone.c",
+    "signature": "int(int *, int *, int *, unsigned char[255], _Bool)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "dns_zone_setnsec3param",
+    "file": "/data/csong/opensource/bind/lib/dns/zone.c",
+    "signature": "int(int *, uint8_t, uint8_t, uint16_t, uint8_t, unsigned char *, _Bool, _Bool)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "record_nsec3",
+    "file": "/data/csong/opensource/bind/lib/dns/zoneverify.c",
+    "signature": "void(const vctx_t *, const unsigned char *, const int *, int *)",
+    "container_type": "heap",
+    "container_arg": 3,
+    "store_args": [
+      1,
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "find_nsec3_match",
+    "file": "/data/csong/opensource/bind/lib/dns/zoneverify.c",
+    "signature": "int(const int *, int *, size_t, int *)",
+    "container_type": "linked_list",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "rpz_rrset_find",
+    "file": "/data/csong/opensource/bind/lib/ns/query.c",
+    "signature": "int(int *, int *, int, unsigned int, int, int **, int *, int **, _Bool)",
+    "container_type": "tree",
+    "container_arg": 5,
+    "store_args": [
+      7
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ns_hooktable_free",
+    "file": "/data/csong/opensource/bind/lib/ns/hooks.c",
+    "signature": "void(int *, void **)",
+    "container_type": "hash_table",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "foreach_rrset",
+    "file": "/data/csong/opensource/bind/lib/ns/update.c",
+    "signature": "int(int *, int *, int *, rrset_func *, void *)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "isccc_alist_delete",
+    "file": "/data/csong/opensource/bind/lib/isccc/alist.c",
+    "signature": "void(int *, const char *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "isccc_alist_lookup",
+    "file": "/data/csong/opensource/bind/lib/isccc/alist.c",
+    "signature": "int *(int *, const char *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "find_maplist",
+    "file": "/data/csong/opensource/bind/lib/isccfg/check.c",
+    "signature": "const int *(const int *, const char *, const char *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "get_string",
+    "file": "/data/csong/opensource/bind/lib/isccfg/kaspconf.c",
+    "signature": "const char *(const int **, const char *)",
+    "container_type": "other",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "cfg_map_get",
+    "file": "/data/csong/opensource/bind/lib/isccfg/parser.c",
+    "signature": "int(const int *, const char *, const int **)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "cfg_map_firstclause",
+    "file": "/data/csong/opensource/bind/lib/isccfg/parser.c",
+    "signature": "const char *(const int *, const void **, unsigned int *)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "cfg_map_nextclause",
+    "file": "/data/csong/opensource/bind/lib/isccfg/parser.c",
+    "signature": "const char *(const int *, const void **, unsigned int *)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "map_symtabitem_destroy",
+    "file": "/data/csong/opensource/bind/lib/isccfg/parser.c",
+    "signature": "void(char *, unsigned int, int, void *)",
+    "container_type": "hash_table",
+    "container_arg": 3,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "cfg_pluginlist_foreach",
+    "file": "/data/csong/opensource/bind/lib/isccfg/parser.c",
+    "signature": "int(const int *, const int *, int *, void *)",
+    "container_type": "linked_list",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "get_server_list",
+    "file": "/data/csong/opensource/bind/bin/dig/dighost.c",
+    "signature": "void(int *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "requeue_lookup",
+    "file": "/data/csong/opensource/bind/bin/dig/dighost.c",
+    "signature": "dig_lookup_t *(dig_lookup_t *, _Bool)",
+    "container_type": "linked_list",
+    "container_arg": -1,
+    "store_args": [
+      0
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "create_search_list",
+    "file": "/data/csong/opensource/bind/bin/dig/dighost.c",
+    "signature": "void(int *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      0
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "set_search_domain",
+    "file": "/data/csong/opensource/bind/bin/dig/dighost.c",
+    "signature": "void(char *)",
+    "container_type": "linked_list",
+    "container_arg": -1,
+    "store_args": [
+      0
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "setup_lookup",
+    "file": "/data/csong/opensource/bind/bin/dig/dighost.c",
+    "signature": "_Bool(dig_lookup_t *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "append_new_ds_set",
+    "file": "/data/csong/opensource/bind/bin/dnssec/dnssec-cds.c",
+    "signature": "int(ds_maker_func_t *, int *, int *, int, int *)",
+    "container_type": "linked_list",
+    "container_arg": 2,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "hashlist_add",
+    "file": "/data/csong/opensource/bind/bin/dnssec/dnssec-signzone.c",
+    "signature": "void(hashlist_t *, const unsigned char *, size_t)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "hashlist_add_dns_name",
+    "file": "/data/csong/opensource/bind/bin/dnssec/dnssec-signzone.c",
+    "signature": "void(hashlist_t *, int *, unsigned int, unsigned int, const unsigned char *, size_t, _Bool)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "get_maps",
+    "file": "/data/csong/opensource/bind/bin/check/named-checkconf.c",
+    "signature": "_Bool(const int **, const char *, const int **)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "cfgkeylist_find",
+    "file": "/data/csong/opensource/bind/bin/named/controlconf.c",
+    "signature": "int(const int *, const char *, const int **)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "add_listener",
+    "file": "/data/csong/opensource/bind/bin/named/controlconf.c",
+    "signature": "void(int *, controllistener_t **, const int *, const int *, int *, int *, const char *, int)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "dlopen_dlz_addrdataset",
+    "file": "/data/csong/opensource/bind/bin/named/dlz_dlopen_driver.c",
+    "signature": "int(const char *, const char *, void *, void *, void *)",
+    "container_type": "set",
+    "container_arg": 3,
+    "store_args": [
+      4
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "cachelist_find",
+    "file": "/data/csong/opensource/bind/bin/named/server.c",
+    "signature": "int *(int *, const char *, int)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "find_maplist",
+    "file": "/data/csong/opensource/bind/bin/named/server.c",
+    "signature": "const int *(const int *, const char *, const char *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "add_zone_tolist",
+    "file": "/data/csong/opensource/bind/bin/named/server.c",
+    "signature": "int()",
+    "container_type": "linked_list",
+    "container_arg": 1,
+    "store_args": [
+      0
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "add_view_tolist",
+    "file": "/data/csong/opensource/bind/bin/named/server.c",
+    "signature": "int()",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "find_name_in_list_from_map",
+    "file": "/data/csong/opensource/bind/bin/named/server.c",
+    "signature": "const int *(const int *, const char *, const char *, _Bool)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "add_listener",
+    "file": "/data/csong/opensource/bind/bin/named/statschannel.c",
+    "signature": "int(int *, int **, const int *, const int *, int *, int *, const char *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "transport_list_add_ephemeral",
+    "file": "/data/csong/opensource/bind/bin/named/transportconf.c",
+    "signature": "void(int *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "setup_system",
+    "file": "/data/csong/opensource/bind/bin/nsupdate/nsupdate.c",
+    "signature": "void(void *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "dlz_lookup",
+    "file": "/data/csong/opensource/bind/bin/tests/system/dlzexternal/driver/driver.c",
+    "signature": "int(const char *, const char *, void *, int *, int *, int *)",
+    "container_type": "array",
+    "container_arg": 2,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "dlz_addrdataset",
+    "file": "/data/csong/opensource/bind/bin/tests/system/dlzexternal/driver/driver.c",
+    "signature": "int(const char *, const char *, void *, void *)",
+    "container_type": "other",
+    "container_arg": 2,
+    "store_args": [
+      0,
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "dlz_subrdataset",
+    "file": "/data/csong/opensource/bind/bin/tests/system/dlzexternal/driver/driver.c",
+    "signature": "int(const char *, const char *, void *, void *)",
+    "container_type": "set",
+    "container_arg": 2,
+    "store_args": [
+      0,
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  }
+]

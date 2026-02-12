@@ -1,0 +1,2751 @@
+[
+  {
+    "function": "isc_ht_add",
+    "file": "/data/csong/opensource/dhcp/bind/bind-9.11.36/lib/isc/ht.c",
+    "signature": "int(int *, const unsigned char *, uint32_t, void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      3
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 10,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "isc_ht_find",
+    "file": "/data/csong/opensource/dhcp/bind/bind-9.11.36/lib/isc/ht.c",
+    "signature": "int(const int *, const unsigned char *, uint32_t, void **)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      3
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 10,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "isc_ht_delete",
+    "file": "/data/csong/opensource/dhcp/bind/bind-9.11.36/lib/isc/ht.c",
+    "signature": "int(int *, const unsigned char *, uint32_t)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "isc_ht_iter_delcurrent_next",
+    "file": "/data/csong/opensource/dhcp/bind/bind-9.11.36/lib/isc/ht.c",
+    "signature": "int(int *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "isc_heap_insert",
+    "file": "/data/csong/opensource/dhcp/bind/bind-9.11.36/lib/isc/heap.c",
+    "signature": "int(int *, void *)",
+    "container_type": "heap",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "isc_heap_delete",
+    "file": "/data/csong/opensource/dhcp/bind/bind-9.11.36/lib/isc/heap.c",
+    "signature": "void(int *, unsigned int)",
+    "container_type": "heap",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "isc_heap_element",
+    "file": "/data/csong/opensource/dhcp/bind/bind-9.11.36/lib/isc/heap.c",
+    "signature": "void *(int *, unsigned int)",
+    "container_type": "heap",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "isc_heap_foreach",
+    "file": "/data/csong/opensource/dhcp/bind/bind-9.11.36/lib/isc/heap.c",
+    "signature": "void(int *, int, void *)",
+    "container_type": "heap",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "isc__mempool_destroy",
+    "file": "/data/csong/opensource/dhcp/bind/bind-9.11.36/lib/isc/mem.c",
+    "signature": "void(int **)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "isc___mempool_get",
+    "file": "/data/csong/opensource/dhcp/bind/bind-9.11.36/lib/isc/mem.c",
+    "signature": "void *(int *)",
+    "container_type": "freelist",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 12,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "isc___mempool_put",
+    "file": "/data/csong/opensource/dhcp/bind/bind-9.11.36/lib/isc/mem.c",
+    "signature": "void(int *, void *)",
+    "container_type": "pool",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 10,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "isc__mempool_get",
+    "file": "/data/csong/opensource/dhcp/bind/bind-9.11.36/lib/isc/mem.c",
+    "signature": "void *(int *)",
+    "container_type": "memory_pool",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 9,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "isc__mempool_put",
+    "file": "/data/csong/opensource/dhcp/bind/bind-9.11.36/lib/isc/mem.c",
+    "signature": "void(int *, void *)",
+    "container_type": "memory_pool",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "isc_pool_get",
+    "file": "/data/csong/opensource/dhcp/bind/bind-9.11.36/lib/isc/pool.c",
+    "signature": "void *(int *)",
+    "container_type": "pool",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 9,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "isc_radix_insert",
+    "file": "/data/csong/opensource/dhcp/bind/bind-9.11.36/lib/isc/radix.c",
+    "signature": "int(int *, int **, int *, int *)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [
+      2,
+      3
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "isc_radix_remove",
+    "file": "/data/csong/opensource/dhcp/bind/bind-9.11.36/lib/isc/radix.c",
+    "signature": "void(int *, int *)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "isc_ratelimiter_enqueue",
+    "file": "/data/csong/opensource/dhcp/bind/bind-9.11.36/lib/isc/ratelimiter.c",
+    "signature": "int(int *, int *, int **)",
+    "container_type": "queue",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "isc_ratelimiter_dequeue",
+    "file": "/data/csong/opensource/dhcp/bind/bind-9.11.36/lib/isc/ratelimiter.c",
+    "signature": "int(int *, int *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "grow_table",
+    "file": "/data/csong/opensource/dhcp/bind/bind-9.11.36/lib/isc/symtab.c",
+    "signature": "void(int *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "dequeue_events",
+    "file": "/data/csong/opensource/dhcp/bind/bind-9.11.36/lib/isc/task.c",
+    "signature": "unsigned int(isc__task_t *, void *, int, int, void *, int *, _Bool)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "add",
+    "file": "/data/csong/opensource/dhcp/bind/bind-9.11.36/lib/dns/gen.c",
+    "signature": "void(int, const char *, int, const char *, const char *)",
+    "container_type": "linked_list",
+    "container_arg": -1,
+    "store_args": [
+      0,
+      1,
+      2,
+      3,
+      4
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "dns_acache_setdb",
+    "file": "/data/csong/opensource/dhcp/bind/bind-9.11.36/lib/dns/acache.c",
+    "signature": "int(int *, int *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "dns_acache_putdb",
+    "file": "/data/csong/opensource/dhcp/bind/bind-9.11.36/lib/dns/acache.c",
+    "signature": "int(int *, int *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "grow_entries",
+    "file": "/data/csong/opensource/dhcp/bind/bind-9.11.36/lib/dns/adb.c",
+    "signature": "void(int *, int *)",
+    "container_type": "hash_table",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "shutdown_entries",
+    "file": "/data/csong/opensource/dhcp/bind/bind-9.11.36/lib/dns/adb.c",
+    "signature": "_Bool(int *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "copy_namehook_lists",
+    "file": "/data/csong/opensource/dhcp/bind/bind-9.11.36/lib/dns/adb.c",
+    "signature": "void(int *, int *, int *, int, int *, int)",
+    "container_type": "linked_list",
+    "container_arg": 1,
+    "store_args": [
+      4
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "print_find_list",
+    "file": "/data/csong/opensource/dhcp/bind/bind-9.11.36/lib/dns/adb.c",
+    "signature": "void(int *, int *)",
+    "container_type": "linked_list",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "dns_adb_setudpsize",
+    "file": "/data/csong/opensource/dhcp/bind/bind-9.11.36/lib/dns/adb.c",
+    "signature": "void(int *, int *, unsigned int)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "dns_adb_setcookie",
+    "file": "/data/csong/opensource/dhcp/bind/bind-9.11.36/lib/dns/adb.c",
+    "signature": "void(int *, int *, const unsigned char *, int)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "badcache_resize",
+    "file": "/data/csong/opensource/dhcp/bind/bind-9.11.36/lib/dns/badcache.c",
+    "signature": "int(int *, int *, _Bool)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "dns_badcache_add",
+    "file": "/data/csong/opensource/dhcp/bind/bind-9.11.36/lib/dns/badcache.c",
+    "signature": "void(int *, int *, int, _Bool, uint32_t, int *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      1,
+      2,
+      5
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "dns_badcache_find",
+    "file": "/data/csong/opensource/dhcp/bind/bind-9.11.36/lib/dns/badcache.c",
+    "signature": "_Bool(int *, int *, int, uint32_t *, int *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "dns_badcache_flush",
+    "file": "/data/csong/opensource/dhcp/bind/bind-9.11.36/lib/dns/badcache.c",
+    "signature": "void(int *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "dns_badcache_flushname",
+    "file": "/data/csong/opensource/dhcp/bind/bind-9.11.36/lib/dns/badcache.c",
+    "signature": "void(int *, int *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "dns_badcache_flushtree",
+    "file": "/data/csong/opensource/dhcp/bind/bind-9.11.36/lib/dns/badcache.c",
+    "signature": "void(int *, int *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "dns_badcache_print",
+    "file": "/data/csong/opensource/dhcp/bind/bind-9.11.36/lib/dns/badcache.c",
+    "signature": "void(int *, const char *, int *)",
+    "container_type": "cache",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "dns_compress_findglobal",
+    "file": "/data/csong/opensource/dhcp/bind/bind-9.11.36/lib/dns/compress.c",
+    "signature": "_Bool(int *, const int *, int *, uint16_t *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "dns_compress_add",
+    "file": "/data/csong/opensource/dhcp/bind/bind-9.11.36/lib/dns/compress.c",
+    "signature": "void(int *, const int *, const int *, uint16_t)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      1,
+      2,
+      3
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "dns_dbtable_add",
+    "file": "/data/csong/opensource/dhcp/bind/bind-9.11.36/lib/dns/dbtable.c",
+    "signature": "int(int *, int *)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "dns_dbtable_remove",
+    "file": "/data/csong/opensource/dhcp/bind/bind-9.11.36/lib/dns/dbtable.c",
+    "signature": "void(int *, int *)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "dns_dbtable_find",
+    "file": "/data/csong/opensource/dhcp/bind/bind-9.11.36/lib/dns/dbtable.c",
+    "signature": "int(int *, int *, unsigned int, int **)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [
+      3
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "dns_dispatchset_get",
+    "file": "/data/csong/opensource/dhcp/bind/bind-9.11.36/lib/dns/dispatch.c",
+    "signature": "int *(int *)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "dns_fwdtable_add",
+    "file": "/data/csong/opensource/dhcp/bind/bind-9.11.36/lib/dns/forward.c",
+    "signature": "int(int *, int *, int *, int)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [
+      1,
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "dns_fwdtable_delete",
+    "file": "/data/csong/opensource/dhcp/bind/bind-9.11.36/lib/dns/forward.c",
+    "signature": "int(int *, int *)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "dns_fwdtable_find",
+    "file": "/data/csong/opensource/dhcp/bind/bind-9.11.36/lib/dns/forward.c",
+    "signature": "int(int *, int *, int **)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "insert",
+    "file": "/data/csong/opensource/dhcp/bind/bind-9.11.36/lib/dns/keytable.c",
+    "signature": "int(int *, _Bool, int *, int **)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [
+      3
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "dns_keytable_add",
+    "file": "/data/csong/opensource/dhcp/bind/bind-9.11.36/lib/dns/keytable.c",
+    "signature": "int(int *, _Bool, int **)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "dns_keytable_delete",
+    "file": "/data/csong/opensource/dhcp/bind/bind-9.11.36/lib/dns/keytable.c",
+    "signature": "int(int *, int *)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "dns_keytable_deletekeynode",
+    "file": "/data/csong/opensource/dhcp/bind/bind-9.11.36/lib/dns/keytable.c",
+    "signature": "int(int *, int *)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "dns_keytable_find",
+    "file": "/data/csong/opensource/dhcp/bind/bind-9.11.36/lib/dns/keytable.c",
+    "signature": "int(int *, int *, int **)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "dns_keytable_nextkeynode",
+    "file": "/data/csong/opensource/dhcp/bind/bind-9.11.36/lib/dns/keytable.c",
+    "signature": "int(int *, int *, int **)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "dns_keytable_findkeynode",
+    "file": "/data/csong/opensource/dhcp/bind/bind-9.11.36/lib/dns/keytable.c",
+    "signature": "int(int *, int *, int, int, int **)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "dns_keytable_findnextkeynode",
+    "file": "/data/csong/opensource/dhcp/bind/bind-9.11.36/lib/dns/keytable.c",
+    "signature": "int(int *, int *, int **)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "dns_keytable_totext",
+    "file": "/data/csong/opensource/dhcp/bind/bind-9.11.36/lib/dns/keytable.c",
+    "signature": "int(int *, int **)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "dns_keytable_forall",
+    "file": "/data/csong/opensource/dhcp/bind/bind-9.11.36/lib/dns/keytable.c",
+    "signature": "int(int *, void (*)(int *, int *, void *), void *)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "dns_ncache_add",
+    "file": "/data/csong/opensource/dhcp/bind/bind-9.11.36/lib/dns/ncache.c",
+    "signature": "int(int *, int *, int *, int, int, int, int *)",
+    "container_type": "cache",
+    "container_arg": 1,
+    "store_args": [
+      2,
+      6
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "dns_nsec3_addnsec3",
+    "file": "/data/csong/opensource/dhcp/bind/bind-9.11.36/lib/dns/nsec3.c",
+    "signature": "int(int *, int *, int *, const int *, int, _Bool, int *)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "dns_ntatable_add",
+    "file": "/data/csong/opensource/dhcp/bind/bind-9.11.36/lib/dns/nta.c",
+    "signature": "int(int *, int *, _Bool, int, uint32_t)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "dns_ntatable_delete",
+    "file": "/data/csong/opensource/dhcp/bind/bind-9.11.36/lib/dns/nta.c",
+    "signature": "int(int *, int *)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "peerlist_delete",
+    "file": "/data/csong/opensource/dhcp/bind/bind-9.11.36/lib/dns/peer.c",
+    "signature": "void(int **)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "dns_portlist_add",
+    "file": "/data/csong/opensource/dhcp/bind/bind-9.11.36/lib/dns/portlist.c",
+    "signature": "int(int *, int, int)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [
+      1,
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "dns_portlist_remove",
+    "file": "/data/csong/opensource/dhcp/bind/bind-9.11.36/lib/dns/portlist.c",
+    "signature": "void(int *, int, int)",
+    "container_type": "dynamic_array",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "get_subtree_root",
+    "file": "/data/csong/opensource/dhcp/bind/bind-9.11.36/lib/dns/rbt.c",
+    "signature": "int *(int *)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "dns_rbt_serialize_tree",
+    "file": "/data/csong/opensource/dhcp/bind/bind-9.11.36/lib/dns/rbt.c",
+    "signature": "int(int *, int *, int, void *, off_t *)",
+    "container_type": "tree",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "treefix",
+    "file": "/data/csong/opensource/dhcp/bind/bind-9.11.36/lib/dns/rbt.c",
+    "signature": "int(int *, void *, size_t, int *, int *, int, void *, uint64_t *)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [
+      3
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 9,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "dns_rbt_deserialize_tree",
+    "file": "/data/csong/opensource/dhcp/bind/bind-9.11.36/lib/dns/rbt.c",
+    "signature": "int(void *, size_t, off_t, int *, int, void *, int, void *, int **, int **)",
+    "container_type": "tree",
+    "container_arg": 9,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "clean_cache_node",
+    "file": "/data/csong/opensource/dhcp/bind/bind-9.11.36/lib/dns/rbtdb.c",
+    "signature": "void(dns_rbtdb_t *, int *)",
+    "container_type": "linked_list",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "prune_tree",
+    "file": "/data/csong/opensource/dhcp/bind/bind-9.11.36/lib/dns/rbtdb.c",
+    "signature": "void(int *, int *)",
+    "container_type": "tree",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "zone_zonecut_callback",
+    "file": "/data/csong/opensource/dhcp/bind/bind-9.11.36/lib/dns/rbtdb.c",
+    "signature": "int(int *, int *, void *)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "find_wildcard",
+    "file": "/data/csong/opensource/dhcp/bind/bind-9.11.36/lib/dns/rbtdb.c",
+    "signature": "int(rbtdb_search_t *, int **, int *)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "find_closest_nsec",
+    "file": "/data/csong/opensource/dhcp/bind/bind-9.11.36/lib/dns/rbtdb.c",
+    "signature": "int(rbtdb_search_t *, int **, int *, int *, int *, int *, dns_db_secure_t)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [
+      1,
+      3,
+      4
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "zone_find",
+    "file": "/data/csong/opensource/dhcp/bind/bind-9.11.36/lib/dns/rbtdb.c",
+    "signature": "int(int *, int *, int *, int, unsigned int, int, int **, int *, int *, int *)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "cache_zonecut_callback",
+    "file": "/data/csong/opensource/dhcp/bind/bind-9.11.36/lib/dns/rbtdb.c",
+    "signature": "int(int *, int *, void *)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "find_deepest_zonecut",
+    "file": "/data/csong/opensource/dhcp/bind/bind-9.11.36/lib/dns/rbtdb.c",
+    "signature": "int(rbtdb_search_t *, int *, int **, int *, int *, int *)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [
+      2,
+      4,
+      5
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "find_coveringnsec",
+    "file": "/data/csong/opensource/dhcp/bind/bind-9.11.36/lib/dns/rbtdb.c",
+    "signature": "int(rbtdb_search_t *, int **, int, int *, int *, int *)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "cache_find",
+    "file": "/data/csong/opensource/dhcp/bind/bind-9.11.36/lib/dns/rbtdb.c",
+    "signature": "int(int *, int *, int *, int, unsigned int, int, int **, int *, int *, int *)",
+    "container_type": "cache",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "cache_findzonecut",
+    "file": "/data/csong/opensource/dhcp/bind/bind-9.11.36/lib/dns/rbtdb.c",
+    "signature": "int(int *, int *, unsigned int, int, int **, int *, int *, int *)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "zone_findrdataset",
+    "file": "/data/csong/opensource/dhcp/bind/bind-9.11.36/lib/dns/rbtdb.c",
+    "signature": "int(int *, int *, int *, int, int, int, int *, int *)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "cache_findrdataset",
+    "file": "/data/csong/opensource/dhcp/bind/bind-9.11.36/lib/dns/rbtdb.c",
+    "signature": "int(int *, int *, int *, int, int, int, int *, int *)",
+    "container_type": "cache",
+    "container_arg": 0,
+    "store_args": [
+      6,
+      7
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "subtractrdataset",
+    "file": "/data/csong/opensource/dhcp/bind/bind-9.11.36/lib/dns/rbtdb.c",
+    "signature": "int(int *, int *, int *, int *, unsigned int, int *)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [
+      3
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "loading_addrdataset",
+    "file": "/data/csong/opensource/dhcp/bind/bind-9.11.36/lib/dns/rbtdb.c",
+    "signature": "int(void *, int *, int *)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [
+      1,
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "rbt_datafixer",
+    "file": "/data/csong/opensource/dhcp/bind/bind-9.11.36/lib/dns/rbtdb.c",
+    "signature": "int(int *, void *, size_t, void *, uint64_t *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "rbt_datawriter",
+    "file": "/data/csong/opensource/dhcp/bind/bind-9.11.36/lib/dns/rbtdb.c",
+    "signature": "int(int *, unsigned char *, void *, uint64_t *)",
+    "container_type": "linked_list",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "delete_callback",
+    "file": "/data/csong/opensource/dhcp/bind/bind-9.11.36/lib/dns/rbtdb.c",
+    "signature": "void(void *, void *)",
+    "container_type": "linked_list",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "rdatasetiter_first",
+    "file": "/data/csong/opensource/dhcp/bind/bind-9.11.36/lib/dns/rbtdb.c",
+    "signature": "int(int *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "rdatasetiter_next",
+    "file": "/data/csong/opensource/dhcp/bind/bind-9.11.36/lib/dns/rbtdb.c",
+    "signature": "int(int *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "acache_callback",
+    "file": "/data/csong/opensource/dhcp/bind/bind-9.11.36/lib/dns/rbtdb.c",
+    "signature": "void(int *, void **)",
+    "container_type": "cache",
+    "container_arg": 1,
+    "store_args": [
+      0
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "dns_rdataset_next",
+    "file": "/data/csong/opensource/dhcp/bind/bind-9.11.36/lib/dns/rdataset.c",
+    "signature": "int(int *)",
+    "container_type": "set",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "towiresorted",
+    "file": "/data/csong/opensource/dhcp/bind/bind-9.11.36/lib/dns/rdataset.c",
+    "signature": "int(int *, const int *, int *, int *, int, const void *, int, unsigned int, unsigned int *, void **)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "dns_rdataset_additionaldata",
+    "file": "/data/csong/opensource/dhcp/bind/bind-9.11.36/lib/dns/rdataset.c",
+    "signature": "int(int *, int, void *)",
+    "container_type": "set",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "dns_rdatasetiter_next",
+    "file": "/data/csong/opensource/dhcp/bind/bind-9.11.36/lib/dns/rdatasetiter.c",
+    "signature": "int(int *)",
+    "container_type": "set",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "add_triededns",
+    "file": "/data/csong/opensource/dhcp/bind/bind-9.11.36/lib/dns/resolver.c",
+    "signature": "void(fetchctx_t *, int *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "add_triededns512",
+    "file": "/data/csong/opensource/dhcp/bind/bind-9.11.36/lib/dns/resolver.c",
+    "signature": "void(fetchctx_t *, int *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "set_sum_pair",
+    "file": "/data/csong/opensource/dhcp/bind/bind-9.11.36/lib/dns/rpz.c",
+    "signature": "void(int *)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "search",
+    "file": "/data/csong/opensource/dhcp/bind/bind-9.11.36/lib/dns/rpz.c",
+    "signature": "int(int *, const dns_rpz_cidr_key_t *, int, const dns_rpz_addr_zbits_t *, _Bool, int **)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "expand_rrl_hash",
+    "file": "/data/csong/opensource/dhcp/bind/bind-9.11.36/lib/dns/rrl.c",
+    "signature": "int(int *, int)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "dns_rdatasetstats_dump",
+    "file": "/data/csong/opensource/dhcp/bind/bind-9.11.36/lib/dns/stats.c",
+    "signature": "void(int *, int, void *, unsigned int)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "add_rdata_to_list",
+    "file": "/data/csong/opensource/dhcp/bind/bind-9.11.36/lib/dns/tkey.c",
+    "signature": "int(int *, int *, int *, uint32_t, int *)",
+    "container_type": "linked_list",
+    "container_arg": 4,
+    "store_args": [
+      1,
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "remove_fromring",
+    "file": "/data/csong/opensource/dhcp/bind/bind-9.11.36/lib/dns/tsig.c",
+    "signature": "void(int *)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "keyring_add",
+    "file": "/data/csong/opensource/dhcp/bind/bind-9.11.36/lib/dns/tsig.c",
+    "signature": "int(int *, int *, int *)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "dns_tsigkeyring_add",
+    "file": "/data/csong/opensource/dhcp/bind/bind-9.11.36/lib/dns/tsig.c",
+    "signature": "int(int *, int *, int *)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "foreach_rrset",
+    "file": "/data/csong/opensource/dhcp/bind/bind-9.11.36/lib/dns/update.c",
+    "signature": "int(int *, int *, int *, rrset_func *, void *)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "namelist_append_name",
+    "file": "/data/csong/opensource/dhcp/bind/bind-9.11.36/lib/dns/update.c",
+    "signature": "int(int *, int *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "namelist_append_subdomain",
+    "file": "/data/csong/opensource/dhcp/bind/bind-9.11.36/lib/dns/update.c",
+    "signature": "int(int *, int *, int *)",
+    "container_type": "linked_list",
+    "container_arg": 2,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "view_find",
+    "file": "/data/csong/opensource/dhcp/bind/bind-9.11.36/lib/dns/validator.c",
+    "signature": "int(int *, int *, int)",
+    "container_type": "cache",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "dns_viewlist_find",
+    "file": "/data/csong/opensource/dhcp/bind/bind-9.11.36/lib/dns/view.c",
+    "signature": "int(int *, const char *, int, int **)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      3
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "dns_view_setnewzones",
+    "file": "/data/csong/opensource/dhcp/bind/bind-9.11.36/lib/dns/view.c",
+    "signature": "int(int *, _Bool, void *, void (*)(void **), uint64_t)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "dns_zone_setnsec3param",
+    "file": "/data/csong/opensource/dhcp/bind/bind-9.11.36/lib/dns/zone.c",
+    "signature": "int(int *, int, int, int, int, unsigned char *, _Bool)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "cfg_map_get",
+    "file": "/data/csong/opensource/dhcp/bind/bind-9.11.36/lib/isccfg/parser.c",
+    "signature": "int(const int *, const char *, const int **)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "cfg_map_firstclause",
+    "file": "/data/csong/opensource/dhcp/bind/bind-9.11.36/lib/isccfg/parser.c",
+    "signature": "const char *(const int *, const void **, unsigned int *)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "cfg_map_nextclause",
+    "file": "/data/csong/opensource/dhcp/bind/bind-9.11.36/lib/isccfg/parser.c",
+    "signature": "const char *(const int *, const void **, unsigned int *)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "map_symtabitem_destroy",
+    "file": "/data/csong/opensource/dhcp/bind/bind-9.11.36/lib/isccfg/parser.c",
+    "signature": "void(char *, unsigned int, int, void *)",
+    "container_type": "hash_table",
+    "container_arg": 3,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "add_to_ns_queue",
+    "file": "/data/csong/opensource/dhcp/common/dns.c",
+    "signature": "void(dhcp_ddns_ns_t *)",
+    "container_type": "linked_list",
+    "container_arg": -1,
+    "store_args": [
+      0
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "remove_from_ns_queue",
+    "file": "/data/csong/opensource/dhcp/common/dns.c",
+    "signature": "void(dhcp_ddns_ns_t *)",
+    "container_type": "linked_list",
+    "container_arg": -1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "find_in_ns_queue",
+    "file": "/data/csong/opensource/dhcp/common/dns.c",
+    "signature": "isc_result_t(dhcp_ddns_ns_t *)",
+    "container_type": "linked_list",
+    "container_arg": -1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 9,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "find_cached_zone",
+    "file": "/data/csong/opensource/dhcp/common/dns.c",
+    "signature": "isc_result_t(dhcp_ddns_cb_t *, int)",
+    "container_type": "cache",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "dns_zone_hash_add",
+    "file": "/data/csong/opensource/dhcp/common/dns.c",
+    "signature": "void(dns_zone_hash_t *, const char *, unsigned int, struct dns_zone *, const char *, int)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      3
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "dns_zone_hash_delete",
+    "file": "/data/csong/opensource/dhcp/common/dns.c",
+    "signature": "void(dns_zone_hash_t *, const char *, unsigned int, const char *, int)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "dns_zone_hash_lookup",
+    "file": "/data/csong/opensource/dhcp/common/dns.c",
+    "signature": "int(struct dns_zone **, dns_zone_hash_t *, const char *, unsigned int, const char *, int)",
+    "container_type": "hash_table",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "add_timeout",
+    "file": "/data/csong/opensource/dhcp/common/dispatch.c",
+    "signature": "void(struct timeval *, void (*)(void *), void *, tvref_t, tvunref_t)",
+    "container_type": "linked_list",
+    "container_arg": -1,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "cancel_timeout",
+    "file": "/data/csong/opensource/dhcp/common/dispatch.c",
+    "signature": "void(void (*)(void *), void *)",
+    "container_type": "linked_list",
+    "container_arg": -1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "free_iaddrcidrnetlist",
+    "file": "/data/csong/opensource/dhcp/common/inet.c",
+    "signature": "isc_result_t(struct iaddrcidrnetlist **)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "group_hash_add",
+    "file": "/data/csong/opensource/dhcp/common/tables.c",
+    "signature": "void(group_hash_t *, const char *, unsigned int, struct group_object *, const char *, int)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      3
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "group_hash_delete",
+    "file": "/data/csong/opensource/dhcp/common/tables.c",
+    "signature": "void(group_hash_t *, const char *, unsigned int, const char *, int)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "group_hash_lookup",
+    "file": "/data/csong/opensource/dhcp/common/tables.c",
+    "signature": "int(struct group_object **, group_hash_t *, const char *, unsigned int, const char *, int)",
+    "container_type": "hash_table",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "universe_hash_add",
+    "file": "/data/csong/opensource/dhcp/common/tables.c",
+    "signature": "void(universe_hash_t *, const char *, unsigned int, struct universe *, const char *, int)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      3
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "universe_hash_delete",
+    "file": "/data/csong/opensource/dhcp/common/tables.c",
+    "signature": "void(universe_hash_t *, const char *, unsigned int, const char *, int)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "universe_hash_lookup",
+    "file": "/data/csong/opensource/dhcp/common/tables.c",
+    "signature": "int(struct universe **, universe_hash_t *, const char *, unsigned int, const char *, int)",
+    "container_type": "hash_table",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "option_name_hash_add",
+    "file": "/data/csong/opensource/dhcp/common/tables.c",
+    "signature": "void(option_name_hash_t *, const char *, unsigned int, struct option *, const char *, int)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      3
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "option_name_hash_delete",
+    "file": "/data/csong/opensource/dhcp/common/tables.c",
+    "signature": "void(option_name_hash_t *, const char *, unsigned int, const char *, int)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "option_name_hash_lookup",
+    "file": "/data/csong/opensource/dhcp/common/tables.c",
+    "signature": "int(struct option **, option_name_hash_t *, const char *, unsigned int, const char *, int)",
+    "container_type": "hash_table",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "option_code_hash_add",
+    "file": "/data/csong/opensource/dhcp/common/tables.c",
+    "signature": "void(option_code_hash_t *, const unsigned int *, unsigned int, struct option *, const char *, int)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      3
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "option_code_hash_delete",
+    "file": "/data/csong/opensource/dhcp/common/tables.c",
+    "signature": "void(option_code_hash_t *, const unsigned int *, unsigned int, const char *, int)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "option_code_hash_lookup",
+    "file": "/data/csong/opensource/dhcp/common/tables.c",
+    "signature": "int(struct option **, option_code_hash_t *, const unsigned int *, unsigned int, const char *, int)",
+    "container_type": "hash_table",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "find_matching_case",
+    "file": "/data/csong/opensource/dhcp/common/execute.c",
+    "signature": "int(struct executable_statement **, struct packet *, struct lease *, struct client_state *, struct option_state *, struct option_state *, struct binding_scope **, struct expression *, struct executable_statement *)",
+    "container_type": "linked_list",
+    "container_arg": 8,
+    "store_args": [
+      0
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "executable_statement_foreach",
+    "file": "/data/csong/opensource/dhcp/common/execute.c",
+    "signature": "int(struct executable_statement *, int (*)(struct executable_statement *, void *, int), void *, int)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "store_options6",
+    "file": "/data/csong/opensource/dhcp/common/options.c",
+    "signature": "int(char *, int, struct option_state *, struct packet *, const int *, struct data_string *)",
+    "container_type": "hash_table",
+    "container_arg": 2,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "lookup_hashed_option",
+    "file": "/data/csong/opensource/dhcp/common/options.c",
+    "signature": "struct option_cache *(struct universe *, struct option_state *, unsigned int)",
+    "container_type": "hash_table",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "save_hashed_option",
+    "file": "/data/csong/opensource/dhcp/common/options.c",
+    "signature": "void(struct universe *, struct option_state *, struct option_cache *, _Bool)",
+    "container_type": "hash_table",
+    "container_arg": 1,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "delete_hashed_option",
+    "file": "/data/csong/opensource/dhcp/common/options.c",
+    "signature": "void(struct universe *, struct option_state *, int)",
+    "container_type": "hash_table",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "hashed_option_space_encapsulate",
+    "file": "/data/csong/opensource/dhcp/common/options.c",
+    "signature": "int(struct data_string *, struct packet *, struct lease *, struct client_state *, struct option_state *, struct option_state *, struct binding_scope **, struct universe *)",
+    "container_type": "hash_table",
+    "container_arg": 5,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "hashed_option_space_foreach",
+    "file": "/data/csong/opensource/dhcp/common/options.c",
+    "signature": "void(struct packet *, struct lease *, struct client_state *, struct option_state *, struct option_state *, struct binding_scope **, struct universe *, void *, void (*)(struct option_cache *, struct packet *, struct lease *, struct client_state *, struct option_state *, struct option_state *, struct binding_scope **, struct universe *, void *))",
+    "container_type": "hash_table",
+    "container_arg": 4,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "find_bound_string",
+    "file": "/data/csong/opensource/dhcp/common/tree.c",
+    "signature": "int(struct data_string *, struct binding_scope *, const char *)",
+    "container_type": "tree",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "omapi_connection_get_value",
+    "file": "/data/csong/opensource/dhcp/omapip/connection.c",
+    "signature": "isc_result_t(omapi_object_t *, omapi_object_t *, omapi_data_string_t *, omapi_value_t **)",
+    "container_type": "other",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "omapi_protocol_add_auth",
+    "file": "/data/csong/opensource/dhcp/omapip/protocol.c",
+    "signature": "isc_result_t(omapi_object_t *, omapi_object_t *, omapi_handle_t)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "omapi_protocol_lookup_auth",
+    "file": "/data/csong/opensource/dhcp/omapip/protocol.c",
+    "signature": "isc_result_t(omapi_object_t **, omapi_object_t *, omapi_handle_t)",
+    "container_type": "linked_list",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "register_eventhandler",
+    "file": "/data/csong/opensource/dhcp/omapip/dispatch.c",
+    "signature": "void(struct eventqueue **, void (*)(void *))",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "unregister_eventhandler",
+    "file": "/data/csong/opensource/dhcp/omapip/dispatch.c",
+    "signature": "void(struct eventqueue **, void (*)(void *))",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "omapi_iscsock_cb",
+    "file": "/data/csong/opensource/dhcp/omapip/dispatch.c",
+    "signature": "int(isc_task_t *, isc_socket_t *, void *, int)",
+    "container_type": "linked_list",
+    "container_arg": 2,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "omapi_register_io_object",
+    "file": "/data/csong/opensource/dhcp/omapip/dispatch.c",
+    "signature": "isc_result_t(omapi_object_t *, int (*)(omapi_object_t *), int (*)(omapi_object_t *), isc_result_t (*)(omapi_object_t *), isc_result_t (*)(omapi_object_t *), isc_result_t (*)(omapi_object_t *))",
+    "container_type": "linked_list",
+    "container_arg": -1,
+    "store_args": [
+      0
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "omapi_unregister_io_object",
+    "file": "/data/csong/opensource/dhcp/omapip/dispatch.c",
+    "signature": "isc_result_t(omapi_object_t *)",
+    "container_type": "linked_list",
+    "container_arg": -1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "omapi_io_get_value",
+    "file": "/data/csong/opensource/dhcp/omapip/dispatch.c",
+    "signature": "isc_result_t(omapi_object_t *, omapi_object_t *, omapi_data_string_t *, omapi_value_t **)",
+    "container_type": "other",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "omapi_io_destroy",
+    "file": "/data/csong/opensource/dhcp/omapip/dispatch.c",
+    "signature": "isc_result_t(omapi_object_t *, const char *, int)",
+    "container_type": "linked_list",
+    "container_arg": -1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "omapi_io_state_foreach",
+    "file": "/data/csong/opensource/dhcp/omapip/dispatch.c",
+    "signature": "isc_result_t(isc_result_t (*)(omapi_object_t *, void *), void *)",
+    "container_type": "linked_list",
+    "container_arg": -1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "omapi_generic_get_value",
+    "file": "/data/csong/opensource/dhcp/omapip/generic.c",
+    "signature": "isc_result_t(omapi_object_t *, omapi_object_t *, omapi_data_string_t *, omapi_value_t **)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "omapi_listener_get_value",
+    "file": "/data/csong/opensource/dhcp/omapip/listener.c",
+    "signature": "isc_result_t(omapi_object_t *, omapi_object_t *, omapi_data_string_t *, omapi_value_t **)",
+    "container_type": "other",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "omapi_get_value",
+    "file": "/data/csong/opensource/dhcp/omapip/support.c",
+    "signature": "isc_result_t(omapi_object_t *, omapi_object_t *, omapi_data_string_t *, omapi_value_t **)",
+    "container_type": "other",
+    "container_arg": 0,
+    "store_args": [
+      3
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "omapi_get_value_str",
+    "file": "/data/csong/opensource/dhcp/omapip/support.c",
+    "signature": "isc_result_t(omapi_object_t *, omapi_object_t *, const char *, omapi_value_t **)",
+    "container_type": "other",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "omapi_handle_lookup",
+    "file": "/data/csong/opensource/dhcp/omapip/handle.c",
+    "signature": "isc_result_t(omapi_object_t **, omapi_handle_t)",
+    "container_type": "hash_table",
+    "container_arg": -1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "omapi_handle_lookup_in",
+    "file": "/data/csong/opensource/dhcp/omapip/handle.c",
+    "signature": "isc_result_t(omapi_object_t **, omapi_handle_t, omapi_handle_table_t *, int)",
+    "container_type": "tree",
+    "container_arg": 2,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "omapi_handle_td_lookup",
+    "file": "/data/csong/opensource/dhcp/omapip/handle.c",
+    "signature": "isc_result_t(omapi_object_t **, omapi_typed_data_t *)",
+    "container_type": "hash_table",
+    "container_arg": -1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "omapi_auth_key_hash_add",
+    "file": "/data/csong/opensource/dhcp/omapip/auth.c",
+    "signature": "void(omapi_auth_hash_t *, const char *, unsigned int, omapi_auth_key_t *, const char *, int)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      3
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "omapi_auth_key_hash_delete",
+    "file": "/data/csong/opensource/dhcp/omapip/auth.c",
+    "signature": "void(omapi_auth_hash_t *, const char *, unsigned int, const char *, int)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "omapi_auth_key_hash_lookup",
+    "file": "/data/csong/opensource/dhcp/omapip/auth.c",
+    "signature": "int(omapi_auth_key_t **, omapi_auth_hash_t *, const char *, unsigned int, const char *, int)",
+    "container_type": "hash_table",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "omapi_auth_key_lookup_name",
+    "file": "/data/csong/opensource/dhcp/omapip/auth.c",
+    "signature": "isc_result_t(omapi_auth_key_t **, const char *)",
+    "container_type": "hash_table",
+    "container_arg": -1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "omapi_auth_key_lookup",
+    "file": "/data/csong/opensource/dhcp/omapip/auth.c",
+    "signature": "isc_result_t(omapi_object_t **, omapi_object_t *, omapi_object_t *)",
+    "container_type": "hash_table",
+    "container_arg": -1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "new_hash",
+    "file": "/data/csong/opensource/dhcp/omapip/hash.c",
+    "signature": "int(struct hash_table **, hash_reference, hash_dereference, unsigned int, unsigned int (*)(const void *, unsigned int, unsigned int), const char *, int)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "hash_report",
+    "file": "/data/csong/opensource/dhcp/omapip/hash.c",
+    "signature": "unsigned char *(struct hash_table *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "add_hash",
+    "file": "/data/csong/opensource/dhcp/omapip/hash.c",
+    "signature": "void(struct hash_table *, const void *, unsigned int, hashed_object_t *, const char *, int)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      1,
+      3
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "delete_hash_entry",
+    "file": "/data/csong/opensource/dhcp/omapip/hash.c",
+    "signature": "void(struct hash_table *, const void *, unsigned int, const char *, int)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "hash_lookup",
+    "file": "/data/csong/opensource/dhcp/omapip/hash.c",
+    "signature": "int(hashed_object_t **, struct hash_table *, const void *, unsigned int, const char *, int)",
+    "container_type": "hash_table",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "omapi_array_set",
+    "file": "/data/csong/opensource/dhcp/omapip/array.c",
+    "signature": "isc_result_t(omapi_array_t *, void *, int, const char *, int)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "omapi_array_lookup",
+    "file": "/data/csong/opensource/dhcp/omapip/array.c",
+    "signature": "isc_result_t(char **, omapi_array_t *, int, const char *, int)",
+    "container_type": "array",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "parse_option_list",
+    "file": "/data/csong/opensource/dhcp/client/clparse.c",
+    "signature": "int(struct parse *, struct option ***)",
+    "container_type": "array",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "add_to_tail",
+    "file": "/data/csong/opensource/dhcp/client/dhclient.c",
+    "signature": "void(struct client_lease **, struct client_lease *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "add_reject",
+    "file": "/data/csong/opensource/dhcp/client/dhclient.c",
+    "signature": "void(struct packet *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      0
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 9,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "dhcpctl_set_callback",
+    "file": "/data/csong/opensource/dhcp/dhcpctl/callback.c",
+    "signature": "dhcpctl_status(dhcpctl_handle, void *, void (*)(dhcpctl_handle, dhcpctl_status, void *))",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1,
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "find_interface_by_agent_option",
+    "file": "/data/csong/opensource/dhcp/relay/dhcrelay.c",
+    "signature": "int(struct dhcp_packet *, struct interface_info **, u_int8_t *, int)",
+    "container_type": "linked_list",
+    "container_arg": -1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "find_lease",
+    "file": "/data/csong/opensource/dhcp/server/dhcp.c",
+    "signature": "int(struct lease **, struct packet *, struct shared_network *, int *, int *, struct lease *, const char *, int)",
+    "container_type": "linked_list",
+    "container_arg": 2,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 10,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "parse_pool_statement",
+    "file": "/data/csong/opensource/dhcp/server/confpars.c",
+    "signature": "void(struct parse *, struct group *, int)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      0
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ia_hash_add",
+    "file": "/data/csong/opensource/dhcp/server/mdb6.c",
+    "signature": "void(ia_hash_t *, unsigned char *, unsigned int, struct ia_xx *, const char *, int)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      3
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ia_hash_delete",
+    "file": "/data/csong/opensource/dhcp/server/mdb6.c",
+    "signature": "void(ia_hash_t *, unsigned char *, unsigned int, const char *, int)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ia_hash_lookup",
+    "file": "/data/csong/opensource/dhcp/server/mdb6.c",
+    "signature": "int(struct ia_xx **, ia_hash_t *, unsigned char *, unsigned int, const char *, int)",
+    "container_type": "hash_table",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "iasubopt_hash_add",
+    "file": "/data/csong/opensource/dhcp/server/mdb6.c",
+    "signature": "void(iasubopt_hash_t *, struct in6_addr *, unsigned int, struct iasubopt *, const char *, int)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      3
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "iasubopt_hash_delete",
+    "file": "/data/csong/opensource/dhcp/server/mdb6.c",
+    "signature": "void(iasubopt_hash_t *, struct in6_addr *, unsigned int, const char *, int)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "iasubopt_hash_lookup",
+    "file": "/data/csong/opensource/dhcp/server/mdb6.c",
+    "signature": "int(struct iasubopt **, iasubopt_hash_t *, struct in6_addr *, unsigned int, const char *, int)",
+    "container_type": "hash_table",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "dereference_hash_entry",
+    "file": "/data/csong/opensource/dhcp/server/mdb6.c",
+    "signature": "isc_result_t(const void *, unsigned int, void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "add_ipv6_pool",
+    "file": "/data/csong/opensource/dhcp/server/mdb6.c",
+    "signature": "isc_result_t(struct ipv6_pool *)",
+    "container_type": "array",
+    "container_arg": -1,
+    "store_args": [
+      0
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "find_ipv6_pool",
+    "file": "/data/csong/opensource/dhcp/server/mdb6.c",
+    "signature": "isc_result_t(struct ipv6_pool **, u_int16_t, const struct in6_addr *)",
+    "container_type": "pool",
+    "container_arg": -1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "dhcpleasequery",
+    "file": "/data/csong/opensource/dhcp/server/dhcpleasequery.c",
+    "signature": "void(struct packet *, int)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "find_host_id_info",
+    "file": "/data/csong/opensource/dhcp/server/mdb.c",
+    "signature": "host_id_info_t *(unsigned int, int)",
+    "container_type": "linked_list",
+    "container_arg": -1,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "find_hosts_by_option",
+    "file": "/data/csong/opensource/dhcp/server/mdb.c",
+    "signature": "int(struct host_decl **, struct packet *, struct option_state *, const char *, int)",
+    "container_type": "hash_table",
+    "container_arg": -1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "supersede_lease",
+    "file": "/data/csong/opensource/dhcp/server/mdb.c",
+    "signature": "int(struct lease *, struct lease *, int, int, int, int)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "pool_timer",
+    "file": "/data/csong/opensource/dhcp/server/mdb.c",
+    "signature": "void(void *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "uid_hash_add",
+    "file": "/data/csong/opensource/dhcp/server/mdb.c",
+    "signature": "void(struct lease *)",
+    "container_type": "hash_table",
+    "container_arg": -1,
+    "store_args": [
+      0
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "uid_hash_delete",
+    "file": "/data/csong/opensource/dhcp/server/mdb.c",
+    "signature": "void(struct lease *)",
+    "container_type": "hash_table",
+    "container_arg": -1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "hw_hash_add",
+    "file": "/data/csong/opensource/dhcp/server/mdb.c",
+    "signature": "void(struct lease *)",
+    "container_type": "hash_table",
+    "container_arg": -1,
+    "store_args": [
+      0
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "hw_hash_delete",
+    "file": "/data/csong/opensource/dhcp/server/mdb.c",
+    "signature": "void(struct lease *)",
+    "container_type": "hash_table",
+    "container_arg": -1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "lease_remove_all",
+    "file": "/data/csong/opensource/dhcp/server/mdb.c",
+    "signature": "void(struct lease **)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "lease_remove",
+    "file": "/data/csong/opensource/dhcp/server/mdb.c",
+    "signature": "void(struct lease **, struct lease *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "lease_insert",
+    "file": "/data/csong/opensource/dhcp/server/mdb.c",
+    "signature": "void(struct lease **, struct lease *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "lease_enqueue",
+    "file": "/data/csong/opensource/dhcp/server/mdb.c",
+    "signature": "int(struct lease *)",
+    "container_type": "queue",
+    "container_arg": 0,
+    "store_args": [
+      0
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "lease_ip_hash_add",
+    "file": "/data/csong/opensource/dhcp/server/mdb.c",
+    "signature": "void(lease_ip_hash_t *, const unsigned char *, unsigned int, struct lease *, const char *, int)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      3
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "lease_ip_hash_delete",
+    "file": "/data/csong/opensource/dhcp/server/mdb.c",
+    "signature": "void(lease_ip_hash_t *, const unsigned char *, unsigned int, const char *, int)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "lease_ip_hash_lookup",
+    "file": "/data/csong/opensource/dhcp/server/mdb.c",
+    "signature": "int(struct lease **, lease_ip_hash_t *, const unsigned char *, unsigned int, const char *, int)",
+    "container_type": "hash_table",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "lease_id_hash_add",
+    "file": "/data/csong/opensource/dhcp/server/mdb.c",
+    "signature": "void(lease_id_hash_t *, const unsigned char *, unsigned int, struct lease *, const char *, int)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      3
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "lease_id_hash_delete",
+    "file": "/data/csong/opensource/dhcp/server/mdb.c",
+    "signature": "void(lease_id_hash_t *, const unsigned char *, unsigned int, const char *, int)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "lease_id_hash_lookup",
+    "file": "/data/csong/opensource/dhcp/server/mdb.c",
+    "signature": "int(struct lease **, lease_id_hash_t *, const unsigned char *, unsigned int, const char *, int)",
+    "container_type": "hash_table",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "host_hash_add",
+    "file": "/data/csong/opensource/dhcp/server/mdb.c",
+    "signature": "void(host_hash_t *, const unsigned char *, unsigned int, struct host_decl *, const char *, int)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      3
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "host_hash_delete",
+    "file": "/data/csong/opensource/dhcp/server/mdb.c",
+    "signature": "void(host_hash_t *, const unsigned char *, unsigned int, const char *, int)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "host_hash_lookup",
+    "file": "/data/csong/opensource/dhcp/server/mdb.c",
+    "signature": "int(struct host_decl **, host_hash_t *, const unsigned char *, unsigned int, const char *, int)",
+    "container_type": "hash_table",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "class_hash_add",
+    "file": "/data/csong/opensource/dhcp/server/mdb.c",
+    "signature": "void(class_hash_t *, const char *, unsigned int, struct class *, const char *, int)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      3
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "class_hash_delete",
+    "file": "/data/csong/opensource/dhcp/server/mdb.c",
+    "signature": "void(class_hash_t *, const char *, unsigned int, const char *, int)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "class_hash_lookup",
+    "file": "/data/csong/opensource/dhcp/server/mdb.c",
+    "signature": "int(struct class **, class_hash_t *, const char *, unsigned int, const char *, int)",
+    "container_type": "hash_table",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  }
+]

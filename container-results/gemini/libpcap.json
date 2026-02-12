@@ -1,0 +1,84 @@
+[
+  {
+    "function": "F",
+    "file": "/data/csong/opensource/libpcap/optimize.c",
+    "signature": "bpf_u_int32(opt_state_t *, int, bpf_u_int32, bpf_u_int32)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2,
+      3
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "pcapint_add_addr_to_dev",
+    "file": "/data/csong/opensource/libpcap/pcap.c",
+    "signature": "int(pcap_if_t *, struct sockaddr *, size_t, struct sockaddr *, size_t, struct sockaddr *, size_t, struct sockaddr *, size_t, char *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1,
+      3,
+      5,
+      7
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "pcapint_find_dev",
+    "file": "/data/csong/opensource/libpcap/pcap.c",
+    "signature": "pcap_if_t *(pcap_if_list_t *, const char *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "pcapint_add_dev",
+    "file": "/data/csong/opensource/libpcap/pcap.c",
+    "signature": "pcap_if_t *(pcap_if_list_t *, const char *, bpf_u_int32, const char *, char *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "pcapint_add_to_pcaps_to_close",
+    "file": "/data/csong/opensource/libpcap/pcap.c",
+    "signature": "void(pcap_t *)",
+    "container_type": "linked_list",
+    "container_arg": -1,
+    "store_args": [
+      0
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "pcapint_remove_from_pcaps_to_close",
+    "file": "/data/csong/opensource/libpcap/pcap.c",
+    "signature": "void(pcap_t *)",
+    "container_type": "linked_list",
+    "container_arg": -1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  }
+]

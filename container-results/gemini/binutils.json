@@ -1,0 +1,4530 @@
+[
+  {
+    "function": "slide_hash",
+    "file": "/data/csong/opensource/binutils/zlib/deflate.c",
+    "signature": "void(deflate_state *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "deflateSetDictionary",
+    "file": "/data/csong/opensource/binutils/zlib/deflate.c",
+    "signature": "int(z_streamp, const Bytef *, uInt)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "d_print_mod_list",
+    "file": "/data/csong/opensource/binutils/libiberty/cp-demangle.c",
+    "signature": "void(struct d_print_info *, int, struct d_print_mod *, int)",
+    "container_type": "linked_list",
+    "container_arg": 2,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "bsearch_r",
+    "file": "/data/csong/opensource/binutils/libiberty/bsearch_r.c",
+    "signature": "void *(const void *, const void *, size_t, size_t, int (*)(const void *, const void *, void *), void *)",
+    "container_type": "array",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "dyn_string_insert",
+    "file": "/data/csong/opensource/binutils/libiberty/dyn-string.c",
+    "signature": "int(dyn_string_t, int, dyn_string_t)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "fibheap_comp_data",
+    "file": "/data/csong/opensource/binutils/libiberty/fibheap.c",
+    "signature": "int(fibheap_t, fibheapkey_t, void *, fibnode_t)",
+    "container_type": "fibonacci_heap",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "fibheap_insert",
+    "file": "/data/csong/opensource/binutils/libiberty/fibheap.c",
+    "signature": "fibnode_t(fibheap_t, fibheapkey_t, void *)",
+    "container_type": "heap",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "fibheap_min",
+    "file": "/data/csong/opensource/binutils/libiberty/fibheap.c",
+    "signature": "void *(fibheap_t)",
+    "container_type": "heap",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "fibheap_union",
+    "file": "/data/csong/opensource/binutils/libiberty/fibheap.c",
+    "signature": "fibheap_t(fibheap_t, fibheap_t)",
+    "container_type": "heap",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "fibheap_extract_min",
+    "file": "/data/csong/opensource/binutils/libiberty/fibheap.c",
+    "signature": "void *(fibheap_t)",
+    "container_type": "heap",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "fibheap_replace_key_data",
+    "file": "/data/csong/opensource/binutils/libiberty/fibheap.c",
+    "signature": "void *(fibheap_t, fibnode_t, fibheapkey_t, void *)",
+    "container_type": "heap",
+    "container_arg": 0,
+    "store_args": [
+      3
+    ],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 10,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "fibheap_replace_data",
+    "file": "/data/csong/opensource/binutils/libiberty/fibheap.c",
+    "signature": "void *(fibheap_t, fibnode_t, void *)",
+    "container_type": "heap",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "fibheap_delete_node",
+    "file": "/data/csong/opensource/binutils/libiberty/fibheap.c",
+    "signature": "void *(fibheap_t, fibnode_t)",
+    "container_type": "heap",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 9,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "fibheap_delete",
+    "file": "/data/csong/opensource/binutils/libiberty/fibheap.c",
+    "signature": "void(fibheap_t)",
+    "container_type": "heap",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "fibheap_extr_min_node",
+    "file": "/data/csong/opensource/binutils/libiberty/fibheap.c",
+    "signature": "fibnode_t(fibheap_t)",
+    "container_type": "heap",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "fibheap_ins_root",
+    "file": "/data/csong/opensource/binutils/libiberty/fibheap.c",
+    "signature": "void(fibheap_t, fibnode_t)",
+    "container_type": "heap",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "fibheap_rem_root",
+    "file": "/data/csong/opensource/binutils/libiberty/fibheap.c",
+    "signature": "void(fibheap_t, fibnode_t)",
+    "container_type": "heap",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "fibheap_link",
+    "file": "/data/csong/opensource/binutils/libiberty/fibheap.c",
+    "signature": "void(fibheap_t, fibnode_t, fibnode_t)",
+    "container_type": "heap",
+    "container_arg": 0,
+    "store_args": [
+      1,
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "fibheap_cut",
+    "file": "/data/csong/opensource/binutils/libiberty/fibheap.c",
+    "signature": "void(fibheap_t, fibnode_t, fibnode_t)",
+    "container_type": "heap",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "fibheap_cascading_cut",
+    "file": "/data/csong/opensource/binutils/libiberty/fibheap.c",
+    "signature": "void(fibheap_t, fibnode_t)",
+    "container_type": "heap",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "fibnode_insert_after",
+    "file": "/data/csong/opensource/binutils/libiberty/fibheap.c",
+    "signature": "void(fibnode_t, fibnode_t)",
+    "container_type": "heap",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "fibnode_remove",
+    "file": "/data/csong/opensource/binutils/libiberty/fibheap.c",
+    "signature": "fibnode_t(fibnode_t)",
+    "container_type": "heap",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "htab_set_functions_ex",
+    "file": "/data/csong/opensource/binutils/libiberty/hashtab.c",
+    "signature": "void(htab_t, htab_hash, htab_eq, htab_del, void *, htab_alloc_with_arg, htab_free_with_arg)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2,
+      3,
+      4,
+      5,
+      6
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "htab_find_with_hash",
+    "file": "/data/csong/opensource/binutils/libiberty/hashtab.c",
+    "signature": "void *(htab_t, const void *, hashval_t)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 9,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "htab_find",
+    "file": "/data/csong/opensource/binutils/libiberty/hashtab.c",
+    "signature": "void *(htab_t, const void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "htab_find_slot_with_hash",
+    "file": "/data/csong/opensource/binutils/libiberty/hashtab.c",
+    "signature": "void **(htab_t, const void *, hashval_t, enum insert_option)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 9,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "htab_find_slot",
+    "file": "/data/csong/opensource/binutils/libiberty/hashtab.c",
+    "signature": "void **(htab_t, const void *, enum insert_option)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "htab_remove_elt_with_hash",
+    "file": "/data/csong/opensource/binutils/libiberty/hashtab.c",
+    "signature": "void(htab_t, const void *, hashval_t)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "htab_eq_string",
+    "file": "/data/csong/opensource/binutils/libiberty/hashtab.c",
+    "signature": "int(const void *, const void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "hash_pointer",
+    "file": "/data/csong/opensource/binutils/libiberty/hashtab.c",
+    "signature": "hashval_t(const void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "_obstack_begin_worker",
+    "file": "/data/csong/opensource/binutils/libiberty/obstack.c",
+    "signature": "int(struct obstack *, size_t, size_t)",
+    "container_type": "stack",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "_obstack_allocated_p",
+    "file": "/data/csong/opensource/binutils/libiberty/obstack.c",
+    "signature": "int(struct obstack *, void *)",
+    "container_type": "stack",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 9,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "_obstack_free",
+    "file": "/data/csong/opensource/binutils/libiberty/obstack.c",
+    "signature": "void(struct obstack *, void *)",
+    "container_type": "stack",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 9,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "_obstack_memory_used",
+    "file": "/data/csong/opensource/binutils/libiberty/obstack.c",
+    "signature": "size_t(struct obstack *)",
+    "container_type": "stack",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "simple_object_write_add_data",
+    "file": "/data/csong/opensource/binutils/libiberty/simple-object.c",
+    "signature": "const char *(simple_object_write *, simple_object_write_section *, const void *, size_t, int, int *)",
+    "container_type": "linked_list",
+    "container_arg": 1,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "splay_tree_delete_helper",
+    "file": "/data/csong/opensource/binutils/libiberty/splay-tree.c",
+    "signature": "void(splay_tree, splay_tree_node)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "splay_tree_splay",
+    "file": "/data/csong/opensource/binutils/libiberty/splay-tree.c",
+    "signature": "void(splay_tree, splay_tree_key)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "splay_tree_foreach_helper",
+    "file": "/data/csong/opensource/binutils/libiberty/splay-tree.c",
+    "signature": "int(splay_tree_node, splay_tree_foreach_fn, void *)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "splay_tree_new_with_allocator",
+    "file": "/data/csong/opensource/binutils/libiberty/splay-tree.c",
+    "signature": "splay_tree(splay_tree_compare_fn, splay_tree_delete_key_fn, splay_tree_delete_value_fn, splay_tree_allocate_fn, splay_tree_deallocate_fn, void *)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "splay_tree_new_typed_alloc",
+    "file": "/data/csong/opensource/binutils/libiberty/splay-tree.c",
+    "signature": "splay_tree(splay_tree_compare_fn, splay_tree_delete_key_fn, splay_tree_delete_value_fn, splay_tree_allocate_fn, splay_tree_allocate_fn, splay_tree_deallocate_fn, void *)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "splay_tree_delete",
+    "file": "/data/csong/opensource/binutils/libiberty/splay-tree.c",
+    "signature": "void(splay_tree)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "splay_tree_insert",
+    "file": "/data/csong/opensource/binutils/libiberty/splay-tree.c",
+    "signature": "splay_tree_node(splay_tree, splay_tree_key, splay_tree_value)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [
+      1,
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 9,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "splay_tree_remove",
+    "file": "/data/csong/opensource/binutils/libiberty/splay-tree.c",
+    "signature": "void(splay_tree, splay_tree_key)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "splay_tree_lookup",
+    "file": "/data/csong/opensource/binutils/libiberty/splay-tree.c",
+    "signature": "splay_tree_node(splay_tree, splay_tree_key)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "splay_tree_max",
+    "file": "/data/csong/opensource/binutils/libiberty/splay-tree.c",
+    "signature": "splay_tree_node(splay_tree)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "splay_tree_min",
+    "file": "/data/csong/opensource/binutils/libiberty/splay-tree.c",
+    "signature": "splay_tree_node(splay_tree)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "splay_tree_predecessor",
+    "file": "/data/csong/opensource/binutils/libiberty/splay-tree.c",
+    "signature": "splay_tree_node(splay_tree, splay_tree_key)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "splay_tree_successor",
+    "file": "/data/csong/opensource/binutils/libiberty/splay-tree.c",
+    "signature": "splay_tree_node(splay_tree, splay_tree_key)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "splay_tree_foreach",
+    "file": "/data/csong/opensource/binutils/libiberty/splay-tree.c",
+    "signature": "int(splay_tree, splay_tree_foreach_fn, void *)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "splay_tree_delete_pointers",
+    "file": "/data/csong/opensource/binutils/libiberty/splay-tree.c",
+    "signature": "void(splay_tree_value)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "lookup_word",
+    "file": "/data/csong/opensource/binutils/bfd/doc/chew.c",
+    "signature": "dict_type *(char *)",
+    "container_type": "linked_list",
+    "container_arg": -1,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "bfd_get_next_mapent",
+    "file": "/data/csong/opensource/binutils/bfd/archive.c",
+    "signature": "symindex(bfd *, symindex, carsym **)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "_bfd_look_for_bfd_in_cache",
+    "file": "/data/csong/opensource/binutils/bfd/archive.c",
+    "signature": "bfd *(bfd *, file_ptr)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "_bfd_add_bfd_to_archive_cache",
+    "file": "/data/csong/opensource/binutils/bfd/archive.c",
+    "signature": "_Bool(bfd *, file_ptr, bfd *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "bfd_simple_get_relocated_section_contents",
+    "file": "/data/csong/opensource/binutils/bfd/simple.c",
+    "signature": "bfd_byte *(bfd *, asection *, bfd_byte *, asymbol **)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "bfd_arch_list",
+    "file": "/data/csong/opensource/binutils/bfd/archures.c",
+    "signature": "const char **()",
+    "container_type": "array",
+    "container_arg": -1,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "bfd_lookup_arch",
+    "file": "/data/csong/opensource/binutils/bfd/archures.c",
+    "signature": "const bfd_arch_info_type *(enum bfd_architecture, unsigned long)",
+    "container_type": "linked_list",
+    "container_arg": -1,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ihex_set_section_contents",
+    "file": "/data/csong/opensource/binutils/bfd/ihex.c",
+    "signature": "_Bool(bfd *, asection *, const void *, file_ptr, bfd_size_type)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "bfd_cache_delete",
+    "file": "/data/csong/opensource/binutils/bfd/cache.c",
+    "signature": "_Bool(bfd *)",
+    "container_type": "cache",
+    "container_arg": -1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "bfd_cache_lookup_worker",
+    "file": "/data/csong/opensource/binutils/bfd/cache.c",
+    "signature": "FILE *(bfd *, enum cache_flag)",
+    "container_type": "cache",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "_bfd_delete_bfd",
+    "file": "/data/csong/opensource/binutils/bfd/opncls.c",
+    "signature": "void(bfd *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "elf_x86_allocate_dynrelocs",
+    "file": "/data/csong/opensource/binutils/bfd/elfxx-x86.c",
+    "signature": "_Bool(struct elf_link_hash_entry *, void *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "_bfd_elf_x86_get_local_sym_hash",
+    "file": "/data/csong/opensource/binutils/bfd/elfxx-x86.c",
+    "signature": "struct elf_link_hash_entry *(struct elf_x86_link_hash_table *, bfd *, const Elf_Internal_Rela *, _Bool)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "_bfd_x86_elf_local_htab_hash",
+    "file": "/data/csong/opensource/binutils/bfd/elfxx-x86.c",
+    "signature": "hashval_t(const void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "elf64_dt_relr_bitmap_add",
+    "file": "/data/csong/opensource/binutils/bfd/elfxx-x86.c",
+    "signature": "void(struct bfd_link_info *, struct elf_dt_relr_bitmap *, uint64_t)",
+    "container_type": "array",
+    "container_arg": 1,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "elf32_dt_relr_bitmap_add",
+    "file": "/data/csong/opensource/binutils/bfd/elfxx-x86.c",
+    "signature": "void(struct bfd_link_info *, struct elf_dt_relr_bitmap *, uint32_t)",
+    "container_type": "array",
+    "container_arg": 1,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "_bfd_x86_elf_link_setup_gnu_properties",
+    "file": "/data/csong/opensource/binutils/bfd/elfxx-x86.c",
+    "signature": "bfd *(struct bfd_link_info *, struct elf_x86_init_table *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "binary_set_section_contents",
+    "file": "/data/csong/opensource/binutils/bfd/binary.c",
+    "signature": "_Bool(bfd *, asection *, const void *, file_ptr, bfd_size_type)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "sec_merge_hash_insert",
+    "file": "/data/csong/opensource/binutils/bfd/merge.c",
+    "signature": "struct sec_merge_hash_entry *(struct sec_merge_hash *, const char *, uint64_t, unsigned int, unsigned int)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "sec_merge_hash_lookup",
+    "file": "/data/csong/opensource/binutils/bfd/merge.c",
+    "signature": "struct sec_merge_hash_entry *(struct sec_merge_hash *, const char *, unsigned int, uint64_t, unsigned int)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 9,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "append_offsetmap",
+    "file": "/data/csong/opensource/binutils/bfd/merge.c",
+    "signature": "_Bool(struct sec_merge_sec_info *, mapofs_type, struct sec_merge_hash_entry *)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "_bfd_add_merge_section",
+    "file": "/data/csong/opensource/binutils/bfd/merge.c",
+    "signature": "_Bool(bfd *, void **, asection *)",
+    "container_type": "linked_list",
+    "container_arg": 1,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "merge_strings",
+    "file": "/data/csong/opensource/binutils/bfd/merge.c",
+    "signature": "struct sec_merge_sec_info *(struct sec_merge_info *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "merge_sections",
+    "file": "/data/csong/opensource/binutils/bfd/merge.c",
+    "signature": "_Bool(bfd *, struct bfd_link_info *, void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "_bfd_merge_sections_free",
+    "file": "/data/csong/opensource/binutils/bfd/merge.c",
+    "signature": "void(void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "bfd_hash_lookup",
+    "file": "/data/csong/opensource/binutils/bfd/hash.c",
+    "signature": "struct bfd_hash_entry *(struct bfd_hash_table *, const char *, _Bool, _Bool)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 11,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "bfd_hash_insert",
+    "file": "/data/csong/opensource/binutils/bfd/hash.c",
+    "signature": "struct bfd_hash_entry *(struct bfd_hash_table *, const char *, unsigned long)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 10,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "bfd_hash_rename",
+    "file": "/data/csong/opensource/binutils/bfd/hash.c",
+    "signature": "void(struct bfd_hash_table *, const char *, struct bfd_hash_entry *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "bfd_hash_allocate",
+    "file": "/data/csong/opensource/binutils/bfd/hash.c",
+    "signature": "void *(struct bfd_hash_table *, unsigned int)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "bfd_hash_traverse",
+    "file": "/data/csong/opensource/binutils/bfd/hash.c",
+    "signature": "void(struct bfd_hash_table *, _Bool (*)(struct bfd_hash_entry *, void *), void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "strtab_hash_newfunc",
+    "file": "/data/csong/opensource/binutils/bfd/hash.c",
+    "signature": "struct bfd_hash_entry *(struct bfd_hash_entry *, struct bfd_hash_table *, const char *)",
+    "container_type": "hash_table",
+    "container_arg": 1,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "_bfd_stringtab_add",
+    "file": "/data/csong/opensource/binutils/bfd/hash.c",
+    "signature": "bfd_size_type(struct bfd_strtab_hash *, const char *, _Bool, _Bool)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 9,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "_bfd_stringtab_size",
+    "file": "/data/csong/opensource/binutils/bfd/hash.c",
+    "signature": "bfd_size_type(struct bfd_strtab_hash *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "_bfd_stringtab_emit",
+    "file": "/data/csong/opensource/binutils/bfd/hash.c",
+    "signature": "_Bool(bfd *, struct bfd_strtab_hash *)",
+    "container_type": "hash_table",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "srec_set_section_contents",
+    "file": "/data/csong/opensource/binutils/bfd/srec.c",
+    "signature": "_Bool(bfd *, sec_ptr, const void *, file_ptr, bfd_size_type)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 9,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "_bfd_elf_setup_sections",
+    "file": "/data/csong/opensource/binutils/bfd/elf.c",
+    "signature": "_Bool(bfd *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "get_hash_table_data",
+    "file": "/data/csong/opensource/binutils/bfd/elf.c",
+    "signature": "bfd_vma *(bfd *, bfd_size_type, unsigned int, bfd_size_type)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      1,
+      2,
+      3
+    ],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "_bfd_elf_get_symbol_version_string",
+    "file": "/data/csong/opensource/binutils/bfd/elf.c",
+    "signature": "const char *(bfd *, asymbol *, _Bool, _Bool *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "bfd_elf_set_group_contents",
+    "file": "/data/csong/opensource/binutils/bfd/elf.c",
+    "signature": "void(bfd *, asection *, void *)",
+    "container_type": "linked_list",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "elf_map_symbols",
+    "file": "/data/csong/opensource/binutils/bfd/elf.c",
+    "signature": "_Bool(bfd *, unsigned int *)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "_bfd_elf_find_segment_containing_section",
+    "file": "/data/csong/opensource/binutils/bfd/elf.c",
+    "signature": "Elf_Internal_Phdr *(bfd *, asection *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "make_mapping",
+    "file": "/data/csong/opensource/binutils/bfd/elf.c",
+    "signature": "struct elf_segment_map *(bfd *, asection **, unsigned int, unsigned int, _Bool)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "bfd_elf_map_sections_to_segments",
+    "file": "/data/csong/opensource/binutils/bfd/elf.c",
+    "signature": "_Bool(bfd *, struct bfd_link_info *, _Bool *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "assign_file_positions_for_load_sections",
+    "file": "/data/csong/opensource/binutils/bfd/elf.c",
+    "signature": "_Bool(bfd *, struct bfd_link_info *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "find_section_in_list",
+    "file": "/data/csong/opensource/binutils/bfd/elf.c",
+    "signature": "elf_section_list *(unsigned int, elf_section_list *)",
+    "container_type": "linked_list",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "_bfd_elf_get_dynamic_reloc_upper_bound",
+    "file": "/data/csong/opensource/binutils/bfd/elf.c",
+    "signature": "long(bfd *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "_bfd_elf_free_cached_info",
+    "file": "/data/csong/opensource/binutils/bfd/elf.c",
+    "signature": "_Bool(bfd *)",
+    "container_type": "cache",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "find_chunk",
+    "file": "/data/csong/opensource/binutils/bfd/tekhex.c",
+    "signature": "struct data_struct *(bfd *, bfd_vma, _Bool)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "_bfd_elf_strtab_add",
+    "file": "/data/csong/opensource/binutils/bfd/elf-strtab.c",
+    "signature": "size_t(struct elf_strtab_hash *, const char *, _Bool)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "verilog_set_section_contents",
+    "file": "/data/csong/opensource/binutils/bfd/verilog.c",
+    "signature": "_Bool(bfd *, sec_ptr, const void *, file_ptr, bfd_size_type)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 9,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "_bfd_link_hash_table_init",
+    "file": "/data/csong/opensource/binutils/bfd/linker.c",
+    "signature": "_Bool(struct bfd_link_hash_table *, bfd *, struct bfd_hash_entry *(*)(struct bfd_hash_entry *, struct bfd_hash_table *, const char *), unsigned int)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "bfd_link_hash_lookup",
+    "file": "/data/csong/opensource/binutils/bfd/linker.c",
+    "signature": "struct bfd_link_hash_entry *(struct bfd_link_hash_table *, const char *, _Bool, _Bool, _Bool)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "bfd_wrapped_link_hash_lookup",
+    "file": "/data/csong/opensource/binutils/bfd/linker.c",
+    "signature": "struct bfd_link_hash_entry *(bfd *, struct bfd_link_info *, const char *, _Bool, _Bool, _Bool)",
+    "container_type": "hash_table",
+    "container_arg": 1,
+    "store_args": [
+      2
+    ],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "unwrap_hash_lookup",
+    "file": "/data/csong/opensource/binutils/bfd/linker.c",
+    "signature": "struct bfd_link_hash_entry *(struct bfd_link_info *, bfd *, struct bfd_link_hash_entry *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "bfd_link_hash_traverse",
+    "file": "/data/csong/opensource/binutils/bfd/linker.c",
+    "signature": "void(struct bfd_link_hash_table *, _Bool (*)(struct bfd_link_hash_entry *, void *), void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "bfd_link_add_undef",
+    "file": "/data/csong/opensource/binutils/bfd/linker.c",
+    "signature": "void(struct bfd_link_hash_table *, struct bfd_link_hash_entry *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "bfd_link_repair_undef_list",
+    "file": "/data/csong/opensource/binutils/bfd/linker.c",
+    "signature": "void(struct bfd_link_hash_table *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "_bfd_generic_link_hash_table_free",
+    "file": "/data/csong/opensource/binutils/bfd/linker.c",
+    "signature": "void(bfd *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "generic_link_add_symbol_list",
+    "file": "/data/csong/opensource/binutils/bfd/linker.c",
+    "signature": "_Bool(bfd *, struct bfd_link_info *, bfd_size_type, asymbol **)",
+    "container_type": "hash_table",
+    "container_arg": 1,
+    "store_args": [
+      3
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "hash_entry_bfd",
+    "file": "/data/csong/opensource/binutils/bfd/linker.c",
+    "signature": "bfd *(struct bfd_link_hash_entry *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "_bfd_generic_link_add_one_symbol",
+    "file": "/data/csong/opensource/binutils/bfd/linker.c",
+    "signature": "_Bool(struct bfd_link_info *, bfd *, const char *, flagword, asection *, bfd_vma, const char *, _Bool, _Bool, struct bfd_link_hash_entry **)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "bfd_section_already_linked_table_traverse",
+    "file": "/data/csong/opensource/binutils/bfd/linker.c",
+    "signature": "void(_Bool (*)(struct bfd_section_already_linked_hash_entry *, void *), void *)",
+    "container_type": "hash_table",
+    "container_arg": -1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "bfd_section_already_linked_table_lookup",
+    "file": "/data/csong/opensource/binutils/bfd/linker.c",
+    "signature": "struct bfd_section_already_linked_hash_entry *(const char *)",
+    "container_type": "hash_table",
+    "container_arg": -1,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "bfd_section_already_linked_table_insert",
+    "file": "/data/csong/opensource/binutils/bfd/linker.c",
+    "signature": "_Bool(struct bfd_section_already_linked_hash_entry *, asection *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "bfd_find_version_for_sym",
+    "file": "/data/csong/opensource/binutils/bfd/linker.c",
+    "signature": "struct bfd_elf_version_tree *(struct bfd_elf_version_tree *, const char *, _Bool *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "bfd_get_next_section_by_name",
+    "file": "/data/csong/opensource/binutils/bfd/section.c",
+    "signature": "asection *(bfd *, asection *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "bfd_get_section_by_name_if",
+    "file": "/data/csong/opensource/binutils/bfd/section.c",
+    "signature": "asection *(bfd *, const char *, _Bool (*)(bfd *, asection *, void *), void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 10,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "bfd_map_over_sections",
+    "file": "/data/csong/opensource/binutils/bfd/section.c",
+    "signature": "void(bfd *, void (*)(bfd *, asection *, void *), void *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "bfd_sections_find_if",
+    "file": "/data/csong/opensource/binutils/bfd/section.c",
+    "signature": "asection *(bfd *, _Bool (*)(bfd *, asection *, void *), void *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "find_merged_cie",
+    "file": "/data/csong/opensource/binutils/bfd/elf-eh-frame.c",
+    "signature": "struct eh_cie_fde *(bfd *, struct bfd_link_info *, asection *, struct eh_frame_hdr_info *, struct elf_reloc_cookie *, struct eh_cie_fde *)",
+    "container_type": "hash_table",
+    "container_arg": 3,
+    "store_args": [
+      3
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "bfd_set_lto_type",
+    "file": "/data/csong/opensource/binutils/bfd/format.c",
+    "signature": "void(bfd *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "bfd_linear_find_first_with_obj_attrs",
+    "file": "/data/csong/opensource/binutils/bfd/elf-attrs.c",
+    "signature": "bfd_search_result_t(const struct bfd_link_info *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "oav2_search_by_tag",
+    "file": "/data/csong/opensource/binutils/bfd/elf-attrs.c",
+    "signature": "obj_attr_v2_t *(obj_attr_v2_t *, obj_attr_tag_t)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "oav2_attr_delete",
+    "file": "/data/csong/opensource/binutils/bfd/elf-attrs.c",
+    "signature": "obj_attr_v2_t *(obj_attr_subsection_v2_t *, obj_attr_v2_t *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "oav2_subsec_delete",
+    "file": "/data/csong/opensource/binutils/bfd/elf-attrs.c",
+    "signature": "obj_attr_subsection_v2_t *(obj_attr_subsection_list_t *, obj_attr_subsection_v2_t *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "_bfd_elf_link_setup_object_attributes",
+    "file": "/data/csong/opensource/binutils/bfd/elf-attrs.c",
+    "signature": "bfd *(struct bfd_link_info *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "medium",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "elf_add_obj_attr_string",
+    "file": "/data/csong/opensource/binutils/bfd/elf-attrs.c",
+    "signature": "obj_attribute *(bfd *, obj_attr_vendor_t, obj_attr_tag_t, const char *, const char *)",
+    "container_type": "other",
+    "container_arg": 0,
+    "store_args": [
+      3
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "bfd_elf_add_obj_attr_string",
+    "file": "/data/csong/opensource/binutils/bfd/elf-attrs.c",
+    "signature": "obj_attribute *(bfd *, obj_attr_vendor_t, obj_attr_tag_t, const char *)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [
+      3
+    ],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "elf_add_obj_attr_int_string",
+    "file": "/data/csong/opensource/binutils/bfd/elf-attrs.c",
+    "signature": "obj_attribute *(bfd *, obj_attr_vendor_t, obj_attr_tag_t, unsigned int, const char *, const char *)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [
+      4
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "bfd_elf_add_obj_attr_int_string",
+    "file": "/data/csong/opensource/binutils/bfd/elf-attrs.c",
+    "signature": "obj_attribute *(bfd *, obj_attr_vendor_t, obj_attr_tag_t, unsigned int, const char *)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [
+      4
+    ],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "_bfd_elf_merge_unknown_attribute_list",
+    "file": "/data/csong/opensource/binutils/bfd/elf-attrs.c",
+    "signature": "_Bool(bfd *, bfd *)",
+    "container_type": "linked_list",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "bfd_obj_attr_v2_find_by_tag",
+    "file": "/data/csong/opensource/binutils/bfd/elf-attrs.c",
+    "signature": "obj_attr_v2_t *(const obj_attr_subsection_v2_t *, obj_attr_tag_t, _Bool)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "bfd_obj_attr_subsection_v2_find_by_name",
+    "file": "/data/csong/opensource/binutils/bfd/elf-attrs.c",
+    "signature": "obj_attr_subsection_v2_t *(obj_attr_subsection_v2_t *, const char *, _Bool)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "bfd_obj_attr_subsection_v2_list_append",
+    "file": "/data/csong/opensource/binutils/bfd/elf-attrs.c",
+    "signature": "void(obj_attr_subsection_list_t *, obj_attr_subsection_v2_t *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "bfd_obj_attr_subsection_v2_list_remove",
+    "file": "/data/csong/opensource/binutils/bfd/elf-attrs.c",
+    "signature": "obj_attr_subsection_v2_t *(obj_attr_subsection_list_t *, obj_attr_subsection_v2_t *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "_bfd_elf_get_link_hash_entry",
+    "file": "/data/csong/opensource/binutils/bfd/elflink.c",
+    "signature": "struct elf_link_hash_entry *(struct elf_link_hash_entry **, unsigned int, unsigned int, unsigned int)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "get_ext_sym_hash_from_cookie",
+    "file": "/data/csong/opensource/binutils/bfd/elflink.c",
+    "signature": "struct elf_link_hash_entry *(struct elf_reloc_cookie *, unsigned int)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "_bfd_elf_link_lookup_local_dynindx",
+    "file": "/data/csong/opensource/binutils/bfd/elflink.c",
+    "signature": "long(struct bfd_link_info *, bfd *, long)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "elf_link_renumber_hash_table_dynsyms",
+    "file": "/data/csong/opensource/binutils/bfd/elflink.c",
+    "signature": "_Bool(struct elf_link_hash_entry *, void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      0
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "elf_link_renumber_local_hash_table_dynsyms",
+    "file": "/data/csong/opensource/binutils/bfd/elflink.c",
+    "signature": "_Bool(struct elf_link_hash_entry *, void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "bfd_elf_tls_setup",
+    "file": "/data/csong/opensource/binutils/bfd/elflink.c",
+    "signature": "struct bfd_section *(bfd *, struct bfd_link_info *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "on_needed_list",
+    "file": "/data/csong/opensource/binutils/bfd/elflink.c",
+    "signature": "_Bool(const char *, struct bfd_link_needed_list *, struct bfd_link_needed_list *)",
+    "container_type": "linked_list",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "elf_link_add_to_first_hash",
+    "file": "/data/csong/opensource/binutils/bfd/elflink.c",
+    "signature": "void(bfd *, struct bfd_link_info *, const char *, _Bool)",
+    "container_type": "hash_table",
+    "container_arg": 1,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "elf_link_add_object_symbols",
+    "file": "/data/csong/opensource/binutils/bfd/elflink.c",
+    "signature": "_Bool(bfd *, struct bfd_link_info *)",
+    "container_type": "hash_table",
+    "container_arg": 1,
+    "store_args": [
+      0
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "elf_collect_hash_codes",
+    "file": "/data/csong/opensource/binutils/bfd/elflink.c",
+    "signature": "_Bool(struct elf_link_hash_entry *, void *)",
+    "container_type": "hash_table",
+    "container_arg": 1,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "elf_collect_gnu_hash_codes",
+    "file": "/data/csong/opensource/binutils/bfd/elflink.c",
+    "signature": "_Bool(struct elf_link_hash_entry *, void *)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "elf_gnu_hash_process_symidx",
+    "file": "/data/csong/opensource/binutils/bfd/elflink.c",
+    "signature": "_Bool(struct elf_link_hash_entry *, void *)",
+    "container_type": "hash_table",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "bfd_elf_size_dynsym_hash_dynstr",
+    "file": "/data/csong/opensource/binutils/bfd/elflink.c",
+    "signature": "_Bool(bfd *, struct bfd_link_info *)",
+    "container_type": "hash_table",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "_bfd_elf_link_hash_copy_indirect",
+    "file": "/data/csong/opensource/binutils/bfd/elflink.c",
+    "signature": "void(struct bfd_link_info *, struct elf_link_hash_entry *, struct elf_link_hash_entry *)",
+    "container_type": "linked_list",
+    "container_arg": 1,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "bfd_elf_get_runpath_list",
+    "file": "/data/csong/opensource/binutils/bfd/elflink.c",
+    "signature": "struct bfd_link_needed_list *(bfd *, struct bfd_link_info *)",
+    "container_type": "linked_list",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "bfd_elf_get_bfd_needed_list",
+    "file": "/data/csong/opensource/binutils/bfd/elflink.c",
+    "signature": "_Bool(bfd *, struct bfd_link_needed_list **)",
+    "container_type": "linked_list",
+    "container_arg": 1,
+    "store_args": [
+      0
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "elf_gc_propagate_vtable_entries_used",
+    "file": "/data/csong/opensource/binutils/bfd/elflink.c",
+    "signature": "_Bool(struct elf_link_hash_entry *, void *)",
+    "container_type": "tree_or_graph",
+    "container_arg": 0,
+    "store_args": [
+      0
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "bfd_elf_parse_eh_frame_entries",
+    "file": "/data/csong/opensource/binutils/bfd/elflink.c",
+    "signature": "_Bool(bfd *, struct bfd_link_info *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "bfd_elf_lookup_section_flags",
+    "file": "/data/csong/opensource/binutils/bfd/elflink.c",
+    "signature": "_Bool(struct bfd_link_info *, struct flag_info *, asection *)",
+    "container_type": "linked_list",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "_bfd_elf_maybe_set_textrel",
+    "file": "/data/csong/opensource/binutils/bfd/elflink.c",
+    "signature": "_Bool(struct elf_link_hash_entry *, void *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 12,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "_bfd_elf_find_property",
+    "file": "/data/csong/opensource/binutils/bfd/elf-properties.c",
+    "signature": "elf_property_list *(elf_property_list *, unsigned int, elf_property_list **)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "_bfd_elf_insert_property",
+    "file": "/data/csong/opensource/binutils/bfd/elf-properties.c",
+    "signature": "elf_property_list *(elf_property_list *, elf_property_list *, elf_property_list *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "_bfd_elf_remove_property",
+    "file": "/data/csong/opensource/binutils/bfd/elf-properties.c",
+    "signature": "elf_property_list *(elf_property_list *, elf_property_list *, elf_property_list *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "elf_merge_gnu_property_list",
+    "file": "/data/csong/opensource/binutils/bfd/elf-properties.c",
+    "signature": "void(struct bfd_link_info *, bfd *, bfd *, elf_property_list **)",
+    "container_type": "linked_list",
+    "container_arg": 1,
+    "store_args": [
+      3
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "elf_get_gnu_property_section_size",
+    "file": "/data/csong/opensource/binutils/bfd/elf-properties.c",
+    "signature": "bfd_size_type(elf_property_list *, unsigned int)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "_bfd_elf_link_setup_gnu_properties",
+    "file": "/data/csong/opensource/binutils/bfd/elf-properties.c",
+    "signature": "bfd *(struct bfd_link_info *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      0
+    ],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "dwarf1_unit_find_nearest_line",
+    "file": "/data/csong/opensource/binutils/bfd/dwarf1.c",
+    "signature": "_Bool(struct dwarf1_debug *, struct dwarf1_unit *, unsigned long, const char **, const char **, unsigned int *)",
+    "container_type": "linked_list",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "_bfd_dwarf1_find_nearest_line",
+    "file": "/data/csong/opensource/binutils/bfd/dwarf1.c",
+    "signature": "_Bool(bfd *, asymbol **, asection *, bfd_vma, const char **, const char **, unsigned int *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "rsrc_sort_entries",
+    "file": "/data/csong/build-artifacts/binutils/bfd/peigen.c",
+    "signature": "void(rsrc_dir_chain *, _Bool, rsrc_directory *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "coff_link_add_symbols",
+    "file": "/data/csong/opensource/binutils/bfd/cofflink.c",
+    "signature": "_Bool(bfd *, struct bfd_link_info *)",
+    "container_type": "hash_table",
+    "container_arg": 1,
+    "store_args": [
+      0
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "_bfd_coff_link_input_bfd",
+    "file": "/data/csong/opensource/binutils/bfd/cofflink.c",
+    "signature": "_Bool(struct coff_final_link_info *, bfd *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      0
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "rsrc_sort_entries",
+    "file": "/data/csong/build-artifacts/binutils/bfd/pex64igen.c",
+    "signature": "void(rsrc_dir_chain *, _Bool, rsrc_directory *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "insert_info_hash_table",
+    "file": "/data/csong/opensource/binutils/bfd/dwarf2.c",
+    "signature": "_Bool(struct info_hash_table *, const char *, void *, _Bool)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 10,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "lookup_info_hash_table",
+    "file": "/data/csong/opensource/binutils/bfd/dwarf2.c",
+    "signature": "struct info_list_node *(struct info_hash_table *, const char *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "lookup_abbrev",
+    "file": "/data/csong/opensource/binutils/bfd/dwarf2.c",
+    "signature": "struct abbrev_info *(unsigned int, struct abbrev_info **)",
+    "container_type": "hash_table",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "hash_abbrev",
+    "file": "/data/csong/opensource/binutils/bfd/dwarf2.c",
+    "signature": "hashval_t(const void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "insert_arange_in_trie",
+    "file": "/data/csong/opensource/binutils/bfd/dwarf2.c",
+    "signature": "struct trie_node *(bfd *, struct trie_node *, bfd_vma, unsigned int, struct comp_unit *, bfd_vma, bfd_vma)",
+    "container_type": "tree",
+    "container_arg": 1,
+    "store_args": [
+      4
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "arange_add",
+    "file": "/data/csong/opensource/binutils/bfd/dwarf2.c",
+    "signature": "_Bool(struct comp_unit *, struct arange *, struct trie_node **, bfd_vma, bfd_vma)",
+    "container_type": "linked_list",
+    "container_arg": 1,
+    "store_args": [
+      0
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 9,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "lookup_address_in_line_info_table",
+    "file": "/data/csong/opensource/binutils/bfd/dwarf2.c",
+    "signature": "_Bool(struct line_info_table *, bfd_vma, const char **, unsigned int *, unsigned int *)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "build_lookup_funcinfo_table",
+    "file": "/data/csong/opensource/binutils/bfd/dwarf2.c",
+    "signature": "_Bool(struct comp_unit *)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "lookup_address_in_function_table",
+    "file": "/data/csong/opensource/binutils/bfd/dwarf2.c",
+    "signature": "_Bool(struct comp_unit *, bfd_vma, struct funcinfo **)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "lookup_symbol_in_function_table",
+    "file": "/data/csong/opensource/binutils/bfd/dwarf2.c",
+    "signature": "_Bool(struct comp_unit *, asymbol *, bfd_vma, const char **, unsigned int *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "lookup_symbol_in_variable_table",
+    "file": "/data/csong/opensource/binutils/bfd/dwarf2.c",
+    "signature": "_Bool(struct comp_unit *, asymbol *, bfd_vma, const char **, unsigned int *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "lookup_func_by_offset",
+    "file": "/data/csong/opensource/binutils/bfd/dwarf2.c",
+    "signature": "struct funcinfo *(uint64_t, struct funcinfo *)",
+    "container_type": "linked_list",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "lookup_var_by_offset",
+    "file": "/data/csong/opensource/binutils/bfd/dwarf2.c",
+    "signature": "struct varinfo *(uint64_t, struct varinfo *)",
+    "container_type": "linked_list",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "find_debug_info",
+    "file": "/data/csong/opensource/binutils/bfd/dwarf2.c",
+    "signature": "asection *(bfd *, const struct dwarf_debug_section *, asection *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "info_hash_lookup_funcinfo",
+    "file": "/data/csong/opensource/binutils/bfd/dwarf2.c",
+    "signature": "_Bool(struct info_hash_table *, asymbol *, bfd_vma, const char **, unsigned int *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "info_hash_lookup_varinfo",
+    "file": "/data/csong/opensource/binutils/bfd/dwarf2.c",
+    "signature": "_Bool(struct info_hash_table *, asymbol *, bfd_vma, const char **, unsigned int *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "stash_verify_info_hash_table",
+    "file": "/data/csong/opensource/binutils/bfd/dwarf2.c",
+    "signature": "void(struct dwarf2_debug *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "_bfd_elf_find_function",
+    "file": "/data/csong/opensource/binutils/bfd/dwarf2.c",
+    "signature": "asymbol *(bfd *, asymbol **, asection *, bfd_vma, const char **, const char **)",
+    "container_type": "cache",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "get_line_subseg",
+    "file": "/data/csong/opensource/binutils/gas/dwarf2dbg.c",
+    "signature": "struct line_subseg *(segT, subsegT, _Bool)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "reverse_line_entry_list",
+    "file": "/data/csong/opensource/binutils/gas/dwarf2dbg.c",
+    "signature": "struct line_entry *(struct line_entry *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "set_or_check_view",
+    "file": "/data/csong/opensource/binutils/gas/dwarf2dbg.c",
+    "signature": "void(struct line_entry *, struct line_entry *, struct line_entry *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      0,
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "get_directory_table_entry",
+    "file": "/data/csong/opensource/binutils/gas/dwarf2dbg.c",
+    "signature": "unsigned int(const char *, const char *, size_t, _Bool)",
+    "container_type": "array",
+    "container_arg": -1,
+    "store_args": [
+      0
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "listing_message",
+    "file": "/data/csong/opensource/binutils/gas/listing.c",
+    "signature": "void(const char *, const char *)",
+    "container_type": "linked_list",
+    "container_arg": -1,
+    "store_args": [
+      0,
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "listing_newline",
+    "file": "/data/csong/opensource/binutils/gas/listing.c",
+    "signature": "void(char *)",
+    "container_type": "linked_list",
+    "container_arg": -1,
+    "store_args": [
+      0
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "listing_prev_line",
+    "file": "/data/csong/opensource/binutils/gas/listing.c",
+    "signature": "void()",
+    "container_type": "linked_list",
+    "container_arg": -1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "listing_page",
+    "file": "/data/csong/opensource/binutils/gas/listing.c",
+    "signature": "void(list_info_type *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "add_debug_prefix_map",
+    "file": "/data/csong/opensource/binutils/gas/remap.c",
+    "signature": "void(const char *)",
+    "container_type": "linked_list",
+    "container_arg": -1,
+    "store_args": [
+      0
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "htab_insert",
+    "file": "/data/csong/opensource/binutils/gas/hash.c",
+    "signature": "void **(htab_t, void *, int)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "hash_symbol_entry",
+    "file": "/data/csong/opensource/binutils/gas/symbols.c",
+    "signature": "hashval_t(const void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 11,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "symbol_entry_find",
+    "file": "/data/csong/opensource/binutils/gas/symbols.c",
+    "signature": "void *(htab_t, const char *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "symbol_table_insert",
+    "file": "/data/csong/opensource/binutils/gas/symbols.c",
+    "signature": "void(symbolS *)",
+    "container_type": "hash_table",
+    "container_arg": -1,
+    "store_args": [
+      0
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "symbol_append",
+    "file": "/data/csong/opensource/binutils/gas/symbols.c",
+    "signature": "void(symbolS *, symbolS *, symbolS **, symbolS **)",
+    "container_type": "linked_list",
+    "container_arg": 2,
+    "store_args": [
+      0
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "symbol_remove",
+    "file": "/data/csong/opensource/binutils/gas/symbols.c",
+    "signature": "void(symbolS *, symbolS **, symbolS **)",
+    "container_type": "linked_list",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "symbol_insert",
+    "file": "/data/csong/opensource/binutils/gas/symbols.c",
+    "signature": "void(symbolS *, symbolS *, symbolS **, symbolS **)",
+    "container_type": "linked_list",
+    "container_arg": 2,
+    "store_args": [
+      0
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "obj_elf_find_and_add_versioned_name",
+    "file": "/data/csong/opensource/binutils/gas/config/obj-elf.c",
+    "signature": "struct elf_versioned_name_list *(const char *, const char *, const char *, struct elf_obj_sy *)",
+    "container_type": "linked_list",
+    "container_arg": 3,
+    "store_args": [
+      0
+    ],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "set_cpu_arch",
+    "file": "/data/csong/opensource/binutils/gas/config/tc-i386.c",
+    "signature": "void(int)",
+    "container_type": "stack",
+    "container_arg": -1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ctf_hash_integer",
+    "file": "/data/csong/opensource/binutils/libctf/ctf-hash.c",
+    "signature": "unsigned int(const void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ctf_hash_string",
+    "file": "/data/csong/opensource/binutils/libctf/ctf-hash.c",
+    "signature": "unsigned int(const void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ctf_dynhash_item_free",
+    "file": "/data/csong/opensource/binutils/libctf/ctf-hash.c",
+    "signature": "void(void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ctf_hashtab_lookup",
+    "file": "/data/csong/opensource/binutils/libctf/ctf-hash.c",
+    "signature": "ctf_helem_t **(struct htab *, const void *, enum insert_option)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ctf_hashtab_insert",
+    "file": "/data/csong/opensource/binutils/libctf/ctf-hash.c",
+    "signature": "ctf_helem_t *(struct htab *, void *, void *, ctf_hash_free_fun, ctf_hash_free_fun)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      1,
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ctf_dynhash_insert",
+    "file": "/data/csong/opensource/binutils/libctf/ctf-hash.c",
+    "signature": "int(ctf_dynhash_t *, void *, void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      1,
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ctf_dynhash_remove",
+    "file": "/data/csong/opensource/binutils/libctf/ctf-hash.c",
+    "signature": "void(ctf_dynhash_t *, const void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ctf_dynhash_lookup",
+    "file": "/data/csong/opensource/binutils/libctf/ctf-hash.c",
+    "signature": "void *(ctf_dynhash_t *, const void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 9,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ctf_dynhash_lookup_kv",
+    "file": "/data/csong/opensource/binutils/libctf/ctf-hash.c",
+    "signature": "int(ctf_dynhash_t *, const void *, const void **, void **)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2,
+      3
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 9,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ctf_hashtab_traverse",
+    "file": "/data/csong/opensource/binutils/libctf/ctf-hash.c",
+    "signature": "int(void **, void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ctf_dynhash_iter",
+    "file": "/data/csong/opensource/binutils/libctf/ctf-hash.c",
+    "signature": "void(ctf_dynhash_t *, ctf_hash_iter_f, void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ctf_hashtab_traverse_find",
+    "file": "/data/csong/opensource/binutils/libctf/ctf-hash.c",
+    "signature": "int(void **, void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 9,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ctf_dynhash_iter_find",
+    "file": "/data/csong/opensource/binutils/libctf/ctf-hash.c",
+    "signature": "void *(ctf_dynhash_t *, ctf_hash_iter_find_f, void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 10,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ctf_hashtab_traverse_remove",
+    "file": "/data/csong/opensource/binutils/libctf/ctf-hash.c",
+    "signature": "int(void **, void *)",
+    "container_type": "hash_table",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 9,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ctf_dynhash_iter_remove",
+    "file": "/data/csong/opensource/binutils/libctf/ctf-hash.c",
+    "signature": "void(ctf_dynhash_t *, ctf_hash_iter_remove_f, void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ctf_dynhash_next",
+    "file": "/data/csong/opensource/binutils/libctf/ctf-hash.c",
+    "signature": "int(ctf_dynhash_t *, ctf_next_t **, void **, void **)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2,
+      3
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ctf_dynhash_next_remove",
+    "file": "/data/csong/opensource/binutils/libctf/ctf-hash.c",
+    "signature": "int(ctf_next_t *const *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ctf_dynhash_sort_by_name",
+    "file": "/data/csong/opensource/binutils/libctf/ctf-hash.c",
+    "signature": "int(const ctf_next_hkv_t *, const ctf_next_hkv_t *, void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ctf_dynhash_next_sorted",
+    "file": "/data/csong/opensource/binutils/libctf/ctf-hash.c",
+    "signature": "int(ctf_dynhash_t *, ctf_next_t **, void **, void **, ctf_hash_sort_f, void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2,
+      3
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ctf_dynset_insert",
+    "file": "/data/csong/opensource/binutils/libctf/ctf-hash.c",
+    "signature": "int(ctf_dynset_t *, void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ctf_dynset_remove",
+    "file": "/data/csong/opensource/binutils/libctf/ctf-hash.c",
+    "signature": "void(ctf_dynset_t *, const void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ctf_dynset_lookup",
+    "file": "/data/csong/opensource/binutils/libctf/ctf-hash.c",
+    "signature": "void *(ctf_dynset_t *, const void *)",
+    "container_type": "set",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 9,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ctf_dynset_exists",
+    "file": "/data/csong/opensource/binutils/libctf/ctf-hash.c",
+    "signature": "int(ctf_dynset_t *, const void *, const void **)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ctf_dynset_lookup_any",
+    "file": "/data/csong/opensource/binutils/libctf/ctf-hash.c",
+    "signature": "void *(ctf_dynset_t *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 9,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ctf_dynset_next",
+    "file": "/data/csong/opensource/binutils/libctf/ctf-hash.c",
+    "signature": "int(ctf_dynset_t *, ctf_next_t **, void **)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ctf_dynhash_insert_type",
+    "file": "/data/csong/opensource/binutils/libctf/ctf-hash.c",
+    "signature": "int(ctf_dict_t *, ctf_dynhash_t *, uint32_t, uint32_t)",
+    "container_type": "hash_table",
+    "container_arg": 1,
+    "store_args": [
+      2,
+      3
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ctf_dynhash_lookup_type",
+    "file": "/data/csong/opensource/binutils/libctf/ctf-hash.c",
+    "signature": "ctf_id_t(ctf_dynhash_t *, const char *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "search_modent_by_name",
+    "file": "/data/csong/opensource/binutils/libctf/ctf-archive.c",
+    "signature": "int(const void *, const void *, void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ctf_arc_lookup_sym_or_name",
+    "file": "/data/csong/opensource/binutils/libctf/ctf-archive.c",
+    "signature": "ctf_dict_t *(ctf_archive_t *, unsigned long, const char *, ctf_id_t *, int *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      3
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ctf_archive_next",
+    "file": "/data/csong/opensource/binutils/libctf/ctf-archive.c",
+    "signature": "ctf_dict_t *(const ctf_archive_t *, ctf_next_t **, const char **, int, int *)",
+    "container_type": "iterator_over_array",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ctf_lookup_symbol_idx",
+    "file": "/data/csong/opensource/binutils/libctf/ctf-lookup.c",
+    "signature": "unsigned long(ctf_dict_t *, const char *, int, int)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ctf_link_add_cu_mapping",
+    "file": "/data/csong/opensource/binutils/libctf/ctf-link.c",
+    "signature": "int(ctf_dict_t *, const char *, const char *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      1,
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ctf_add_member_offset",
+    "file": "/data/csong/opensource/binutils/libctf/ctf-create.c",
+    "signature": "int(ctf_dict_t *, ctf_id_t, const char *, ctf_id_t, unsigned long)",
+    "container_type": "array",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ctf_add_type_mapping",
+    "file": "/data/csong/opensource/binutils/libctf/ctf-create.c",
+    "signature": "void(ctf_dict_t *, ctf_id_t, ctf_dict_t *, ctf_id_t)",
+    "container_type": "hash_table",
+    "container_arg": 2,
+    "store_args": [
+      0
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ctf_list_append",
+    "file": "/data/csong/opensource/binutils/libctf/ctf-util.c",
+    "signature": "void(ctf_list_t *, void *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ctf_list_prepend",
+    "file": "/data/csong/opensource/binutils/libctf/ctf-util.c",
+    "signature": "void(ctf_list_t *, void *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ctf_list_delete",
+    "file": "/data/csong/opensource/binutils/libctf/ctf-util.c",
+    "signature": "void(ctf_list_t *, void *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "make_set_element",
+    "file": "/data/csong/opensource/binutils/libctf/ctf-dedup.c",
+    "signature": "ctf_dynset_t *(ctf_dynhash_t *, const void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ctf_dedup_rhash_type",
+    "file": "/data/csong/opensource/binutils/libctf/ctf-dedup.c",
+    "signature": "const char *(ctf_dict_t *, ctf_dict_t *, ctf_dict_t **, int, ctf_id_t, void *, const ctf_type_t *, const char *, const char *, int, int, unsigned long, int (*)(ctf_dict_t *, ctf_dict_t *, ctf_dict_t **, int, ctf_id_t, int, void *, const char *, const char *))",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      5
+    ],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ctf_dedup_hash_type",
+    "file": "/data/csong/opensource/binutils/libctf/ctf-dedup.c",
+    "signature": "const char *(ctf_dict_t *, ctf_dict_t *, ctf_dict_t **, int, ctf_id_t, int, unsigned long, int (*)(ctf_dict_t *, ctf_dict_t *, ctf_dict_t **, int, ctf_id_t, int, void *, const char *, const char *))",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ctf_dedup_populate_mappings",
+    "file": "/data/csong/opensource/binutils/libctf/ctf-dedup.c",
+    "signature": "int(ctf_dict_t *, ctf_dict_t *, ctf_dict_t **, int, ctf_id_t, int, void *, const char *, const char *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      6,
+      8
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ctf_dedup_rwalk_one_output_mapping",
+    "file": "/data/csong/opensource/binutils/libctf/ctf-dedup.c",
+    "signature": "int(ctf_dict_t *, ctf_dict_t **, uint32_t, uint32_t *, ctf_dynset_t *, int, void *, const char *, int (*)(const char *, ctf_dict_t *, ctf_dict_t **, uint32_t, uint32_t *, int, ctf_dict_t *, ctf_id_t, void *, int, void *), void *, unsigned long)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "ctf_dedup_rwalk_output_mapping",
+    "file": "/data/csong/opensource/binutils/libctf/ctf-dedup.c",
+    "signature": "int(ctf_dict_t *, ctf_dict_t **, uint32_t, uint32_t *, ctf_dynset_t *, const char *, int (*)(const char *, ctf_dict_t *, ctf_dict_t **, uint32_t, uint32_t *, int, ctf_dict_t *, ctf_id_t, void *, int, void *), void *, unsigned long)",
+    "container_type": "set",
+    "container_arg": 4,
+    "store_args": [
+      5
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "sort_output_mapping",
+    "file": "/data/csong/opensource/binutils/libctf/ctf-dedup.c",
+    "signature": "int(const ctf_next_hkv_t *, const ctf_next_hkv_t *, void *)",
+    "container_type": "hash_table",
+    "container_arg": 2,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ctf_dedup_walk_output_mapping",
+    "file": "/data/csong/opensource/binutils/libctf/ctf-dedup.c",
+    "signature": "int(ctf_dict_t *, ctf_dict_t **, uint32_t, uint32_t *, int (*)(const char *, ctf_dict_t *, ctf_dict_t **, uint32_t, uint32_t *, int, ctf_dict_t *, ctf_id_t, void *, int, void *), void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "find_cycle",
+    "file": "/data/csong/opensource/binutils/gprof/cg_dfn.c",
+    "signature": "void(Sym *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      0
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "arc_lookup",
+    "file": "/data/csong/opensource/binutils/gprof/cg_arcs.c",
+    "signature": "Arc *(Sym *, Sym *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "arc_add",
+    "file": "/data/csong/opensource/binutils/gprof/cg_arcs.c",
+    "signature": "void(Sym *, Sym *, unsigned long)",
+    "container_type": "array",
+    "container_arg": -1,
+    "store_args": [
+      0,
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "sym_id_add",
+    "file": "/data/csong/opensource/binutils/gprof/sym_ids.c",
+    "signature": "void(const char *, Table_Id)",
+    "container_type": "linked_list",
+    "container_arg": -1,
+    "store_args": [
+      0,
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "search_list_append",
+    "file": "/data/csong/opensource/binutils/gprof/search_list.c",
+    "signature": "void(Search_List *, const char *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "gemini-3-flash-preview"
+  },
+  {
+    "function": "source_file_lookup_path",
+    "file": "/data/csong/opensource/binutils/gprof/source.c",
+    "signature": "Source_File *(const char *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      0
+    ],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "source_file_lookup_name",
+    "file": "/data/csong/opensource/binutils/gprof/source.c",
+    "signature": "Source_File *(const char *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "record_abbrev_list_for_cu",
+    "file": "/data/csong/opensource/binutils/binutils/dwarf.c",
+    "signature": "void(uint64_t, uint64_t, abbrev_list *, abbrev_list *)",
+    "container_type": "linked_list",
+    "container_arg": -1,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "free_abbrev_list",
+    "file": "/data/csong/opensource/binutils/binutils/dwarf.c",
+    "signature": "abbrev_list *(abbrev_list *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "find_abbrev_list_by_raw_abbrev",
+    "file": "/data/csong/opensource/binutils/binutils/dwarf.c",
+    "signature": "abbrev_list *(unsigned char *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "add_abbrev",
+    "file": "/data/csong/opensource/binutils/binutils/dwarf.c",
+    "signature": "void(unsigned long, unsigned long, int, abbrev_list *)",
+    "container_type": "linked_list",
+    "container_arg": 3,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "add_abbrev_attr",
+    "file": "/data/csong/opensource/binutils/binutils/dwarf.c",
+    "signature": "void(unsigned long, unsigned long, int64_t, abbrev_list *)",
+    "container_type": "linked_list",
+    "container_arg": 3,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "process_abbrev_set",
+    "file": "/data/csong/opensource/binutils/binutils/dwarf.c",
+    "signature": "abbrev_list *(struct dwarf_section *, unsigned char *, unsigned char *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "add_dwo_info",
+    "file": "/data/csong/opensource/binutils/binutils/dwarf.c",
+    "signature": "void(const char *, uint64_t, dwo_type)",
+    "container_type": "linked_list",
+    "container_arg": 2,
+    "store_args": [
+      0,
+      1,
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "load_debug_section_with_follow",
+    "file": "/data/csong/opensource/binutils/binutils/dwarf.c",
+    "signature": "_Bool(enum dwarf_section_display_enum, void *)",
+    "container_type": "linked_list",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "display_debug_frames",
+    "file": "/data/csong/opensource/binutils/binutils/dwarf.c",
+    "signature": "int(struct dwarf_section *, void *)",
+    "container_type": "singly_linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "add_separate_debug_file",
+    "file": "/data/csong/opensource/binutils/binutils/dwarf.c",
+    "signature": "void(const char *, void *)",
+    "container_type": "linked_list",
+    "container_arg": 1,
+    "store_args": [
+      0,
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "add_only",
+    "file": "/data/csong/opensource/binutils/binutils/objdump.c",
+    "signature": "void(char *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "jump_info_insert",
+    "file": "/data/csong/opensource/binutils/binutils/objdump.c",
+    "signature": "void(struct jump_info *, struct jump_info *, struct jump_info **)",
+    "container_type": "doubly_linked_list",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "jump_info_add_front",
+    "file": "/data/csong/opensource/binutils/binutils/objdump.c",
+    "signature": "void(struct jump_info *, struct jump_info **)",
+    "container_type": "linked_list",
+    "container_arg": 1,
+    "store_args": [
+      0
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "find_section_in_set",
+    "file": "/data/csong/opensource/binutils/binutils/readelf.c",
+    "signature": "Elf_Internal_Shdr *(Filedata *, const char *, unsigned int *)",
+    "container_type": "array",
+    "container_arg": 2,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "push_type",
+    "file": "/data/csong/opensource/binutils/binutils/prdbg.c",
+    "signature": "_Bool(struct pr_handle *, const char *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "pop_type",
+    "file": "/data/csong/opensource/binutils/binutils/prdbg.c",
+    "signature": "char *(struct pr_handle *)",
+    "container_type": "stack",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "map_over_list",
+    "file": "/data/csong/opensource/binutils/binutils/arsup.c",
+    "signature": "void(bfd *, void (*)(bfd *, bfd *), struct list *)",
+    "container_type": "linked_list",
+    "container_arg": 2,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "push_bincl",
+    "file": "/data/csong/opensource/binutils/binutils/stabs.c",
+    "signature": "void(void *, struct stab_handle *, const char *, bfd_vma)",
+    "container_type": "linked_list",
+    "container_arg": 1,
+    "store_args": [
+      0,
+      2,
+      3
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 9,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "find_excl",
+    "file": "/data/csong/opensource/binutils/binutils/stabs.c",
+    "signature": "_Bool(struct stab_handle *, const char *, bfd_vma)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "stab_record_variable",
+    "file": "/data/csong/opensource/binutils/binutils/stabs.c",
+    "signature": "_Bool(void *, struct stab_handle *, const char *, debug_type, enum debug_var_kind, bfd_vma)",
+    "container_type": "linked_list",
+    "container_arg": 1,
+    "store_args": [
+      0
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "stab_emit_pending_vars",
+    "file": "/data/csong/opensource/binutils/binutils/stabs.c",
+    "signature": "_Bool(void *, struct stab_handle *)",
+    "container_type": "linked_list",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "stab_find_slot",
+    "file": "/data/csong/opensource/binutils/binutils/stabs.c",
+    "signature": "debug_type *(void *, struct stab_handle *, const int *)",
+    "container_type": "linked_list",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "stab_find_tagged_type",
+    "file": "/data/csong/opensource/binutils/binutils/stabs.c",
+    "signature": "debug_type(void *, struct stab_handle *, const char *, int, enum debug_type_kind)",
+    "container_type": "linked_list",
+    "container_arg": 1,
+    "store_args": [
+      2,
+      3
+    ],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 12,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "string_hash_newfunc",
+    "file": "/data/csong/opensource/binutils/binutils/wrstabs.c",
+    "signature": "struct bfd_hash_entry *(struct bfd_hash_entry *, struct bfd_hash_table *, const char *)",
+    "container_type": "hash_table",
+    "container_arg": 1,
+    "store_args": [
+      0,
+      2
+    ],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "stab_push_string",
+    "file": "/data/csong/opensource/binutils/binutils/wrstabs.c",
+    "signature": "_Bool(struct stab_write_handle *, char *, long, _Bool, unsigned int)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "stab_pop_type",
+    "file": "/data/csong/opensource/binutils/binutils/wrstabs.c",
+    "signature": "char *(struct stab_write_handle *)",
+    "container_type": "stack",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "write_stabs_in_sections_debugging_info",
+    "file": "/data/csong/opensource/binutils/binutils/wrstabs.c",
+    "signature": "_Bool(bfd *, void *, bfd_byte **, bfd_size_type *, bfd_byte **, bfd_size_type *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2,
+      4
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "coff_get_slot",
+    "file": "/data/csong/opensource/binutils/binutils/rdcoff.c",
+    "signature": "debug_type *(void *, struct coff_types **, long)",
+    "container_type": "linked_list",
+    "container_arg": 1,
+    "store_args": [
+      2
+    ],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "debug_add_to_namespace",
+    "file": "/data/csong/opensource/binutils/binutils/debug.c",
+    "signature": "struct debug_name *(struct debug_handle *, struct debug_namespace **, const char *, enum debug_object_kind, enum debug_object_linkage)",
+    "container_type": "linked_list",
+    "container_arg": 1,
+    "store_args": [
+      1,
+      2
+    ],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "debug_set_filename",
+    "file": "/data/csong/opensource/binutils/binutils/debug.c",
+    "signature": "_Bool(void *, const char *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      0
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "debug_start_source",
+    "file": "/data/csong/opensource/binutils/binutils/debug.c",
+    "signature": "_Bool(void *, const char *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "debug_start_block",
+    "file": "/data/csong/opensource/binutils/binutils/debug.c",
+    "signature": "_Bool(void *, bfd_vma)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "debug_record_line",
+    "file": "/data/csong/opensource/binutils/binutils/debug.c",
+    "signature": "_Bool(void *, unsigned long, bfd_vma)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "debug_get_real_type",
+    "file": "/data/csong/opensource/binutils/binutils/debug.c",
+    "signature": "struct debug_type_s *(void *, debug_type, struct debug_type_real_list *)",
+    "container_type": "linked_list",
+    "container_arg": 2,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "debug_write",
+    "file": "/data/csong/opensource/binutils/binutils/debug.c",
+    "signature": "_Bool(void *, const struct debug_write_fns *, void *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "debug_set_class_id",
+    "file": "/data/csong/opensource/binutils/binutils/debug.c",
+    "signature": "_Bool(struct debug_handle *, const char *, struct debug_type_s *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "set_segment_start",
+    "file": "/data/csong/opensource/binutils/ld/lexsup.c",
+    "signature": "void(const char *, char *)",
+    "container_type": "linked_list",
+    "container_arg": 1,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ldctor_add_set_entry",
+    "file": "/data/csong/opensource/binutils/ld/ldctor.c",
+    "signature": "void(struct bfd_link_hash_entry *, bfd_reloc_code_real_type, const char *, asection *, bfd_vma)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      3
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 9,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ldctor_build_sets",
+    "file": "/data/csong/opensource/binutils/ld/ldctor.c",
+    "signature": "void()",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "add_archive_element",
+    "file": "/data/csong/opensource/binutils/ld/ldmain.c",
+    "signature": "_Bool(struct bfd_link_info *, bfd *, const char *, bfd **)",
+    "container_type": "singly_linked_list",
+    "container_arg": 0,
+    "store_args": [
+      3
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "add_to_set",
+    "file": "/data/csong/opensource/binutils/ld/ldmain.c",
+    "signature": "void(struct bfd_link_info *, struct bfd_link_hash_entry *, bfd_reloc_code_real_type, bfd *, asection *, bfd_vma)",
+    "container_type": "hash_table",
+    "container_arg": 1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "queue_unknown_cmdline_warning",
+    "file": "/data/csong/opensource/binutils/ld/ldmisc.c",
+    "signature": "void(const char *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ldfile_add_remap",
+    "file": "/data/csong/opensource/binutils/ld/ldfile.c",
+    "signature": "void(const char *, const char *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 9,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ldfile_add_library_path",
+    "file": "/data/csong/opensource/binutils/ld/ldfile.c",
+    "signature": "void(const char *, _Bool)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ldfile_find_command_file",
+    "file": "/data/csong/opensource/binutils/ld/ldfile.c",
+    "signature": "FILE *(const char *, enum script_open_style, _Bool *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ldfile_add_arch",
+    "file": "/data/csong/opensource/binutils/ld/ldfile.c",
+    "signature": "void(const char *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      0
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "set_sym_sections",
+    "file": "/data/csong/opensource/binutils/ld/ldexp.c",
+    "signature": "_Bool(struct bfd_hash_entry *, void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "add_matching_section",
+    "file": "/data/csong/opensource/binutils/ld/ldlang.c",
+    "signature": "void(lang_wild_statement_type *, struct wildcard_list *, asection *, lang_input_statement_type *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "output_section_callback_sort",
+    "file": "/data/csong/opensource/binutils/ld/ldlang.c",
+    "signature": "void(lang_wild_statement_type *, struct wildcard_list *, asection *, lang_input_statement_type *, void *)",
+    "container_type": "binary_search_tree",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "output_section_callback_tree_to_list",
+    "file": "/data/csong/opensource/binutils/ld/ldlang.c",
+    "signature": "void(lang_wild_statement_type *, lang_section_bst_type *, void *)",
+    "container_type": "binary_search_tree",
+    "container_arg": 1,
+    "store_args": [
+      0
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "get_prefix_tree",
+    "file": "/data/csong/opensource/binutils/ld/ldlang.c",
+    "signature": "struct prefixtree *(struct prefixtree **, char, _Bool)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "pt_add_stmt",
+    "file": "/data/csong/opensource/binutils/ld/ldlang.c",
+    "signature": "void(struct prefixtree *, lang_wild_statement_type *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "insert_prefix_tree",
+    "file": "/data/csong/opensource/binutils/ld/ldlang.c",
+    "signature": "void(lang_wild_statement_type *)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "debug_prefix_tree_rec",
+    "file": "/data/csong/opensource/binutils/ld/ldlang.c",
+    "signature": "void(struct prefixtree *, int)",
+    "container_type": "tree",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "lang_memory_region_lookup",
+    "file": "/data/csong/opensource/binutils/ld/ldlang.c",
+    "signature": "lang_memory_region_type *(const char *const, _Bool)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "lang_output_section_statement_lookup",
+    "file": "/data/csong/opensource/binutils/ld/ldlang.c",
+    "signature": "lang_output_section_statement_type *(const char *, int, int)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "lang_output_section_find_by_flags",
+    "file": "/data/csong/opensource/binutils/ld/ldlang.c",
+    "signature": "lang_output_section_statement_type *(const asection *, flagword, lang_output_section_statement_type **, lang_match_sec_type_func)",
+    "container_type": "linked_list",
+    "container_arg": -1,
+    "store_args": [
+      2
+    ],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "insert_os_after",
+    "file": "/data/csong/opensource/binutils/ld/ldlang.c",
+    "signature": "lang_statement_union_type **(lang_statement_union_type *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      0
+    ],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "lang_insert_orphan",
+    "file": "/data/csong/opensource/binutils/ld/ldlang.c",
+    "signature": "lang_output_section_statement_type *(asection *, const char *, int, lang_output_section_statement_type *, struct orphan_save *, etree_type *, lang_statement_list_type *)",
+    "container_type": "doubly_linked_list",
+    "container_arg": 3,
+    "store_args": [
+      6
+    ],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "sort_def_symbol",
+    "file": "/data/csong/opensource/binutils/ld/ldlang.c",
+    "signature": "_Bool(struct bfd_link_hash_entry *, void *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "add_excluded_libs",
+    "file": "/data/csong/opensource/binutils/ld/ldlang.c",
+    "signature": "void(const char *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ldlang_add_undef",
+    "file": "/data/csong/opensource/binutils/ld/ldlang.c",
+    "signature": "void(const char *const, _Bool)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ldlang_add_require_defined",
+    "file": "/data/csong/opensource/binutils/ld/ldlang.c",
+    "signature": "void(const char *const)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "map_input_to_output_sections",
+    "file": "/data/csong/opensource/binutils/ld/ldlang.c",
+    "signature": "void(lang_statement_union_type *, const char *, lang_output_section_statement_type *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "process_insert_statements",
+    "file": "/data/csong/opensource/binutils/ld/ldlang.c",
+    "signature": "void(lang_statement_union_type **)",
+    "container_type": "singly_linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "insert_pad",
+    "file": "/data/csong/opensource/binutils/ld/ldlang.c",
+    "signature": "void(lang_statement_union_type **, fill_type *, bfd_size_type, asection *, bfd_vma)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ldlang_add_file",
+    "file": "/data/csong/opensource/binutils/ld/ldlang.c",
+    "signature": "void(lang_input_statement_type *)",
+    "container_type": "singly_linked_list",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "lang_reset_memory_regions",
+    "file": "/data/csong/opensource/binutils/ld/ldlang.c",
+    "signature": "void()",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "lang_find_relro_sections_1",
+    "file": "/data/csong/opensource/binutils/ld/ldlang.c",
+    "signature": "void(lang_statement_union_type *, _Bool *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "lang_list_remove_tail",
+    "file": "/data/csong/opensource/binutils/ld/ldlang.c",
+    "signature": "void(lang_statement_list_type *, lang_statement_list_type *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "lang_list_insert_after",
+    "file": "/data/csong/opensource/binutils/ld/ldlang.c",
+    "signature": "void(lang_statement_list_type *, lang_statement_list_type *, lang_statement_union_type **)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "lang_add_gc_name",
+    "file": "/data/csong/opensource/binutils/ld/ldlang.c",
+    "signature": "void(const char *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "lang_add_wild",
+    "file": "/data/csong/opensource/binutils/ld/ldlang.c",
+    "signature": "void(struct wildcard_spec *, struct wildcard_list *, _Bool)",
+    "container_type": "linked_list",
+    "container_arg": 1,
+    "store_args": [
+      0,
+      1,
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "lang_record_phdrs",
+    "file": "/data/csong/opensource/binutils/ld/ldlang.c",
+    "signature": "void()",
+    "container_type": "linked_list",
+    "container_arg": -1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "lang_add_nocrossref",
+    "file": "/data/csong/opensource/binutils/ld/ldlang.c",
+    "signature": "void(lang_nocrossref_type *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      0
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "lang_add_vers_depend",
+    "file": "/data/csong/opensource/binutils/ld/ldlang.c",
+    "signature": "struct bfd_elf_version_deps *(struct bfd_elf_version_deps *, const char *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "lang_append_dynamic_list",
+    "file": "/data/csong/opensource/binutils/ld/ldlang.c",
+    "signature": "void(struct bfd_elf_dynamic_list **, struct bfd_elf_version_expr *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 8,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "cmdline_list_append",
+    "file": "/data/csong/opensource/binutils/ld/ldlang.c",
+    "signature": "void(cmdline_list_type *, cmdline_enum_type, void *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "print_cmdline_list",
+    "file": "/data/csong/opensource/binutils/ld/ldlang.c",
+    "signature": "void(cmdline_union_type *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "cmdline_on_object_only_archive_list_p",
+    "file": "/data/csong/opensource/binutils/ld/ldlang.c",
+    "signature": "_Bool(bfd *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "cmdline_object_only_list_append",
+    "file": "/data/csong/opensource/binutils/ld/ldlang.c",
+    "signature": "void(cmdline_enum_type, void *)",
+    "container_type": "linked_list",
+    "container_arg": 1,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 11,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "cmdline_get_object_only_input_files",
+    "file": "/data/csong/opensource/binutils/ld/ldlang.c",
+    "signature": "void()",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "add_cref",
+    "file": "/data/csong/opensource/binutils/ld/ldcref.c",
+    "signature": "void(const char *, bfd *, asection *, bfd_vma)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "check_nocrossref",
+    "file": "/data/csong/opensource/binutils/ld/ldcref.c",
+    "signature": "_Bool(struct cref_hash_entry *, void *)",
+    "container_type": "hash_table",
+    "container_arg": 0,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "check_reloc_refs",
+    "file": "/data/csong/opensource/binutils/ld/ldcref.c",
+    "signature": "void(bfd *, asection *, void *)",
+    "container_type": "linked_list",
+    "container_arg": 2,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "output_rel_find",
+    "file": "/data/csong/opensource/binutils/ld/ldelf.c",
+    "signature": "lang_output_section_statement_type *(int, int)",
+    "container_type": "linked_list",
+    "container_arg": -1,
+    "store_args": [],
+    "load_return": true,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "ldelf_map_segments",
+    "file": "/data/csong/opensource/binutils/ld/ldelfgen.c",
+    "signature": "void(_Bool)",
+    "container_type": "linked_list",
+    "container_arg": -1,
+    "store_args": [],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "set_tv_plugin_args",
+    "file": "/data/csong/opensource/binutils/ld/plugin.c",
+    "signature": "void(plugin_t *, struct ld_plugin_tv *)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      1
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 6,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "record_add_file",
+    "file": "/data/csong/opensource/binutils/ld/testplug4.c",
+    "signature": "enum ld_plugin_status(const char *, addfile_enum_t)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "record_add_file",
+    "file": "/data/csong/opensource/binutils/ld/testplug3.c",
+    "signature": "enum ld_plugin_status(const char *, addfile_enum_t)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "get_libdeps",
+    "file": "/data/csong/opensource/binutils/ld/libdep_plugin.c",
+    "signature": "enum ld_plugin_status(int)",
+    "container_type": "linked_list",
+    "container_arg": -1,
+    "store_args": [
+      126,
+      127
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 7,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "record_add_file",
+    "file": "/data/csong/opensource/binutils/ld/testplug.c",
+    "signature": "enum ld_plugin_status(const char *, addfile_enum_t)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  },
+  {
+    "function": "record_add_file",
+    "file": "/data/csong/opensource/binutils/ld/testplug2.c",
+    "signature": "enum ld_plugin_status(const char *, addfile_enum_t)",
+    "container_type": "linked_list",
+    "container_arg": 0,
+    "store_args": [
+      2
+    ],
+    "load_return": false,
+    "confidence": "high",
+    "heuristic_score": 5,
+    "model_used": "llama.cpp"
+  }
+]
