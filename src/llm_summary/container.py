@@ -23,6 +23,102 @@ ACTION_KEYWORDS = {
     "emplace", "contains", "has",
 }
 
+# Pre-compiled regexes for heuristic scoring
+_RE_ACTION_KEYWORDS = {
+    kw: re.compile(rf'(?:^|_){kw}(?:_|$)')
+    for kw in ACTION_KEYWORDS
+}
+_RE_VOID_STAR_PARAM = re.compile(r'void\s*\*(?!\*)\s*\w*')
+_RE_VOID_STAR_RETURN = re.compile(r'\s*void\s*\*(?!\*)')
+_RE_VOID_DSTAR_PARAM = re.compile(r'void\s*\*\*\s*\w*')
+_RE_STRUCT_ASSIGN = re.compile(r'(\w+(?:->|\.)(?:\w+(?:->|\.))*\w+)\s*=\s*(.+?)\s*;')
+_RE_CAST_STRIP = re.compile(r'\([^)]*\)\s*')
+_RE_RETURN_FIELD = re.compile(r'return\s+(\w+(?:->|\.)(?:\w+(?:->|\.))*\w+)\s*;')
+_RE_LINKED_PTR = re.compile(r'\b\w+(?:->|\.)(?:next|prev|left|right|child|parent|sibling|flink|blink)\b')
+_RE_HASH_MOD = re.compile(r'%\s*\w*(?:size|cap|len|count|num|buckets|slots)\b')
+_RE_HASH_CALL = re.compile(r'\b(?:hash|bucket)\s*[=(]', re.IGNORECASE)
+_RE_VOID_CAST = re.compile(r'\(\s*void\s*\*\s*\)')
+_RE_KEY_CMP = re.compile(r'\b(?:strcmp|memcmp|strncmp|wcscmp)\s*\(')
+_RE_PAREN_CONTENT = re.compile(r'\(([^)]*)\)')
+
+VALID_CONTAINER_TYPES = {
+    "hash_table", "linked_list", "tree", "array", "queue",
+    "stack", "cache", "set", "heap", "pool", "other",
+}
+
+# Map common LLM variants to canonical types
+_TYPE_NORMALIZATION = {
+    # linked_list variants
+    "list": "linked_list",
+    "singly_linked_list": "linked_list",
+    "doubly_linked_list": "linked_list",
+    "slist": "linked_list",
+    "dlist": "linked_list",
+    "skiplist": "linked_list",
+    "skip_list": "linked_list",
+    "circular_linked_list": "linked_list",
+    "circular_doubly_linked_list": "linked_list",
+    # tree variants
+    "red_black_tree": "tree",
+    "rb_tree": "tree",
+    "rbtree": "tree",
+    "rbt": "tree",
+    "avl_tree": "tree",
+    "avl": "tree",
+    "splay_tree": "tree",
+    "btree": "tree",
+    "b_tree": "tree",
+    "trie": "tree",
+    "radix_tree": "tree",
+    "binary_tree": "tree",
+    "binary_search_tree": "tree",
+    "balanced_binary_search_tree": "tree",
+    "treap": "tree",
+    # array variants
+    "dynamic_array": "array",
+    "array_list": "array",
+    "vector": "array",
+    "ring_buffer": "array",
+    "circular_buffer": "array",
+    "sorted_array": "array",
+    # heap variants
+    "priority_queue": "heap",
+    "fibonacci_heap": "heap",
+    # queue variants
+    "fifo": "queue",
+    "fifo_queue": "queue",
+    "deque": "queue",
+    # stack variants
+    "dynamic_array_stack": "stack",
+    "array_stack": "stack",
+    "array_based_stack": "stack",
+    # cache variants
+    "lru": "cache",
+    "lru_cache": "cache",
+    # pool variants
+    "memory_pool": "pool",
+    "freelist": "pool",
+    "free_list": "pool",
+    "buffer_pool": "pool",
+    "slab_allocator": "pool",
+    "obstack": "pool",
+}
+
+
+def _normalize_container_type(raw: str) -> str:
+    """Normalize LLM-generated container type to canonical enum value."""
+    t = raw.strip().lower().replace("-", "_").replace(" ", "_")
+    if t in VALID_CONTAINER_TYPES:
+        return t
+    if t in _TYPE_NORMALIZATION:
+        return _TYPE_NORMALIZATION[t]
+    # Fuzzy fallback: check if any canonical type is a substring
+    for canonical in VALID_CONTAINER_TYPES:
+        if canonical in t:
+            return canonical
+    return "other"
+
+
 CONTAINER_PROMPT = """You are analyzing a C/C++ function to determine if it is a container/collection \
 operation (hash table, linked list, tree, map, cache, queue, etc.) that stores \
 or retrieves pointer values.
@@ -34,6 +130,8 @@ or retrieves pointer values.
 ```
 
 Function: `{name}`
+Project: `{project_name}`
+File: `{file_path}`
 Signature: `{signature}`
 Parameters (0-indexed): {param_list}
 
@@ -70,6 +168,13 @@ Respond in JSON:
 }}
 ```
 
+`container_type` MUST be one of: `hash_table`, `linked_list`, `tree`, `array`, \
+`queue`, `stack`, `cache`, `set`, `heap`, `pool`, `other`.
+Use `linked_list` for all list variants (singly/doubly linked, skip lists). \
+Use `tree` for all tree variants (red-black, AVL, splay, B-tree, trie, radix). \
+Use `array` for dynamic arrays, vectors, and ring buffers. \
+Use `heap` for priority queues and Fibonacci heaps.
+
 If this is NOT a container function, return:
 ```json
 {{"is_container": false, "reasoning": "brief explanation why not"}}
@@ -92,12 +197,14 @@ class ContainerDetector:
         verbose: bool = False,
         log_file: str | None = None,
         min_score: int = 5,
+        project_name: str = "",
     ):
         self.db = db
         self.llm = llm
         self.verbose = verbose
         self.log_file = log_file
         self.min_score = min_score
+        self.project_name = project_name
         self._stats = {
             "functions_scanned": 0,
             "candidates": 0,
@@ -105,6 +212,8 @@ class ContainerDetector:
             "containers_found": 0,
             "cache_hits": 0,
             "errors": 0,
+            "input_tokens": 0,
+            "output_tokens": 0,
         }
 
     @property
@@ -225,9 +334,8 @@ class ContainerDetector:
                 break  # Only count once
 
         # Action keyword in name
-        for kw in ACTION_KEYWORDS:
-            # Match as word boundary: _insert, insert_, insert (whole name part)
-            if re.search(rf'(?:^|_){kw}(?:_|$)', name_lower):
+        for kw, pat in _RE_ACTION_KEYWORDS.items():
+            if pat.search(name_lower):
                 score += 2
                 signals.append(f"action_keyword: name contains '{kw}'")
                 break
@@ -236,18 +344,18 @@ class ContainerDetector:
         sig = func.signature or ""
 
         # void* parameter (generic value storage)
-        void_star_params = re.findall(r'void\s*\*(?!\*)\s*\w*', sig)
+        void_star_params = _RE_VOID_STAR_PARAM.findall(sig)
         if void_star_params:
             score += 2
             signals.append(f"void_ptr_param: {void_star_params[0].strip()}")
 
         # void* return type
-        if re.match(r'\s*void\s*\*(?!\*)', sig):
+        if _RE_VOID_STAR_RETURN.match(sig):
             score += 2
             signals.append("void_ptr_return: returns void*")
 
         # void** parameter (output param)
-        void_dstar_params = re.findall(r'void\s*\*\*\s*\w*', sig)
+        void_dstar_params = _RE_VOID_DSTAR_PARAM.findall(sig)
         if void_dstar_params:
             score += 2
             signals.append(f"void_dblptr_param: {void_dstar_params[0].strip()}")
@@ -256,72 +364,79 @@ class ContainerDetector:
         if not source:
             return score, signals
 
-        lines = source.split('\n')
-
-        # Parse parameter names from signature for tracking stores
-        param_names = self._extract_param_names(sig)
-
-        # Param pointer stored to struct field: node->data = value;
-        for i, line in enumerate(lines, 1):
-            stripped = line.strip()
-            # Match patterns like: ptr->field = param; or ptr->field = (type*)param;
-            m = re.match(r'(\w+(?:->|\.)(?:\w+(?:->|\.))*\w+)\s*=\s*(.+?)\s*;', stripped)
-            if m:
-                lhs = m.group(1)
-                rhs = m.group(2).strip()
-                # Check if RHS references a parameter
-                rhs_clean = re.sub(r'\([^)]*\)\s*', '', rhs)  # remove casts
-                for pname in param_names:
-                    if pname and re.search(rf'\b{re.escape(pname)}\b', rhs_clean):
-                        score += 4
-                        signals.append(f"param_stored_to_field: Line {i}: `{stripped}` stores param '{pname}' into struct field")
-                        break
-                else:
-                    continue
-                break  # Only count this signal once
-
-        # Return of struct field (pointer)
-        for i, line in enumerate(lines, 1):
-            stripped = line.strip()
-            m = re.match(r'return\s+(\w+(?:->|\.)(?:\w+(?:->|\.))*\w+)\s*;', stripped)
-            if m:
-                score += 4
-                signals.append(f"return_struct_field: Line {i}: `{stripped}` returns struct field")
-                break
-
-        # next/prev pointer manipulation
-        for i, line in enumerate(lines, 1):
-            stripped = line.strip()
-            if re.search(r'\b\w+(?:->|\.)(?:next|prev|left|right|child|parent|sibling|flink|blink)\b', stripped):
-                score += 3
-                signals.append(f"linked_ptr_manipulation: Line {i}: `{stripped.strip()[:60]}`")
-                break
-
-        # Hash/bucket computation
-        for i, line in enumerate(lines, 1):
-            stripped = line.strip()
-            if re.search(r'%\s*\w*(?:size|cap|len|count|num|buckets|slots)\b', stripped) or \
-               re.search(r'\b(?:hash|bucket)\s*[=(]', stripped, re.IGNORECASE):
-                score += 2
-                signals.append(f"hash_computation: Line {i}: `{stripped.strip()[:60]}`")
-                break
-
-        # void* cast in body
-        if re.search(r'\(\s*void\s*\*\s*\)', source):
+        # Whole-source signals (no per-line loop needed)
+        if _RE_VOID_CAST.search(source):
             score += 1
             signals.append("void_cast: body contains (void*) cast")
 
-        # Key comparison call
-        if re.search(r'\b(?:strcmp|memcmp|strncmp|wcscmp)\s*\(', source):
+        if _RE_KEY_CMP.search(source):
             score += 1
             signals.append("key_comparison: body calls strcmp/memcmp")
+
+        # Parse parameter names for tracking stores
+        param_names = self._extract_param_names(sig)
+        # Pre-compile param name patterns
+        param_pats = []
+        for pname in param_names:
+            if pname:
+                param_pats.append((pname, re.compile(rf'\b{re.escape(pname)}\b')))
+
+        # Single pass over lines for all per-line signals
+        found_store = False
+        found_return = False
+        found_linked = False
+        found_hash = False
+
+        for i, line in enumerate(source.split('\n'), 1):
+            stripped = line.strip()
+            if not stripped or stripped.startswith('//') or stripped.startswith('/*'):
+                continue
+
+            # Param stored to struct field
+            if not found_store and param_pats:
+                m = _RE_STRUCT_ASSIGN.match(stripped)
+                if m:
+                    rhs = m.group(2)
+                    rhs_clean = _RE_CAST_STRIP.sub('', rhs)
+                    for pname, ppat in param_pats:
+                        if ppat.search(rhs_clean):
+                            score += 4
+                            signals.append(f"param_stored_to_field: Line {i}: `{stripped}` stores param '{pname}' into struct field")
+                            found_store = True
+                            break
+
+            # Return of struct field
+            if not found_return:
+                m = _RE_RETURN_FIELD.match(stripped)
+                if m:
+                    score += 1
+                    signals.append(f"return_struct_field: Line {i}: `{stripped}` returns struct field")
+                    found_return = True
+
+            # next/prev pointer manipulation
+            if not found_linked:
+                if _RE_LINKED_PTR.search(stripped):
+                    score += 3
+                    signals.append(f"linked_ptr_manipulation: Line {i}: `{stripped[:60]}`")
+                    found_linked = True
+
+            # Hash/bucket computation
+            if not found_hash:
+                if _RE_HASH_MOD.search(stripped) or _RE_HASH_CALL.search(stripped):
+                    score += 2
+                    signals.append(f"hash_computation: Line {i}: `{stripped[:60]}`")
+                    found_hash = True
+
+            # Early exit if all per-line signals found
+            if found_store and found_return and found_linked and found_hash:
+                break
 
         return score, signals
 
     def _extract_param_names(self, signature: str) -> list[str]:
         """Extract parameter names from a C function signature."""
         # Find content between parentheses
-        m = re.search(r'\(([^)]*)\)', signature)
+        m = _RE_PAREN_CONTENT.search(signature)
         if not m:
             return []
 
@@ -390,6 +505,8 @@ class ContainerDetector:
         return CONTAINER_PROMPT.format(
             source_with_lines=source_with_lines,
             name=func.name,
+            project_name=self.project_name or "(unknown)",
+            file_path=func.file_path or "(unknown)",
             signature=func.signature or "(unknown)",
             param_list=param_list_str,
             evidence_section=evidence_section,
@@ -409,13 +526,15 @@ class ContainerDetector:
             if self.verbose:
                 print(f"  Analyzing: {func.name} (score={score})")
 
-            response = self.llm.complete(prompt)
+            llm_response = self.llm.complete_with_metadata(prompt)
             self._stats["llm_calls"] += 1
+            self._stats["input_tokens"] += llm_response.input_tokens
+            self._stats["output_tokens"] += llm_response.output_tokens
 
             if self.log_file:
-                self._log_interaction(func.name, prompt, response)
+                self._log_interaction(func.name, prompt, llm_response.content)
 
-            return self._parse_response(response, func, score, signals)
+            return self._parse_response(llm_response.content, func, score, signals)
 
         except Exception as e:
             self._stats["errors"] += 1
@@ -458,12 +577,16 @@ class ContainerDetector:
         if not isinstance(store_args, list):
             store_args = []
 
+        container_type = _normalize_container_type(
+            data.get("container_type", "other")
+        )
+
         return ContainerSummary(
             function_id=func.id,
             container_arg=container_arg,
             store_args=store_args,
             load_return=bool(data.get("load_return", False)),
-            container_type=data.get("container_type", "other"),
+            container_type=container_type,
             confidence=data.get("confidence", "medium"),
             heuristic_score=score,
             heuristic_signals=[s.split(": ", 1)[0] if ": " in s else s for s in signals],

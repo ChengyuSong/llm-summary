@@ -864,9 +864,10 @@ def show_indirect(db_path, fmt):
 @click.option("--min-score", default=5, type=int, help="Minimum heuristic score for LLM confirmation (default: 5)")
 @click.option("--log-llm", type=click.Path(), default=None, help="Log all LLM prompts and responses to file")
 @click.option("--heuristic-only", is_flag=True, help="Only run heuristic scoring, skip LLM")
+@click.option("--project-name", default=None, help="Project name (default: inferred from DB path)")
 def container_analyze(
     db_path, backend, model, llm_host, llm_port, disable_thinking,
-    verbose, force, min_score, log_llm, heuristic_only
+    verbose, force, min_score, log_llm, heuristic_only, project_name
 ):
     """Detect container/collection functions (hash tables, lists, trees, etc.).
 
@@ -879,6 +880,11 @@ def container_analyze(
     """
     from .container import ContainerDetector
 
+    # Infer project name from DB path: func-scans/<project>/functions.db -> <project>
+    if not project_name:
+        db_dir = Path(db_path).resolve().parent
+        project_name = db_dir.name if db_dir.name != "." else Path(db_path).stem
+
     db = SummaryDB(db_path)
 
     try:
@@ -888,7 +894,7 @@ def container_analyze(
             console.print("[red]No functions in database. Run 'extract' or 'scan' first.[/red]")
             return
 
-        console.print(f"Database: {db_path} ({len(functions)} functions)")
+        console.print(f"Database: {db_path} ({len(functions)} functions, project: {project_name})")
 
         if heuristic_only:
             # Heuristic-only mode: no LLM
@@ -948,7 +954,8 @@ def container_analyze(
         console.print(f"Using {backend} backend ({llm.model})")
 
         detector = ContainerDetector(
-            db, llm=llm, verbose=verbose, log_file=log_llm, min_score=min_score
+            db, llm=llm, verbose=verbose, log_file=log_llm,
+            min_score=min_score, project_name=project_name,
         )
 
         with Progress(
@@ -967,6 +974,9 @@ def container_analyze(
         console.print(f"  LLM calls: {stats['llm_calls']}")
         console.print(f"  Cache hits: {stats['cache_hits']}")
         console.print(f"  Containers found: {stats['containers_found']}")
+        if stats["input_tokens"] > 0 or stats["output_tokens"] > 0:
+            total_tok = stats['input_tokens'] + stats['output_tokens']
+            console.print(f"  Tokens: {total_tok:,} ({stats['input_tokens']:,} in + {stats['output_tokens']:,} out)")
         if stats["errors"] > 0:
             console.print(f"  [yellow]Errors: {stats['errors']}[/yellow]")
 

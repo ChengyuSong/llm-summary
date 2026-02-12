@@ -65,6 +65,8 @@ def detect_project(
         "llm_calls": 0,
         "cache_hits": 0,
         "errors": 0,
+        "input_tokens": 0,
+        "output_tokens": 0,
         "containers_by_type": {},
         "timing_seconds": 0.0,
         "error": None,
@@ -110,6 +112,7 @@ def detect_project(
             detector = ContainerDetector(
                 db, llm=llm, verbose=verbose,
                 log_file=log_file, min_score=min_score,
+                project_name=project_name,
             )
 
             results_map = detector.detect_all(force=force)
@@ -120,6 +123,8 @@ def detect_project(
             result["llm_calls"] = stats["llm_calls"]
             result["cache_hits"] = stats["cache_hits"]
             result["errors"] = stats["errors"]
+            result["input_tokens"] = stats["input_tokens"]
+            result["output_tokens"] = stats["output_tokens"]
 
             # Count by container type
             type_counts: Counter[str] = Counter()
@@ -155,6 +160,9 @@ def _format_result(result: dict) -> str:
         parts.append(f"{result['llm_calls']} LLM calls")
     if result["cache_hits"]:
         parts.append(f"{result['cache_hits']} cached")
+    total_tok = result.get("input_tokens", 0) + result.get("output_tokens", 0)
+    if total_tok:
+        parts.append(f"{total_tok:,} tok")
     if result["errors"]:
         parts.append(f"{result['errors']} errors")
     parts.append(f"({result['timing_seconds']}s)")
@@ -323,6 +331,7 @@ def main():
                         "functions": 0, "candidates": 0,
                         "containers_found": 0, "llm_calls": 0,
                         "cache_hits": 0, "errors": 1,
+                        "input_tokens": 0, "output_tokens": 0,
                         "containers_by_type": {},
                         "timing_seconds": 0.0,
                         "error": str(e),
@@ -344,6 +353,8 @@ def main():
         "total_llm_calls": 0,
         "total_cache_hits": 0,
         "total_errors": 0,
+        "total_input_tokens": 0,
+        "total_output_tokens": 0,
         "containers_by_type": Counter(),
     }
 
@@ -362,6 +373,8 @@ def main():
             totals["total_llm_calls"] += result["llm_calls"]
             totals["total_cache_hits"] += result["cache_hits"]
             totals["total_errors"] += result["errors"]
+            totals["total_input_tokens"] += result.get("input_tokens", 0)
+            totals["total_output_tokens"] += result.get("output_tokens", 0)
             totals["containers_by_type"].update(result["containers_by_type"])
 
     # Print summary
@@ -378,6 +391,9 @@ def main():
         print(f"  LLM calls: {totals['total_llm_calls']}")
     if totals["total_cache_hits"]:
         print(f"  Cache hits: {totals['total_cache_hits']}")
+    total_tok = totals["total_input_tokens"] + totals["total_output_tokens"]
+    if total_tok:
+        print(f"  Tokens: {total_tok:,} ({totals['total_input_tokens']:,} in + {totals['total_output_tokens']:,} out)")
     if totals["total_errors"]:
         print(f"  Errors: {totals['total_errors']}")
     if totals["containers_by_type"]:
@@ -401,6 +417,8 @@ def main():
             "total_llm_calls": totals["total_llm_calls"],
             "total_cache_hits": totals["total_cache_hits"],
             "total_errors": totals["total_errors"],
+            "total_input_tokens": totals["total_input_tokens"],
+            "total_output_tokens": totals["total_output_tokens"],
             "containers_by_type": dict(totals["containers_by_type"]),
         },
     }
