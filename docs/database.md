@@ -110,6 +110,46 @@ CREATE TABLE free_summaries (
 
 **`target_kind` values:** `parameter`, `field`, `local`, `return_value`
 
+### `init_summaries`
+
+Stores LLM-generated initialization summaries (Pass 3).
+
+```sql
+CREATE TABLE init_summaries (
+    id INTEGER PRIMARY KEY,
+    function_id INTEGER REFERENCES functions(id) ON DELETE CASCADE,
+    summary_json TEXT NOT NULL,   -- Full JSON summary
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    model_used TEXT,              -- Which LLM generated this
+    UNIQUE(function_id)
+);
+```
+
+**Summary JSON format:**
+```json
+{
+  "function": "png_set_IHDR",
+  "inits": [
+    {
+      "target": "info_ptr->width",
+      "target_kind": "field",
+      "initializer": "assignment",
+      "byte_count": "sizeof(png_uint_32)"
+    },
+    {
+      "target": "*out",
+      "target_kind": "parameter",
+      "initializer": "memset",
+      "byte_count": "n"
+    }
+  ],
+  "description": "Always initializes all IHDR-related fields of the info structure."
+}
+```
+
+**`target_kind` values:** `parameter`, `field`, `return_value` (no `local` — locals are not caller-visible post-conditions)
+
 ### `call_edges`
 
 Stores the call graph with callsite information.
@@ -300,6 +340,7 @@ functions
     │
     ├──1:1──▶ allocation_summaries
     ├──1:1──▶ free_summaries
+    ├──1:1──▶ init_summaries
     ├──1:1──▶ container_summaries
     │
     ├──1:N──▶ call_edges (as caller)

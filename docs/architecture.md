@@ -132,7 +132,7 @@ SQLite storage for all analysis data.
 
 ### 9. Standard Library (`stdlib.py`)
 
-Pre-defined allocation and free summaries for common C standard library functions.
+Pre-defined allocation, free, and initialization summaries for common C standard library functions.
 
 **Allocation summaries:**
 - Memory: `malloc`, `calloc`, `realloc`, `free`, `aligned_alloc`
@@ -192,7 +192,7 @@ Command-line interface using Click.
    ├──▶ Build call graph + compute SCCs (once)
    ├──▶ Traverse in topological order (callees first)
    ├──▶ Run all registered passes per function:
-   │      AllocationPass, FreePass, etc.
+   │      AllocationPass, FreePass, InitPass, etc.
    │
    ▼
 6. Summary Generation (LLM, per pass)
