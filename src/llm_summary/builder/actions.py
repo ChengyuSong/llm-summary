@@ -273,8 +273,8 @@ class AutotoolsActions:
         return {
             "CC": "clang-18",
             "CXX": "clang++-18",
-            "CFLAGS": "-flto=full -save-temps=obj",
-            "CXXFLAGS": "-flto=full -save-temps=obj",
+            "CFLAGS": "-g -flto=full -save-temps=obj",
+            "CXXFLAGS": "-g -flto=full -save-temps=obj",
             "LDFLAGS": "-flto=full -fuse-ld=lld",
             "LD": "ld.lld-18",
             "AR": "llvm-ar-18",
@@ -927,7 +927,7 @@ CMAKE_TOOL_DEFINITIONS = [
                         "CMake flags like ['-DCMAKE_BUILD_TYPE=Release', '-DBUILD_SHARED_LIBS=OFF']. "
                         "Always include: -DCMAKE_EXPORT_COMPILE_COMMANDS=ON, -DCMAKE_INTERPROCEDURAL_OPTIMIZATION=ON, "
                         "-DCMAKE_C_COMPILER=clang-18, -DCMAKE_CXX_COMPILER=clang++-18, -DBUILD_SHARED_LIBS=OFF, "
-                        "-DCMAKE_C_FLAGS='-flto=full -save-temps=obj', -DCMAKE_CXX_FLAGS='-flto=full -save-temps=obj'"
+                        "-DCMAKE_C_FLAGS='-g -flto=full -save-temps=obj', -DCMAKE_CXX_FLAGS='-g -flto=full -save-temps=obj'"
                     ),
                 }
             },

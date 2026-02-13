@@ -890,6 +890,62 @@ class SummaryDB:
         self.conn.commit()
         return cursor.rowcount
 
+    # ========== Call Graph Import Helpers ==========
+
+    def find_function_by_name(self, name: str) -> Function | None:
+        """Find a single function by name. Returns None if not found or ambiguous."""
+        rows = self.conn.execute(
+            "SELECT * FROM functions WHERE name = ?", (name,)
+        ).fetchall()
+        if len(rows) == 1:
+            return self._row_to_function(rows[0])
+        return None
+
+    def find_function_by_name_and_file(self, name: str, file_path: str) -> Function | None:
+        """Find a function by name and file path (exact match)."""
+        row = self.conn.execute(
+            "SELECT * FROM functions WHERE name = ? AND file_path = ?",
+            (name, file_path),
+        ).fetchone()
+        if row:
+            return self._row_to_function(row)
+        return None
+
+    def find_function_by_name_and_file_suffix(self, name: str, file_suffix: str) -> Function | None:
+        """Find a function by name and file path suffix (for cross-build-dir matching)."""
+        rows = self.conn.execute(
+            "SELECT * FROM functions WHERE name = ? AND file_path LIKE ?",
+            (name, f"%{file_suffix}"),
+        ).fetchall()
+        if len(rows) == 1:
+            return self._row_to_function(rows[0])
+        return None
+
+    def clear_call_edges(self) -> int:
+        """Delete all call_edges. Returns count deleted."""
+        cursor = self.conn.execute("DELETE FROM call_edges")
+        self.conn.commit()
+        return cursor.rowcount
+
+    def insert_function_stub(
+        self,
+        name: str,
+        file_path: str = "",
+        line_start: int = 0,
+        line_end: int = 0,
+        linkage: str = "external",
+    ) -> int:
+        """Insert a minimal function entry (stub) and return its ID."""
+        func = Function(
+            name=name,
+            file_path=file_path,
+            line_start=line_start,
+            line_end=line_end,
+            source="",
+            signature=f"{name}(...)",
+        )
+        return self.insert_function(func)
+
     # ========== Utility Operations ==========
 
     def clear_all(self) -> None:

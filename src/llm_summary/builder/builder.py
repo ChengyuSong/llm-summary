@@ -408,7 +408,7 @@ Return JSON configuration directly:
 - Prefer Clang 18 (cmake: CMAKE_C_COMPILER=clang-18; configure/make: auto-injected env vars). If the project fails to build with clang, fall back to gcc.
 - Prefer LLVM LTO (cmake: CMAKE_INTERPROCEDURAL_OPTIMIZATION=ON; configure/make: auto-injected). If LTO causes build failures, disable it.
 - Prefer static libraries only (cmake: BUILD_SHARED_LIBS=OFF; configure: --disable-shared --enable-static). If the project requires shared libraries, that's fine.
-- Prefer LLVM IR generation (cmake: CMAKE_C_FLAGS='-flto=full -save-temps=obj'; configure/make: auto-injected). Only applicable when using clang with LTO.
+- Prefer LLVM IR generation (cmake: CMAKE_C_FLAGS='-g -flto=full -save-temps=obj'; configure/make: auto-injected). Only applicable when using clang with LTO. The -g flag is required so .bc files retain debug info for downstream analysis.
 
 **Assembly Verification:**
 After each successful build (cmake_build or make_build), an assembly check runs automatically. If assembly is detected, try different flags to avoid it.
@@ -1084,14 +1084,14 @@ If you recognize this project, leverage your knowledge of its typical build requ
             if self.generate_ir:
                 flags.extend([
                     "-DCMAKE_INTERPROCEDURAL_OPTIMIZATION=ON",
-                    "-DCMAKE_C_FLAGS=-flto=full -save-temps=obj",
-                    "-DCMAKE_CXX_FLAGS=-flto=full -save-temps=obj",
+                    "-DCMAKE_C_FLAGS=-g -flto=full -save-temps=obj",
+                    "-DCMAKE_CXX_FLAGS=-g -flto=full -save-temps=obj",
                 ])
             else:
                 flags.extend([
                     "-DCMAKE_INTERPROCEDURAL_OPTIMIZATION=ON",
-                    "-DCMAKE_C_FLAGS=-flto=full",
-                    "-DCMAKE_CXX_FLAGS=-flto=full",
+                    "-DCMAKE_C_FLAGS=-g -flto=full",
+                    "-DCMAKE_CXX_FLAGS=-g -flto=full",
                 ])
 
         if self.prefer_static:

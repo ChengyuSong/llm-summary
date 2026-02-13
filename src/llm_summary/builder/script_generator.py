@@ -289,8 +289,8 @@ fi
         # Environment variables for clang-18 with LTO
         env_vars = """CC="clang-18" \\
            CXX="clang++-18" \\
-           CFLAGS="-flto=full -save-temps=obj" \\
-           CXXFLAGS="-flto=full -save-temps=obj" \\
+           CFLAGS="-g -flto=full -save-temps=obj" \\
+           CXXFLAGS="-g -flto=full -save-temps=obj" \\
            LDFLAGS="-flto=full -fuse-ld=lld" \\
            LD="ld.lld-18" \\
            AR="llvm-ar-18" \\
