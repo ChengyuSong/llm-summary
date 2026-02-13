@@ -145,15 +145,16 @@ CREATE TABLE IF NOT EXISTS container_summaries (
     UNIQUE(function_id)
 );
 
--- Typedefs extracted from source
+-- Type declarations extracted from source (typedefs, using aliases, struct/class/union)
 CREATE TABLE IF NOT EXISTS typedefs (
     id INTEGER PRIMARY KEY,
     name TEXT NOT NULL,
+    kind TEXT NOT NULL DEFAULT 'typedef',
     underlying_type TEXT NOT NULL,
     canonical_type TEXT NOT NULL,
     file_path TEXT NOT NULL,
     line_number INTEGER,
-    UNIQUE(name, file_path)
+    UNIQUE(name, kind, file_path)
 );
 
 -- Indexes for fast lookups
@@ -203,6 +204,15 @@ class SummaryDB:
             # Recreate unique index to include target_type
             # Drop old unique constraint by recreating the table is complex;
             # instead just create a new unique index (old UNIQUE(function_id) stays as-is for old DBs)
+            self.conn.commit()
+
+        # Add kind column to typedefs if missing
+        cursor = self.conn.execute("PRAGMA table_info(typedefs)")
+        columns = {row[1] for row in cursor.fetchall()}
+        if columns and "kind" not in columns:
+            self.conn.execute(
+                "ALTER TABLE typedefs ADD COLUMN kind TEXT NOT NULL DEFAULT 'typedef'"
+            )
             self.conn.commit()
 
         # Add canonical_signature column to functions if missing
@@ -926,30 +936,32 @@ class SummaryDB:
         canonical_type: str,
         file_path: str,
         line_number: int | None = None,
+        kind: str = "typedef",
     ) -> int:
-        """Insert a typedef. Ignores duplicates (same name+file)."""
+        """Insert a type declaration. Ignores duplicates (same name+kind+file)."""
         cursor = self.conn.execute(
             """
             INSERT OR IGNORE INTO typedefs
-            (name, underlying_type, canonical_type, file_path, line_number)
-            VALUES (?, ?, ?, ?, ?)
+            (name, kind, underlying_type, canonical_type, file_path, line_number)
+            VALUES (?, ?, ?, ?, ?, ?)
             """,
-            (name, underlying_type, canonical_type, file_path, line_number),
+            (name, kind, underlying_type, canonical_type, file_path, line_number),
         )
         self.conn.commit()
         return cursor.lastrowid
 
     def insert_typedefs_batch(self, typedefs: list[dict]) -> None:
-        """Batch insert typedefs. Each dict has name, underlying_type, canonical_type, file_path, line_number."""
+        """Batch insert type declarations. Each dict has name, kind, underlying_type, canonical_type, file_path, line_number."""
         self.conn.executemany(
             """
             INSERT OR IGNORE INTO typedefs
-            (name, underlying_type, canonical_type, file_path, line_number)
-            VALUES (?, ?, ?, ?, ?)
+            (name, kind, underlying_type, canonical_type, file_path, line_number)
+            VALUES (?, ?, ?, ?, ?, ?)
             """,
             [
                 (
                     td["name"],
+                    td.get("kind", "typedef"),
                     td["underlying_type"],
                     td["canonical_type"],
                     td["file_path"],

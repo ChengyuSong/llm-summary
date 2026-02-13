@@ -293,9 +293,14 @@ class FunctionExtractor:
 
     def extract_typedefs_from_file(self, file_path: str | Path) -> list[dict]:
         """
-        Extract all typedef declarations from a source file.
+        Extract type declarations from a source file.
 
-        Returns list of dicts with: name, underlying_type, canonical_type, file_path, line_number
+        Captures:
+        - C typedefs (kind='typedef')
+        - C++ using aliases (kind='using')
+        - struct/class/union definitions (kind='struct'/'class'/'union')
+
+        Returns list of dicts with: name, kind, underlying_type, canonical_type, file_path, line_number
         """
         file_path = Path(file_path).resolve()
         args = self._get_compile_args(file_path)
@@ -309,24 +314,75 @@ class FunctionExtractor:
         except Exception:
             return []
 
-        typedefs = []
+        results: list[dict] = []
         main_file = str(file_path)
+        self._extract_type_decls_recursive(tu.cursor, main_file, results)
+        return results
 
-        for child in tu.cursor.get_children():
+    def _extract_type_decls_recursive(
+        self, cursor: Cursor, main_file: str, results: list[dict]
+    ) -> None:
+        """Recursively extract type declarations from AST."""
+        for child in cursor.get_children():
             if child.location.file and str(child.location.file) != main_file:
                 continue
+
             if child.kind == CursorKind.TYPEDEF_DECL:
                 underlying = child.underlying_typedef_type.spelling
                 canonical = child.underlying_typedef_type.get_canonical().spelling
-                typedefs.append({
+                results.append({
                     "name": child.spelling,
+                    "kind": "typedef",
                     "underlying_type": underlying,
                     "canonical_type": canonical,
                     "file_path": main_file,
                     "line_number": child.location.line,
                 })
 
-        return typedefs
+            elif child.kind == CursorKind.TYPE_ALIAS_DECL:
+                # C++ using X = Y;
+                underlying = child.underlying_typedef_type.spelling
+                canonical = child.underlying_typedef_type.get_canonical().spelling
+                results.append({
+                    "name": child.spelling,
+                    "kind": "using",
+                    "underlying_type": underlying,
+                    "canonical_type": canonical,
+                    "file_path": main_file,
+                    "line_number": child.location.line,
+                })
+
+            elif child.kind in (
+                CursorKind.STRUCT_DECL,
+                CursorKind.CLASS_DECL,
+                CursorKind.UNION_DECL,
+            ):
+                # Only record definitions (not forward declarations), skip anonymous
+                if child.is_definition() and child.spelling and "(unnamed" not in child.spelling and "(anonymous" not in child.spelling:
+                    kind_map = {
+                        CursorKind.STRUCT_DECL: "struct",
+                        CursorKind.CLASS_DECL: "class",
+                        CursorKind.UNION_DECL: "union",
+                    }
+                    type_spelling = child.type.spelling
+                    canonical = child.type.get_canonical().spelling
+                    results.append({
+                        "name": child.spelling,
+                        "kind": kind_map[child.kind],
+                        "underlying_type": type_spelling,
+                        "canonical_type": canonical,
+                        "file_path": main_file,
+                        "line_number": child.location.line,
+                    })
+
+            # Recurse into namespaces and class/struct bodies for nested types
+            if child.kind in (
+                CursorKind.NAMESPACE,
+                CursorKind.CLASS_DECL,
+                CursorKind.STRUCT_DECL,
+                CursorKind.UNION_DECL,
+            ):
+                self._extract_type_decls_recursive(child, main_file, results)
 
     def _get_full_source(self, cursor: Cursor) -> str:
         """Get the full source code of a function including body."""
