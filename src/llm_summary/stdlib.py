@@ -1,6 +1,6 @@
-"""Standard library allocation, free, and initialization summaries."""
+"""Standard library allocation, free, initialization, and safety summaries."""
 
-from .models import Allocation, AllocationSummary, AllocationType, FreeOp, FreeSummary, InitOp, InitSummary, ParameterInfo
+from .models import Allocation, AllocationSummary, AllocationType, FreeOp, FreeSummary, InitOp, InitSummary, ParameterInfo, MemsafeContract, MemsafeSummary
 
 # Pre-defined summaries for common C standard library functions
 STDLIB_SUMMARIES: dict[str, AllocationSummary] = {
@@ -470,6 +470,140 @@ STDLIB_INIT_SUMMARIES: dict[str, InitSummary] = {
         description="Always initializes returned buffer with copy of up to n bytes of input string.",
     ),
 }
+
+
+# Pre-defined safety contract summaries for common C standard library functions
+STDLIB_MEMSAFE_SUMMARIES: dict[str, MemsafeSummary] = {
+    "memcpy": MemsafeSummary(
+        function_name="memcpy",
+        contracts=[
+            MemsafeContract(target="dest", contract_kind="not_null", description="dest must not be NULL"),
+            MemsafeContract(target="dest", contract_kind="buffer_size", description="dest must point to at least n bytes", size_expr="n", relationship="byte_count"),
+            MemsafeContract(target="src", contract_kind="not_null", description="src must not be NULL"),
+            MemsafeContract(target="src", contract_kind="buffer_size", description="src must point to at least n bytes", size_expr="n", relationship="byte_count"),
+        ],
+        description="Requires both dest and src to be non-NULL and point to at least n bytes.",
+    ),
+    "memmove": MemsafeSummary(
+        function_name="memmove",
+        contracts=[
+            MemsafeContract(target="dest", contract_kind="not_null", description="dest must not be NULL"),
+            MemsafeContract(target="dest", contract_kind="buffer_size", description="dest must point to at least n bytes", size_expr="n", relationship="byte_count"),
+            MemsafeContract(target="src", contract_kind="not_null", description="src must not be NULL"),
+            MemsafeContract(target="src", contract_kind="buffer_size", description="src must point to at least n bytes", size_expr="n", relationship="byte_count"),
+        ],
+        description="Requires both dest and src to be non-NULL and point to at least n bytes.",
+    ),
+    "memset": MemsafeSummary(
+        function_name="memset",
+        contracts=[
+            MemsafeContract(target="s", contract_kind="not_null", description="s must not be NULL"),
+            MemsafeContract(target="s", contract_kind="buffer_size", description="s must point to at least n bytes", size_expr="n", relationship="byte_count"),
+        ],
+        description="Requires s to be non-NULL and point to at least n bytes.",
+    ),
+    "free": MemsafeSummary(
+        function_name="free",
+        contracts=[
+            MemsafeContract(target="ptr", contract_kind="not_freed", description="ptr must point to live heap memory (not already freed)"),
+        ],
+        description="Requires ptr to point to live memory or be NULL.",
+    ),
+    "strlen": MemsafeSummary(
+        function_name="strlen",
+        contracts=[
+            MemsafeContract(target="s", contract_kind="not_null", description="s must not be NULL"),
+            MemsafeContract(target="s", contract_kind="initialized", description="s must point to an initialized, null-terminated string"),
+        ],
+        description="Requires s to be a non-NULL, initialized, null-terminated string.",
+    ),
+    "strcpy": MemsafeSummary(
+        function_name="strcpy",
+        contracts=[
+            MemsafeContract(target="dest", contract_kind="not_null", description="dest must not be NULL"),
+            MemsafeContract(target="dest", contract_kind="buffer_size", description="dest must have space for strlen(src)+1 bytes", size_expr="strlen(src)+1", relationship="byte_count"),
+            MemsafeContract(target="src", contract_kind="not_null", description="src must not be NULL"),
+            MemsafeContract(target="src", contract_kind="initialized", description="src must be an initialized, null-terminated string"),
+        ],
+        description="Requires dest to have sufficient space and src to be a valid string.",
+    ),
+    "strncpy": MemsafeSummary(
+        function_name="strncpy",
+        contracts=[
+            MemsafeContract(target="dest", contract_kind="not_null", description="dest must not be NULL"),
+            MemsafeContract(target="dest", contract_kind="buffer_size", description="dest must point to at least n bytes", size_expr="n", relationship="byte_count"),
+            MemsafeContract(target="src", contract_kind="not_null", description="src must not be NULL"),
+        ],
+        description="Requires dest to have at least n bytes and src to be non-NULL.",
+    ),
+    "strcmp": MemsafeSummary(
+        function_name="strcmp",
+        contracts=[
+            MemsafeContract(target="s1", contract_kind="not_null", description="s1 must not be NULL"),
+            MemsafeContract(target="s1", contract_kind="initialized", description="s1 must be an initialized, null-terminated string"),
+            MemsafeContract(target="s2", contract_kind="not_null", description="s2 must not be NULL"),
+            MemsafeContract(target="s2", contract_kind="initialized", description="s2 must be an initialized, null-terminated string"),
+        ],
+        description="Requires both s1 and s2 to be non-NULL, initialized strings.",
+    ),
+    "snprintf": MemsafeSummary(
+        function_name="snprintf",
+        contracts=[
+            MemsafeContract(target="str", contract_kind="not_null", description="str must not be NULL"),
+            MemsafeContract(target="str", contract_kind="buffer_size", description="str must point to at least size bytes", size_expr="size", relationship="byte_count"),
+            MemsafeContract(target="format", contract_kind="not_null", description="format must not be NULL"),
+        ],
+        description="Requires str to have at least size bytes and format to be non-NULL.",
+    ),
+    "printf": MemsafeSummary(
+        function_name="printf",
+        contracts=[
+            MemsafeContract(target="format", contract_kind="not_null", description="format must not be NULL"),
+        ],
+        description="Requires format to be non-NULL.",
+    ),
+    "fprintf": MemsafeSummary(
+        function_name="fprintf",
+        contracts=[
+            MemsafeContract(target="stream", contract_kind="not_null", description="stream must not be NULL"),
+            MemsafeContract(target="format", contract_kind="not_null", description="format must not be NULL"),
+        ],
+        description="Requires stream and format to be non-NULL.",
+    ),
+    "fwrite": MemsafeSummary(
+        function_name="fwrite",
+        contracts=[
+            MemsafeContract(target="ptr", contract_kind="not_null", description="ptr must not be NULL"),
+            MemsafeContract(target="ptr", contract_kind="buffer_size", description="ptr must point to at least size*nmemb bytes", size_expr="size*nmemb", relationship="byte_count"),
+            MemsafeContract(target="stream", contract_kind="not_null", description="stream must not be NULL"),
+        ],
+        description="Requires ptr to have at least size*nmemb bytes and stream to be non-NULL.",
+    ),
+    "fread": MemsafeSummary(
+        function_name="fread",
+        contracts=[
+            MemsafeContract(target="ptr", contract_kind="not_null", description="ptr must not be NULL"),
+            MemsafeContract(target="ptr", contract_kind="buffer_size", description="ptr must point to at least size*nmemb bytes", size_expr="size*nmemb", relationship="byte_count"),
+            MemsafeContract(target="stream", contract_kind="not_null", description="stream must not be NULL"),
+        ],
+        description="Requires ptr to have at least size*nmemb bytes and stream to be non-NULL.",
+    ),
+    "malloc": MemsafeSummary(
+        function_name="malloc",
+        contracts=[],
+        description="No safety pre-conditions required (size=0 is valid).",
+    ),
+}
+
+
+def get_stdlib_memsafe_summary(name: str) -> MemsafeSummary | None:
+    """Get pre-defined safety summary for a standard library function."""
+    return STDLIB_MEMSAFE_SUMMARIES.get(name)
+
+
+def get_all_stdlib_memsafe_summaries() -> dict[str, MemsafeSummary]:
+    """Get all pre-defined stdlib safety summaries."""
+    return STDLIB_MEMSAFE_SUMMARIES.copy()
 
 
 def get_stdlib_init_summary(name: str) -> InitSummary | None:

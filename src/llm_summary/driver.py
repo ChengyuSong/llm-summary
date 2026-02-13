@@ -6,7 +6,7 @@ from collections import deque
 from typing import Any, Protocol
 
 from .db import SummaryDB
-from .models import AllocationSummary, FreeSummary, InitSummary, Function
+from .models import AllocationSummary, FreeSummary, InitSummary, MemsafeSummary, Function
 from .ordering import ProcessingOrderer
 
 
@@ -89,6 +89,26 @@ class InitPass:
 
     def store(self, func: Function, summary: InitSummary) -> None:
         self.db.upsert_init_summary(func, summary, model_used=self.model)
+
+
+class MemsafePass:
+    """Adapter that wraps MemsafeSummarizer as a SummaryPass."""
+
+    name = "memsafe"
+
+    def __init__(self, summarizer, db: SummaryDB, model: str):
+        self.summarizer = summarizer
+        self.db = db
+        self.model = model
+
+    def get_cached(self, func_id: int, func: Function) -> MemsafeSummary | None:
+        return self.db.get_memsafe_summary_by_function_id(func_id)
+
+    def summarize(self, func: Function, callee_summaries: dict[str, MemsafeSummary]) -> MemsafeSummary:
+        return self.summarizer.summarize_function(func, callee_summaries)
+
+    def store(self, func: Function, summary: MemsafeSummary) -> None:
+        self.db.upsert_memsafe_summary(func, summary, model_used=self.model)
 
 
 class BottomUpDriver:

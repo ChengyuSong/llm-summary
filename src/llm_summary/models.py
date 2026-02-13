@@ -168,6 +168,45 @@ class InitSummary:
 
 
 @dataclass
+class MemsafeContract:
+    """A single safety pre-condition required for memory-safe execution."""
+
+    target: str  # "ptr", "buf", "ctx->data", "s"
+    contract_kind: str  # "not_null", "not_freed", "initialized", "buffer_size"
+    description: str  # "buf must point to at least n bytes"
+    size_expr: str | None = None  # buffer_size only: "n", "sizeof(T)", "strlen(src)+1"
+    relationship: str | None = None  # buffer_size only: "byte_count", "element_count"
+
+    def to_dict(self) -> dict[str, Any]:
+        result: dict[str, Any] = {
+            "target": self.target,
+            "contract_kind": self.contract_kind,
+            "description": self.description,
+        }
+        if self.size_expr is not None:
+            result["size_expr"] = self.size_expr
+        if self.relationship is not None:
+            result["relationship"] = self.relationship
+        return result
+
+
+@dataclass
+class MemsafeSummary:
+    """Complete safety contract summary for a function (pre-conditions)."""
+
+    function_name: str
+    contracts: list[MemsafeContract] = field(default_factory=list)
+    description: str = ""
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "function": self.function_name,
+            "contracts": [c.to_dict() for c in self.contracts],
+            "description": self.description,
+        }
+
+
+@dataclass
 class ParameterInfo:
     """Information about a function parameter's role in allocation."""
 

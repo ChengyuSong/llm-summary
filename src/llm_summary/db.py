@@ -25,6 +25,8 @@ from .models import (
     InitOp,
     InitSummary,
     ParameterInfo,
+    MemsafeContract,
+    MemsafeSummary,
     TargetType,
 )
 
@@ -67,6 +69,17 @@ CREATE TABLE IF NOT EXISTS free_summaries (
 
 -- Initialization summaries table
 CREATE TABLE IF NOT EXISTS init_summaries (
+    id INTEGER PRIMARY KEY,
+    function_id INTEGER REFERENCES functions(id) ON DELETE CASCADE,
+    summary_json TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    model_used TEXT,
+    UNIQUE(function_id)
+);
+
+-- Safety contract summaries table (pre-conditions)
+CREATE TABLE IF NOT EXISTS memsafe_summaries (
     id INTEGER PRIMARY KEY,
     function_id INTEGER REFERENCES functions(id) ON DELETE CASCADE,
     summary_json TEXT NOT NULL,
@@ -629,6 +642,58 @@ class SummaryDB:
         return InitSummary(
             function_name=data.get("function", ""),
             inits=inits,
+            description=data.get("description", ""),
+        )
+
+    # ========== Memsafe Summary Operations ==========
+
+    def upsert_memsafe_summary(
+        self, func: Function, summary: MemsafeSummary, model_used: str = ""
+    ) -> None:
+        """Insert or update a memsafe summary."""
+        if func.id is None:
+            raise ValueError("Function must have an ID")
+
+        summary_json = json.dumps(summary.to_dict())
+        self.conn.execute(
+            """
+            INSERT INTO memsafe_summaries (function_id, summary_json, model_used)
+            VALUES (?, ?, ?)
+            ON CONFLICT(function_id) DO UPDATE SET
+                summary_json = excluded.summary_json,
+                updated_at = CURRENT_TIMESTAMP,
+                model_used = excluded.model_used
+            """,
+            (func.id, summary_json, model_used),
+        )
+        self.conn.commit()
+
+    def get_memsafe_summary_by_function_id(self, func_id: int) -> MemsafeSummary | None:
+        """Get memsafe summary for a function by ID."""
+        row = self.conn.execute(
+            "SELECT summary_json FROM memsafe_summaries WHERE function_id = ?",
+            (func_id,),
+        ).fetchone()
+        if row:
+            return self._json_to_memsafe_summary(row["summary_json"])
+        return None
+
+    def _json_to_memsafe_summary(self, json_str: str) -> MemsafeSummary:
+        """Convert JSON string to MemsafeSummary."""
+        data = json.loads(json_str)
+        contracts = [
+            MemsafeContract(
+                target=c.get("target", ""),
+                contract_kind=c.get("contract_kind", "not_null"),
+                description=c.get("description", ""),
+                size_expr=c.get("size_expr"),
+                relationship=c.get("relationship"),
+            )
+            for c in data.get("contracts", [])
+        ]
+        return MemsafeSummary(
+            function_name=data.get("function", ""),
+            contracts=contracts,
             description=data.get("description", ""),
         )
 
@@ -1224,6 +1289,7 @@ class SummaryDB:
             "allocation_summaries",
             "free_summaries",
             "init_summaries",
+            "memsafe_summaries",
             "typedefs",
             "functions",
             "build_configs",
@@ -1240,6 +1306,7 @@ class SummaryDB:
             "allocation_summaries",
             "free_summaries",
             "init_summaries",
+            "memsafe_summaries",
             "call_edges",
             "address_taken_functions",
             "address_flows",

@@ -94,7 +94,7 @@ Abstraction layer for different LLM providers.
 
 ### 6. Graph Traversal Driver (`driver.py`)
 
-Unified bottom-up traversal engine. Builds the call graph once, computes SCCs, and runs one or more summary passes over functions in topological order (callees first). When `--type allocation --type free` is used, both passes execute in a single traversal instead of duplicating graph construction.
+Unified bottom-up traversal engine. Builds the call graph once, computes SCCs, and runs one or more summary passes over functions in topological order (callees first). When `--type allocation --type free` is used, both passes execute in a single traversal instead of duplicating graph construction. All four passes (`allocation`, `free`, `init`, `memsafe`) can run together.
 
 **Key classes:**
 - `BottomUpDriver`: Owns graph building (cached) and SCC traversal. `run(passes, force, dirty_ids)` executes all passes per function.
@@ -102,10 +102,11 @@ Unified bottom-up traversal engine. Builds the call graph once, computes SCCs, a
 - `AllocationPass`: Adapter wrapping `AllocationSummarizer`
 - `FreePass`: Adapter wrapping `FreeSummarizer`
 - `InitPass`: Adapter wrapping `InitSummarizer`
+- `MemsafePass`: Adapter wrapping `MemsafeSummarizer`
 
 **Incremental support:** When `dirty_ids` is provided, the driver computes the affected set (dirty functions + transitive callers via reverse edges) and only re-summarizes those; all others load from cache.
 
-### 7. Summary Generators (`summarizer.py`, `free_summarizer.py`, `init_summarizer.py`)
+### 7. Summary Generators (`summarizer.py`, `free_summarizer.py`, `init_summarizer.py`, `memsafe_summarizer.py`)
 
 Per-function LLM summarization logic. Each summarizer builds a prompt from the function source and callee summaries, queries the LLM, and parses the structured response.
 
@@ -113,6 +114,7 @@ Per-function LLM summarization logic. Each summarizer builds a prompt from the f
 - `AllocationSummarizer`: Allocation/buffer-size-pair analysis
 - `FreeSummarizer`: Free/deallocation analysis
 - `InitSummarizer`: Initialization post-condition analysis
+- `MemsafeSummarizer`: Safety contract (pre-condition) analysis
 - `IncrementalSummarizer`: Handles source-change invalidation, delegates re-summarization to `BottomUpDriver`
 
 ### 8. Database (`db.py`)
@@ -124,6 +126,7 @@ SQLite storage for all analysis data.
 - `allocation_summaries`: Generated allocation summaries as JSON
 - `free_summaries`: Generated free/deallocation summaries as JSON
 - `init_summaries`: Generated initialization summaries as JSON
+- `memsafe_summaries`: Generated safety contract summaries as JSON
 - `call_edges`: Call graph with callsite locations
 - `address_taken_functions`: Functions whose addresses are taken
 - `address_flows`: Where function addresses flow to
@@ -146,12 +149,15 @@ Pre-defined allocation, free, and initialization summaries for common C standard
 **Init summaries:**
 - `calloc`, `memset`, `memcpy`, `memmove`, `strncpy`, `snprintf`, `strdup`, `strndup`
 
+**Memsafe summaries:**
+- `memcpy`, `memmove`, `memset`, `free`, `strlen`, `strcpy`, `strncpy`, `strcmp`, `snprintf`, `printf`, `fprintf`, `fwrite`, `fread`, `malloc`
+
 ### 10. CLI (`cli.py`)
 
 Command-line interface using Click.
 
 **Commands:**
-- `summarize`: Generate allocation, free, and/or init summaries (`--type allocation`, `--type free`, `--type init`)
+- `summarize`: Generate allocation, free, init, and/or memsafe summaries (`--type allocation`, `--type free`, `--type init`, `--type memsafe`)
 - `extract`: Function and call graph extraction only
 - `callgraph`: Export call graph
 - `show`: Display summaries
@@ -192,7 +198,7 @@ Command-line interface using Click.
    ├──▶ Build call graph + compute SCCs (once)
    ├──▶ Traverse in topological order (callees first)
    ├──▶ Run all registered passes per function:
-   │      AllocationPass, FreePass, InitPass, etc.
+   │      AllocationPass, FreePass, InitPass, MemsafePass, etc.
    │
    ▼
 6. Summary Generation (LLM, per pass)
@@ -265,16 +271,22 @@ Only unconditional, guaranteed initializations visible to the caller. Local vari
 **DB table:** `init_summaries`
 **CLI:** `llm-summary summarize --type init`
 
-### Pass 4: Access Precondition (pre-condition) — planned
+### Pass 4: Safety Contracts (pre-condition) — implemented
 
 Captures what contracts must hold for safe execution of each function. This is the *requirement* side — what callers must guarantee.
 
-- **Buffer-size contracts**: parameter X must point to at least Y bytes/elements
-- **Not-null contracts**: parameter X must not be NULL
-- **Not-freed contracts**: parameter X must point to live (not yet freed) memory
-- **Must-be-initialized contracts**: parameter X must be initialized before use (as pointer dereference, branch condition, arithmetic operand, etc.)
+- **Not-null contracts** (`not_null`): pointer parameters that are dereferenced must not be NULL
+- **Not-freed contracts** (`not_freed`): pointers passed to free/dealloc must point to live memory
+- **Buffer-size contracts** (`buffer_size`): pointers used in memcpy/indexing must have sufficient capacity (includes `size_expr` and `relationship`)
+- **Initialized contracts** (`initialized`): variables/fields used in deref, branch, or index must be initialized
+
+Callee contracts that a function does NOT satisfy internally are propagated as the function's own contracts.
 
 Note: uninitialized *read* into a variable is benign; uninitialized *use* (dereference, branch, index) is the safety issue.
+
+**Summarizer:** `MemsafeSummarizer` (`memsafe_summarizer.py`)
+**DB table:** `memsafe_summaries`
+**CLI:** `llm-summary summarize --type memsafe`
 
 ### Pass 5: Verification (LLM-based) — planned
 
@@ -290,7 +302,7 @@ Since summaries are in natural language (e.g., "allocates n+1 bytes" vs. "requir
 | Double free | 2 (what's freed) | not-freed contracts |
 | Uninitialized use | 3 (what's initialized) | must-be-initialized contracts |
 
-**Dependencies:** Passes 1-3 are independent and run together in a single `BottomUpDriver` traversal when multiple `--type` flags are given. Pass 4 should run after 1-3 so the LLM knows what contract categories to look for. Pass 5 requires all four preceding passes.
+**Dependencies:** Passes 1-4 are independent and run together in a single `BottomUpDriver` traversal when multiple `--type` flags are given. Pass 5 requires all four preceding passes.
 
 ## Design Decisions
 

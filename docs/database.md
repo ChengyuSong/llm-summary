@@ -150,6 +150,53 @@ CREATE TABLE init_summaries (
 
 **`target_kind` values:** `parameter`, `field`, `return_value` (no `local` — locals are not caller-visible post-conditions)
 
+### `memsafe_summaries`
+
+Stores LLM-generated safety contract summaries (Pass 4 — pre-conditions).
+
+```sql
+CREATE TABLE memsafe_summaries (
+    id INTEGER PRIMARY KEY,
+    function_id INTEGER REFERENCES functions(id) ON DELETE CASCADE,
+    summary_json TEXT NOT NULL,   -- Full JSON summary
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    model_used TEXT,              -- Which LLM generated this
+    UNIQUE(function_id)
+);
+```
+
+**Summary JSON format:**
+```json
+{
+  "function": "process_buffer",
+  "contracts": [
+    {
+      "target": "buf",
+      "contract_kind": "not_null",
+      "description": "buf must not be NULL"
+    },
+    {
+      "target": "buf",
+      "contract_kind": "buffer_size",
+      "description": "buf must point to at least len bytes",
+      "size_expr": "len",
+      "relationship": "byte_count"
+    },
+    {
+      "target": "ctx",
+      "contract_kind": "initialized",
+      "description": "ctx must be initialized before use"
+    }
+  ],
+  "description": "Requires buf to be non-NULL with at least len bytes, and ctx to be initialized."
+}
+```
+
+**`contract_kind` values:** `not_null`, `not_freed`, `buffer_size`, `initialized`
+
+**`size_expr` and `relationship`:** Only present for `buffer_size` contracts.
+
 ### `call_edges`
 
 Stores the call graph with callsite information.
@@ -341,6 +388,7 @@ functions
     ├──1:1──▶ allocation_summaries
     ├──1:1──▶ free_summaries
     ├──1:1──▶ init_summaries
+    ├──1:1──▶ memsafe_summaries
     ├──1:1──▶ container_summaries
     │
     ├──1:N──▶ call_edges (as caller)
