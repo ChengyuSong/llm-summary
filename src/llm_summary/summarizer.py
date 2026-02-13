@@ -13,8 +13,6 @@ from .models import (
     Function,
     ParameterInfo,
 )
-from .ordering import ProcessingOrderer
-
 
 ALLOCATION_SUMMARY_PROMPT = """You are analyzing C/C++ code to generate memory allocation summaries.
 
@@ -201,84 +199,6 @@ class AllocationSummarizer:
                 description=f"Error generating summary: {e}",
             )
 
-    def summarize_all(
-        self,
-        force: bool = False,
-    ) -> dict[int, AllocationSummary]:
-        """
-        Summarize all functions in the database in dependency order.
-
-        Args:
-            force: If True, re-summarize even if summary exists
-
-        Returns:
-            Mapping of function ID to summary
-        """
-        # Build call graph
-        edges = self.db.get_all_call_edges()
-        graph: dict[int, list[int]] = {}
-
-        for edge in edges:
-            if edge.caller_id not in graph:
-                graph[edge.caller_id] = []
-            graph[edge.caller_id].append(edge.callee_id)
-
-        # Add all functions to graph (some may have no callees)
-        for func in self.db.get_all_functions():
-            if func.id is not None and func.id not in graph:
-                graph[func.id] = []
-
-        # Get processing order
-        orderer = ProcessingOrderer(graph)
-
-        if self.verbose:
-            stats = orderer.get_stats()
-            print(f"Processing {stats['nodes']} functions in {stats['sccs']} SCCs")
-            if stats["recursive_sccs"] > 0:
-                print(f"  ({stats['recursive_sccs']} recursive SCCs)")
-
-        # Process in order
-        summaries: dict[int, AllocationSummary] = {}
-        processing_order = orderer.get_processing_order()
-        self._progress_total = sum(len(scc) for scc in processing_order)
-        self._progress_current = 0
-
-        for scc in processing_order:
-            # For recursive SCCs, we may need multiple passes
-            # For now, just process each function once
-            for func_id in scc:
-                self._progress_current += 1
-                func = self.db.get_function(func_id)
-                if func is None:
-                    continue
-
-                # Check if summary exists and is current
-                if not force:
-                    existing = self.db.get_summary_by_function_id(func_id)
-                    if existing and not self.db.needs_update(func):
-                        summaries[func_id] = existing
-                        self._stats["cache_hits"] += 1
-                        continue
-
-                # Build callee summaries
-                callee_ids = graph.get(func_id, [])
-                callee_summaries = {}
-
-                for callee_id in callee_ids:
-                    if callee_id in summaries:
-                        callee_func = self.db.get_function(callee_id)
-                        if callee_func:
-                            callee_summaries[callee_func.name] = summaries[callee_id]
-
-                # Generate summary
-                summary = self.summarize_function(func, callee_summaries)
-                summaries[func_id] = summary
-
-                # Store in database
-                self.db.upsert_summary(func, summary, model_used=self.llm.model)
-
-        return summaries
-
     def _build_callee_section(
         self,
         func: Function,
@@ -449,7 +369,12 @@ class IncrementalSummarizer:
 
         Returns mapping of function ID to new summary.
         """
-        return self.summarizer.summarize_all(force=False)
+        from .driver import AllocationPass, BottomUpDriver
+
+        driver = BottomUpDriver(self.db, verbose=self.verbose)
+        alloc_pass = AllocationPass(self.summarizer, self.db, self.llm.model)
+        results = driver.run([alloc_pass], force=False)
+        return results["allocation"]
 
     def update_file(self, file_path: str, new_functions: list[Function]) -> dict[int, AllocationSummary]:
         """

@@ -20,6 +20,7 @@ from .indirect import (
     IndirectCallResolver,
 )
 from .llm import create_backend
+from .driver import AllocationPass, BottomUpDriver, FreePass
 from .ordering import ProcessingOrderer
 from .summarizer import AllocationSummarizer
 from .stdlib import get_all_stdlib_summaries
@@ -143,7 +144,11 @@ def summarize(db_path, backend, model, llm_host, llm_port, disable_thinking, ver
         llm = create_backend(backend, model=model, **backend_kwargs)
         console.print(f"Using {backend} backend ({llm.model})")
 
-        # Run allocation pass
+        # Build passes list
+        passes = []
+        alloc_summarizer = None
+        free_summarizer = None
+
         if "allocation" in summary_types:
             # Load custom allocators if provided
             allocators = []
@@ -156,24 +161,9 @@ def summarize(db_path, backend, model, llm_host, llm_port, disable_thinking, ver
                 if allocators:
                     console.print(f"Custom allocators: {len(allocators)} loaded from {allocator_file}")
 
-            console.print("\n[bold]Allocation pass[/bold]")
-            summarizer = AllocationSummarizer(db, llm, verbose=verbose, log_file=log_llm, allocators=allocators)
+            alloc_summarizer = AllocationSummarizer(db, llm, verbose=verbose, log_file=log_llm, allocators=allocators)
+            passes.append(AllocationPass(alloc_summarizer, db, llm.model))
 
-            console.print("Generating allocation summaries...")
-            summaries = summarizer.summarize_all(force=force)
-
-            s = summarizer.stats
-            console.print(f"\nAllocation summary generation complete:")
-            console.print(f"  Functions processed: {s['functions_processed']}")
-            console.print(f"  LLM calls: {s['llm_calls']}")
-            console.print(f"  Cache hits: {s['cache_hits']}")
-            if s["errors"] > 0:
-                console.print(f"  [yellow]Errors: {s['errors']}[/yellow]")
-
-            allocating = sum(1 for sm in summaries.values() if sm.allocations)
-            console.print(f"\nFunctions with allocations: {allocating}")
-
-        # Run free pass
         if "free" in summary_types:
             from .free_summarizer import FreeSummarizer
 
@@ -188,12 +178,31 @@ def summarize(db_path, backend, model, llm_host, llm_port, disable_thinking, ver
                 if deallocators:
                     console.print(f"Custom deallocators: {len(deallocators)} loaded from {deallocator_file}")
 
-            console.print("\n[bold]Free pass[/bold]")
             free_summarizer = FreeSummarizer(db, llm, verbose=verbose, log_file=log_llm, deallocators=deallocators)
+            passes.append(FreePass(free_summarizer, db, llm.model))
 
-            console.print("Generating free summaries...")
-            free_summaries = free_summarizer.summarize_all(force=force)
+        pass_names = " + ".join(p.name for p in passes)
+        console.print(f"\n[bold]Running passes: {pass_names}[/bold]")
 
+        driver = BottomUpDriver(db, verbose=verbose)
+        results = driver.run(passes, force=force)
+
+        # Print stats per pass
+        if alloc_summarizer is not None:
+            summaries = results["allocation"]
+            s = alloc_summarizer.stats
+            console.print(f"\nAllocation summary generation complete:")
+            console.print(f"  Functions processed: {s['functions_processed']}")
+            console.print(f"  LLM calls: {s['llm_calls']}")
+            console.print(f"  Cache hits: {s['cache_hits']}")
+            if s["errors"] > 0:
+                console.print(f"  [yellow]Errors: {s['errors']}[/yellow]")
+
+            allocating = sum(1 for sm in summaries.values() if sm.allocations)
+            console.print(f"\nFunctions with allocations: {allocating}")
+
+        if free_summarizer is not None:
+            free_summaries = results["free"]
             s = free_summarizer.stats
             console.print(f"\nFree summary generation complete:")
             console.print(f"  Functions processed: {s['functions_processed']}")

@@ -10,8 +10,6 @@ from .models import (
     FreeSummary,
     Function,
 )
-from .ordering import ProcessingOrderer
-
 
 FREE_SUMMARY_PROMPT = """You are analyzing C/C++ code to generate deallocation (free) summaries.
 
@@ -155,74 +153,6 @@ class FreeSummarizer:
                 function_name=func.name,
                 description=f"Error generating summary: {e}",
             )
-
-    def summarize_all(
-        self,
-        force: bool = False,
-    ) -> dict[int, FreeSummary]:
-        """Summarize all functions in the database in dependency order."""
-        # Build call graph
-        edges = self.db.get_all_call_edges()
-        graph: dict[int, list[int]] = {}
-
-        for edge in edges:
-            if edge.caller_id not in graph:
-                graph[edge.caller_id] = []
-            graph[edge.caller_id].append(edge.callee_id)
-
-        # Add all functions to graph
-        for func in self.db.get_all_functions():
-            if func.id is not None and func.id not in graph:
-                graph[func.id] = []
-
-        # Get processing order
-        orderer = ProcessingOrderer(graph)
-
-        if self.verbose:
-            stats = orderer.get_stats()
-            print(f"Processing {stats['nodes']} functions in {stats['sccs']} SCCs (free pass)")
-            if stats["recursive_sccs"] > 0:
-                print(f"  ({stats['recursive_sccs']} recursive SCCs)")
-
-        # Process in order
-        summaries: dict[int, FreeSummary] = {}
-        processing_order = orderer.get_processing_order()
-        self._progress_total = sum(len(scc) for scc in processing_order)
-        self._progress_current = 0
-
-        for scc in processing_order:
-            for func_id in scc:
-                self._progress_current += 1
-                func = self.db.get_function(func_id)
-                if func is None:
-                    continue
-
-                # Check cache
-                if not force:
-                    existing = self.db.get_free_summary_by_function_id(func_id)
-                    if existing:
-                        summaries[func_id] = existing
-                        self._stats["cache_hits"] += 1
-                        continue
-
-                # Build callee summaries
-                callee_ids = graph.get(func_id, [])
-                callee_summaries = {}
-
-                for callee_id in callee_ids:
-                    if callee_id in summaries:
-                        callee_func = self.db.get_function(callee_id)
-                        if callee_func:
-                            callee_summaries[callee_func.name] = summaries[callee_id]
-
-                # Generate summary
-                summary = self.summarize_function(func, callee_summaries)
-                summaries[func_id] = summary
-
-                # Store in database
-                self.db.upsert_free_summary(func, summary, model_used=self.llm.model)
-
-        return summaries
 
     def _build_callee_section(
         self,
