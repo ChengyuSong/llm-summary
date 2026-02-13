@@ -13,6 +13,7 @@ CREATE TABLE functions (
     id INTEGER PRIMARY KEY,
     name TEXT NOT NULL,
     signature TEXT NOT NULL,      -- e.g., "char*(size_t)"
+    canonical_signature TEXT,     -- Typedef-resolved signature
     file_path TEXT NOT NULL,
     line_start INTEGER,
     line_end INTEGER,
@@ -96,7 +97,8 @@ CREATE TABLE address_taken_functions (
     id INTEGER PRIMARY KEY,
     function_id INTEGER REFERENCES functions(id) ON DELETE CASCADE,
     signature TEXT NOT NULL,      -- For type matching
-    UNIQUE(function_id)
+    target_type TEXT NOT NULL DEFAULT 'address_taken',
+    UNIQUE(function_id, target_type)
 );
 ```
 
@@ -111,9 +113,13 @@ CREATE TABLE address_flows (
     flow_target TEXT NOT NULL,    -- e.g., "struct task.callback"
     file_path TEXT,
     line_number INTEGER,
-    context_snippet TEXT          -- Surrounding code for LLM context
+    context_snippet TEXT,         -- Surrounding code for LLM context
+    UNIQUE(function_id, flow_target, file_path, line_number)
 );
 ```
+
+**Indexes:**
+- `idx_address_flows_function`: Fast lookup by function
 
 **Flow target examples:**
 - `var:handler` - Assigned to local variable
@@ -133,9 +139,13 @@ CREATE TABLE indirect_callsites (
     line_number INTEGER NOT NULL,
     callee_expr TEXT NOT NULL,    -- e.g., "ctx->handler"
     signature TEXT NOT NULL,      -- Expected signature
-    context_snippet TEXT          -- Surrounding code for LLM
+    context_snippet TEXT,         -- Surrounding code for LLM
+    UNIQUE(caller_function_id, file_path, line_number, callee_expr)
 );
 ```
+
+**Indexes:**
+- `idx_indirect_callsites_caller`: Fast lookup by caller function
 
 ### `indirect_call_targets`
 
@@ -151,21 +161,116 @@ CREATE TABLE indirect_call_targets (
 );
 ```
 
+### `address_flow_summaries`
+
+LLM-generated flow summaries for address-taken functions.
+
+```sql
+CREATE TABLE address_flow_summaries (
+    id INTEGER PRIMARY KEY,
+    function_id INTEGER NOT NULL REFERENCES functions(id) ON DELETE CASCADE,
+    flow_destinations_json TEXT NOT NULL,
+    semantic_role TEXT,
+    likely_callers_json TEXT,
+    model_used TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(function_id)
+);
+```
+
+**Indexes:**
+- `idx_flow_summaries_function`: Fast lookup by function
+
+### `build_configs`
+
+Stores build configurations discovered by the build agent.
+
+```sql
+CREATE TABLE build_configs (
+    project_path TEXT PRIMARY KEY,
+    project_name TEXT NOT NULL,
+    build_system TEXT NOT NULL,
+    configuration_json TEXT,
+    script_path TEXT,
+    artifacts_dir TEXT,
+    compile_commands_path TEXT,
+    llm_backend TEXT,
+    llm_model TEXT,
+    build_attempts INTEGER,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    last_built_at TIMESTAMP
+);
+```
+
+**Indexes:**
+- `idx_build_configs_name`: Fast lookup by project name
+
+### `container_summaries`
+
+Stores container/wrapper function analysis results.
+
+```sql
+CREATE TABLE container_summaries (
+    id INTEGER PRIMARY KEY,
+    function_id INTEGER REFERENCES functions(id) ON DELETE CASCADE,
+    container_arg INTEGER NOT NULL,
+    store_args_json TEXT NOT NULL,
+    load_return INTEGER NOT NULL DEFAULT 0,
+    container_type TEXT NOT NULL,
+    confidence TEXT NOT NULL,
+    heuristic_score INTEGER,
+    heuristic_signals_json TEXT,
+    model_used TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(function_id)
+);
+```
+
+**Indexes:**
+- `idx_container_summaries_function`: Fast lookup by function
+
+### `typedefs`
+
+Type declarations extracted from source (typedefs, C++ using aliases, struct/class/union).
+
+```sql
+CREATE TABLE typedefs (
+    id INTEGER PRIMARY KEY,
+    name TEXT NOT NULL,
+    kind TEXT NOT NULL DEFAULT 'typedef',
+    underlying_type TEXT NOT NULL,
+    canonical_type TEXT NOT NULL,
+    file_path TEXT NOT NULL,
+    line_number INTEGER,
+    UNIQUE(name, kind, file_path)
+);
+```
+
+**Kind values:** `typedef`, `using`, `struct`, `class`, `union`
+
+**Indexes:**
+- `idx_typedefs_name`: Fast lookup by typedef name
+
 ## Entity Relationships
 
 ```
 functions
     │
     ├──1:1──▶ allocation_summaries
+    ├──1:1──▶ container_summaries
     │
     ├──1:N──▶ call_edges (as caller)
     ├──1:N──▶ call_edges (as callee)
     │
     ├──1:1──▶ address_taken_functions
     ├──1:N──▶ address_flows
+    ├──1:1──▶ address_flow_summaries
     │
     ├──1:N──▶ indirect_callsites (as caller)
     └──1:N──▶ indirect_call_targets (as target)
+
+build_configs (standalone, keyed by project_path)
+typedefs (standalone, keyed by name+kind+file)
 ```
 
 ## Common Queries
