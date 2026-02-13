@@ -92,23 +92,28 @@ Abstraction layer for different LLM providers.
 - `OpenAIBackend`: OpenAI API (also works with compatible APIs)
 - `OllamaBackend`: Local models via Ollama
 
-### 6. Summary Generator (`summarizer.py`)
+### 6. Graph Traversal Driver (`driver.py`)
 
-Core analysis engine that generates allocation summaries.
-
-**Process:**
-1. Get functions in topological order
-2. For each function:
-   - Gather callee summaries
-   - Build LLM prompt with function source and callee info
-   - Parse LLM response into structured summary
-   - Store in database
+Unified bottom-up traversal engine. Builds the call graph once, computes SCCs, and runs one or more summary passes over functions in topological order (callees first). When `--type allocation --type free` is used, both passes execute in a single traversal instead of duplicating graph construction.
 
 **Key classes:**
-- `AllocationSummarizer`: Main summarization logic
-- `IncrementalSummarizer`: Handles updates when source changes
+- `BottomUpDriver`: Owns graph building (cached) and SCC traversal. `run(passes, force, dirty_ids)` executes all passes per function.
+- `SummaryPass` (Protocol): Interface each pass implements — `get_cached()`, `summarize()`, `store()`
+- `AllocationPass`: Adapter wrapping `AllocationSummarizer`
+- `FreePass`: Adapter wrapping `FreeSummarizer`
 
-### 7. Database (`db.py`)
+**Incremental support:** When `dirty_ids` is provided, the driver computes the affected set (dirty functions + transitive callers via reverse edges) and only re-summarizes those; all others load from cache.
+
+### 7. Summary Generators (`summarizer.py`, `free_summarizer.py`)
+
+Per-function LLM summarization logic. Each summarizer builds a prompt from the function source and callee summaries, queries the LLM, and parses the structured response.
+
+**Key classes:**
+- `AllocationSummarizer`: Allocation/buffer-size-pair analysis
+- `FreeSummarizer`: Free/deallocation analysis
+- `IncrementalSummarizer`: Handles source-change invalidation, delegates re-summarization to `BottomUpDriver`
+
+### 8. Database (`db.py`)
 
 SQLite storage for all analysis data.
 
@@ -122,7 +127,7 @@ SQLite storage for all analysis data.
 - `indirect_callsites`: Indirect call expressions
 - `indirect_call_targets`: Resolved indirect call targets
 
-### 8. Standard Library (`stdlib.py`)
+### 9. Standard Library (`stdlib.py`)
 
 Pre-defined allocation and free summaries for common C standard library functions.
 
@@ -135,7 +140,7 @@ Pre-defined allocation and free summaries for common C standard library function
 **Free summaries:**
 - `free`, `realloc`, `fclose`, `closedir`, `munmap`, `freeaddrinfo`
 
-### 9. CLI (`cli.py`)
+### 10. CLI (`cli.py`)
 
 Command-line interface using Click.
 
@@ -176,17 +181,19 @@ Command-line interface using Click.
    ├──▶ LLM determines likely targets
    │
    ▼
-5. Topological Ordering
+5. BottomUpDriver (driver.py)
    │
-   ├──▶ SCCs computed
-   ├──▶ Processing order determined
+   ├──▶ Build call graph + compute SCCs (once)
+   ├──▶ Traverse in topological order (callees first)
+   ├──▶ Run all registered passes per function:
+   │      AllocationPass, FreePass, etc.
    │
    ▼
-6. Summary Generation (LLM)
+6. Summary Generation (LLM, per pass)
    │
-   ├──▶ Process in order (callees first)
-   ├──▶ Include callee summaries in prompt
-   ├──▶ Parse and store results
+   ├──▶ Gather callee summaries from prior results
+   ├──▶ Build prompt, query LLM, parse response
+   ├──▶ Store result in DB
    │
    ▼
 7. Summary Database
@@ -272,7 +279,7 @@ Since summaries are in natural language (e.g., "allocates n+1 bytes" vs. "requir
 | Double free | 2 (what's freed) | not-freed contracts |
 | Uninitialized use | 3 (what's initialized) | must-be-initialized contracts |
 
-**Dependencies:** Passes 1-3 are independent and can run in parallel. Pass 4 should run after 1-3 so the LLM knows what contract categories to look for. Pass 5 requires all four preceding passes.
+**Dependencies:** Passes 1-3 are independent and run together in a single `BottomUpDriver` traversal when multiple `--type` flags are given. Pass 4 should run after 1-3 so the LLM knows what contract categories to look for. Pass 5 requires all four preceding passes.
 
 ## Design Decisions
 
