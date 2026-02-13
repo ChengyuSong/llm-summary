@@ -68,6 +68,48 @@ CREATE TABLE allocation_summaries (
 }
 ```
 
+### `free_summaries`
+
+Stores LLM-generated free/deallocation summaries (Pass 2).
+
+```sql
+CREATE TABLE free_summaries (
+    id INTEGER PRIMARY KEY,
+    function_id INTEGER REFERENCES functions(id) ON DELETE CASCADE,
+    summary_json TEXT NOT NULL,   -- Full JSON summary
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    model_used TEXT,              -- Which LLM generated this
+    UNIQUE(function_id)
+);
+```
+
+**Summary JSON format:**
+```json
+{
+  "function": "png_destroy_info_struct",
+  "frees": [
+    {
+      "target": "info_ptr->palette",
+      "target_kind": "field",
+      "deallocator": "png_free",
+      "conditional": true,
+      "nulled_after": true
+    },
+    {
+      "target": "info_ptr",
+      "target_kind": "parameter",
+      "deallocator": "png_free",
+      "conditional": false,
+      "nulled_after": true
+    }
+  ],
+  "description": "Frees all dynamically allocated fields of the info struct, then frees the struct itself."
+}
+```
+
+**`target_kind` values:** `parameter`, `field`, `local`, `return_value`
+
 ### `call_edges`
 
 Stores the call graph with callsite information.
@@ -257,6 +299,7 @@ CREATE TABLE typedefs (
 functions
     │
     ├──1:1──▶ allocation_summaries
+    ├──1:1──▶ free_summaries
     ├──1:1──▶ container_summaries
     │
     ├──1:N──▶ call_edges (as caller)
