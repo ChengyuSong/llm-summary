@@ -62,15 +62,28 @@ def main():
 @click.option("--init-stdlib", is_flag=True, help="Auto-populate stdlib summaries before starting")
 @click.option("--allocator-file", type=click.Path(exists=True), default=None,
               help="JSON file with custom allocator names (e.g. from find-allocator-candidates)")
-def summarize(db_path, backend, model, llm_host, llm_port, disable_thinking, verbose, force, log_llm, init_stdlib, allocator_file):
-    """Generate allocation summaries on a pre-populated database.
+@click.option("--type", "summary_types", multiple=True, type=click.Choice(["allocation", "free"]),
+              help="Summary pass(es) to run (default: allocation). Can be specified multiple times.")
+@click.option("--deallocator-file", type=click.Path(exists=True), default=None,
+              help="JSON file with custom deallocator names (for free pass)")
+def summarize(db_path, backend, model, llm_host, llm_port, disable_thinking, verbose, force, log_llm, init_stdlib, allocator_file, summary_types, deallocator_file):
+    """Generate allocation and/or free summaries on a pre-populated database.
 
     Requires a database that already has functions and call_edges
     (populated via 'extract', 'scan', and/or 'import-callgraph').
 
+    Use --type to select which summary passes to run:
+        --type allocation  (default)
+        --type free
+        --type allocation --type free  (run both)
+
     Example:
         llm-summary summarize --db func-scans/libpng/functions.db --backend ollama --model qwen3 -v
+        llm-summary summarize --db func-scans/libpng/functions.db --type free --backend llamacpp -v
     """
+    # Default to allocation if no --type given
+    if not summary_types:
+        summary_types = ("allocation",)
     db = SummaryDB(db_path)
 
     try:
@@ -130,34 +143,67 @@ def summarize(db_path, backend, model, llm_host, llm_port, disable_thinking, ver
         llm = create_backend(backend, model=model, **backend_kwargs)
         console.print(f"Using {backend} backend ({llm.model})")
 
-        # Load custom allocators if provided
-        allocators = []
-        if allocator_file:
-            with open(allocator_file) as f:
-                alloc_data = json.load(f)
-            allocators = alloc_data.get("confirmed", [])
-            if not allocators:
-                allocators = alloc_data.get("candidates", [])
-            if allocators:
-                console.print(f"Custom allocators: {len(allocators)} loaded from {allocator_file}")
+        # Run allocation pass
+        if "allocation" in summary_types:
+            # Load custom allocators if provided
+            allocators = []
+            if allocator_file:
+                with open(allocator_file) as f:
+                    alloc_data = json.load(f)
+                allocators = alloc_data.get("confirmed", [])
+                if not allocators:
+                    allocators = alloc_data.get("candidates", [])
+                if allocators:
+                    console.print(f"Custom allocators: {len(allocators)} loaded from {allocator_file}")
 
-        # Generate summaries
-        summarizer = AllocationSummarizer(db, llm, verbose=verbose, log_file=log_llm, allocators=allocators)
+            console.print("\n[bold]Allocation pass[/bold]")
+            summarizer = AllocationSummarizer(db, llm, verbose=verbose, log_file=log_llm, allocators=allocators)
 
-        console.print("Generating summaries...")
-        summaries = summarizer.summarize_all(force=force)
+            console.print("Generating allocation summaries...")
+            summaries = summarizer.summarize_all(force=force)
 
-        s = summarizer.stats
-        console.print(f"\nSummary generation complete:")
-        console.print(f"  Functions processed: {s['functions_processed']}")
-        console.print(f"  LLM calls: {s['llm_calls']}")
-        console.print(f"  Cache hits: {s['cache_hits']}")
-        if s["errors"] > 0:
-            console.print(f"  [yellow]Errors: {s['errors']}[/yellow]")
+            s = summarizer.stats
+            console.print(f"\nAllocation summary generation complete:")
+            console.print(f"  Functions processed: {s['functions_processed']}")
+            console.print(f"  LLM calls: {s['llm_calls']}")
+            console.print(f"  Cache hits: {s['cache_hits']}")
+            if s["errors"] > 0:
+                console.print(f"  [yellow]Errors: {s['errors']}[/yellow]")
 
-        # Count allocating functions
-        allocating = sum(1 for sm in summaries.values() if sm.allocations)
-        console.print(f"\nFunctions with allocations: {allocating}")
+            allocating = sum(1 for sm in summaries.values() if sm.allocations)
+            console.print(f"\nFunctions with allocations: {allocating}")
+
+        # Run free pass
+        if "free" in summary_types:
+            from .free_summarizer import FreeSummarizer
+
+            # Load custom deallocators if provided
+            deallocators = []
+            if deallocator_file:
+                with open(deallocator_file) as f:
+                    dealloc_data = json.load(f)
+                deallocators = dealloc_data.get("confirmed", [])
+                if not deallocators:
+                    deallocators = dealloc_data.get("candidates", [])
+                if deallocators:
+                    console.print(f"Custom deallocators: {len(deallocators)} loaded from {deallocator_file}")
+
+            console.print("\n[bold]Free pass[/bold]")
+            free_summarizer = FreeSummarizer(db, llm, verbose=verbose, log_file=log_llm, deallocators=deallocators)
+
+            console.print("Generating free summaries...")
+            free_summaries = free_summarizer.summarize_all(force=force)
+
+            s = free_summarizer.stats
+            console.print(f"\nFree summary generation complete:")
+            console.print(f"  Functions processed: {s['functions_processed']}")
+            console.print(f"  LLM calls: {s['llm_calls']}")
+            console.print(f"  Cache hits: {s['cache_hits']}")
+            if s["errors"] > 0:
+                console.print(f"  [yellow]Errors: {s['errors']}[/yellow]")
+
+            freeing = sum(1 for sm in free_summaries.values() if sm.frees)
+            console.print(f"\nFunctions with frees: {freeing}")
 
     finally:
         db.close()

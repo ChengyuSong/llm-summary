@@ -96,6 +96,42 @@ class BufferSizePair:
 
 
 @dataclass
+class FreeOp:
+    """Represents a single free/deallocation within a function."""
+
+    target: str  # what gets freed: "ptr", "info_ptr->palette", "row_buf"
+    target_kind: str  # "parameter", "field", "local", "return_value"
+    deallocator: str  # "free", "png_free", "g_free", custom
+    conditional: bool  # True if free is inside an if/error path
+    nulled_after: bool  # True if pointer is set to NULL after free
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "target": self.target,
+            "target_kind": self.target_kind,
+            "deallocator": self.deallocator,
+            "conditional": self.conditional,
+            "nulled_after": self.nulled_after,
+        }
+
+
+@dataclass
+class FreeSummary:
+    """Complete free/deallocation summary for a function."""
+
+    function_name: str
+    frees: list[FreeOp] = field(default_factory=list)
+    description: str = ""
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "function": self.function_name,
+            "frees": [f.to_dict() for f in self.frees],
+            "description": self.description,
+        }
+
+
+@dataclass
 class ParameterInfo:
     """Information about a function parameter's role in allocation."""
 

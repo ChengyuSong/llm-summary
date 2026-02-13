@@ -133,6 +133,8 @@ class AllocationSummarizer:
             "cache_hits": 0,
             "errors": 0,
         }
+        self._progress_current = 0
+        self._progress_total = 0
 
     @property
     def stats(self) -> dict[str, int]:
@@ -171,7 +173,10 @@ class AllocationSummarizer:
         # Query LLM
         try:
             if self.verbose:
-                print(f"  Summarizing: {func.name}")
+                if self._progress_total > 0:
+                    print(f"  ({self._progress_current}/{self._progress_total}) Summarizing: {func.name}")
+                else:
+                    print(f"  Summarizing: {func.name}")
 
             response = self.llm.complete(prompt)
             self._stats["llm_calls"] += 1
@@ -234,11 +239,15 @@ class AllocationSummarizer:
 
         # Process in order
         summaries: dict[int, AllocationSummary] = {}
+        processing_order = orderer.get_processing_order()
+        self._progress_total = sum(len(scc) for scc in processing_order)
+        self._progress_current = 0
 
-        for scc in orderer.get_processing_order():
+        for scc in processing_order:
             # For recursive SCCs, we may need multiple passes
             # For now, just process each function once
             for func_id in scc:
+                self._progress_current += 1
                 func = self.db.get_function(func_id)
                 if func is None:
                     continue

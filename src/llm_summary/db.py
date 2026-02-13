@@ -17,6 +17,8 @@ from .models import (
     CallEdge,
     ContainerSummary,
     FlowDestination,
+    FreeOp,
+    FreeSummary,
     Function,
     IndirectCallsite,
     IndirectCallTarget,
@@ -41,6 +43,17 @@ CREATE TABLE IF NOT EXISTS functions (
 
 -- Allocation summaries table
 CREATE TABLE IF NOT EXISTS allocation_summaries (
+    id INTEGER PRIMARY KEY,
+    function_id INTEGER REFERENCES functions(id) ON DELETE CASCADE,
+    summary_json TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    model_used TEXT,
+    UNIQUE(function_id)
+);
+
+-- Free/deallocation summaries table
+CREATE TABLE IF NOT EXISTS free_summaries (
     id INTEGER PRIMARY KEY,
     function_id INTEGER REFERENCES functions(id) ON DELETE CASCADE,
     summary_json TEXT NOT NULL,
@@ -475,6 +488,85 @@ class SummaryDB:
             (function_id,),
         ).fetchone()
         return row["source_hash"] if row else None
+
+    # ========== Free Summary Operations ==========
+
+    def upsert_free_summary(
+        self, func: Function, summary: FreeSummary, model_used: str = ""
+    ) -> None:
+        """Insert or update a free summary."""
+        if func.id is None:
+            raise ValueError("Function must have an ID")
+
+        summary_json = json.dumps(summary.to_dict())
+        self.conn.execute(
+            """
+            INSERT INTO free_summaries (function_id, summary_json, model_used)
+            VALUES (?, ?, ?)
+            ON CONFLICT(function_id) DO UPDATE SET
+                summary_json = excluded.summary_json,
+                updated_at = CURRENT_TIMESTAMP,
+                model_used = excluded.model_used
+            """,
+            (func.id, summary_json, model_used),
+        )
+        self.conn.commit()
+
+    def get_free_summary(
+        self, name: str, signature: str | None = None
+    ) -> FreeSummary | None:
+        """Get free summary for a function by name."""
+        if signature:
+            row = self.conn.execute(
+                """
+                SELECT s.summary_json FROM free_summaries s
+                JOIN functions f ON s.function_id = f.id
+                WHERE f.name = ? AND f.signature = ?
+                """,
+                (name, signature),
+            ).fetchone()
+        else:
+            row = self.conn.execute(
+                """
+                SELECT s.summary_json FROM free_summaries s
+                JOIN functions f ON s.function_id = f.id
+                WHERE f.name = ?
+                """,
+                (name,),
+            ).fetchone()
+
+        if row:
+            return self._json_to_free_summary(row["summary_json"])
+        return None
+
+    def get_free_summary_by_function_id(self, func_id: int) -> FreeSummary | None:
+        """Get free summary for a function by ID."""
+        row = self.conn.execute(
+            "SELECT summary_json FROM free_summaries WHERE function_id = ?",
+            (func_id,),
+        ).fetchone()
+        if row:
+            return self._json_to_free_summary(row["summary_json"])
+        return None
+
+    def _json_to_free_summary(self, json_str: str) -> FreeSummary:
+        """Convert JSON string to FreeSummary."""
+        data = json.loads(json_str)
+        frees = [
+            FreeOp(
+                target=f.get("target", ""),
+                target_kind=f.get("target_kind", "local"),
+                deallocator=f.get("deallocator", "free"),
+                conditional=f.get("conditional", False),
+                nulled_after=f.get("nulled_after", False),
+            )
+            for f in data.get("frees", [])
+        ]
+        return FreeSummary(
+            function_name=data.get("function", ""),
+            frees=frees,
+            description=data.get("description", ""),
+        )
 
     # ========== Call Graph Operations ==========
 
@@ -1066,6 +1158,7 @@ class SummaryDB:
             "container_summaries",
             "call_edges",
             "allocation_summaries",
+            "free_summaries",
             "typedefs",
             "functions",
             "build_configs",
@@ -1080,6 +1173,7 @@ class SummaryDB:
         tables = [
             "functions",
             "allocation_summaries",
+            "free_summaries",
             "call_edges",
             "address_taken_functions",
             "address_flows",

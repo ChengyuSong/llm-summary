@@ -1,6 +1,6 @@
-"""Standard library allocation summaries."""
+"""Standard library allocation and free summaries."""
 
-from .models import Allocation, AllocationSummary, AllocationType, ParameterInfo
+from .models import Allocation, AllocationSummary, AllocationType, FreeOp, FreeSummary, ParameterInfo
 
 # Pre-defined summaries for common C standard library functions
 STDLIB_SUMMARIES: dict[str, AllocationSummary] = {
@@ -286,6 +286,99 @@ STDLIB_SUMMARIES: dict[str, AllocationSummary] = {
         description="Unmaps memory region.",
     ),
 }
+
+
+# Pre-defined free summaries for common C standard library functions
+STDLIB_FREE_SUMMARIES: dict[str, FreeSummary] = {
+    "free": FreeSummary(
+        function_name="free",
+        frees=[
+            FreeOp(
+                target="ptr",
+                target_kind="parameter",
+                deallocator="free",
+                conditional=False,
+                nulled_after=False,
+            )
+        ],
+        description="Frees heap memory previously allocated by malloc/calloc/realloc.",
+    ),
+    "realloc": FreeSummary(
+        function_name="realloc",
+        frees=[
+            FreeOp(
+                target="ptr",
+                target_kind="parameter",
+                deallocator="realloc",
+                conditional=False,
+                nulled_after=False,
+            )
+        ],
+        description="Frees old pointer when reallocating to a new size.",
+    ),
+    "fclose": FreeSummary(
+        function_name="fclose",
+        frees=[
+            FreeOp(
+                target="stream",
+                target_kind="parameter",
+                deallocator="fclose",
+                conditional=False,
+                nulled_after=False,
+            )
+        ],
+        description="Closes file stream and frees associated FILE structure.",
+    ),
+    "closedir": FreeSummary(
+        function_name="closedir",
+        frees=[
+            FreeOp(
+                target="dirp",
+                target_kind="parameter",
+                deallocator="closedir",
+                conditional=False,
+                nulled_after=False,
+            )
+        ],
+        description="Closes directory stream and frees associated DIR structure.",
+    ),
+    "munmap": FreeSummary(
+        function_name="munmap",
+        frees=[
+            FreeOp(
+                target="addr",
+                target_kind="parameter",
+                deallocator="munmap",
+                conditional=False,
+                nulled_after=False,
+            )
+        ],
+        description="Unmaps memory region previously mapped with mmap.",
+    ),
+    "freeaddrinfo": FreeSummary(
+        function_name="freeaddrinfo",
+        frees=[
+            FreeOp(
+                target="res",
+                target_kind="parameter",
+                deallocator="freeaddrinfo",
+                conditional=False,
+                nulled_after=False,
+            )
+        ],
+        description="Frees addrinfo linked list returned by getaddrinfo.",
+    ),
+}
+
+
+def get_stdlib_free_summary(name: str) -> FreeSummary | None:
+    """Get pre-defined free summary for a standard library function."""
+    return STDLIB_FREE_SUMMARIES.get(name)
+
+
+def get_all_stdlib_free_summaries() -> dict[str, FreeSummary]:
+    """Get all pre-defined stdlib free summaries."""
+    return STDLIB_FREE_SUMMARIES.copy()
 
 
 def get_stdlib_summary(name: str) -> AllocationSummary | None:
