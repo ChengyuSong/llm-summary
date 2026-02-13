@@ -378,14 +378,22 @@ class AllocationSummarizer:
                 used_in_allocation=info.get("used_in_allocation", False),
             )
 
-        # Parse buffer-size pairs
+        # Parse buffer-size pairs (validate and filter)
+        _VALID_KINDS = {"param_pair", "struct_field", "flexible_array"}
         buffer_size_pairs = []
         for p in data.get("buffer_size_pairs", []):
+            buf = p.get("buffer")
+            size = p.get("size")
+            if not buf or not size or size == "None":
+                continue
+            kind = p.get("kind", "param_pair")
+            if kind not in _VALID_KINDS:
+                continue
             buffer_size_pairs.append(
                 BufferSizePair(
-                    buffer=p.get("buffer", ""),
-                    size=p.get("size", ""),
-                    kind=p.get("kind", "param_pair"),
+                    buffer=buf,
+                    size=str(size),
+                    kind=kind,
                     relationship=p.get("relationship", ""),
                 )
             )
