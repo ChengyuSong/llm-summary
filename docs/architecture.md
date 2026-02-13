@@ -199,6 +199,71 @@ When source files change:
    - Cascade invalidation to all callers
 4. Re-analyze invalidated functions
 
+## Memory Safety Analysis Framework
+
+The system uses a multi-pass, Hoare-logic-inspired approach to check memory safety. Post-condition passes (1-3) summarize what each function *produces*. The pre-condition pass (4) summarizes what each function *requires*. The verification pass (5) checks that post-conditions satisfy pre-conditions at each call site.
+
+All passes are bottom-up (callees before callers) and independent of each other except where noted.
+
+### Pass 1: Allocation Summary (post-condition) — existing
+
+Captures memory allocations and buffer-size pairs produced by each function.
+
+- What gets allocated (heap/stack/static), via which allocator, size expression
+- Which parameters affect allocation size
+- Buffer-size pairs established: `(buffer, size)` relationships produced by the function
+- Supports project-specific allocators via `--allocator-file`
+
+**Summarizer:** `AllocationSummarizer`
+
+### Pass 2: Free Summary (post-condition) — planned
+
+Captures which buffers get freed by each function.
+
+- Which parameter, field, or return value gets freed
+- Via which deallocator (`free`, `png_free`, etc.)
+- Conditional or unconditional
+- Whether the pointer is nulled after free
+
+Feeds temporal safety checks (use-after-free, double-free).
+
+### Pass 3: Initialization Summary (post-condition) — planned
+
+Captures which memory gets initialized by each function.
+
+- Which output parameters, fields, or allocated buffers are initialized
+- Partial vs. full initialization
+- Conditional initialization (only on success path, etc.)
+
+Feeds uninitialized-use checks.
+
+### Pass 4: Access Precondition (pre-condition) — planned
+
+Captures what contracts must hold for safe execution of each function. This is the *requirement* side — what callers must guarantee.
+
+- **Buffer-size contracts**: parameter X must point to at least Y bytes/elements
+- **Not-null contracts**: parameter X must not be NULL
+- **Not-freed contracts**: parameter X must point to live (not yet freed) memory
+- **Must-be-initialized contracts**: parameter X must be initialized before use (as pointer dereference, branch condition, arithmetic operand, etc.)
+
+Note: uninitialized *read* into a variable is benign; uninitialized *use* (dereference, branch, index) is the safety issue.
+
+### Pass 5: Verification (LLM-based) — planned
+
+Checks post-conditions against pre-conditions at each call site.
+
+Since summaries are in natural language (e.g., "allocates n+1 bytes" vs. "requires buffer of at least strlen(s)+1 bytes"), mechanical matching is insufficient. The LLM evaluates whether the caller's established post-conditions satisfy the callee's pre-conditions.
+
+| Safety class | Post-condition passes | Pre-condition (pass 4) |
+|---|---|---|
+| Buffer overflow | 1 (allocation size) | buffer-size contracts |
+| Null dereference | 1 (may_be_null) | not-null contracts |
+| Use-after-free | 2 (what's freed) | not-freed contracts |
+| Double free | 2 (what's freed) | not-freed contracts |
+| Uninitialized use | 3 (what's initialized) | must-be-initialized contracts |
+
+**Dependencies:** Passes 1-3 are independent and can run in parallel. Pass 4 should run after 1-3 so the LLM knows what contract categories to look for. Pass 5 requires all four preceding passes.
+
 ## Design Decisions
 
 ### Why libclang?
