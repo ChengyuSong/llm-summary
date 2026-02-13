@@ -1120,12 +1120,12 @@ def find_allocator_candidates(
             console.print(table)
 
             candidate_names = [func.name for func, _, _ in scored]
-            confirmed_names = []
             if include_stdlib:
                 for name in sorted(STDLIB_ALLOCATORS):
-                    confirmed_names.append(name)
+                    if name not in candidate_names:
+                        candidate_names.append(name)
 
-            output = {"candidates": candidate_names, "confirmed": confirmed_names}
+            output = {"candidates": candidate_names, "confirmed": []}
             with open(output_path, "w") as f:
                 json.dump(output, f, indent=2)
 
@@ -1165,7 +1165,9 @@ def find_allocator_candidates(
             candidates, confirmed = detector.detect_all(include_stdlib=include_stdlib)
             progress.update(task, completed=True)
 
-        output = {"candidates": candidates, "confirmed": confirmed}
+        # All go into candidates for KAMain to verify; confirmed is left empty for KAMain to populate
+        all_candidates = confirmed + candidates
+        output = {"candidates": all_candidates, "confirmed": []}
         with open(output_path, "w") as f:
             json.dump(output, f, indent=2)
 
