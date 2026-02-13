@@ -27,6 +27,21 @@ from .stdlib import get_all_stdlib_summaries
 console = Console()
 
 
+def _build_backend_kwargs(backend, llm_host, llm_port, disable_thinking):
+    """Build kwargs dict for create_backend() from CLI options."""
+    kwargs = {}
+    if backend == "llamacpp":
+        kwargs["host"] = llm_host
+        kwargs["port"] = llm_port if llm_port is not None else 8080
+    elif backend == "ollama":
+        if llm_port is None:
+            llm_port = 11434
+        kwargs["base_url"] = f"http://{llm_host}:{llm_port}"
+    if disable_thinking:
+        kwargs["enable_thinking"] = False
+    return kwargs
+
+
 @click.group()
 @click.version_option()
 def main():
@@ -35,139 +50,113 @@ def main():
 
 
 @main.command()
-@click.argument("path_arg", type=click.Path(exists=True), required=False, default=None)
-@click.option("--path", "path_opt", type=click.Path(exists=True), default=None, help="Path to analyze")
-@click.option("--db", "db_path", default="summaries.db", help="Database file path")
+@click.option("--db", "db_path", required=True, help="Database file path (must have functions + call_edges)")
 @click.option("--backend", type=click.Choice(["claude", "openai", "ollama", "llamacpp", "gemini"]), default="claude")
 @click.option("--model", default=None, help="Model name to use")
 @click.option("--llm-host", default="localhost", help="Hostname for local LLM backends (llamacpp, ollama)")
 @click.option("--llm-port", default=None, type=int, help="Port for local LLM backends (llamacpp: 8080, ollama: 11434)")
 @click.option("--disable-thinking", is_flag=True, help="Disable thinking/reasoning mode for llamacpp (useful for structured output)")
-@click.option("--recursive/--no-recursive", default=True, help="Scan directories recursively")
-@click.option("--include-headers/--no-include-headers", default=False, help="Include header files")
 @click.option("--verbose", "-v", is_flag=True, help="Verbose output")
-@click.option("--force", "-f", is_flag=True, help="Force re-analysis of all functions")
+@click.option("--force", "-f", is_flag=True, help="Force re-summarize even if summary exists")
 @click.option("--log-llm", type=click.Path(), default=None, help="Log all LLM prompts and responses to file")
-def analyze(path_arg, path_opt, db_path, backend, model, llm_host, llm_port, disable_thinking, recursive, include_headers, verbose, force, log_llm):
-    """Analyze C/C++ source files and generate allocation summaries."""
-    # Accept path as either positional argument or --path option
-    path = path_opt or path_arg
-    if not path:
-        raise click.UsageError("PATH is required (provide as argument or use --path)")
+@click.option("--init-stdlib", is_flag=True, help="Auto-populate stdlib summaries before starting")
+@click.option("--allocator-file", type=click.Path(exists=True), default=None,
+              help="JSON file with custom allocator names (e.g. from find-allocator-candidates)")
+def summarize(db_path, backend, model, llm_host, llm_port, disable_thinking, verbose, force, log_llm, init_stdlib, allocator_file):
+    """Generate allocation summaries on a pre-populated database.
 
-    path = Path(path).resolve()
+    Requires a database that already has functions and call_edges
+    (populated via 'extract', 'scan', and/or 'import-callgraph').
 
-    # Determine extensions to process
-    extensions = [".c", ".cpp", ".cc", ".cxx"]
-    if include_headers:
-        extensions.extend([".h", ".hpp", ".hxx"])
-
-    # Collect files
-    if path.is_file():
-        files = [path]
-    else:
-        if recursive:
-            files = [f for f in path.rglob("*") if f.suffix.lower() in extensions]
-        else:
-            files = [f for f in path.glob("*") if f.suffix.lower() in extensions]
-
-    if not files:
-        console.print("[red]No source files found[/red]")
-        return
-
-    console.print(f"Found {len(files)} source file(s)")
-
-    # Initialize database
+    Example:
+        llm-summary summarize --db func-scans/libpng/functions.db --backend ollama --model qwen3 -v
+    """
     db = SummaryDB(db_path)
 
     try:
-        # Phase 1: Extract functions
-        with Progress(
-            SpinnerColumn(),
-            TextColumn("[progress.description]{task.description}"),
-            console=console,
-        ) as progress:
-            task = progress.add_task("Extracting functions...", total=None)
+        # Validate DB has required data
+        stats = db.get_stats()
+        func_count = stats["functions"]
+        edge_count = stats["call_edges"]
 
-            extractor = FunctionExtractor()
-            all_functions = []
+        if func_count == 0:
+            console.print("[red]No functions in database. Run 'extract' or 'scan' first.[/red]")
+            return
 
-            for f in files:
-                try:
-                    functions = extractor.extract_from_file(f)
-                    all_functions.extend(functions)
-                    if verbose:
-                        progress.console.print(f"  {f.name}: {len(functions)} functions")
-                except Exception as e:
-                    progress.console.print(f"  [yellow]Warning: {f.name}: {e}[/yellow]")
+        if edge_count == 0:
+            console.print("[yellow]Warning: No call edges in database. Summaries will lack callee context.[/yellow]")
 
-            progress.update(task, completed=True)
+        console.print(f"Database: {db_path}")
+        console.print(f"  Functions: {func_count}")
+        console.print(f"  Call edges: {edge_count}")
 
-        console.print(f"Extracted {len(all_functions)} functions")
+        # Show call graph stats
+        edges = db.get_all_call_edges()
+        if edges:
+            graph = {}
+            for edge in edges:
+                if edge.caller_id not in graph:
+                    graph[edge.caller_id] = []
+                graph[edge.caller_id].append(edge.callee_id)
 
-        # Store functions
-        func_ids = db.insert_functions_batch(all_functions)
+            orderer = ProcessingOrderer(graph)
+            cg_stats = orderer.get_stats()
+            console.print(f"  SCCs: {cg_stats['sccs']} ({cg_stats['recursive_sccs']} recursive, largest: {cg_stats['largest_scc']})")
 
-        # Phase 2: Build call graph
-        with Progress(
-            SpinnerColumn(),
-            TextColumn("[progress.description]{task.description}"),
-            console=console,
-        ) as progress:
-            task = progress.add_task("Building call graph...", total=None)
+        # Init stdlib if requested
+        if init_stdlib:
+            stdlib = get_all_stdlib_summaries()
+            from .models import Function
+            added = 0
+            for name, summary in stdlib.items():
+                existing = db.get_function_by_name(name)
+                if not existing:
+                    func = Function(
+                        name=name,
+                        file_path="<stdlib>",
+                        line_start=0,
+                        line_end=0,
+                        source="",
+                        signature=f"{name}(...)",
+                    )
+                    func.id = db.insert_function(func)
+                    db.upsert_summary(func, summary, model_used="builtin")
+                    added += 1
+            if added:
+                console.print(f"  Stdlib summaries added: {added}")
 
-            cg_builder = CallGraphBuilder(db)
-            edges = cg_builder.build_from_files(files)
-
-            progress.update(task, completed=True)
-
-        console.print(f"Found {len(edges)} call edges")
-
-        # Phase 3: Indirect call analysis (optional, with LLM)
-        # This is expensive, so we skip it unless explicitly enabled
-        # TODO: Add --analyze-indirect flag
-
-        # Phase 4: Generate summaries
-        # Build backend kwargs for local LLM servers
-        backend_kwargs = {}
-        if backend == "llamacpp":
-            backend_kwargs["host"] = llm_host
-            backend_kwargs["port"] = llm_port if llm_port is not None else 8080
-        elif backend == "ollama":
-            if llm_port is None:
-                llm_port = 11434
-            backend_kwargs["base_url"] = f"http://{llm_host}:{llm_port}"
-
-        # Apply thinking mode control to backends that support it
-        if disable_thinking:
-            backend_kwargs["enable_thinking"] = False
-
+        # Create LLM backend
+        backend_kwargs = _build_backend_kwargs(backend, llm_host, llm_port, disable_thinking)
         llm = create_backend(backend, model=model, **backend_kwargs)
-        summarizer = AllocationSummarizer(db, llm, verbose=verbose, log_file=log_llm)
-
         console.print(f"Using {backend} backend ({llm.model})")
 
-        with Progress(
-            SpinnerColumn(),
-            TextColumn("[progress.description]{task.description}"),
-            console=console,
-        ) as progress:
-            task = progress.add_task("Generating summaries...", total=None)
+        # Load custom allocators if provided
+        allocators = []
+        if allocator_file:
+            with open(allocator_file) as f:
+                alloc_data = json.load(f)
+            allocators = alloc_data.get("confirmed", [])
+            if not allocators:
+                allocators = alloc_data.get("candidates", [])
+            if allocators:
+                console.print(f"Custom allocators: {len(allocators)} loaded from {allocator_file}")
 
-            summaries = summarizer.summarize_all(force=force)
+        # Generate summaries
+        summarizer = AllocationSummarizer(db, llm, verbose=verbose, log_file=log_llm, allocators=allocators)
 
-            progress.update(task, completed=True)
+        console.print("Generating summaries...")
+        summaries = summarizer.summarize_all(force=force)
 
-        stats = summarizer.stats
+        s = summarizer.stats
         console.print(f"\nSummary generation complete:")
-        console.print(f"  Functions processed: {stats['functions_processed']}")
-        console.print(f"  LLM calls: {stats['llm_calls']}")
-        console.print(f"  Cache hits: {stats['cache_hits']}")
-        if stats["errors"] > 0:
-            console.print(f"  [yellow]Errors: {stats['errors']}[/yellow]")
+        console.print(f"  Functions processed: {s['functions_processed']}")
+        console.print(f"  LLM calls: {s['llm_calls']}")
+        console.print(f"  Cache hits: {s['cache_hits']}")
+        if s["errors"] > 0:
+            console.print(f"  [yellow]Errors: {s['errors']}[/yellow]")
 
         # Count allocating functions
-        allocating = sum(1 for s in summaries.values() if s.allocations)
+        allocating = sum(1 for sm in summaries.values() if sm.allocations)
         console.print(f"\nFunctions with allocations: {allocating}")
 
     finally:
@@ -684,20 +673,7 @@ def indirect_analyze(
                 return
 
         # Initialize LLM backend
-        # Build backend kwargs for local LLM servers
-        backend_kwargs = {}
-        if backend == "llamacpp":
-            backend_kwargs["host"] = llm_host
-            backend_kwargs["port"] = llm_port if llm_port is not None else 8080
-        elif backend == "ollama":
-            if llm_port is None:
-                llm_port = 11434
-            backend_kwargs["base_url"] = f"http://{llm_host}:{llm_port}"
-
-        # Apply thinking mode control to backends that support it
-        if disable_thinking:
-            backend_kwargs["enable_thinking"] = False
-
+        backend_kwargs = _build_backend_kwargs(backend, llm_host, llm_port, disable_thinking)
         llm = create_backend(backend, model=model, **backend_kwargs)
         console.print(f"Using {backend} backend ({llm.model})")
 
@@ -938,18 +914,7 @@ def container_analyze(
             return
 
         # Full mode: heuristic + LLM
-        backend_kwargs = {}
-        if backend == "llamacpp":
-            backend_kwargs["host"] = llm_host
-            backend_kwargs["port"] = llm_port if llm_port is not None else 8080
-        elif backend == "ollama":
-            if llm_port is None:
-                llm_port = 11434
-            backend_kwargs["base_url"] = f"http://{llm_host}:{llm_port}"
-
-        if disable_thinking:
-            backend_kwargs["enable_thinking"] = False
-
+        backend_kwargs = _build_backend_kwargs(backend, llm_host, llm_port, disable_thinking)
         llm = create_backend(backend, model=model, **backend_kwargs)
         console.print(f"Using {backend} backend ({llm.model})")
 
@@ -1136,18 +1101,7 @@ def find_allocator_candidates(
             return
 
         # Full mode: heuristic + LLM
-        backend_kwargs = {}
-        if backend == "llamacpp":
-            backend_kwargs["host"] = llm_host
-            backend_kwargs["port"] = llm_port if llm_port is not None else 8080
-        elif backend == "ollama":
-            if llm_port is None:
-                llm_port = 11434
-            backend_kwargs["base_url"] = f"http://{llm_host}:{llm_port}"
-
-        if disable_thinking:
-            backend_kwargs["enable_thinking"] = False
-
+        backend_kwargs = _build_backend_kwargs(backend, llm_host, llm_port, disable_thinking)
         llm = create_backend(backend, model=model, **backend_kwargs)
         console.print(f"Using {backend} backend ({llm.model})")
 
@@ -1405,20 +1359,7 @@ def build_learn(
     # Initialize LLM backend
     console.print(f"\n[bold]Initializing LLM backend...[/bold]")
     try:
-        # Build backend kwargs for local LLM servers
-        backend_kwargs = {}
-        if backend == "llamacpp":
-            backend_kwargs["host"] = llm_host
-            backend_kwargs["port"] = llm_port if llm_port is not None else 8080
-        elif backend == "ollama":
-            if llm_port is None:
-                llm_port = 11434
-            backend_kwargs["base_url"] = f"http://{llm_host}:{llm_port}"
-
-        # Apply thinking mode control to backends that support it
-        if disable_thinking:
-            backend_kwargs["enable_thinking"] = False
-
+        backend_kwargs = _build_backend_kwargs(backend, llm_host, llm_port, disable_thinking)
         llm = create_backend(backend, model=model, **backend_kwargs)
         console.print(f"Using model: [bold]{llm.model}[/bold]")
     except Exception as e:

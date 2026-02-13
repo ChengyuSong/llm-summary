@@ -13,6 +13,7 @@ from .models import (
     Allocation,
     AllocationSummary,
     AllocationType,
+    BufferSizePair,
     CallEdge,
     ContainerSummary,
     FlowDestination,
@@ -409,10 +410,20 @@ class SummaryDB:
             )
             for k, v in data.get("parameters", {}).items()
         }
+        buffer_size_pairs = [
+            BufferSizePair(
+                buffer=p.get("buffer", ""),
+                size=p.get("size", ""),
+                kind=p.get("kind", "param_pair"),
+                relationship=p.get("relationship", ""),
+            )
+            for p in data.get("buffer_size_pairs", [])
+        ]
         return AllocationSummary(
             function_name=data.get("function", ""),
             allocations=allocations,
             parameters=parameters,
+            buffer_size_pairs=buffer_size_pairs,
             description=data.get("description", ""),
         )
 

@@ -9,6 +9,7 @@ from .models import (
     Allocation,
     AllocationSummary,
     AllocationType,
+    BufferSizePair,
     Function,
     ParameterInfo,
 )
@@ -48,7 +49,15 @@ Generate a memory allocation summary for this function. Identify:
    - Role: size_indicator, buffer, count, pointer_out, etc.
    - Used in allocation: Does it affect allocation size?
 
-3. **Description**: One-sentence summary of what this function allocates
+3. **Buffer-size pairs** (post-condition only): Identify (buffer, size) pairs that this function **creates or establishes**. Only include pairs where this function is the one that sets up the relationship (e.g., allocates the buffer with the given size, or assigns both fields of a struct). Do NOT include pairs that the function merely reads, accesses, or requires as input — those are pre-conditions and belong to a separate analysis.
+   - "param_pair": function allocates a buffer and stores it alongside its size (e.g., `buf = malloc(n); *out_buf = buf; *out_len = n;`)
+   - "struct_field": function sets both buffer and size fields on a struct (e.g., `s->data = malloc(n); s->len = n;`)
+   - "flexible_array": function allocates a struct with a trailing flexible array and sets the length field
+   - Kind must be exactly one of: "param_pair", "struct_field", "flexible_array"
+   - Both buffer and size must be non-null — omit entries where the size is unknown
+   - Relationship: how the size relates to the buffer (e.g., "byte count", "element count")
+
+4. **Description**: One-sentence summary of what this function allocates
 
 Consider:
 - Wrapper functions that call allocators
@@ -77,6 +86,14 @@ Respond in JSON format:
       "used_in_allocation": true|false
     }}
   }},
+  "buffer_size_pairs": [
+    {{
+      "buffer": "buffer variable/field",
+      "size": "size variable/field",
+      "kind": "param_pair|struct_field|flexible_array",
+      "relationship": "byte count|element count|max capacity"
+    }}
+  ],
   "description": "One-sentence description"
 }}
 ```
@@ -87,6 +104,7 @@ If the function does not allocate memory (directly or via callees), return:
   "function": "{name}",
   "allocations": [],
   "parameters": {{}},
+  "buffer_size_pairs": [],
   "description": "Does not allocate memory"
 }}
 ```
@@ -102,11 +120,13 @@ class AllocationSummarizer:
         llm: LLMBackend,
         verbose: bool = False,
         log_file: str | None = None,
+        allocators: list[str] | None = None,
     ):
         self.db = db
         self.llm = llm
         self.verbose = verbose
         self.log_file = log_file
+        self.allocators = allocators or []
         self._stats = {
             "functions_processed": 0,
             "llm_calls": 0,
@@ -256,7 +276,7 @@ class AllocationSummarizer:
         callee_summaries: dict[str, AllocationSummary],
     ) -> str:
         """Build the callee summaries section for the prompt."""
-        if not callee_summaries:
+        if not callee_summaries and not self.allocators:
             return "No callee summaries available (leaf function or external calls only)."
 
         lines = []
@@ -269,6 +289,20 @@ class AllocationSummarizer:
                 lines.append(f"- `{name}`: Allocates via {alloc_desc}")
             else:
                 lines.append(f"- `{name}`: {summary.description or 'No allocations'}")
+            if summary.buffer_size_pairs:
+                pairs_desc = ", ".join(
+                    f"({p.buffer}, {p.size})" for p in summary.buffer_size_pairs
+                )
+                lines.append(f"  Buffer-size pairs: {pairs_desc}")
+
+        # Append project-specific allocators not already covered
+        covered_names = set(callee_summaries.keys())
+        for alloc_name in self.allocators:
+            if alloc_name not in covered_names:
+                lines.append(f"- `{alloc_name}`: Known heap allocator (project-specific)")
+
+        if not lines:
+            return "No callee summaries available (leaf function or external calls only)."
 
         return "\n".join(lines)
 
@@ -344,10 +378,23 @@ class AllocationSummarizer:
                 used_in_allocation=info.get("used_in_allocation", False),
             )
 
+        # Parse buffer-size pairs
+        buffer_size_pairs = []
+        for p in data.get("buffer_size_pairs", []):
+            buffer_size_pairs.append(
+                BufferSizePair(
+                    buffer=p.get("buffer", ""),
+                    size=p.get("size", ""),
+                    kind=p.get("kind", "param_pair"),
+                    relationship=p.get("relationship", ""),
+                )
+            )
+
         return AllocationSummary(
             function_name=data.get("function", func_name),
             allocations=allocations,
             parameters=parameters,
+            buffer_size_pairs=buffer_size_pairs,
             description=data.get("description", ""),
         )
 

@@ -78,6 +78,24 @@ class Allocation:
 
 
 @dataclass
+class BufferSizePair:
+    """A paired (buffer, size) relationship for bounds checking."""
+
+    buffer: str  # e.g., "buf", "data", "ptr->data"
+    size: str  # e.g., "len", "buf_len", "ptr->length"
+    kind: str  # "param_pair", "struct_field", "flexible_array"
+    relationship: str  # e.g., "byte count", "element count", "max capacity"
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "buffer": self.buffer,
+            "size": self.size,
+            "kind": self.kind,
+            "relationship": self.relationship,
+        }
+
+
+@dataclass
 class ParameterInfo:
     """Information about a function parameter's role in allocation."""
 
@@ -98,15 +116,19 @@ class AllocationSummary:
     function_name: str
     allocations: list[Allocation] = field(default_factory=list)
     parameters: dict[str, ParameterInfo] = field(default_factory=dict)
+    buffer_size_pairs: list[BufferSizePair] = field(default_factory=list)
     description: str = ""  # Human-readable summary
 
     def to_dict(self) -> dict[str, Any]:
-        return {
+        result = {
             "function": self.function_name,
             "allocations": [a.to_dict() for a in self.allocations],
             "parameters": {k: v.to_dict() for k, v in self.parameters.items()},
             "description": self.description,
         }
+        if self.buffer_size_pairs:
+            result["buffer_size_pairs"] = [p.to_dict() for p in self.buffer_size_pairs]
+        return result
 
 
 @dataclass
