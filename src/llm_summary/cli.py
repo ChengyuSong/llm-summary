@@ -20,7 +20,7 @@ from .indirect import (
     IndirectCallResolver,
 )
 from .llm import create_backend
-from .driver import AllocationPass, BottomUpDriver, FreePass
+from .driver import AllocationPass, BottomUpDriver, FreePass, InitPass
 from .ordering import ProcessingOrderer
 from .summarizer import AllocationSummarizer
 from .stdlib import get_all_stdlib_summaries
@@ -63,12 +63,12 @@ def main():
 @click.option("--init-stdlib", is_flag=True, help="Auto-populate stdlib summaries before starting")
 @click.option("--allocator-file", type=click.Path(exists=True), default=None,
               help="JSON file with custom allocator names (e.g. from find-allocator-candidates)")
-@click.option("--type", "summary_types", multiple=True, type=click.Choice(["allocation", "free"]),
+@click.option("--type", "summary_types", multiple=True, type=click.Choice(["allocation", "free", "init"]),
               help="Summary pass(es) to run (default: allocation). Can be specified multiple times.")
 @click.option("--deallocator-file", type=click.Path(exists=True), default=None,
               help="JSON file with custom deallocator names (for free pass)")
 def summarize(db_path, backend, model, llm_host, llm_port, disable_thinking, verbose, force, log_llm, init_stdlib, allocator_file, summary_types, deallocator_file):
-    """Generate allocation and/or free summaries on a pre-populated database.
+    """Generate allocation, free, and/or init summaries on a pre-populated database.
 
     Requires a database that already has functions and call_edges
     (populated via 'extract', 'scan', and/or 'import-callgraph').
@@ -76,11 +76,13 @@ def summarize(db_path, backend, model, llm_host, llm_port, disable_thinking, ver
     Use --type to select which summary passes to run:
         --type allocation  (default)
         --type free
-        --type allocation --type free  (run both)
+        --type init
+        --type allocation --type free --type init  (run all)
 
     Example:
         llm-summary summarize --db func-scans/libpng/functions.db --backend ollama --model qwen3 -v
         llm-summary summarize --db func-scans/libpng/functions.db --type free --backend llamacpp -v
+        llm-summary summarize --db func-scans/libpng/functions.db --type init --backend ollama -v
     """
     # Default to allocation if no --type given
     if not summary_types:
@@ -181,6 +183,13 @@ def summarize(db_path, backend, model, llm_host, llm_port, disable_thinking, ver
             free_summarizer = FreeSummarizer(db, llm, verbose=verbose, log_file=log_llm, deallocators=deallocators)
             passes.append(FreePass(free_summarizer, db, llm.model))
 
+        init_summarizer = None
+        if "init" in summary_types:
+            from .init_summarizer import InitSummarizer
+
+            init_summarizer = InitSummarizer(db, llm, verbose=verbose, log_file=log_llm)
+            passes.append(InitPass(init_summarizer, db, llm.model))
+
         pass_names = " + ".join(p.name for p in passes)
         console.print(f"\n[bold]Running passes: {pass_names}[/bold]")
 
@@ -213,6 +222,19 @@ def summarize(db_path, backend, model, llm_host, llm_port, disable_thinking, ver
 
             freeing = sum(1 for sm in free_summaries.values() if sm.frees)
             console.print(f"\nFunctions with frees: {freeing}")
+
+        if init_summarizer is not None:
+            init_summaries = results["init"]
+            s = init_summarizer.stats
+            console.print(f"\nInit summary generation complete:")
+            console.print(f"  Functions processed: {s['functions_processed']}")
+            console.print(f"  LLM calls: {s['llm_calls']}")
+            console.print(f"  Cache hits: {s['cache_hits']}")
+            if s["errors"] > 0:
+                console.print(f"  [yellow]Errors: {s['errors']}[/yellow]")
+
+            initializing = sum(1 for sm in init_summaries.values() if sm.inits)
+            console.print(f"\nFunctions with inits: {initializing}")
 
     finally:
         db.close()

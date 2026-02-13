@@ -1,6 +1,6 @@
-"""Standard library allocation and free summaries."""
+"""Standard library allocation, free, and initialization summaries."""
 
-from .models import Allocation, AllocationSummary, AllocationType, FreeOp, FreeSummary, ParameterInfo
+from .models import Allocation, AllocationSummary, AllocationType, FreeOp, FreeSummary, InitOp, InitSummary, ParameterInfo
 
 # Pre-defined summaries for common C standard library functions
 STDLIB_SUMMARIES: dict[str, AllocationSummary] = {
@@ -369,6 +369,117 @@ STDLIB_FREE_SUMMARIES: dict[str, FreeSummary] = {
         description="Frees addrinfo linked list returned by getaddrinfo.",
     ),
 }
+
+
+# Pre-defined init summaries for common C standard library functions
+STDLIB_INIT_SUMMARIES: dict[str, InitSummary] = {
+    "calloc": InitSummary(
+        function_name="calloc",
+        inits=[
+            InitOp(
+                target="return value",
+                target_kind="return_value",
+                initializer="calloc",
+                byte_count="nmemb * size",
+            )
+        ],
+        description="Always initializes returned buffer to zero.",
+    ),
+    "memset": InitSummary(
+        function_name="memset",
+        inits=[
+            InitOp(
+                target="*s",
+                target_kind="parameter",
+                initializer="memset",
+                byte_count="n",
+            )
+        ],
+        description="Always initializes s with byte value c for n bytes.",
+    ),
+    "memcpy": InitSummary(
+        function_name="memcpy",
+        inits=[
+            InitOp(
+                target="*dest",
+                target_kind="parameter",
+                initializer="memcpy",
+                byte_count="n",
+            )
+        ],
+        description="Always initializes dest by copying n bytes from src.",
+    ),
+    "memmove": InitSummary(
+        function_name="memmove",
+        inits=[
+            InitOp(
+                target="*dest",
+                target_kind="parameter",
+                initializer="memmove",
+                byte_count="n",
+            )
+        ],
+        description="Always initializes dest by copying n bytes from src (overlapping safe).",
+    ),
+    "strncpy": InitSummary(
+        function_name="strncpy",
+        inits=[
+            InitOp(
+                target="*dest",
+                target_kind="parameter",
+                initializer="strncpy",
+                byte_count="n",
+            )
+        ],
+        description="Always initializes dest with up to n bytes from src, zero-padded.",
+    ),
+    "snprintf": InitSummary(
+        function_name="snprintf",
+        inits=[
+            InitOp(
+                target="*str",
+                target_kind="parameter",
+                initializer="snprintf",
+                byte_count="up to size",
+            )
+        ],
+        description="Always initializes str with formatted output, null-terminated.",
+    ),
+    "strdup": InitSummary(
+        function_name="strdup",
+        inits=[
+            InitOp(
+                target="return value",
+                target_kind="return_value",
+                initializer="strdup",
+                byte_count="full",
+            )
+        ],
+        description="Always initializes returned buffer with copy of input string.",
+    ),
+    "strndup": InitSummary(
+        function_name="strndup",
+        inits=[
+            InitOp(
+                target="return value",
+                target_kind="return_value",
+                initializer="strndup",
+                byte_count="full",
+            )
+        ],
+        description="Always initializes returned buffer with copy of up to n bytes of input string.",
+    ),
+}
+
+
+def get_stdlib_init_summary(name: str) -> InitSummary | None:
+    """Get pre-defined init summary for a standard library function."""
+    return STDLIB_INIT_SUMMARIES.get(name)
+
+
+def get_all_stdlib_init_summaries() -> dict[str, InitSummary]:
+    """Get all pre-defined stdlib init summaries."""
+    return STDLIB_INIT_SUMMARIES.copy()
 
 
 def get_stdlib_free_summary(name: str) -> FreeSummary | None:

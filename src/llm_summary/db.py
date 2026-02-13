@@ -22,6 +22,8 @@ from .models import (
     Function,
     IndirectCallsite,
     IndirectCallTarget,
+    InitOp,
+    InitSummary,
     ParameterInfo,
     TargetType,
 )
@@ -54,6 +56,17 @@ CREATE TABLE IF NOT EXISTS allocation_summaries (
 
 -- Free/deallocation summaries table
 CREATE TABLE IF NOT EXISTS free_summaries (
+    id INTEGER PRIMARY KEY,
+    function_id INTEGER REFERENCES functions(id) ON DELETE CASCADE,
+    summary_json TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    model_used TEXT,
+    UNIQUE(function_id)
+);
+
+-- Initialization summaries table
+CREATE TABLE IF NOT EXISTS init_summaries (
     id INTEGER PRIMARY KEY,
     function_id INTEGER REFERENCES functions(id) ON DELETE CASCADE,
     summary_json TEXT NOT NULL,
@@ -565,6 +578,57 @@ class SummaryDB:
         return FreeSummary(
             function_name=data.get("function", ""),
             frees=frees,
+            description=data.get("description", ""),
+        )
+
+    # ========== Init Summary Operations ==========
+
+    def upsert_init_summary(
+        self, func: Function, summary: InitSummary, model_used: str = ""
+    ) -> None:
+        """Insert or update an init summary."""
+        if func.id is None:
+            raise ValueError("Function must have an ID")
+
+        summary_json = json.dumps(summary.to_dict())
+        self.conn.execute(
+            """
+            INSERT INTO init_summaries (function_id, summary_json, model_used)
+            VALUES (?, ?, ?)
+            ON CONFLICT(function_id) DO UPDATE SET
+                summary_json = excluded.summary_json,
+                updated_at = CURRENT_TIMESTAMP,
+                model_used = excluded.model_used
+            """,
+            (func.id, summary_json, model_used),
+        )
+        self.conn.commit()
+
+    def get_init_summary_by_function_id(self, func_id: int) -> InitSummary | None:
+        """Get init summary for a function by ID."""
+        row = self.conn.execute(
+            "SELECT summary_json FROM init_summaries WHERE function_id = ?",
+            (func_id,),
+        ).fetchone()
+        if row:
+            return self._json_to_init_summary(row["summary_json"])
+        return None
+
+    def _json_to_init_summary(self, json_str: str) -> InitSummary:
+        """Convert JSON string to InitSummary."""
+        data = json.loads(json_str)
+        inits = [
+            InitOp(
+                target=i.get("target", ""),
+                target_kind=i.get("target_kind", "parameter"),
+                initializer=i.get("initializer", "assignment"),
+                byte_count=i.get("byte_count"),
+            )
+            for i in data.get("inits", [])
+        ]
+        return InitSummary(
+            function_name=data.get("function", ""),
+            inits=inits,
             description=data.get("description", ""),
         )
 
@@ -1159,6 +1223,7 @@ class SummaryDB:
             "call_edges",
             "allocation_summaries",
             "free_summaries",
+            "init_summaries",
             "typedefs",
             "functions",
             "build_configs",
@@ -1174,6 +1239,7 @@ class SummaryDB:
             "functions",
             "allocation_summaries",
             "free_summaries",
+            "init_summaries",
             "call_edges",
             "address_taken_functions",
             "address_flows",

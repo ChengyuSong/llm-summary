@@ -132,6 +132,42 @@ class FreeSummary:
 
 
 @dataclass
+class InitOp:
+    """A single guaranteed initialization performed by a function (caller-visible only)."""
+
+    target: str  # "*out", "ctx->data", "return value"
+    target_kind: str  # "parameter", "field", "return_value"
+    initializer: str  # "memset", "assignment", "calloc", "callee:init_struct"
+    byte_count: str | None = None  # "n", "sizeof(T)", "full", or None if unknown
+
+    def to_dict(self) -> dict[str, Any]:
+        result: dict[str, Any] = {
+            "target": self.target,
+            "target_kind": self.target_kind,
+            "initializer": self.initializer,
+        }
+        if self.byte_count is not None:
+            result["byte_count"] = self.byte_count
+        return result
+
+
+@dataclass
+class InitSummary:
+    """Complete initialization summary for a function."""
+
+    function_name: str
+    inits: list[InitOp] = field(default_factory=list)
+    description: str = ""
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "function": self.function_name,
+            "inits": [i.to_dict() for i in self.inits],
+            "description": self.description,
+        }
+
+
+@dataclass
 class ParameterInfo:
     """Information about a function parameter's role in allocation."""
 

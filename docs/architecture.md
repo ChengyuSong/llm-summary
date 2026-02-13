@@ -101,16 +101,18 @@ Unified bottom-up traversal engine. Builds the call graph once, computes SCCs, a
 - `SummaryPass` (Protocol): Interface each pass implements — `get_cached()`, `summarize()`, `store()`
 - `AllocationPass`: Adapter wrapping `AllocationSummarizer`
 - `FreePass`: Adapter wrapping `FreeSummarizer`
+- `InitPass`: Adapter wrapping `InitSummarizer`
 
 **Incremental support:** When `dirty_ids` is provided, the driver computes the affected set (dirty functions + transitive callers via reverse edges) and only re-summarizes those; all others load from cache.
 
-### 7. Summary Generators (`summarizer.py`, `free_summarizer.py`)
+### 7. Summary Generators (`summarizer.py`, `free_summarizer.py`, `init_summarizer.py`)
 
 Per-function LLM summarization logic. Each summarizer builds a prompt from the function source and callee summaries, queries the LLM, and parses the structured response.
 
 **Key classes:**
 - `AllocationSummarizer`: Allocation/buffer-size-pair analysis
 - `FreeSummarizer`: Free/deallocation analysis
+- `InitSummarizer`: Initialization post-condition analysis
 - `IncrementalSummarizer`: Handles source-change invalidation, delegates re-summarization to `BottomUpDriver`
 
 ### 8. Database (`db.py`)
@@ -121,6 +123,7 @@ SQLite storage for all analysis data.
 - `functions`: Function metadata and source
 - `allocation_summaries`: Generated allocation summaries as JSON
 - `free_summaries`: Generated free/deallocation summaries as JSON
+- `init_summaries`: Generated initialization summaries as JSON
 - `call_edges`: Call graph with callsite locations
 - `address_taken_functions`: Functions whose addresses are taken
 - `address_flows`: Where function addresses flow to
@@ -140,12 +143,15 @@ Pre-defined allocation and free summaries for common C standard library function
 **Free summaries:**
 - `free`, `realloc`, `fclose`, `closedir`, `munmap`, `freeaddrinfo`
 
+**Init summaries:**
+- `calloc`, `memset`, `memcpy`, `memmove`, `strncpy`, `snprintf`, `strdup`, `strndup`
+
 ### 10. CLI (`cli.py`)
 
 Command-line interface using Click.
 
 **Commands:**
-- `summarize`: Generate allocation and/or free summaries (`--type allocation`, `--type free`)
+- `summarize`: Generate allocation, free, and/or init summaries (`--type allocation`, `--type free`, `--type init`)
 - `extract`: Function and call graph extraction only
 - `callgraph`: Export call graph
 - `show`: Display summaries
@@ -244,15 +250,20 @@ Feeds temporal safety checks (use-after-free, double-free).
 **DB table:** `free_summaries`
 **CLI:** `llm-summary summarize --type free`
 
-### Pass 3: Initialization Summary (post-condition) — planned
+### Pass 3: Initialization Summary (post-condition) — implemented
 
-Captures which memory gets initialized by each function.
+Captures what each function **always** initializes on all non-error exit paths (caller-visible only).
 
-- Which output parameters, fields, or allocated buffers are initialized
-- Partial vs. full initialization
-- Conditional initialization (only on success path, etc.)
+- **Target**: what gets initialized (`*out`, `ctx->data`, `return value`)
+- **Target kind**: `parameter` (output param), `field` (struct field via param), or `return_value`
+- **Initializer**: how it's initialized (`memset`, `assignment`, `calloc`, `callee:func_name`)
+- **Byte count**: how many bytes (`n`, `sizeof(T)`, `full`, or null)
 
-Feeds uninitialized-use checks.
+Only unconditional, guaranteed initializations visible to the caller. Local variables are excluded (not a post-condition). Feeds uninitialized-use checks (Pass 5).
+
+**Summarizer:** `InitSummarizer` (`init_summarizer.py`)
+**DB table:** `init_summaries`
+**CLI:** `llm-summary summarize --type init`
 
 ### Pass 4: Access Precondition (pre-condition) — planned
 
