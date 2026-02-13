@@ -36,6 +36,7 @@ class Function:
     line_end: int
     source: str
     signature: str
+    canonical_signature: str | None = None
     id: int | None = None
     source_hash: str | None = None
 

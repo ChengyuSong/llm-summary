@@ -29,6 +29,7 @@ CREATE TABLE IF NOT EXISTS functions (
     id INTEGER PRIMARY KEY,
     name TEXT NOT NULL,
     signature TEXT NOT NULL,
+    canonical_signature TEXT,
     file_path TEXT NOT NULL,
     line_start INTEGER,
     line_end INTEGER,
@@ -144,6 +145,17 @@ CREATE TABLE IF NOT EXISTS container_summaries (
     UNIQUE(function_id)
 );
 
+-- Typedefs extracted from source
+CREATE TABLE IF NOT EXISTS typedefs (
+    id INTEGER PRIMARY KEY,
+    name TEXT NOT NULL,
+    underlying_type TEXT NOT NULL,
+    canonical_type TEXT NOT NULL,
+    file_path TEXT NOT NULL,
+    line_number INTEGER,
+    UNIQUE(name, file_path)
+);
+
 -- Indexes for fast lookups
 CREATE INDEX IF NOT EXISTS idx_functions_name ON functions(name);
 CREATE INDEX IF NOT EXISTS idx_functions_file ON functions(file_path);
@@ -154,6 +166,7 @@ CREATE INDEX IF NOT EXISTS idx_indirect_callsites_caller ON indirect_callsites(c
 CREATE INDEX IF NOT EXISTS idx_flow_summaries_function ON address_flow_summaries(function_id);
 CREATE INDEX IF NOT EXISTS idx_build_configs_name ON build_configs(project_name);
 CREATE INDEX IF NOT EXISTS idx_container_summaries_function ON container_summaries(function_id);
+CREATE INDEX IF NOT EXISTS idx_typedefs_name ON typedefs(name);
 """
 
 
@@ -192,6 +205,13 @@ class SummaryDB:
             # instead just create a new unique index (old UNIQUE(function_id) stays as-is for old DBs)
             self.conn.commit()
 
+        # Add canonical_signature column to functions if missing
+        cursor = self.conn.execute("PRAGMA table_info(functions)")
+        columns = {row[1] for row in cursor.fetchall()}
+        if "canonical_signature" not in columns:
+            self.conn.execute("ALTER TABLE functions ADD COLUMN canonical_signature TEXT")
+            self.conn.commit()
+
     def close(self) -> None:
         """Close the database connection."""
         self.conn.close()
@@ -204,12 +224,13 @@ class SummaryDB:
         cursor = self.conn.execute(
             """
             INSERT OR REPLACE INTO functions
-            (name, signature, file_path, line_start, line_end, source, source_hash)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            (name, signature, canonical_signature, file_path, line_start, line_end, source, source_hash)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 func.name,
                 func.signature,
+                func.canonical_signature,
                 func.file_path,
                 func.line_start,
                 func.line_end,
@@ -267,10 +288,16 @@ class SummaryDB:
 
     def _row_to_function(self, row: sqlite3.Row) -> Function:
         """Convert a database row to a Function object."""
+        # canonical_signature may be absent in old DBs
+        try:
+            canonical_signature = row["canonical_signature"]
+        except (IndexError, KeyError):
+            canonical_signature = None
         return Function(
             id=row["id"],
             name=row["name"],
             signature=row["signature"],
+            canonical_signature=canonical_signature,
             file_path=row["file_path"],
             line_start=row["line_start"],
             line_end=row["line_end"],
@@ -890,6 +917,63 @@ class SummaryDB:
         self.conn.commit()
         return cursor.rowcount
 
+    # ========== Typedef Operations ==========
+
+    def insert_typedef(
+        self,
+        name: str,
+        underlying_type: str,
+        canonical_type: str,
+        file_path: str,
+        line_number: int | None = None,
+    ) -> int:
+        """Insert a typedef. Ignores duplicates (same name+file)."""
+        cursor = self.conn.execute(
+            """
+            INSERT OR IGNORE INTO typedefs
+            (name, underlying_type, canonical_type, file_path, line_number)
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            (name, underlying_type, canonical_type, file_path, line_number),
+        )
+        self.conn.commit()
+        return cursor.lastrowid
+
+    def insert_typedefs_batch(self, typedefs: list[dict]) -> None:
+        """Batch insert typedefs. Each dict has name, underlying_type, canonical_type, file_path, line_number."""
+        self.conn.executemany(
+            """
+            INSERT OR IGNORE INTO typedefs
+            (name, underlying_type, canonical_type, file_path, line_number)
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            [
+                (
+                    td["name"],
+                    td["underlying_type"],
+                    td["canonical_type"],
+                    td["file_path"],
+                    td.get("line_number"),
+                )
+                for td in typedefs
+            ],
+        )
+        self.conn.commit()
+
+    def get_typedef(self, name: str) -> dict | None:
+        """Look up a typedef by name. Returns the first match or None."""
+        row = self.conn.execute(
+            "SELECT * FROM typedefs WHERE name = ?", (name,)
+        ).fetchone()
+        if row:
+            return dict(row)
+        return None
+
+    def get_all_typedefs(self) -> list[dict]:
+        """Get all typedefs."""
+        rows = self.conn.execute("SELECT * FROM typedefs").fetchall()
+        return [dict(row) for row in rows]
+
     # ========== Call Graph Import Helpers ==========
 
     def find_function_by_name(self, name: str) -> Function | None:
@@ -959,6 +1043,7 @@ class SummaryDB:
             "container_summaries",
             "call_edges",
             "allocation_summaries",
+            "typedefs",
             "functions",
             "build_configs",
         ]
@@ -979,6 +1064,7 @@ class SummaryDB:
             "indirect_callsites",
             "indirect_call_targets",
             "container_summaries",
+            "typedefs",
             "build_configs",
         ]
         for table in tables:

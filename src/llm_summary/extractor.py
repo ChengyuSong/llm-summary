@@ -53,6 +53,19 @@ def get_type_spelling(cursor: Cursor) -> str:
     return f"{result_type}({', '.join(params)})"
 
 
+def get_canonical_type_spelling(cursor: Cursor) -> str:
+    """Get a canonical (typedef-resolved) type spelling for a function."""
+    result_type = cursor.result_type.get_canonical().spelling
+    params = []
+
+    for child in cursor.get_children():
+        if child.kind == CursorKind.PARM_DECL:
+            param_type = child.type.get_canonical().spelling
+            params.append(param_type)
+
+    return f"{result_type}({', '.join(params)})"
+
+
 def get_function_source(cursor: Cursor, file_contents: dict[str, str]) -> str:
     """Extract source code for a function from file contents."""
     file_path = str(cursor.location.file)
@@ -242,6 +255,10 @@ class FunctionExtractor:
         # Get qualified name for C++ methods
         name = self._get_qualified_name(cursor)
         signature = get_type_spelling(cursor)
+        canonical_signature = get_canonical_type_spelling(cursor)
+        # Only store canonical_signature if it differs from signature
+        if canonical_signature == signature:
+            canonical_signature = None
 
         return Function(
             name=name,
@@ -250,6 +267,7 @@ class FunctionExtractor:
             line_end=cursor.extent.end.line,
             source=source,
             signature=signature,
+            canonical_signature=canonical_signature,
         )
 
     def _get_qualified_name(self, cursor: Cursor) -> str:
@@ -272,6 +290,43 @@ class FunctionExtractor:
 
         parts.reverse()
         return "::".join(parts) if len(parts) > 1 else (parts[0] if parts else "")
+
+    def extract_typedefs_from_file(self, file_path: str | Path) -> list[dict]:
+        """
+        Extract all typedef declarations from a source file.
+
+        Returns list of dicts with: name, underlying_type, canonical_type, file_path, line_number
+        """
+        file_path = Path(file_path).resolve()
+        args = self._get_compile_args(file_path)
+
+        try:
+            tu = self.index.parse(
+                str(file_path),
+                args=args,
+                options=TranslationUnit.PARSE_DETAILED_PROCESSING_RECORD,
+            )
+        except Exception:
+            return []
+
+        typedefs = []
+        main_file = str(file_path)
+
+        for child in tu.cursor.get_children():
+            if child.location.file and str(child.location.file) != main_file:
+                continue
+            if child.kind == CursorKind.TYPEDEF_DECL:
+                underlying = child.underlying_typedef_type.spelling
+                canonical = child.underlying_typedef_type.get_canonical().spelling
+                typedefs.append({
+                    "name": child.spelling,
+                    "underlying_type": underlying,
+                    "canonical_type": canonical,
+                    "file_path": main_file,
+                    "line_number": child.location.line,
+                })
+
+        return typedefs
 
     def _get_full_source(self, cursor: Cursor) -> str:
         """Get the full source code of a function including body."""

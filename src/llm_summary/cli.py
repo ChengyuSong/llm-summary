@@ -1042,6 +1042,150 @@ def show_containers(db_path, fmt):
         db.close()
 
 
+@main.command("find-allocator-candidates")
+@click.option("--db", "db_path", default="summaries.db", help="Database file path")
+@click.option("--output", "-o", "output_path", required=True, type=click.Path(), help="Output JSON path")
+@click.option("--backend", type=click.Choice(["claude", "openai", "ollama", "llamacpp", "gemini"]), default="ollama")
+@click.option("--model", default=None, help="Model name to use")
+@click.option("--llm-host", default="localhost", help="Hostname for local LLM backends (llamacpp, ollama)")
+@click.option("--llm-port", default=None, type=int, help="Port for local LLM backends (llamacpp: 8080, ollama: 11434)")
+@click.option("--disable-thinking", is_flag=True, help="Disable thinking/reasoning mode")
+@click.option("--min-score", default=5, type=int, help="Minimum heuristic score (default: 5)")
+@click.option("--heuristic-only", is_flag=True, help="Skip LLM, output all candidates above threshold")
+@click.option("--include-stdlib", is_flag=True, help="Include well-known stdlib allocators in confirmed list")
+@click.option("--verbose", "-v", is_flag=True, help="Verbose output")
+@click.option("--log-llm", type=click.Path(), default=None, help="Log all LLM prompts and responses to file")
+def find_allocator_candidates(
+    db_path, output_path, backend, model, llm_host, llm_port, disable_thinking,
+    min_score, heuristic_only, include_stdlib, verbose, log_llm
+):
+    """Find allocator function candidates for KAMain's --allocator-file.
+
+    Uses heuristic scoring to find candidates, optionally confirms with LLM.
+    Outputs JSON with {candidates: [...], confirmed: [...]}.
+
+    Example:
+        llm-summary find-allocator-candidates --db functions.db -o alloc.json --heuristic-only -v
+        llm-summary find-allocator-candidates --db functions.db -o alloc.json --backend ollama --model qwen3
+    """
+    from .allocator import AllocatorDetector, STDLIB_ALLOCATORS
+
+    # Infer project name from DB path
+    db_dir = Path(db_path).resolve().parent
+    project_name = db_dir.name if db_dir.name != "." else Path(db_path).stem
+
+    db = SummaryDB(db_path)
+
+    try:
+        functions = db.get_all_functions()
+        if not functions:
+            console.print("[red]No functions in database. Run 'extract' or 'scan' first.[/red]")
+            return
+
+        console.print(f"Database: {db_path} ({len(functions)} functions, project: {project_name})")
+
+        if heuristic_only:
+            detector = AllocatorDetector(
+                db, llm=None, verbose=verbose, min_score=min_score,
+                project_name=project_name,
+            )
+            scored = detector.heuristic_only()
+
+            if not scored:
+                console.print("[yellow]No candidates found above threshold.[/yellow]")
+                output = {"candidates": [], "confirmed": []}
+                with open(output_path, "w") as f:
+                    json.dump(output, f, indent=2)
+                console.print(f"Wrote empty result to {output_path}")
+                return
+
+            # Display results
+            table = Table(title=f"Allocator Candidates (score >= {min_score})")
+            table.add_column("Score", justify="right", style="green")
+            table.add_column("Function", style="cyan")
+            table.add_column("File", style="dim")
+            table.add_column("Signals")
+
+            scored.sort(key=lambda x: x[1], reverse=True)
+
+            for func, score, signals in scored:
+                signal_strs = [s.split(": ", 1)[0] if ": " in s else s for s in signals]
+                table.add_row(
+                    str(score),
+                    func.name,
+                    Path(func.file_path).name if func.file_path else "?",
+                    ", ".join(signal_strs),
+                )
+
+            console.print(table)
+
+            candidate_names = [func.name for func, _, _ in scored]
+            confirmed_names = []
+            if include_stdlib:
+                for name in sorted(STDLIB_ALLOCATORS):
+                    confirmed_names.append(name)
+
+            output = {"candidates": candidate_names, "confirmed": confirmed_names}
+            with open(output_path, "w") as f:
+                json.dump(output, f, indent=2)
+
+            stats = detector.stats
+            console.print(f"\nTotal candidates: {len(candidate_names)}")
+            console.print(f"Functions scanned: {stats['functions_scanned']}")
+            console.print(f"Wrote {output_path}")
+            return
+
+        # Full mode: heuristic + LLM
+        backend_kwargs = {}
+        if backend == "llamacpp":
+            backend_kwargs["host"] = llm_host
+            backend_kwargs["port"] = llm_port if llm_port is not None else 8080
+        elif backend == "ollama":
+            if llm_port is None:
+                llm_port = 11434
+            backend_kwargs["base_url"] = f"http://{llm_host}:{llm_port}"
+
+        if disable_thinking:
+            backend_kwargs["enable_thinking"] = False
+
+        llm = create_backend(backend, model=model, **backend_kwargs)
+        console.print(f"Using {backend} backend ({llm.model})")
+
+        detector = AllocatorDetector(
+            db, llm=llm, verbose=verbose, log_file=log_llm,
+            min_score=min_score, project_name=project_name,
+        )
+
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            console=console,
+        ) as progress:
+            task = progress.add_task("Detecting allocator functions...", total=None)
+            candidates, confirmed = detector.detect_all(include_stdlib=include_stdlib)
+            progress.update(task, completed=True)
+
+        output = {"candidates": candidates, "confirmed": confirmed}
+        with open(output_path, "w") as f:
+            json.dump(output, f, indent=2)
+
+        stats = detector.stats
+        console.print(f"\nAllocator detection complete:")
+        console.print(f"  Functions scanned: {stats['functions_scanned']}")
+        console.print(f"  Candidates (score >= {min_score}): {stats['candidates']}")
+        console.print(f"  LLM calls: {stats['llm_calls']}")
+        console.print(f"  Confirmed allocators: {stats['confirmed']}")
+        if stats["input_tokens"] > 0 or stats["output_tokens"] > 0:
+            total_tok = stats['input_tokens'] + stats['output_tokens']
+            console.print(f"  Tokens: {total_tok:,} ({stats['input_tokens']:,} in + {stats['output_tokens']:,} out)")
+        if stats["errors"] > 0:
+            console.print(f"  [yellow]Errors: {stats['errors']}[/yellow]")
+        console.print(f"  Wrote {output_path}")
+
+    finally:
+        db.close()
+
+
 @main.command()
 @click.option("--compile-commands", "compile_commands_path", type=click.Path(exists=True), required=True,
               help="Path to compile_commands.json")
@@ -1093,6 +1237,7 @@ def scan(compile_commands_path, db_path, verbose):
 
         extractor = FunctionExtractor(compile_commands=compile_commands)
         all_functions = []
+        all_typedefs = []
         extract_errors = 0
 
         with Progress(
@@ -1109,8 +1254,10 @@ def scan(compile_commands_path, db_path, verbose):
                 try:
                     functions = extractor.extract_from_file(f)
                     all_functions.extend(functions)
+                    typedefs = extractor.extract_typedefs_from_file(f)
+                    all_typedefs.extend(typedefs)
                     if verbose:
-                        progress.console.print(f"  {Path(f).name}: {len(functions)} functions")
+                        progress.console.print(f"  {Path(f).name}: {len(functions)} functions, {len(typedefs)} typedefs")
                 except Exception as e:
                     extract_errors += 1
                     if verbose:
@@ -1118,7 +1265,9 @@ def scan(compile_commands_path, db_path, verbose):
                 progress.advance(task)
 
         db.insert_functions_batch(all_functions)
+        db.insert_typedefs_batch(all_typedefs)
         console.print(f"  Functions: {len(all_functions)}")
+        console.print(f"  Typedefs: {len(all_typedefs)}")
         if extract_errors:
             console.print(f"  [yellow]Errors: {extract_errors}[/yellow]")
 
