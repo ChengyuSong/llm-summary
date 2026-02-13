@@ -114,7 +114,8 @@ SQLite storage for all analysis data.
 
 **Tables:**
 - `functions`: Function metadata and source
-- `allocation_summaries`: Generated summaries as JSON
+- `allocation_summaries`: Generated allocation summaries as JSON
+- `free_summaries`: Generated free/deallocation summaries as JSON
 - `call_edges`: Call graph with callsite locations
 - `address_taken_functions`: Functions whose addresses are taken
 - `address_flows`: Where function addresses flow to
@@ -123,20 +124,23 @@ SQLite storage for all analysis data.
 
 ### 8. Standard Library (`stdlib.py`)
 
-Pre-defined summaries for common C standard library functions.
+Pre-defined allocation and free summaries for common C standard library functions.
 
-**Covered functions:**
+**Allocation summaries:**
 - Memory: `malloc`, `calloc`, `realloc`, `free`, `aligned_alloc`
 - Strings: `strdup`, `strndup`, `asprintf`
 - Files: `fopen`, `fdopen`, `tmpfile`, `opendir`
 - Memory mapping: `mmap`, `munmap`
+
+**Free summaries:**
+- `free`, `realloc`, `fclose`, `closedir`, `munmap`, `freeaddrinfo`
 
 ### 9. CLI (`cli.py`)
 
 Command-line interface using Click.
 
 **Commands:**
-- `analyze`: Full analysis with LLM
+- `summarize`: Generate allocation and/or free summaries (`--type allocation`, `--type free`)
 - `extract`: Function and call graph extraction only
 - `callgraph`: Export call graph
 - `show`: Display summaries
@@ -216,16 +220,22 @@ Captures memory allocations and buffer-size pairs produced by each function.
 
 **Summarizer:** `AllocationSummarizer`
 
-### Pass 2: Free Summary (post-condition) — planned
+### Pass 2: Free Summary (post-condition) — implemented
 
 Captures which buffers get freed by each function.
 
-- Which parameter, field, or return value gets freed
-- Via which deallocator (`free`, `png_free`, etc.)
-- Conditional or unconditional
-- Whether the pointer is nulled after free
+- **Target**: what gets freed (`ptr`, `info_ptr->palette`, `row_buf`)
+- **Target kind**: `parameter`, `field`, `local`, or `return_value`
+- **Deallocator**: `free`, `png_free`, `g_free`, or project-specific
+- **Conditional**: whether the free is inside an if/error path
+- **Nulled after**: whether the pointer is set to NULL after free
+- Supports project-specific deallocators via `--deallocator-file`
 
 Feeds temporal safety checks (use-after-free, double-free).
+
+**Summarizer:** `FreeSummarizer` (`free_summarizer.py`)
+**DB table:** `free_summaries`
+**CLI:** `llm-summary summarize --type free`
 
 ### Pass 3: Initialization Summary (post-condition) — planned
 
