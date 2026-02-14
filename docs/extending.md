@@ -1,6 +1,74 @@
 # Extending the Tool
 
-This document describes how to extend and customize the tool.
+This document describes how to extend, customize, and consume results from the tool.
+
+## Consuming Analysis Results
+
+The analysis pipeline produces a SQLite database with per-function summaries across five passes. This section explains how to interpret and query the results.
+
+### Pass Structure
+
+Each function has up to five summary records, built bottom-up (callees before callers):
+
+| Pass | Table | What it captures | Key fields |
+|---|---|---|---|
+| 1 — Allocation | `allocation_summaries` | What gets allocated, sizes, may-be-null | `allocations[].source`, `size_expr`, `may_be_null`, `buffer_size_pairs` |
+| 2 — Free | `free_summaries` | What gets freed, conditionally, nulled-after | `frees[].target`, `deallocator`, `conditional`, `nulled_after` |
+| 3 — Init | `init_summaries` | What gets initialized (caller-visible) | `inits[].target`, `initializer`, `byte_count` |
+| 4 — Memsafe | `memsafe_summaries` | Pre-conditions required for safe execution | `contracts[].target`, `contract_kind`, `size_expr` |
+| 5 — Verify | `verification_summaries` | Verified issues + simplified contracts | `issues[]`, `simplified_contracts[]` |
+
+Passes 1-3 are **post-conditions** (what functions produce). Pass 4 is **pre-conditions** (what functions require). Pass 5 checks post-conditions against pre-conditions and simplifies.
+
+For full table schemas and JSON formats, see [database.md](database.md). For the conceptual framework (Hoare-logic approach, safety classes), see [architecture.md](architecture.md).
+
+### Pass 5 Supersedes Pass 4
+
+After verification, use `verification_summaries.simplified_contracts` instead of raw `memsafe_summaries.contracts`. Simplified contracts are the subset that the function does NOT satisfy internally — only these propagate to callers. If a function has no verification summary yet, fall back to raw Pass 4 contracts.
+
+### Querying Issues
+
+```sql
+-- All high-severity issues with function context
+SELECT f.name, f.file_path, v.summary_json
+FROM verification_summaries v
+JOIN functions f ON v.function_id = f.id
+WHERE json_extract(v.summary_json, '$.issues') != '[]';
+```
+
+```python
+from llm_summary.db import SummaryDB
+
+db = SummaryDB("functions.db")
+for func in db.get_all_functions():
+    vs = db.get_verification_summary_by_function_id(func.id)
+    if vs is None:
+        continue
+    for issue in vs.issues:
+        if issue.severity == "high":
+            print(f"{func.name}: {issue.issue_kind} at {issue.location}")
+            if issue.callee:
+                # Cross-reference: look up callee's contracts
+                callee_funcs = db.get_function_by_name(issue.callee)
+                for cf in callee_funcs:
+                    ms = db.get_memsafe_summary_by_function_id(cf.id)
+                    # ms.contracts has the violated pre-condition
+```
+
+### Cross-Pass Correlation
+
+An issue in Pass 5 references data from earlier passes. To get full context:
+
+- **`buffer_overflow`** with `callee` set: look up the callee's `buffer_size` contract in `memsafe_summaries`, and the caller's allocation size in `allocation_summaries`
+- **`use_after_free`** / **`double_free`**: look up what the callee frees in `free_summaries`
+- **`uninitialized_use`**: check what the callee initializes in `init_summaries`
+- **`null_deref`**: check `allocation_summaries` for `may_be_null` on the relevant allocation
+
+### Issue Severity
+
+- **high**: definite violation (unconditional unsafe op, no guard) — likely real bugs
+- **medium**: potential violation depending on caller behavior — need caller context to confirm
+- **low**: unlikely (error path only, defensive concern) — informational
 
 ## Adding a New LLM Backend
 
