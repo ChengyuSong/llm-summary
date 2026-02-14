@@ -197,6 +197,55 @@ CREATE TABLE memsafe_summaries (
 
 **`size_expr` and `relationship`:** Only present for `buffer_size` contracts.
 
+### `verification_summaries`
+
+Stores verification results and simplified contracts (Pass 5).
+
+```sql
+CREATE TABLE verification_summaries (
+    id INTEGER PRIMARY KEY,
+    function_id INTEGER REFERENCES functions(id) ON DELETE CASCADE,
+    summary_json TEXT NOT NULL,   -- Full JSON summary
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    model_used TEXT,              -- Which LLM generated this
+    UNIQUE(function_id)
+);
+```
+
+**Summary JSON format:**
+```json
+{
+  "function": "process_data",
+  "simplified_contracts": [
+    {
+      "target": "buf",
+      "contract_kind": "buffer_size",
+      "description": "buf must point to at least len bytes",
+      "size_expr": "len",
+      "relationship": "byte_count"
+    }
+  ],
+  "issues": [
+    {
+      "location": "call to memcpy at line 42",
+      "issue_kind": "buffer_overflow",
+      "description": "memcpy destination may be too small",
+      "severity": "high",
+      "callee": "memcpy",
+      "contract_kind": "buffer_size"
+    }
+  ],
+  "description": "buf size contract propagated; memcpy may overflow if caller passes insufficient buffer."
+}
+```
+
+**`issue_kind` values:** `null_deref`, `buffer_overflow`, `use_after_free`, `double_free`, `uninitialized_use`
+
+**`severity` values:** `high` (definite violation), `medium` (depends on caller), `low` (unlikely/defensive)
+
+**`simplified_contracts`:** Reuses `MemsafeContract` format — the subset of Pass 4 contracts NOT satisfied internally by the function.
+
 ### `call_edges`
 
 Stores the call graph with callsite information.
@@ -389,6 +438,7 @@ functions
     ├──1:1──▶ free_summaries
     ├──1:1──▶ init_summaries
     ├──1:1──▶ memsafe_summaries
+    ├──1:1──▶ verification_summaries
     ├──1:1──▶ container_summaries
     │
     ├──1:N──▶ call_edges (as caller)

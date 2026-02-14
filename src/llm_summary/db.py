@@ -27,7 +27,9 @@ from .models import (
     ParameterInfo,
     MemsafeContract,
     MemsafeSummary,
+    SafetyIssue,
     TargetType,
+    VerificationSummary,
 )
 
 SCHEMA = """
@@ -80,6 +82,17 @@ CREATE TABLE IF NOT EXISTS init_summaries (
 
 -- Safety contract summaries table (pre-conditions)
 CREATE TABLE IF NOT EXISTS memsafe_summaries (
+    id INTEGER PRIMARY KEY,
+    function_id INTEGER REFERENCES functions(id) ON DELETE CASCADE,
+    summary_json TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    model_used TEXT,
+    UNIQUE(function_id)
+);
+
+-- Verification summaries table (Pass 5)
+CREATE TABLE IF NOT EXISTS verification_summaries (
     id INTEGER PRIMARY KEY,
     function_id INTEGER REFERENCES functions(id) ON DELETE CASCADE,
     summary_json TEXT NOT NULL,
@@ -697,6 +710,72 @@ class SummaryDB:
             description=data.get("description", ""),
         )
 
+    # ========== Verification Summary Operations ==========
+
+    def upsert_verification_summary(
+        self, func: Function, summary: VerificationSummary, model_used: str = ""
+    ) -> None:
+        """Insert or update a verification summary."""
+        if func.id is None:
+            raise ValueError("Function must have an ID")
+
+        summary_json = json.dumps(summary.to_dict())
+        self.conn.execute(
+            """
+            INSERT INTO verification_summaries (function_id, summary_json, model_used)
+            VALUES (?, ?, ?)
+            ON CONFLICT(function_id) DO UPDATE SET
+                summary_json = excluded.summary_json,
+                updated_at = CURRENT_TIMESTAMP,
+                model_used = excluded.model_used
+            """,
+            (func.id, summary_json, model_used),
+        )
+        self.conn.commit()
+
+    def get_verification_summary_by_function_id(
+        self, func_id: int
+    ) -> VerificationSummary | None:
+        """Get verification summary for a function by ID."""
+        row = self.conn.execute(
+            "SELECT summary_json FROM verification_summaries WHERE function_id = ?",
+            (func_id,),
+        ).fetchone()
+        if row:
+            return self._json_to_verification_summary(row["summary_json"])
+        return None
+
+    def _json_to_verification_summary(self, json_str: str) -> VerificationSummary:
+        """Convert JSON string to VerificationSummary."""
+        data = json.loads(json_str)
+        contracts = [
+            MemsafeContract(
+                target=c.get("target", ""),
+                contract_kind=c.get("contract_kind", "not_null"),
+                description=c.get("description", ""),
+                size_expr=c.get("size_expr"),
+                relationship=c.get("relationship"),
+            )
+            for c in data.get("simplified_contracts", [])
+        ]
+        issues = [
+            SafetyIssue(
+                location=i.get("location", ""),
+                issue_kind=i.get("issue_kind", "null_deref"),
+                description=i.get("description", ""),
+                severity=i.get("severity", "medium"),
+                callee=i.get("callee"),
+                contract_kind=i.get("contract_kind"),
+            )
+            for i in data.get("issues", [])
+        ]
+        return VerificationSummary(
+            function_name=data.get("function", ""),
+            simplified_contracts=contracts,
+            issues=issues,
+            description=data.get("description", ""),
+        )
+
     # ========== Call Graph Operations ==========
 
     def add_call_edge(self, edge: CallEdge) -> int:
@@ -1290,6 +1369,7 @@ class SummaryDB:
             "free_summaries",
             "init_summaries",
             "memsafe_summaries",
+            "verification_summaries",
             "typedefs",
             "functions",
             "build_configs",
@@ -1307,6 +1387,7 @@ class SummaryDB:
             "free_summaries",
             "init_summaries",
             "memsafe_summaries",
+            "verification_summaries",
             "call_edges",
             "address_taken_functions",
             "address_flows",

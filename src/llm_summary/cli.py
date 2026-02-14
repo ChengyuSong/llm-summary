@@ -20,7 +20,7 @@ from .indirect import (
     IndirectCallResolver,
 )
 from .llm import create_backend
-from .driver import AllocationPass, BottomUpDriver, FreePass, InitPass, MemsafePass
+from .driver import AllocationPass, BottomUpDriver, FreePass, InitPass, MemsafePass, VerificationPass
 from .ordering import ProcessingOrderer
 from .summarizer import AllocationSummarizer
 from .stdlib import get_all_stdlib_summaries
@@ -63,12 +63,12 @@ def main():
 @click.option("--init-stdlib", is_flag=True, help="Auto-populate stdlib summaries before starting")
 @click.option("--allocator-file", type=click.Path(exists=True), default=None,
               help="JSON file with custom allocator names (e.g. from find-allocator-candidates)")
-@click.option("--type", "summary_types", multiple=True, type=click.Choice(["allocation", "free", "init", "memsafe"]),
+@click.option("--type", "summary_types", multiple=True, type=click.Choice(["allocation", "free", "init", "memsafe", "verify"]),
               help="Summary pass(es) to run (default: allocation). Can be specified multiple times.")
 @click.option("--deallocator-file", type=click.Path(exists=True), default=None,
               help="JSON file with custom deallocator names (for free pass)")
 def summarize(db_path, backend, model, llm_host, llm_port, disable_thinking, verbose, force, log_llm, init_stdlib, allocator_file, summary_types, deallocator_file):
-    """Generate allocation, free, init, and/or memsafe summaries on a pre-populated database.
+    """Generate allocation, free, init, memsafe, and/or verify summaries on a pre-populated database.
 
     Requires a database that already has functions and call_edges
     (populated via 'extract', 'scan', and/or 'import-callgraph').
@@ -78,12 +78,13 @@ def summarize(db_path, backend, model, llm_host, llm_port, disable_thinking, ver
         --type free
         --type init
         --type memsafe
+        --type verify      (requires all four prior passes)
         --type allocation --type free --type init --type memsafe  (run all)
 
     Example:
         llm-summary summarize --db func-scans/libpng/functions.db --backend ollama --model qwen3 -v
         llm-summary summarize --db func-scans/libpng/functions.db --type free --backend llamacpp -v
-        llm-summary summarize --db func-scans/libpng/functions.db --type memsafe --backend ollama -v
+        llm-summary summarize --db func-scans/libpng/functions.db --type verify --backend ollama -v
     """
     # Default to allocation if no --type given
     if not summary_types:
@@ -102,6 +103,18 @@ def summarize(db_path, backend, model, llm_host, llm_port, disable_thinking, ver
 
         if edge_count == 0:
             console.print("[yellow]Warning: No call edges in database. Summaries will lack callee context.[/yellow]")
+
+        # Prerequisite check for verify pass
+        if "verify" in summary_types:
+            missing = []
+            for req_table in ["allocation_summaries", "free_summaries", "init_summaries", "memsafe_summaries"]:
+                if stats.get(req_table, 0) == 0:
+                    missing.append(req_table.replace("_summaries", "").replace("_", " "))
+            if missing:
+                console.print(f"[red]Error: --type verify requires all four prior passes. "
+                              f"Missing: {', '.join(missing)}. "
+                              f"Run --type allocation --type free --type init --type memsafe first.[/red]")
+                return
 
         console.print(f"Database: {db_path}")
         console.print(f"  Functions: {func_count}")
@@ -198,6 +211,13 @@ def summarize(db_path, backend, model, llm_host, llm_port, disable_thinking, ver
             memsafe_summarizer = MemsafeSummarizer(db, llm, verbose=verbose, log_file=log_llm)
             passes.append(MemsafePass(memsafe_summarizer, db, llm.model))
 
+        verification_summarizer = None
+        if "verify" in summary_types:
+            from .verification_summarizer import VerificationSummarizer
+
+            verification_summarizer = VerificationSummarizer(db, llm, verbose=verbose, log_file=log_llm)
+            passes.append(VerificationPass(verification_summarizer, db, llm.model))
+
         pass_names = " + ".join(p.name for p in passes)
         console.print(f"\n[bold]Running passes: {pass_names}[/bold]")
 
@@ -256,6 +276,29 @@ def summarize(db_path, backend, model, llm_host, llm_port, disable_thinking, ver
 
             with_contracts = sum(1 for sm in memsafe_summaries.values() if sm.contracts)
             console.print(f"\nFunctions with safety contracts: {with_contracts}")
+
+        if verification_summarizer is not None:
+            verify_summaries = results["verify"]
+            s = verification_summarizer.stats
+            console.print(f"\nVerification complete:")
+            console.print(f"  Functions processed: {s['functions_processed']}")
+            console.print(f"  LLM calls: {s['llm_calls']}")
+            console.print(f"  Cache hits: {s['cache_hits']}")
+            console.print(f"  Contracts simplified: {s['contracts_simplified']}")
+            if s["errors"] > 0:
+                console.print(f"  [yellow]Errors: {s['errors']}[/yellow]")
+
+            with_issues = sum(1 for sm in verify_summaries.values() if sm.issues)
+            total_issues = sum(len(sm.issues) for sm in verify_summaries.values())
+            high_issues = sum(
+                1 for sm in verify_summaries.values()
+                for issue in sm.issues if issue.severity == "high"
+            )
+            console.print(f"\nFunctions with issues: {with_issues}")
+            issue_msg = f"Total issues: {total_issues}"
+            if high_issues > 0:
+                issue_msg += f" ({high_issues} high severity)"
+            console.print(issue_msg)
 
     finally:
         db.close()

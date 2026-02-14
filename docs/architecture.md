@@ -103,10 +103,11 @@ Unified bottom-up traversal engine. Builds the call graph once, computes SCCs, a
 - `FreePass`: Adapter wrapping `FreeSummarizer`
 - `InitPass`: Adapter wrapping `InitSummarizer`
 - `MemsafePass`: Adapter wrapping `MemsafeSummarizer`
+- `VerificationPass`: Adapter wrapping `VerificationSummarizer`
 
 **Incremental support:** When `dirty_ids` is provided, the driver computes the affected set (dirty functions + transitive callers via reverse edges) and only re-summarizes those; all others load from cache.
 
-### 7. Summary Generators (`summarizer.py`, `free_summarizer.py`, `init_summarizer.py`, `memsafe_summarizer.py`)
+### 7. Summary Generators (`summarizer.py`, `free_summarizer.py`, `init_summarizer.py`, `memsafe_summarizer.py`, `verification_summarizer.py`)
 
 Per-function LLM summarization logic. Each summarizer builds a prompt from the function source and callee summaries, queries the LLM, and parses the structured response.
 
@@ -115,6 +116,7 @@ Per-function LLM summarization logic. Each summarizer builds a prompt from the f
 - `FreeSummarizer`: Free/deallocation analysis
 - `InitSummarizer`: Initialization post-condition analysis
 - `MemsafeSummarizer`: Safety contract (pre-condition) analysis
+- `VerificationSummarizer`: Cross-pass verification and contract simplification
 - `IncrementalSummarizer`: Handles source-change invalidation, delegates re-summarization to `BottomUpDriver`
 
 ### 8. Database (`db.py`)
@@ -127,6 +129,7 @@ SQLite storage for all analysis data.
 - `free_summaries`: Generated free/deallocation summaries as JSON
 - `init_summaries`: Generated initialization summaries as JSON
 - `memsafe_summaries`: Generated safety contract summaries as JSON
+- `verification_summaries`: Generated verification results as JSON
 - `call_edges`: Call graph with callsite locations
 - `address_taken_functions`: Functions whose addresses are taken
 - `address_flows`: Where function addresses flow to
@@ -157,7 +160,7 @@ Pre-defined allocation, free, and initialization summaries for common C standard
 Command-line interface using Click.
 
 **Commands:**
-- `summarize`: Generate allocation, free, init, and/or memsafe summaries (`--type allocation`, `--type free`, `--type init`, `--type memsafe`)
+- `summarize`: Generate allocation, free, init, memsafe, and/or verify summaries (`--type allocation`, `--type free`, `--type init`, `--type memsafe`, `--type verify`)
 - `extract`: Function and call graph extraction only
 - `callgraph`: Export call graph
 - `show`: Display summaries
@@ -288,11 +291,16 @@ Note: uninitialized *read* into a variable is benign; uninitialized *use* (deref
 **DB table:** `memsafe_summaries`
 **CLI:** `llm-summary summarize --type memsafe`
 
-### Pass 5: Verification (LLM-based) — planned
+### Pass 5: Verification & Contract Simplification — implemented
 
-Checks post-conditions against pre-conditions at each call site.
+Cross-pass verification that checks post-conditions against pre-conditions at each call site. For each function, the verifier:
 
-Since summaries are in natural language (e.g., "allocates n+1 bytes" vs. "requires buffer of at least strlen(s)+1 bytes"), mechanical matching is insufficient. The LLM evaluates whether the caller's established post-conditions satisfy the callee's pre-conditions.
+1. **Internal safety check** — does the function itself perform unsafe operations?
+2. **Callee pre-condition satisfaction** — at each call site, are the callee's memsafe contracts satisfied?
+3. **Contract simplification** — removes Pass 4 contracts that the function satisfies internally, keeping only contracts that must propagate to callers.
+4. **Issue reporting** — unsatisfied pre-conditions become `SafetyIssue` findings with severity levels.
+
+The verifier queries the DB directly for Passes 1-3 callee post-conditions and Pass 4 raw contracts (cross-pass data), while receiving `VerificationSummary` callee summaries from the driver for already-verified callees (simplified contracts).
 
 | Safety class | Post-condition passes | Pre-condition (pass 4) |
 |---|---|---|
@@ -302,7 +310,13 @@ Since summaries are in natural language (e.g., "allocates n+1 bytes" vs. "requir
 | Double free | 2 (what's freed) | not-freed contracts |
 | Uninitialized use | 3 (what's initialized) | must-be-initialized contracts |
 
-**Dependencies:** Passes 1-4 are independent and run together in a single `BottomUpDriver` traversal when multiple `--type` flags are given. Pass 5 requires all four preceding passes.
+Issue severity: **high** (definite violation), **medium** (depends on caller), **low** (unlikely/defensive).
+
+**Summarizer:** `VerificationSummarizer` (`verification_summarizer.py`)
+**DB table:** `verification_summaries`
+**CLI:** `llm-summary summarize --type verify`
+
+**Dependencies:** Passes 1-4 are independent and run together in a single `BottomUpDriver` traversal when multiple `--type` flags are given. Pass 5 requires all four prior passes to exist (prerequisite check in CLI).
 
 ## Design Decisions
 

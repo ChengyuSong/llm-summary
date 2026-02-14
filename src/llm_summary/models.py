@@ -207,6 +207,50 @@ class MemsafeSummary:
 
 
 @dataclass
+class SafetyIssue:
+    """A potential memory safety issue found during verification."""
+
+    location: str  # "line 42" or "call to memcpy at line 42"
+    issue_kind: str  # "null_deref", "buffer_overflow", "use_after_free",
+    # "double_free", "uninitialized_use"
+    description: str  # human-readable explanation
+    severity: str  # "high", "medium", "low"
+    callee: str | None = None  # callee whose contract was violated, None if foo's own op
+    contract_kind: str | None = None  # which contract kind was violated
+
+    def to_dict(self) -> dict[str, Any]:
+        result = {
+            "location": self.location,
+            "issue_kind": self.issue_kind,
+            "description": self.description,
+            "severity": self.severity,
+        }
+        if self.callee is not None:
+            result["callee"] = self.callee
+        if self.contract_kind is not None:
+            result["contract_kind"] = self.contract_kind
+        return result
+
+
+@dataclass
+class VerificationSummary:
+    """Complete verification result for a function."""
+
+    function_name: str
+    simplified_contracts: list[MemsafeContract] = field(default_factory=list)
+    issues: list[SafetyIssue] = field(default_factory=list)
+    description: str = ""
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "function": self.function_name,
+            "simplified_contracts": [c.to_dict() for c in self.simplified_contracts],
+            "issues": [i.to_dict() for i in self.issues],
+            "description": self.description,
+        }
+
+
+@dataclass
 class ParameterInfo:
     """Information about a function parameter's role in allocation."""
 
