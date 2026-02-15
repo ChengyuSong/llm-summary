@@ -151,22 +151,44 @@ class AssemblyChecker:
             return str(self.build_dir / docker_path[len(self.DOCKER_BUILD_PREFIX) + 1:])
         return docker_path
 
-    def check(self, scan_ir: bool = True) -> AssemblyCheckResult:
+    def check(self, scan_ir: bool = True, max_findings_per_type: int = 20) -> AssemblyCheckResult:
         """
         Run assembly detection on build artifacts.
 
         Filters out known unavoidable findings so the agent only sees new ones.
+        Stops checking after finding max_findings_per_type in each category to
+        avoid overwhelming the LLM context.
 
         Args:
             scan_ir: Whether to scan LLVM IR files for inline assembly
+            max_findings_per_type: Maximum findings to collect per type before
+                                   stopping (like compiler error limits)
 
         Returns:
             AssemblyCheckResult with new findings (known unavoidable filtered out)
         """
-        # Collect all findings
-        all_standalone = list(self._check_standalone_asm_files())
-        all_inline_sources = list(self._check_inline_asm_in_sources())
-        all_inline_ir = list(self._check_inline_asm_in_ir()) if scan_ir else []
+        from itertools import islice
+
+        # Collect findings, but stop at max_findings_per_type (like compiler error limit)
+        standalone_gen = self._check_standalone_asm_files()
+        inline_sources_gen = self._check_inline_asm_in_sources()
+        inline_ir_gen = self._check_inline_asm_in_ir() if scan_ir else iter([])
+
+        # Use islice to limit findings, then check if there were more
+        all_standalone = list(islice(standalone_gen, max_findings_per_type + 1))
+        standalone_truncated = len(all_standalone) > max_findings_per_type
+        if standalone_truncated:
+            all_standalone = all_standalone[:max_findings_per_type]
+
+        all_inline_sources = list(islice(inline_sources_gen, max_findings_per_type + 1))
+        inline_sources_truncated = len(all_inline_sources) > max_findings_per_type
+        if inline_sources_truncated:
+            all_inline_sources = all_inline_sources[:max_findings_per_type]
+
+        all_inline_ir = list(islice(inline_ir_gen, max_findings_per_type + 1))
+        inline_ir_truncated = len(all_inline_ir) > max_findings_per_type
+        if inline_ir_truncated:
+            all_inline_ir = all_inline_ir[:max_findings_per_type]
 
         # Filter out known unavoidable findings
         standalone, standalone_known = self._filter_unavoidable(all_standalone)
@@ -182,6 +204,9 @@ class AssemblyChecker:
             inline_asm_sources=inline_sources,
             inline_asm_ir=inline_ir,
             known_unavoidable=known_unavoidable,
+            standalone_truncated=standalone_truncated,
+            inline_sources_truncated=inline_sources_truncated,
+            inline_ir_truncated=inline_ir_truncated,
         )
 
         if self.verbose:

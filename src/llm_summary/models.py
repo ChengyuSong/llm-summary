@@ -495,6 +495,10 @@ class AssemblyCheckResult:
     inline_asm_ir: list[AssemblyFinding] = field(default_factory=list)
     # Known unavoidable findings (filtered from above lists)
     known_unavoidable: list[AssemblyFinding] = field(default_factory=list)
+    # Truncation flags (True if checker stopped early due to too many findings)
+    standalone_truncated: bool = False
+    inline_sources_truncated: bool = False
+    inline_ir_truncated: bool = False
 
     @property
     def has_new_assembly(self) -> bool:
@@ -509,17 +513,22 @@ class AssemblyCheckResult:
         parts = []
         if self.standalone_asm_files:
             files = [f.file_path for f in self.standalone_asm_files]
-            parts.append(f"{len(self.standalone_asm_files)} standalone .s/.S/.asm file(s): {', '.join(files[:3])}")
+            count_str = f"{len(self.standalone_asm_files)}+" if self.standalone_truncated else str(len(self.standalone_asm_files))
+            parts.append(f"{count_str} standalone .s/.S/.asm file(s): {', '.join(files[:3])}")
             if len(files) > 3:
                 parts[-1] += f" (+{len(files) - 3} more)"
         if self.inline_asm_sources:
-            parts.append(f"{len(self.inline_asm_sources)} C/C++ file(s) with inline asm")
+            count_str = f"{len(self.inline_asm_sources)}+" if self.inline_sources_truncated else str(len(self.inline_asm_sources))
+            parts.append(f"{count_str} C/C++ file(s) with inline asm")
         if self.inline_asm_ir:
-            parts.append(f"{len(self.inline_asm_ir)} LLVM IR file(s) with inline asm")
+            count_str = f"{len(self.inline_asm_ir)}+" if self.inline_ir_truncated else str(len(self.inline_asm_ir))
+            parts.append(f"{count_str} LLVM IR file(s) with inline asm")
 
         summary = "Assembly detected: " + "; ".join(parts) if parts else "No new assembly"
         if self.known_unavoidable:
             summary += f" ({len(self.known_unavoidable)} known unavoidable filtered)"
+        if self.standalone_truncated or self.inline_sources_truncated or self.inline_ir_truncated:
+            summary += " (stopped checking after limit, more may exist)"
         return summary
 
     def to_dict(self) -> dict[str, Any]:
@@ -533,4 +542,13 @@ class AssemblyCheckResult:
         }
         if self.known_unavoidable:
             result["known_unavoidable_count"] = len(self.known_unavoidable)
+        if self.standalone_truncated:
+            result["standalone_truncated"] = True
+            result["standalone_note"] = "Stopped checking after limit, more files may exist"
+        if self.inline_sources_truncated:
+            result["inline_sources_truncated"] = True
+            result["inline_sources_note"] = "Stopped checking after limit, more files may exist"
+        if self.inline_ir_truncated:
+            result["inline_ir_truncated"] = True
+            result["inline_ir_note"] = "Stopped checking after limit, more files may exist"
         return result

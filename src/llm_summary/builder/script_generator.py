@@ -11,6 +11,22 @@ def _shell_quote(s: str) -> str:
     return shlex.quote(s)
 
 
+def _quote_cmake_flag(flag: str) -> str:
+    """
+    Quote a CMake flag value if it contains spaces.
+
+    Examples:
+        -DCMAKE_C_FLAGS=-g -flto  ->  -DCMAKE_C_FLAGS='-g -flto'
+        -DBUILD_SHARED_LIBS=OFF   ->  -DBUILD_SHARED_LIBS=OFF  (no change)
+    """
+    if '=' in flag:
+        key, value = flag.split('=', 1)
+        # If value contains spaces and isn't already quoted, add quotes
+        if ' ' in value and not (value.startswith('"') or value.startswith("'")):
+            return f"{key}='{value}'"
+    return flag
+
+
 class ScriptGenerator:
     """Generates reusable build scripts for projects."""
 
@@ -165,8 +181,9 @@ class ScriptGenerator:
 
         summary = ", ".join(config_summary) if config_summary else "default"
 
-        # Format CMake flags for script
-        formatted_flags = " \\\n           ".join(cmake_flags)
+        # Format CMake flags for script (quote values with spaces)
+        quoted_flags = [_quote_cmake_flag(flag) for flag in cmake_flags]
+        formatted_flags = " \\\n           ".join(quoted_flags)
 
         # Build dependencies comment block
         deps_comment = ""
@@ -177,6 +194,11 @@ class ScriptGenerator:
                 f"{deps_lines}\n"
                 f"# Install: apt-get install -y {' '.join(dependencies)}\n"
             )
+
+        # Prepare dependency installation command
+        deps_install = ""
+        if dependencies:
+            deps_install = f"apt-get update -qq && apt-get install -y {' '.join(dependencies)} && "
 
         # Generate script content
         script_content = f'''#!/bin/bash
@@ -192,6 +214,7 @@ SCRIPT_DIR="$(cd "$(dirname "${{BASH_SOURCE[0]}}")" && pwd)"
 
 PROJECT_PATH="${{1:-{project_path}}}"
 ARTIFACTS_DIR="${{2:-$SCRIPT_DIR/artifacts}}"
+BUILD_DIR="${{3:-$PROJECT_PATH/build}}"
 
 # ccache support (disable with CCACHE_DISABLE=1)
 CCACHE_HOST_DIR="${{CCACHE_DIR:-$HOME/.cache/llm-summary-ccache}}"
@@ -207,21 +230,23 @@ if [ ! -d "$PROJECT_PATH" ]; then
     exit 1
 fi
 
-# Create artifacts directory
+# Create directories
 mkdir -p "$ARTIFACTS_DIR"
+mkdir -p "$BUILD_DIR"
 
 # Run build in Docker container
 echo "Building {project_name}..."
 docker run --rm \\
   -u $(id -u):$(id -g) \\
   $CCACHE_ARGS \\
-  -v "$PROJECT_PATH":/workspace \\
+  -v "$PROJECT_PATH":/workspace/src \\
+  -v "$BUILD_DIR":/workspace/build \\
   -v "$ARTIFACTS_DIR":/artifacts \\
   -w /workspace/build \\
   {container_image} \\
-  bash -c "cmake -G Ninja \\
+  bash -c "{deps_install}cmake -G Ninja \\
            {formatted_flags} \\
-           .. && \\
+           /workspace/src && \\
            ninja -j\\$(nproc)'''
 
         # Add IR artifact collection if enabled
@@ -236,8 +261,8 @@ docker run --rm \\
         script_content += '''
 
 # Copy compile_commands.json to script directory (build-scripts/<project>/)
-if [ -f "$PROJECT_PATH/build/compile_commands.json" ]; then
-    cp "$PROJECT_PATH/build/compile_commands.json" "$SCRIPT_DIR/"
+if [ -f "$BUILD_DIR/compile_commands.json" ]; then
+    cp "$BUILD_DIR/compile_commands.json" "$SCRIPT_DIR/"
     echo ""
     echo "Build complete."
     echo "  - compile_commands.json: $SCRIPT_DIR/compile_commands.json"
@@ -359,6 +384,11 @@ mkdir -p "$ARTIFACTS_DIR"
             script_content += '''mkdir -p "$BUILD_DIR"
 '''
 
+        # Prepare dependency installation command
+        deps_install = ""
+        if dependencies:
+            deps_install = f"apt-get update -qq && apt-get install -y {' '.join(dependencies)} && "
+
         script_content += f'''
 # Run build in Docker container
 echo "Building {project_name}..."
@@ -373,7 +403,7 @@ echo "Building {project_name}..."
   -v "$ARTIFACTS_DIR":/artifacts \\
   -w {work_dir} \\
   {container_image} \\
-  bash -c "{env_vars} \\
+  bash -c "{deps_install}{env_vars} \\
            {configure_path} {formatted_flags} && \\
            bear -- make -j\\$(nproc)'''
         else:
@@ -384,7 +414,7 @@ echo "Building {project_name}..."
   -v "$ARTIFACTS_DIR":/artifacts \\
   -w {work_dir} \\
   {container_image} \\
-  bash -c "{env_vars} \\
+  bash -c "{deps_install}{env_vars} \\
            {configure_path} {formatted_flags} && \\
            bear -- make -j\\$(nproc)'''
 
@@ -447,6 +477,13 @@ fi
                 f"# Install: apt-get install -y {' '.join(dependencies)}\n"
             )
 
+        # Prepare dependency installation command and prepend to build script
+        if dependencies:
+            deps_install = f"apt-get update -qq && apt-get install -y {' '.join(dependencies)} && "
+            build_script_with_deps = deps_install + build_script
+        else:
+            build_script_with_deps = build_script
+
         # Escape single quotes in build script for heredoc safety
         # We use a heredoc with a quoted delimiter so no variable expansion happens
         script_content = f'''#!/bin/bash
@@ -490,7 +527,7 @@ docker run --rm \\
   -v "$BUILD_DIR":/workspace/build \\
   -w /workspace/build \\
   {container_image} \\
-  bash -c {_shell_quote(build_script)}'''
+  bash -c {_shell_quote(build_script_with_deps)}'''
 
         # Add IR artifact collection
         if enable_ir:
@@ -576,7 +613,7 @@ build-scripts/
 bash libpng/build.sh
 
 # Or specify custom paths
-bash libpng/build.sh /path/to/libpng /path/to/artifacts
+bash libpng/build.sh /path/to/libpng /path/to/artifacts /path/to/build
 ```
 
 **Note:** Scripts are intentionally not executable. Use `bash <script>` to run them.
@@ -588,6 +625,9 @@ bash libpng/build.sh /path/to/libpng /path/to/artifacts
 
 2. **ARTIFACTS_DIR** (optional): Where to store LLVM IR artifacts
    - Default: `build-scripts/<project>/artifacts/`
+
+3. **BUILD_DIR** (optional): Where to perform the build (supports out-of-source builds)
+   - Default: `$PROJECT_PATH/build`
 
 ### What the Script Does
 
