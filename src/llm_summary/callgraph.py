@@ -6,7 +6,6 @@ from typing import TYPE_CHECKING
 from clang.cindex import (
     Cursor,
     CursorKind,
-    TranslationUnit,
 )
 
 from .db import SummaryDB

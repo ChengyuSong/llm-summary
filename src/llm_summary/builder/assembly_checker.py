@@ -3,8 +3,8 @@
 import json
 import re
 import subprocess
+from collections.abc import Iterator
 from pathlib import Path
-from typing import Iterator
 
 from ..compile_commands import CompileCommandsDB
 from ..models import AssemblyCheckResult, AssemblyFinding, AssemblyType
@@ -93,7 +93,7 @@ class AssemblyChecker:
             return
 
         try:
-            with open(self.unavoidable_asm_path, "r") as f:
+            with open(self.unavoidable_asm_path) as f:
                 data = json.load(f)
 
             for item in data.get("unavoidable", []):
@@ -121,7 +121,7 @@ class AssemblyChecker:
         existing: list[dict] = []
         if append and self.unavoidable_asm_path.exists():
             try:
-                with open(self.unavoidable_asm_path, "r") as f:
+                with open(self.unavoidable_asm_path) as f:
                     data = json.load(f)
                     existing = data.get("unavoidable", [])
             except (json.JSONDecodeError, OSError):
@@ -293,7 +293,7 @@ class AssemblyChecker:
         """
         report_path = original_path or file_path
         try:
-            with open(file_path, "r", encoding="utf-8", errors="replace") as f:
+            with open(file_path, encoding="utf-8", errors="replace") as f:
                 for line_num, line in enumerate(f, start=1):
                     # Skip comment lines (simple heuristic)
                     stripped = line.strip()

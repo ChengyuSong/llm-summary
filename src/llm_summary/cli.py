@@ -9,21 +9,28 @@ from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.table import Table
 
+from .callgraph import CallGraphBuilder
 from .compile_commands import CompileCommandsDB
 from .db import SummaryDB
+from .driver import (
+    AllocationPass,
+    BottomUpDriver,
+    FreePass,
+    InitPass,
+    MemsafePass,
+    VerificationPass,
+)
 from .extractor import FunctionExtractor
-from .callgraph import CallGraphBuilder
 from .indirect import (
     AddressTakenScanner,
     FlowSummarizer,
-    IndirectCallsiteFinder,
     IndirectCallResolver,
+    IndirectCallsiteFinder,
 )
 from .llm import create_backend
-from .driver import AllocationPass, BottomUpDriver, FreePass, InitPass, MemsafePass, VerificationPass
 from .ordering import ProcessingOrderer
-from .summarizer import AllocationSummarizer
 from .stdlib import get_all_stdlib_summaries
+from .summarizer import AllocationSummarizer
 
 console = Console()
 
@@ -228,7 +235,7 @@ def summarize(db_path, backend, model, llm_host, llm_port, disable_thinking, ver
         if alloc_summarizer is not None:
             summaries = results["allocation"]
             s = alloc_summarizer.stats
-            console.print(f"\nAllocation summary generation complete:")
+            console.print("\nAllocation summary generation complete:")
             console.print(f"  Functions processed: {s['functions_processed']}")
             console.print(f"  LLM calls: {s['llm_calls']}")
             console.print(f"  Cache hits: {s['cache_hits']}")
@@ -241,7 +248,7 @@ def summarize(db_path, backend, model, llm_host, llm_port, disable_thinking, ver
         if free_summarizer is not None:
             free_summaries = results["free"]
             s = free_summarizer.stats
-            console.print(f"\nFree summary generation complete:")
+            console.print("\nFree summary generation complete:")
             console.print(f"  Functions processed: {s['functions_processed']}")
             console.print(f"  LLM calls: {s['llm_calls']}")
             console.print(f"  Cache hits: {s['cache_hits']}")
@@ -254,7 +261,7 @@ def summarize(db_path, backend, model, llm_host, llm_port, disable_thinking, ver
         if init_summarizer is not None:
             init_summaries = results["init"]
             s = init_summarizer.stats
-            console.print(f"\nInit summary generation complete:")
+            console.print("\nInit summary generation complete:")
             console.print(f"  Functions processed: {s['functions_processed']}")
             console.print(f"  LLM calls: {s['llm_calls']}")
             console.print(f"  Cache hits: {s['cache_hits']}")
@@ -267,7 +274,7 @@ def summarize(db_path, backend, model, llm_host, llm_port, disable_thinking, ver
         if memsafe_summarizer is not None:
             memsafe_summaries = results["memsafe"]
             s = memsafe_summarizer.stats
-            console.print(f"\nMemsafe summary generation complete:")
+            console.print("\nMemsafe summary generation complete:")
             console.print(f"  Functions processed: {s['functions_processed']}")
             console.print(f"  LLM calls: {s['llm_calls']}")
             console.print(f"  Cache hits: {s['cache_hits']}")
@@ -280,7 +287,7 @@ def summarize(db_path, backend, model, llm_host, llm_port, disable_thinking, ver
         if verification_summarizer is not None:
             verify_summaries = results["verify"]
             s = verification_summarizer.stats
-            console.print(f"\nVerification complete:")
+            console.print("\nVerification complete:")
             console.print(f"  Functions processed: {s['functions_processed']}")
             console.print(f"  LLM calls: {s['llm_calls']}")
             console.print(f"  Cache hits: {s['cache_hits']}")
@@ -836,7 +843,7 @@ def indirect_analyze(
                 progress.update(task, completed=True)
 
             stats1 = flow_summarizer.stats
-            console.print(f"Pass 1 complete:")
+            console.print("Pass 1 complete:")
             console.print(f"  Functions processed: {stats1['functions_processed']}")
             console.print(f"  LLM calls: {stats1['llm_calls']}")
             console.print(f"  Cache hits: {stats1['cache_hits']}")
@@ -864,7 +871,7 @@ def indirect_analyze(
             progress.update(task, completed=True)
 
         stats2 = resolver.stats
-        console.print(f"Pass 2 complete:")
+        console.print("Pass 2 complete:")
         console.print(f"  Callsites processed: {stats2['callsites_processed']}")
         console.print(f"  LLM calls: {stats2['llm_calls']}")
         console.print(f"  Cache hits: {stats2['cache_hits']}")
@@ -877,7 +884,7 @@ def indirect_analyze(
             1 for targets in resolutions.values()
             for t in targets if t.confidence == "high"
         )
-        console.print(f"\n[green]Analysis complete![/green]")
+        console.print("\n[green]Analysis complete![/green]")
         console.print(f"  Total resolved targets: {total_targets}")
         console.print(f"  High confidence matches: {high_conf}")
 
@@ -1074,7 +1081,7 @@ def container_analyze(
             progress.update(task, completed=True)
 
         stats = detector.stats
-        console.print(f"\nContainer detection complete:")
+        console.print("\nContainer detection complete:")
         console.print(f"  Functions scanned: {stats['functions_scanned']}")
         console.print(f"  Candidates (score >= {min_score}): {stats['candidates']}")
         console.print(f"  LLM calls: {stats['llm_calls']}")
@@ -1174,7 +1181,7 @@ def find_allocator_candidates(
         llm-summary find-allocator-candidates --db functions.db -o alloc.json --heuristic-only -v
         llm-summary find-allocator-candidates --db functions.db -o alloc.json --backend ollama --model qwen3
     """
-    from .allocator import AllocatorDetector, STDLIB_ALLOCATORS
+    from .allocator import STDLIB_ALLOCATORS, AllocatorDetector
 
     # Infer project name from DB path
     db_dir = Path(db_path).resolve().parent
@@ -1267,7 +1274,7 @@ def find_allocator_candidates(
             json.dump(output, f, indent=2)
 
         stats = detector.stats
-        console.print(f"\nAllocator detection complete:")
+        console.print("\nAllocator detection complete:")
         console.print(f"  Functions scanned: {stats['functions_scanned']}")
         console.print(f"  Candidates (score >= {min_score}): {stats['candidates']}")
         console.print(f"  LLM calls: {stats['llm_calls']}")
@@ -1301,7 +1308,7 @@ def scan(compile_commands_path, db_path, verbose):
     """
     from collections import Counter
 
-    from rich.progress import BarColumn, MofNCompleteColumn, TaskProgressColumn, TimeElapsedColumn
+    from rich.progress import BarColumn, MofNCompleteColumn, TimeElapsedColumn
 
     from .models import TargetType
 
@@ -1431,7 +1438,7 @@ def scan(compile_commands_path, db_path, verbose):
         console.print(f"  Indirect callsites: {len(all_callsites)}")
 
         # Summary
-        console.print(f"\n[bold]Summary[/bold]")
+        console.print("\n[bold]Summary[/bold]")
         console.print(f"  Source files: {len(source_files)}")
         console.print(f"  Functions: {len(all_functions)}")
         console.print(f"  Indirect call targets: {len(atfs)}")
@@ -1486,7 +1493,7 @@ def build_learn(
 
     project_path = Path(project_path).resolve()
 
-    console.print(f"\n[bold]Build Agent System[/bold]")
+    console.print("\n[bold]Build Agent System[/bold]")
     console.print(f"Project: {project_path}")
     if build_dir:
         console.print(f"Build directory: {build_dir}")
@@ -1498,7 +1505,7 @@ def build_learn(
     console.print()
 
     # Initialize LLM backend
-    console.print(f"\n[bold]Initializing LLM backend...[/bold]")
+    console.print("\n[bold]Initializing LLM backend...[/bold]")
     try:
         backend_kwargs = _build_backend_kwargs(backend, llm_host, llm_port, disable_thinking)
         llm = create_backend(backend, model=model, **backend_kwargs)
@@ -1526,7 +1533,7 @@ def build_learn(
     )
 
     # Learn and build
-    console.print(f"\n[bold]Learning build configuration...[/bold]")
+    console.print("\n[bold]Learning build configuration...[/bold]")
     try:
         result = builder.learn_and_build(project_path)
     except Exception as e:
@@ -1538,7 +1545,7 @@ def build_learn(
 
     if not result["success"]:
         console.print(f"\n[red]Build failed after {result['attempts']} attempts[/red]")
-        console.print(f"\n[bold]Error messages:[/bold]")
+        console.print("\n[bold]Error messages:[/bold]")
         for i, error in enumerate(result["error_messages"], 1):
             console.print(f"\n[yellow]Attempt {i}:[/yellow]")
             console.print(error[:500] + "..." if len(error) > 500 else error)
@@ -1547,7 +1554,7 @@ def build_learn(
     console.print(f"\n[green]Build successful after {result['attempts']} attempts![/green]")
 
     # Generate build script
-    console.print(f"\n[bold]Generating reusable build script...[/bold]")
+    console.print("\n[bold]Generating reusable build script...[/bold]")
     project_name = project_path.name
     generator = ScriptGenerator()
 
@@ -1575,7 +1582,7 @@ def build_learn(
         console.print(f"Artifacts: {paths['artifacts_dir']}")
 
         # Extract compile_commands.json to build-scripts/<project>/
-        console.print(f"\n[bold]Extracting compile_commands.json...[/bold]")
+        console.print("\n[bold]Extracting compile_commands.json...[/bold]")
         try:
             project_dir = paths['script'].parent
             compile_commands_path = builder.extract_compile_commands(
@@ -1600,7 +1607,7 @@ def build_learn(
         sys.exit(1)
 
     # Store in database
-    console.print(f"\n[bold]Storing build configuration in database...[/bold]")
+    console.print("\n[bold]Storing build configuration in database...[/bold]")
     db = SummaryDB(db_path)
     try:
         config_dict = {
@@ -1627,15 +1634,15 @@ def build_learn(
         db.close()
 
     # Summary
-    console.print(f"\n[bold green]✓ Build learning complete![/bold green]")
-    console.print(f"\nNext steps:")
-    console.print(f"1. Run the build script:")
+    console.print("\n[bold green]✓ Build learning complete![/bold green]")
+    console.print("\nNext steps:")
+    console.print("1. Run the build script:")
     console.print(f"   [cyan]{paths['script']}[/cyan]")
-    console.print(f"\n2. Analyze with llm-summary:")
+    console.print("\n2. Analyze with llm-summary:")
     console.print(f"   [cyan]llm-summary extract --path {project_path} --db {db_path}[/cyan]")
 
     if generate_ir:
-        console.print(f"\n3. LLVM IR artifacts will be in:")
+        console.print("\n3. LLVM IR artifacts will be in:")
         console.print(f"   [cyan]{paths['artifacts_dir']}[/cyan]")
 
 
@@ -1663,7 +1670,7 @@ def generate_kanalyzer_script(project, artifacts_dir, output_json, kamain_bin, a
     lines = [
         "#!/bin/bash",
         f"# KAMain call graph analysis for {project}",
-        f"# Generated by llm-summary generate-kanalyzer-script",
+        "# Generated by llm-summary generate-kanalyzer-script",
         "",
         "set -e",
         "",
@@ -1690,7 +1697,7 @@ def generate_kanalyzer_script(project, artifacts_dir, output_json, kamain_bin, a
         '# Run KAMain',
         '"$KAMAIN" \\',
         '    $BC_FILES \\',
-        f'    --callgraph-json "$OUTPUT_JSON" \\',
+        '    --callgraph-json "$OUTPUT_JSON" \\',
     ]
 
     if allocator_file:
@@ -1744,12 +1751,12 @@ def import_callgraph(json_path, db_path, clear_edges, verbose):
         importer = CallGraphImporter(db, verbose=verbose)
         stats = importer.import_json(json_path, clear_existing=clear_edges)
 
-        console.print(f"\n[bold]Import complete[/bold]")
+        console.print("\n[bold]Import complete[/bold]")
         console.print(stats.summary())
 
         # Show after stats
         after_stats = db.get_stats()
-        console.print(f"\nDatabase after:")
+        console.print("\nDatabase after:")
         console.print(f"  Functions: {after_stats['functions']}")
         console.print(f"  Call edges: {after_stats['call_edges']}")
 

@@ -361,11 +361,11 @@ ARTIFACTS_DIR="${{2:-$SCRIPT_DIR/artifacts}}"
             script_content += '''BUILD_DIR="${3:-$PROJECT_PATH/build}"
 '''
 
-        script_content += f'''
+        script_content += '''
 # ccache support (disable with CCACHE_DISABLE=1)
-CCACHE_HOST_DIR="${{CCACHE_DIR:-$HOME/.cache/llm-summary-ccache}}"
+CCACHE_HOST_DIR="${CCACHE_DIR:-$HOME/.cache/llm-summary-ccache}"
 CCACHE_ARGS=""
-if [ "${{CCACHE_DISABLE:-0}}" != "1" ]; then
+if [ "${CCACHE_DISABLE:-0}" != "1" ]; then
     mkdir -p "$CCACHE_HOST_DIR"
     CCACHE_ARGS="-v $CCACHE_HOST_DIR:/ccache -e CCACHE_DIR=/ccache"
 fi

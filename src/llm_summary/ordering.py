@@ -1,7 +1,7 @@
 """Topological ordering and SCC computation for the call graph."""
 
 from collections import defaultdict
-from typing import Iterator
+from collections.abc import Iterator
 
 
 def compute_sccs(graph: dict[int, list[int]]) -> list[list[int]]:

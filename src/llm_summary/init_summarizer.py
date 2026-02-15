@@ -6,9 +6,9 @@ import re
 from .db import SummaryDB
 from .llm.base import LLMBackend
 from .models import (
+    Function,
     InitOp,
     InitSummary,
-    Function,
 )
 
 INIT_SUMMARY_PROMPT = """You are analyzing C/C++ code to generate initialization summaries (post-conditions).

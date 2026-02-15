@@ -24,11 +24,10 @@ from .models import (
     IndirectCallTarget,
     InitOp,
     InitSummary,
-    ParameterInfo,
     MemsafeContract,
     MemsafeSummary,
+    ParameterInfo,
     SafetyIssue,
-    TargetType,
     VerificationSummary,
 )
 

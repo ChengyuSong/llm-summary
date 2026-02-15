@@ -6,9 +6,9 @@ import re
 from .db import SummaryDB
 from .llm.base import LLMBackend
 from .models import (
+    Function,
     MemsafeContract,
     MemsafeSummary,
-    Function,
 )
 
 MEMSAFE_SUMMARY_PROMPT = """You are analyzing C/C++ code to generate safety pre-condition contracts.

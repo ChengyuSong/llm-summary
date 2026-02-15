@@ -1,6 +1,17 @@
 """Standard library allocation, free, initialization, and safety summaries."""
 
-from .models import Allocation, AllocationSummary, AllocationType, FreeOp, FreeSummary, InitOp, InitSummary, ParameterInfo, MemsafeContract, MemsafeSummary
+from .models import (
+    Allocation,
+    AllocationSummary,
+    AllocationType,
+    FreeOp,
+    FreeSummary,
+    InitOp,
+    InitSummary,
+    MemsafeContract,
+    MemsafeSummary,
+    ParameterInfo,
+)
 
 # Pre-defined summaries for common C standard library functions
 STDLIB_SUMMARIES: dict[str, AllocationSummary] = {

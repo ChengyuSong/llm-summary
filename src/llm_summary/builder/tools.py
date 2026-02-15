@@ -116,7 +116,7 @@ class BuildTools:
                 return {"error": f"start_line must be >= 1, got {start_line}"}
 
             # Read file with line limit and offset
-            with open(full_path, "r", encoding="utf-8", errors="replace") as f:
+            with open(full_path, encoding="utf-8", errors="replace") as f:
                 lines = []
                 current_line = 0
                 lines_read = 0

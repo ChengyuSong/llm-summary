@@ -35,7 +35,7 @@ class CompileCommandsDB:
         if not path.exists():
             raise FileNotFoundError(f"compile_commands.json not found: {path}")
 
-        with open(path, "r", encoding="utf-8") as f:
+        with open(path, encoding="utf-8") as f:
             data = json.load(f)
 
         for entry in data:

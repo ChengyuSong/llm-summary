@@ -6,7 +6,14 @@ from collections import deque
 from typing import Any, Protocol
 
 from .db import SummaryDB
-from .models import AllocationSummary, FreeSummary, InitSummary, MemsafeSummary, VerificationSummary, Function
+from .models import (
+    AllocationSummary,
+    FreeSummary,
+    Function,
+    InitSummary,
+    MemsafeSummary,
+    VerificationSummary,
+)
 from .ordering import ProcessingOrderer
 
 

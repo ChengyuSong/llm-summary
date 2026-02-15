@@ -18,8 +18,8 @@ from .constants import (
     DOCKER_WORKSPACE_BUILD,
     DOCKER_WORKSPACE_SRC,
     MAX_CONTEXT_TOKENS,
-    MAX_TURNS,
     MAX_TURN_EXTENSIONS,
+    MAX_TURNS,
     TURNS_EXTENSION,
     TURNS_LOW_WARNING,
 )
@@ -1213,7 +1213,7 @@ If you recognize this project, leverage your knowledge of its typical build requ
                 f"compile_commands.json not found in {compile_commands_src.parent}"
             )
 
-        with open(compile_commands_src, "r") as f:
+        with open(compile_commands_src) as f:
             compile_commands = json.load(f)
 
         pp = str(project_path)

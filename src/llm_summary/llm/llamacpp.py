@@ -1,8 +1,8 @@
 """llama.cpp local model backend."""
 
 import json
-import urllib.request
 import urllib.error
+import urllib.request
 
 from .base import LLMBackend, LLMResponse
 

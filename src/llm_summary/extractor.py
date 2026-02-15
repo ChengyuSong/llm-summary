@@ -9,7 +9,6 @@ from clang.cindex import (
     CursorKind,
     Index,
     TranslationUnit,
-    TypeKind,
 )
 
 from .compile_commands import CompileCommandsDB
@@ -71,9 +70,9 @@ def get_function_source(cursor: Cursor, file_contents: dict[str, str]) -> str:
     file_path = str(cursor.location.file)
     if file_path not in file_contents:
         try:
-            with open(file_path, "r", encoding="utf-8", errors="replace") as f:
+            with open(file_path, encoding="utf-8", errors="replace") as f:
                 file_contents[file_path] = f.read()
-        except (OSError, IOError):
+        except OSError:
             return ""
 
     content = file_contents[file_path]
@@ -394,9 +393,9 @@ class FunctionExtractor:
         # Load file contents if not cached
         if file_path not in self._file_contents:
             try:
-                with open(file_path, "r", encoding="utf-8", errors="replace") as f:
+                with open(file_path, encoding="utf-8", errors="replace") as f:
                     self._file_contents[file_path] = f.read()
-            except (OSError, IOError):
+            except OSError:
                 return ""
 
         content = self._file_contents[file_path]

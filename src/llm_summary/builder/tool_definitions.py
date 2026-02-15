@@ -1,13 +1,15 @@
 """Centralized tool definitions for the build agent."""
 
-from .actions import CHECK_ASSEMBLY_TOOL_DEFINITION
+from .actions import (
+    CHECK_ASSEMBLY_TOOL_DEFINITION,
+    FINISH_TOOL_DEFINITION,
+    INSTALL_PACKAGES_TOOL_DEFINITION,
+    REQUEST_MORE_TURNS_TOOL_DEFINITION,
+    RUN_COMMAND_TOOL_DEFINITION,
+    TEST_BUILD_SCRIPT_TOOL_DEFINITION,
+)
 from .actions import CMAKE_TOOL_DEFINITIONS as CMAKE_ACTION_TOOLS
 from .actions import CONFIGURE_MAKE_TOOL_DEFINITIONS as CONFIGURE_MAKE_ACTION_TOOLS
-from .actions import FINISH_TOOL_DEFINITION
-from .actions import INSTALL_PACKAGES_TOOL_DEFINITION
-from .actions import REQUEST_MORE_TURNS_TOOL_DEFINITION
-from .actions import RUN_COMMAND_TOOL_DEFINITION
-from .actions import TEST_BUILD_SCRIPT_TOOL_DEFINITION
 from .tools import TOOL_DEFINITIONS as FILE_TOOLS
 
 # Read-only tools for error analysis (no build tools)
