@@ -79,6 +79,9 @@ ENV NM=llvm-nm-18
 ENV RANLIB=llvm-ranlib-18
 ENV LD=ld.lld-18
 
+# Allow git to work with any repo ownership (mounted volumes may differ)
+RUN git config --global --add safe.directory /workspace/src
+
 # Working directory for builds
 WORKDIR /workspace
 

@@ -200,6 +200,15 @@ class ScriptGenerator:
         if dependencies:
             deps_install = f"apt-get update -qq && apt-get install -y {' '.join(dependencies)} && "
 
+        # When dependencies need apt-get (requires root), we run without -u
+        # and chown build outputs at the end to preserve host user ownership
+        if dependencies:
+            user_flag = ""
+            chown_suffix = f" && chown -R $(id -u):$(id -g) /workspace/build /artifacts"
+        else:
+            user_flag = "-u $(id -u):$(id -g)"
+            chown_suffix = ""
+
         # Generate script content
         script_content = f'''#!/bin/bash
 # Generated build script for {project_name}
@@ -237,7 +246,7 @@ mkdir -p "$BUILD_DIR"
 # Run build in Docker container
 echo "Building {project_name}..."
 docker run --rm \\
-  -u $(id -u):$(id -g) \\
+  {user_flag} \\
   $CCACHE_ARGS \\
   -v "$PROJECT_PATH":/workspace/src \\
   -v "$BUILD_DIR":/workspace/build \\
@@ -253,7 +262,11 @@ docker run --rm \\
         if enable_ir:
             script_content += ''' && \\
            echo 'Collecting LLVM IR artifacts...' && \\
-           find . -name '*.bc' -o -name '*.ll' | xargs -I {{}} cp {{}} /artifacts/ 2>/dev/null || true"'''
+           find . -name '*.bc' -o -name '*.ll' | xargs -I {{}} cp {{}} /artifacts/ 2>/dev/null || true'''
+
+        # Add chown for root-mode builds (when deps need apt-get)
+        if chown_suffix:
+            script_content += f'''{chown_suffix}"'''
         else:
             script_content += '''"'''
 
@@ -266,17 +279,20 @@ if [ -f "$BUILD_DIR/compile_commands.json" ]; then
     echo ""
     echo "Build complete."
     echo "  - compile_commands.json: $SCRIPT_DIR/compile_commands.json"
-
-    # Count IR artifacts if they were generated
-    if [ -d "$ARTIFACTS_DIR" ]; then
-        IR_COUNT=$(ls -1 "$ARTIFACTS_DIR"/*.bc "$ARTIFACTS_DIR"/*.ll 2>/dev/null | wc -l)
-        if [ "$IR_COUNT" -gt 0 ]; then
-            echo "  - LLVM IR artifacts: $ARTIFACTS_DIR ($IR_COUNT files)"
-        fi
-    fi
+elif [ -f "$SCRIPT_DIR/compile_commands.json" ]; then
+    echo ""
+    echo "Build complete."
+    echo "  - compile_commands.json: $SCRIPT_DIR/compile_commands.json (from previous build)"
 else
     echo "Warning: compile_commands.json not found in build directory"
-    exit 1
+fi
+
+# Count IR artifacts if they were generated
+if [ -d "$ARTIFACTS_DIR" ]; then
+    IR_COUNT=$(ls -1 "$ARTIFACTS_DIR"/*.bc "$ARTIFACTS_DIR"/*.ll 2>/dev/null | wc -l)
+    if [ "$IR_COUNT" -gt 0 ]; then
+        echo "  - LLVM IR artifacts: $ARTIFACTS_DIR ($IR_COUNT files)"
+    fi
 fi
 '''
 
@@ -312,24 +328,22 @@ fi
         formatted_flags = " \\\n           ".join(configure_flags) if configure_flags else ""
 
         # Environment variables for clang-18 with LTO
-        env_vars = """CC="clang-18" \\
-           CXX="clang++-18" \\
-           CFLAGS="-g -flto=full -save-temps=obj" \\
-           CXXFLAGS="-g -flto=full -save-temps=obj" \\
-           LDFLAGS="-flto=full -fuse-ld=lld" \\
-           LD="ld.lld-18" \\
-           AR="llvm-ar-18" \\
-           NM="llvm-nm-18" \\
-           RANLIB="llvm-ranlib-18\""""
+        env_vars = """CC=clang-18 \\
+           CXX=clang++-18 \\
+           CFLAGS='-g -flto=full -save-temps=obj' \\
+           CXXFLAGS='-g -flto=full -save-temps=obj' \\
+           LDFLAGS='-flto=full -fuse-ld=lld' \\
+           LD=ld.lld-18 \\
+           AR=llvm-ar-18 \\
+           NM=llvm-nm-18 \\
+           RANLIB=llvm-ranlib-18"""
 
         if use_build_dir:
             work_dir = "/workspace/build"
             configure_path = "/workspace/src/configure"
-            compile_commands_check = '"$BUILD_DIR/compile_commands.json"'
         else:
             work_dir = "/workspace/src"
             configure_path = "./configure"
-            compile_commands_check = '"$PROJECT_PATH/compile_commands.json"'
 
         # Build dependencies comment block
         deps_comment = ""
@@ -389,6 +403,15 @@ mkdir -p "$ARTIFACTS_DIR"
         if dependencies:
             deps_install = f"apt-get update -qq && apt-get install -y {' '.join(dependencies)} && "
 
+        # When dependencies need apt-get (requires root), we run without -u
+        # and chown build outputs at the end to preserve host user ownership
+        if dependencies:
+            user_flag = ""
+            chown_suffix = " && chown -R $(id -u):$(id -g) /workspace/build /artifacts"
+        else:
+            user_flag = "-u $(id -u):$(id -g)"
+            chown_suffix = ""
+
         script_content += f'''
 # Run build in Docker container
 echo "Building {project_name}..."
@@ -396,7 +419,7 @@ echo "Building {project_name}..."
 
         if use_build_dir:
             script_content += f'''docker run --rm \\
-  -u $(id -u):$(id -g) \\
+  {user_flag} \\
   $CCACHE_ARGS \\
   -v "$PROJECT_PATH":/workspace/src \\
   -v "$BUILD_DIR":/workspace/build \\
@@ -408,7 +431,7 @@ echo "Building {project_name}..."
            bear -- make -j\\$(nproc)'''
         else:
             script_content += f'''docker run --rm \\
-  -u $(id -u):$(id -g) \\
+  {user_flag} \\
   $CCACHE_ARGS \\
   -v "$PROJECT_PATH":/workspace/src \\
   -v "$ARTIFACTS_DIR":/artifacts \\
@@ -422,30 +445,64 @@ echo "Building {project_name}..."
         if enable_ir:
             script_content += ''' && \\
            echo 'Collecting LLVM IR artifacts...' && \\
-           find . -name '*.bc' -o -name '*.ll' | xargs -I {{}} cp {{}} /artifacts/ 2>/dev/null || true"'''
+           find . -name '*.bc' -o -name '*.ll' | xargs -I {{}} cp {{}} /artifacts/ 2>/dev/null || true'''
+
+        # Add chown for root-mode builds (when deps need apt-get)
+        if chown_suffix:
+            script_content += f'''{chown_suffix}"'''
         else:
             script_content += '''"'''
 
         # Add post-build steps
-        script_content += f'''
+        if use_build_dir:
+            script_content += '''
 
-# Copy compile_commands.json to script directory (build-scripts/<project>/)
-if [ -f {compile_commands_check} ]; then
-    cp {compile_commands_check} "$SCRIPT_DIR/"
+# Copy compile_commands.json to script directory
+FOUND_CC=""
+if [ -f "$BUILD_DIR/compile_commands.json" ]; then
+    FOUND_CC="$BUILD_DIR/compile_commands.json"
+elif [ -f "$PROJECT_PATH/compile_commands.json" ]; then
+    FOUND_CC="$PROJECT_PATH/compile_commands.json"
+elif [ -f "$SCRIPT_DIR/compile_commands.json" ]; then
+    FOUND_CC=""  # already in place
+else
+    FOUND_CC=$(find "$BUILD_DIR" -name compile_commands.json -print -quit 2>/dev/null)
+fi
+'''
+        else:
+            script_content += '''
+
+# Copy compile_commands.json to script directory
+FOUND_CC=""
+if [ -f "$PROJECT_PATH/compile_commands.json" ]; then
+    FOUND_CC="$PROJECT_PATH/compile_commands.json"
+elif [ -f "$SCRIPT_DIR/compile_commands.json" ]; then
+    FOUND_CC=""  # already in place
+else
+    FOUND_CC=$(find "$PROJECT_PATH" -maxdepth 3 -name compile_commands.json -print -quit 2>/dev/null)
+fi
+'''
+
+        script_content += '''
+if [ -n "$FOUND_CC" ]; then
+    cp "$FOUND_CC" "$SCRIPT_DIR/"
     echo ""
     echo "Build complete."
     echo "  - compile_commands.json: $SCRIPT_DIR/compile_commands.json"
-
-    # Count IR artifacts if they were generated
-    if [ -d "$ARTIFACTS_DIR" ]; then
-        IR_COUNT=$(ls -1 "$ARTIFACTS_DIR"/*.bc "$ARTIFACTS_DIR"/*.ll 2>/dev/null | wc -l)
-        if [ "$IR_COUNT" -gt 0 ]; then
-            echo "  - LLVM IR artifacts: $ARTIFACTS_DIR ($IR_COUNT files)"
-        fi
-    fi
+elif [ -f "$SCRIPT_DIR/compile_commands.json" ]; then
+    echo ""
+    echo "Build complete."
+    echo "  - compile_commands.json: $SCRIPT_DIR/compile_commands.json (from previous build)"
 else
     echo "Warning: compile_commands.json not found"
-    exit 1
+fi
+
+# Count IR artifacts if they were generated
+if [ -d "$ARTIFACTS_DIR" ]; then
+    IR_COUNT=$(ls -1 "$ARTIFACTS_DIR"/*.bc "$ARTIFACTS_DIR"/*.ll 2>/dev/null | wc -l)
+    if [ "$IR_COUNT" -gt 0 ]; then
+        echo "  - LLVM IR artifacts: $ARTIFACTS_DIR ($IR_COUNT files)"
+    fi
 fi
 '''
 
@@ -477,12 +534,21 @@ fi
                 f"# Install: apt-get install -y {' '.join(dependencies)}\n"
             )
 
-        # Prepare dependency installation command and prepend to build script
+        # Prepare dependency installation and chown as separate script lines
+        # (build_script may be multi-line, so we can't use && to join)
+        # Strip shebang if present — it's already inside bash -c
+        clean_script = build_script.strip()
+        if clean_script.startswith("#!/bin/bash"):
+            clean_script = clean_script.split("\n", 1)[1].strip()
+        build_script_with_deps = clean_script
         if dependencies:
-            deps_install = f"apt-get update -qq && apt-get install -y {' '.join(dependencies)} && "
-            build_script_with_deps = deps_install + build_script
+            deps_line = f"apt-get update -qq && apt-get install -y {' '.join(dependencies)}"
+            build_script_with_deps = deps_line + "\n" + build_script_with_deps
+            user_flag = ""
+            # chown build outputs at the end to preserve host user ownership
+            build_script_with_deps += "\nchown -R $(id -u):$(id -g) /workspace/build"
         else:
-            build_script_with_deps = build_script
+            user_flag = "-u $(id -u):$(id -g)"
 
         # Escape single quotes in build script for heredoc safety
         # We use a heredoc with a quoted delimiter so no variable expansion happens
@@ -521,7 +587,7 @@ mkdir -p "$BUILD_DIR"
 # Run build in Docker container
 echo "Building {project_name}..."
 docker run --rm \\
-  -u $(id -u):$(id -g) \\
+  {user_flag} \\
   $CCACHE_ARGS \\
   -v "$PROJECT_PATH":/workspace/src \\
   -v "$BUILD_DIR":/workspace/build \\
@@ -572,7 +638,6 @@ if [ -n "$FOUND_CC" ]; then
     fi
 else
     echo "Warning: compile_commands.json not found in build or project directory"
-    exit 1
 fi
 '''
 
