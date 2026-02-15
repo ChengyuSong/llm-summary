@@ -8,9 +8,9 @@ Indirect calls (function pointer calls, virtual method calls) are challenging fo
 
 ```
 ┌─────────────────────┐
-│ build-learn          │
-│ (-g -flto=full       │
-│  -save-temps=obj)    │
+│ build-learn         │
+│ (-g -flto=full      │
+│  -save-temps=obj)   │
 └──────────┬──────────┘
            │ .bc files
            ▼

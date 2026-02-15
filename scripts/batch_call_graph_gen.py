@@ -439,6 +439,7 @@ def run_kamain(
 
     if verbose:
         print(f"    KAMain: {len(bc_files)} bitcode files -> {output_json.name}")
+        print(f"    cmd: {shlex.join(cmd)}")
 
     output_json.parent.mkdir(parents=True, exist_ok=True)
 
