@@ -418,6 +418,7 @@ def run_kamain(
     kamain_bin: str,
     allocator_file: Path | None = None,
     container_file: Path | None = None,
+    snapshot_path: Path | None = None,
     verbose_level: int = 1,
     timeout: int = 3600,
     verbose: bool = False,
@@ -436,6 +437,8 @@ def run_kamain(
         cmd += ["--allocator-file", str(allocator_file)]
     if container_file and container_file.exists():
         cmd += ["--container-file", str(container_file)]
+    if snapshot_path:
+        cmd += ["--v-snapshot", str(snapshot_path)]
 
     if verbose:
         print(f"    KAMain: {len(bc_files)} bitcode files -> {output_json.name}")
@@ -641,12 +644,15 @@ def process_project(
             container_file = candidate
             break
 
+    snapshot_path = build_root / f"{project_name}.vsnapt"
+
     success, error_msg, duration = run_kamain(
         bc_files=bc_files,
         output_json=callgraph_json,
         kamain_bin=kamain_bin,
         allocator_file=allocator_json if allocator_json and allocator_json.exists() else None,
         container_file=container_file,
+        snapshot_path=snapshot_path,
         timeout=kamain_timeout,
         verbose=verbose,
     )
