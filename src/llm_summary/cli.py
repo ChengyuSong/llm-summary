@@ -29,7 +29,12 @@ from .indirect import (
 )
 from .llm import create_backend
 from .ordering import ProcessingOrderer
-from .stdlib import get_all_stdlib_summaries
+from .stdlib import (
+    get_all_stdlib_free_summaries,
+    get_all_stdlib_init_summaries,
+    get_all_stdlib_memsafe_summaries,
+    get_all_stdlib_summaries,
+)
 from .summarizer import AllocationSummarizer
 
 console = Console()
@@ -109,7 +114,8 @@ def summarize(db_path, backend, model, llm_host, llm_port, disable_thinking, ver
             return
 
         if edge_count == 0:
-            console.print("[yellow]Warning: No call edges in database. Summaries will lack callee context.[/yellow]")
+            console.print("[red]Error: No call edges in database. Run call graph import first.[/red]")
+            sys.exit(1)
 
         # Prerequisite check for verify pass
         if "verify" in summary_types:
@@ -147,7 +153,9 @@ def summarize(db_path, backend, model, llm_host, llm_port, disable_thinking, ver
             added = 0
             for name, summary in stdlib.items():
                 existing = db.get_function_by_name(name)
-                if not existing:
+                if existing:
+                    func = existing[0]
+                else:
                     func = Function(
                         name=name,
                         file_path="<stdlib>",
@@ -157,8 +165,8 @@ def summarize(db_path, backend, model, llm_host, llm_port, disable_thinking, ver
                         signature=f"{name}(...)",
                     )
                     func.id = db.insert_function(func)
-                    db.upsert_summary(func, summary, model_used="builtin")
-                    added += 1
+                db.upsert_summary(func, summary, model_used="builtin")
+                added += 1
             if added:
                 console.print(f"  Stdlib summaries added: {added}")
 
@@ -538,25 +546,71 @@ def clear(db_path):
 @click.option("--db", "db_path", default="summaries.db", help="Database file path")
 def init_stdlib(db_path):
     """Initialize database with standard library summaries."""
+    from .models import Function
+
     db = SummaryDB(db_path)
 
-    try:
-        stdlib = get_all_stdlib_summaries()
-        console.print(f"Adding {len(stdlib)} standard library summaries...")
+    def _get_or_create(name: str) -> Function:
+        """Return existing stub or create a new function entry."""
+        existing = db.get_function_by_name(name)
+        if existing:
+            return existing[0]
+        func = Function(
+            name=name,
+            file_path="<stdlib>",
+            line_start=0,
+            line_end=0,
+            source="",
+            signature=f"{name}(...)",
+        )
+        func.id = db.insert_function(func)
+        return func
 
-        for name, summary in stdlib.items():
-            # Create a pseudo-function for stdlib
-            from .models import Function
-            func = Function(
-                name=name,
-                file_path="<stdlib>",
-                line_start=0,
-                line_end=0,
-                source="",
-                signature=f"{name}(...)",
-            )
-            func.id = db.insert_function(func)
-            db.upsert_summary(func, summary, model_used="builtin")
+    try:
+        all_summaries: dict[str, list] = {}
+        for name, s in get_all_stdlib_summaries().items():
+            all_summaries.setdefault(name, []).append(s)
+        for name, s in get_all_stdlib_memsafe_summaries().items():
+            all_summaries.setdefault(name, []).append(s)
+        for name, s in get_all_stdlib_init_summaries().items():
+            all_summaries.setdefault(name, []).append(s)
+        for name, s in get_all_stdlib_free_summaries().items():
+            all_summaries.setdefault(name, []).append(s)
+
+        console.print(f"Adding stdlib summaries for {len(all_summaries)} functions...")
+
+        from .models import (
+            AllocationSummary,
+            FreeSummary,
+            InitSummary,
+            MemsafeSummary,
+            VerificationSummary,
+        )
+
+        for name, summaries in all_summaries.items():
+            func = _get_or_create(name)
+            memsafe_summary = None
+            for summary in summaries:
+                if isinstance(summary, MemsafeSummary):
+                    db.upsert_memsafe_summary(func, summary, model_used="builtin")
+                    memsafe_summary = summary
+                elif isinstance(summary, FreeSummary):
+                    db.upsert_free_summary(func, summary, model_used="builtin")
+                elif isinstance(summary, InitSummary):
+                    db.upsert_init_summary(func, summary, model_used="builtin")
+                else:
+                    db.upsert_summary(func, summary, model_used="builtin")
+
+            # Populate verification_summary with simplified_contracts from memsafe,
+            # so that bottom-up callers always find verified pre-conditions.
+            if memsafe_summary is not None:
+                ver = VerificationSummary(
+                    function_name=name,
+                    simplified_contracts=memsafe_summary.contracts,
+                    issues=[],
+                    description=memsafe_summary.description,
+                )
+                db.upsert_verification_summary(func, ver, model_used="builtin")
 
         console.print("Done.")
 

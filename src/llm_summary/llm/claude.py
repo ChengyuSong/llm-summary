@@ -124,6 +124,16 @@ class ClaudeBackend(LLMBackend):
             print("[CLAUDE DEBUG] Full response:")
             print(response.model_dump_json(indent=2))
 
+        # Warn if the response was truncated due to token limit
+        if response.stop_reason == "max_tokens":
+            import sys
+            print(
+                f"WARNING: Claude response may be incomplete "
+                f"(stop_reason=max_tokens). "
+                f"Consider increasing max_tokens (current: {self.max_tokens}).",
+                file=sys.stderr,
+            )
+
         # Extract content
         content = ""
         for block in response.content:

@@ -14,6 +14,13 @@ from .models import (
 
 VERIFICATION_PROMPT = """You are verifying memory safety of a C/C++ function using Hoare-logic-style reasoning.
 
+## Reasoning Model
+
+Assume this function's own pre-conditions (contracts from Pass 4) are ALREADY SATISFIED by its callers.
+Your job is to check what the function does *given* those pre-conditions hold — not to re-flag them as bugs.
+
+An issue is only real if it can occur even when all pre-conditions are satisfied.
+
 ## Function Under Verification
 
 ```c
@@ -24,7 +31,7 @@ Function: `{name}`
 Signature: `{signature}`
 File: {file_path}
 
-## This Function's Raw Safety Contracts (from Pass 4)
+## This Function's Pre-conditions (from Pass 4) — assume these hold
 
 {own_contracts}
 
@@ -35,29 +42,53 @@ File: {file_path}
 ## Verification Tasks
 
 ### Check 1: Internal Safety
-Does the function itself perform any unsafe operations (null dereference, buffer overflow,
-use-after-free, double-free, use of uninitialized memory)?
+Assuming all pre-conditions hold, does the function perform any unsafe operations
+(null dereference, buffer overflow, use-after-free, double-free, use of uninitialized memory)?
+
+**Do NOT report an issue if:**
+- The unsafe operation is guarded by a runtime check (e.g., `if (ptr)` before deref)
+- The condition is already covered by one of this function's own pre-conditions listed above
+- The value is guaranteed safe by a callee's post-condition (e.g., successful malloc returns non-null)
 
 ### Check 2: Callee Pre-condition Satisfaction
 For EACH call to a callee that has pre-conditions, determine whether this function
-establishes those pre-conditions before the call.
+establishes those pre-conditions before the call — given its own pre-conditions hold.
 
-A pre-condition is SATISFIED if:
-- The function checks the condition before the call (e.g., null check guard)
-- The value comes from an allocation that guarantees the property (e.g., calloc -> initialized)
-- The value flows from a parameter that this function requires via its OWN contracts (propagation)
+A callee pre-condition is SATISFIED if:
+- The argument is guarded before the call (e.g., null check)
+- The value comes from an allocation that guarantees the property (e.g., calloc → initialized)
+- The value flows from a parameter covered by this function's own pre-conditions (propagation)
 
-A pre-condition is UNSATISFIED if the function neither checks it nor propagates it.
+A callee pre-condition is VIOLATED if none of the above hold — this is a real bug.
 
-### Check 3: Contract Simplification
-For each of the function's own raw contracts: is it satisfied internally? If yes, remove it.
-Only keep contracts that MUST be propagated to callers.
+Also use callee post-conditions to detect internal issues:
+- If a callee's post-condition says a returned pointer may_be_null, and the caller dereferences
+  it without a null check, that is a real null_deref issue.
+- If a callee's post-condition says it frees a pointer, and the caller uses it afterwards,
+  that is a real use_after_free issue.
+
+### Check 3: Sequential Call Chain Consistency
+Track the state of each value across the sequence of calls in the function body.
+After each call, apply its post-conditions to update the state of affected values,
+then check whether the next call's pre-conditions are satisfied given that updated state.
+
+Examples of violations to detect:
+- `foo(x)` post-condition: x is freed → `bar(x)` pre-condition: x must not be freed
+  → use_after_free at the call to bar
+- `foo(x)` post-condition: x->field is initialized → `bar(x)` pre-condition: x must be initialized
+  → satisfied (no issue)
+- `p = alloc()` post-condition: may_be_null → `foo(p)` pre-condition: p not_null
+  → null_deref at the call to foo if no null check between alloc and foo
+
+### Check 4: Contract Simplification
+For each of this function's own pre-conditions: is it actually needed, or is it satisfied
+internally before first use? Keep only those that callers must genuinely satisfy.
 
 ## Severity Guidelines
 
-- **high**: Definite violation (unconditional unsafe op, no guard)
-- **medium**: Potential violation depending on caller behavior
-- **low**: Unlikely (error path only, defensive concern)
+- **high**: Definite violation unconditionally reachable given valid inputs
+- **medium**: Violation reachable on a specific code path with valid inputs
+- **low**: Violation only reachable on error paths or under highly unusual conditions
 
 ## Output
 
@@ -182,7 +213,7 @@ class VerificationSummarizer:
 
             # Count simplified contracts: raw - remaining
             raw_memsafe = self.db.get_memsafe_summary_by_function_id(func.id)
-            if raw_memsafe:
+            if raw_memsafe and summary.simplified_contracts is not None:
                 raw_count = len(raw_memsafe.contracts)
                 remaining_count = len(summary.simplified_contracts)
                 self._stats["contracts_simplified"] += max(
@@ -223,9 +254,14 @@ class VerificationSummarizer:
             callee_name = callee_func.name
             section_lines = [f"### `{callee_name}`"]
 
-            # Pre-conditions: prefer simplified (verified) over raw Pass 4
+            # Pre-conditions: from verified summary (simplified_contracts)
             if callee_name in callee_summaries:
                 verified = callee_summaries[callee_name]
+                assert verified.simplified_contracts is not None, (
+                    f"Callee '{callee_name}' has a verification summary with "
+                    f"simplified_contracts=None — this indicates a failed or "
+                    f"incomplete prior verification pass."
+                )
                 if verified.simplified_contracts:
                     section_lines.append("**Pre-conditions (simplified):**")
                     for c in verified.simplified_contracts:
@@ -243,22 +279,8 @@ class VerificationSummarizer:
                         "**Pre-conditions:** None (all satisfied internally)"
                     )
             else:
-                # Fall back to raw Pass 4
-                raw_memsafe = self.db.get_memsafe_summary_by_function_id(callee_id)
-                if raw_memsafe and raw_memsafe.contracts:
-                    section_lines.append("**Pre-conditions (raw):**")
-                    for c in raw_memsafe.contracts:
-                        if c.contract_kind == "buffer_size" and c.size_expr:
-                            section_lines.append(
-                                f"  - {c.target}: {c.contract_kind}({c.size_expr}) "
-                                f"-- {c.description}"
-                            )
-                        else:
-                            section_lines.append(
-                                f"  - {c.target}: {c.contract_kind} -- {c.description}"
-                            )
-                else:
-                    section_lines.append("**Pre-conditions:** None")
+                # Callee not yet verified — no summary available
+                section_lines.append("**Pre-conditions:** None")
 
             # Post-conditions from Passes 1-3
             post_parts = []

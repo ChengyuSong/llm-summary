@@ -747,16 +747,20 @@ class SummaryDB:
     def _json_to_verification_summary(self, json_str: str) -> VerificationSummary:
         """Convert JSON string to VerificationSummary."""
         data = json.loads(json_str)
-        contracts = [
-            MemsafeContract(
-                target=c.get("target", ""),
-                contract_kind=c.get("contract_kind", "not_null"),
-                description=c.get("description", ""),
-                size_expr=c.get("size_expr"),
-                relationship=c.get("relationship"),
-            )
-            for c in data.get("simplified_contracts", [])
-        ]
+        raw_sc = data.get("simplified_contracts")  # None or list
+        if raw_sc is None:
+            contracts = None
+        else:
+            contracts = [
+                MemsafeContract(
+                    target=c.get("target", ""),
+                    contract_kind=c.get("contract_kind", "not_null"),
+                    description=c.get("description", ""),
+                    size_expr=c.get("size_expr"),
+                    relationship=c.get("relationship"),
+                )
+                for c in raw_sc
+            ]
         issues = [
             SafetyIssue(
                 location=i.get("location", ""),

@@ -46,6 +46,26 @@ class ImportStats:
         return "\n".join(lines)
 
 
+_LLVM_INTRINSIC_MAP = {
+    "llvm.memcpy": "memcpy",
+    "llvm.memmove": "memmove",
+    "llvm.memset": "memset",
+}
+
+
+def _normalize_callee_name(name: str) -> str:
+    """Normalize LLVM intrinsic names to their C stdlib equivalents.
+
+    KAMain emits intrinsics like 'llvm.memcpy.p0.p0.i64' — strip the
+    type suffixes and map to the canonical C name so that stdlib summaries
+    (keyed on 'memcpy' etc.) are matched correctly.
+    """
+    for prefix, canonical in _LLVM_INTRINSIC_MAP.items():
+        if name == prefix or name.startswith(prefix + "."):
+            return canonical
+    return name
+
+
 def _demangle(name: str) -> str | None:
     """Demangle a C++ symbol name using c++filt."""
     if not name.startswith("_Z"):
@@ -150,7 +170,7 @@ class CallGraphImporter:
             caller_file = ka_info.get("file", "")
 
             for callee_entry in ka_info.get("callees", []):
-                callee_name = callee_entry.get("callee", "")
+                callee_name = _normalize_callee_name(callee_entry.get("callee", ""))
                 call_type = callee_entry.get("call_type", "direct")
                 line = callee_entry.get("line")
 

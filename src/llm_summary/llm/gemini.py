@@ -33,7 +33,7 @@ class GeminiBackend(LLMBackend):
         model: str | None = None,
         project_id: str | None = None,
         location: str | None = None,
-        max_tokens: int = 8192,
+        max_tokens: int = 32768,
     ):
         super().__init__(model)
         self.project_id = (
@@ -96,6 +96,20 @@ class GeminiBackend(LLMBackend):
         )
 
         content = response.text or ""
+
+        # Warn if the response was truncated due to token limit
+        if response.candidates:
+            candidate = response.candidates[0]
+            finish_reason = getattr(candidate, "finish_reason", None)
+            # FinishReason.STOP == 1; anything else (MAX_TOKENS==2, etc.) is abnormal
+            if finish_reason is not None and str(finish_reason) not in ("FinishReason.STOP", "1", "STOP"):
+                import sys
+                print(
+                    f"WARNING: Gemini response may be incomplete "
+                    f"(finish_reason={finish_reason}). "
+                    f"Consider increasing max_tokens (current: {self.max_tokens}).",
+                    file=sys.stderr,
+                )
 
         # Extract token usage
         input_tokens = 0

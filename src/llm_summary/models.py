@@ -237,14 +237,17 @@ class VerificationSummary:
     """Complete verification result for a function."""
 
     function_name: str
-    simplified_contracts: list[MemsafeContract] = field(default_factory=list)
+    simplified_contracts: list[MemsafeContract] | None = None  # None = not yet analyzed; [] = analyzed, no contracts
     issues: list[SafetyIssue] = field(default_factory=list)
     description: str = ""
 
     def to_dict(self) -> dict[str, Any]:
         return {
             "function": self.function_name,
-            "simplified_contracts": [c.to_dict() for c in self.simplified_contracts],
+            "simplified_contracts": (
+                None if self.simplified_contracts is None
+                else [c.to_dict() for c in self.simplified_contracts]
+            ),
             "issues": [i.to_dict() for i in self.issues],
             "description": self.description,
         }
