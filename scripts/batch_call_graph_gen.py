@@ -34,6 +34,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 from llm_summary.allocator import STDLIB_ALLOCATORS, AllocatorDetector
 from llm_summary.callgraph_import import CallGraphImporter
 from llm_summary.db import SummaryDB
+from gpr_utils import resolve_compile_commands
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 SCRIPTS_DIR = REPO_ROOT / "scripts"
@@ -46,115 +47,6 @@ DEFAULT_SOURCE_DIR = Path("/data/csong/opensource")
 DEFAULT_BUILD_ROOT = Path("/data/csong/build-artifacts")
 
 C_EXTENSIONS = {".c", ".cpp", ".cc", ".cxx", ".c++"}
-
-
-# ---------------------------------------------------------------------------
-# Path resolution: Docker container paths → host paths
-# ---------------------------------------------------------------------------
-
-def _is_docker_path(path: str) -> bool:
-    """Check if a path uses Docker container conventions."""
-    return path.startswith("/workspace/")
-
-
-def _resolve_host_path(
-    container_path: str,
-    project_source_dir: Path,
-    build_dir: Path,
-) -> Path:
-    """Translate a Docker /workspace/ path to the host equivalent.
-
-    Docker volume mapping convention:
-      /workspace/src   -> project_source_dir
-      /workspace/build -> build_dir
-
-    Some projects build in /workspace/src directly (e.g., nginx, openssh),
-    so /workspace/src is tried first.
-    """
-    if not _is_docker_path(container_path):
-        return Path(container_path)
-
-    # Strip /workspace/ prefix
-    remainder = container_path[len("/workspace/"):]
-
-    if remainder.startswith("src/"):
-        return project_source_dir / remainder[len("src/"):]
-    elif remainder.startswith("src"):
-        # Exactly "/workspace/src" with no trailing content
-        return project_source_dir
-    elif remainder.startswith("build/"):
-        return build_dir / remainder[len("build/"):]
-    elif remainder.startswith("build"):
-        return build_dir
-    else:
-        # Fallback: try under build_dir
-        return build_dir / remainder
-
-
-def _resolve_compile_commands(
-    cc_path: Path,
-    project_source_dir: Path,
-    build_dir: Path,
-) -> list[dict]:
-    """Load compile_commands.json and resolve all paths to host paths."""
-    with open(cc_path) as f:
-        entries = json.load(f)
-
-    needs_translation = any(
-        _is_docker_path(e.get("directory", "")) or _is_docker_path(e.get("file", ""))
-        for e in entries[:5]
-    )
-
-    if not needs_translation:
-        return entries
-
-    resolved = []
-    for entry in entries:
-        e = dict(entry)
-        if _is_docker_path(e.get("directory", "")):
-            e["directory"] = str(_resolve_host_path(
-                e["directory"], project_source_dir, build_dir
-            ))
-        if _is_docker_path(e.get("file", "")):
-            e["file"] = str(_resolve_host_path(
-                e["file"], project_source_dir, build_dir
-            ))
-        if "output" in e and _is_docker_path(e["output"]):
-            e["output"] = str(_resolve_host_path(
-                e["output"], project_source_dir, build_dir
-            ))
-        # Translate paths inside command/arguments
-        if "command" in e:
-            e["command"] = _translate_command_paths(
-                e["command"], project_source_dir, build_dir
-            )
-        if "arguments" in e:
-            e["arguments"] = [
-                str(_resolve_host_path(a, project_source_dir, build_dir))
-                if _is_docker_path(a) else a
-                for a in e["arguments"]
-            ]
-        resolved.append(e)
-
-    return resolved
-
-
-def _translate_command_paths(
-    command: str,
-    project_source_dir: Path,
-    build_dir: Path,
-) -> str:
-    """Translate /workspace/ paths inside a compile command string."""
-    parts = shlex.split(command)
-    translated = []
-    for part in parts:
-        if _is_docker_path(part):
-            translated.append(str(_resolve_host_path(
-                part, project_source_dir, build_dir
-            )))
-        else:
-            translated.append(part)
-    return " ".join(shlex.quote(p) for p in translated)
 
 
 # ---------------------------------------------------------------------------
@@ -577,7 +469,7 @@ def process_project(
     build_dir = build_root / project_name
 
     try:
-        entries = _resolve_compile_commands(cc_path, project_source_dir, build_dir)
+        entries = resolve_compile_commands(cc_path, project_source_dir, build_dir)
     except Exception as e:
         result["error"] = f"cc_parse_failed: {e}"
         result["timing_seconds"] = round(time.monotonic() - start, 2)

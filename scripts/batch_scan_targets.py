@@ -16,6 +16,7 @@ Usage:
 import json
 import os
 import sys
+import tempfile
 import time
 from collections import Counter
 from concurrent.futures import ProcessPoolExecutor, as_completed
@@ -30,6 +31,7 @@ from llm_summary.extractor import FunctionExtractor
 from llm_summary.indirect.callsites import IndirectCallsiteFinder
 from llm_summary.indirect.scanner import AddressTakenScanner
 from llm_summary.models import TargetType
+from gpr_utils import resolve_compile_commands
 
 
 C_EXTENSIONS = {".c", ".cpp", ".cc", ".cxx", ".c++"}
@@ -52,6 +54,21 @@ def _load_tier_map() -> dict[str, int]:
         for p in projects
         if "project_dir" in p
     }
+
+
+def _load_project_root(project_dir: Path) -> Path | None:
+    """Read project_path from config.json if present."""
+    config_path = project_dir / "config.json"
+    if config_path.exists():
+        try:
+            with open(config_path) as f:
+                config = json.load(f)
+            p = config.get("project_path")
+            if p:
+                return Path(p)
+        except Exception:
+            pass
+    return None
 
 
 def scan_project(
@@ -78,9 +95,30 @@ def scan_project(
     start = time.monotonic()
 
     try:
-        cc = CompileCommandsDB(cc_path)
-        all_files = cc.get_all_files()
-        source_files = [f for f in all_files if Path(f).suffix.lower() in C_EXTENSIONS]
+        project_root = _load_project_root(project_dir)
+
+        # Resolve Docker /workspace/ paths if needed
+        DEFAULT_BUILD_ROOT = Path("/data/csong/build-artifacts")
+        build_dir = DEFAULT_BUILD_ROOT / project_dir.name
+        entries = resolve_compile_commands(
+            cc_path,
+            project_source_dir=project_root or (project_dir / "src"),
+            build_dir=build_dir,
+        )
+
+        # Write resolved entries to a temporary file for CompileCommandsDB
+        tmp_cc = tempfile.NamedTemporaryFile(suffix=".json", delete=False, mode="w")
+        json.dump(entries, tmp_cc)
+        tmp_cc.flush()
+        tmp_cc_path = Path(tmp_cc.name)
+        tmp_cc.close()
+
+        try:
+            cc = CompileCommandsDB(tmp_cc_path)
+            all_files = cc.get_all_files()
+            source_files = [f for f in all_files if Path(f).suffix.lower() in C_EXTENSIONS]
+        finally:
+            tmp_cc_path.unlink(missing_ok=True)
 
         if not source_files:
             result["error"] = "no_c_cpp_files"
@@ -90,9 +128,12 @@ def scan_project(
 
         db = SummaryDB(db_path)
 
+        if verbose and project_root:
+            print(f"  project_root: {project_root} (header functions will be extracted)")
+
         try:
             # Extract functions
-            extractor = FunctionExtractor(compile_commands=cc)
+            extractor = FunctionExtractor(compile_commands=cc, project_root=project_root)
             all_functions = []
             for f in source_files:
                 try:
@@ -182,6 +223,10 @@ def main():
         "--skip-list", type=str, default=None,
         help="File with project names to skip (one per line)",
     )
+    parser.add_argument(
+        "--filter", type=str, default=None,
+        help="Only scan projects whose name contains this substring (case-insensitive)",
+    )
     args = parser.parse_args()
 
     if not BUILD_SCRIPTS_DIR.exists():
@@ -193,6 +238,13 @@ def main():
         d for d in BUILD_SCRIPTS_DIR.iterdir()
         if d.is_dir() and (d / "compile_commands.json").exists()
     )
+
+    # Filter by name
+    if args.filter:
+        filter_str = args.filter.lower()
+        before = len(projects)
+        projects = [p for p in projects if filter_str in p.name.lower()]
+        print(f"Filter '{args.filter}': {len(projects)}/{before} projects")
 
     # Filter by tier if requested
     if args.tier is not None:

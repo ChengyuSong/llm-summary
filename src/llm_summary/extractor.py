@@ -108,6 +108,7 @@ class FunctionExtractor:
         compile_args: list[str] | None = None,
         libclang_path: str | None = None,
         compile_commands: CompileCommandsDB | None = None,
+        project_root: Path | str | None = None,
     ):
         """
         Initialize the extractor.
@@ -116,12 +117,20 @@ class FunctionExtractor:
             compile_args: Additional compiler arguments (e.g., ["-I/path/to/include"])
             libclang_path: Path to libclang shared library
             compile_commands: Optional CompileCommandsDB for per-file compile flags
+            project_root: If provided, functions defined in headers under this directory
+                are also extracted (not just functions in the main source file).
+                Deduplication across files is handled automatically via USR tracking.
         """
         configure_libclang(libclang_path)
         self.index = Index.create()
         self.compile_args = compile_args or []
         self.compile_commands = compile_commands
+        self.project_root = Path(project_root).resolve() if project_root else None
         self._file_contents: dict[str, str] = {}
+        # USR-based dedup: tracks libclang Unified Symbol Resolution strings so that
+        # inline/template functions defined in headers are not extracted more than once
+        # when multiple translation units include the same header.
+        self._seen_usrs: set[str] = set()
 
     def extract_from_file(self, file_path: str | Path) -> list[Function]:
         """
@@ -206,6 +215,23 @@ class FunctionExtractor:
 
         return self.extract_from_files(files)
 
+    def _is_extractable_file(self, node_file: str, main_file: str) -> bool:
+        """Return True if a node from node_file should be extracted.
+
+        Always accepts the main translation-unit file. When project_root is set,
+        also accepts header files that live inside the project source tree (i.e.
+        not system headers or third-party headers outside the project).
+        """
+        if node_file == main_file:
+            return True
+        if self.project_root is None:
+            return False
+        try:
+            Path(node_file).resolve().relative_to(self.project_root)
+            return True
+        except ValueError:
+            return False
+
     def _extract_functions_recursive(
         self,
         cursor: Cursor,
@@ -214,22 +240,21 @@ class FunctionExtractor:
     ) -> None:
         """Recursively extract functions from AST."""
         for child in cursor.get_children():
-            # Skip if not from the main file
-            if child.location.file and str(child.location.file) != main_file:
+            node_file = str(child.location.file) if child.location.file else None
+            if node_file is None:
+                continue
+            if not self._is_extractable_file(node_file, main_file):
                 continue
 
-            if child.kind == CursorKind.FUNCTION_DECL:
-                # Only extract function definitions (not declarations)
+            if child.kind in (CursorKind.FUNCTION_DECL, CursorKind.CXX_METHOD):
                 if child.is_definition():
+                    usr = child.get_usr()
+                    if usr and usr in self._seen_usrs:
+                        continue
                     func = self._cursor_to_function(child)
                     if func:
-                        functions.append(func)
-
-            elif child.kind == CursorKind.CXX_METHOD:
-                # C++ method definition
-                if child.is_definition():
-                    func = self._cursor_to_function(child)
-                    if func:
+                        if usr:
+                            self._seen_usrs.add(usr)
                         functions.append(func)
 
             # Recurse into namespaces and classes

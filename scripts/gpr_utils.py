@@ -1,8 +1,101 @@
 """Common utilities for GPR project scripts."""
 
+import json
 import os
+import shlex
 import subprocess
 from pathlib import Path
+
+
+# ---------------------------------------------------------------------------
+# Docker container path translation
+# ---------------------------------------------------------------------------
+
+def is_docker_path(path: str) -> bool:
+    """Check if a path uses Docker container conventions (/workspace/...)."""
+    return path.startswith("/workspace/")
+
+
+def resolve_host_path(
+    container_path: str,
+    project_source_dir: Path,
+    build_dir: Path,
+) -> Path:
+    """Translate a Docker /workspace/ path to the host equivalent.
+
+    Docker volume mapping convention:
+      /workspace/src   -> project_source_dir
+      /workspace/build -> build_dir
+    """
+    if not is_docker_path(container_path):
+        return Path(container_path)
+
+    remainder = container_path[len("/workspace/"):]
+
+    if remainder.startswith("src/"):
+        return project_source_dir / remainder[len("src/"):]
+    elif remainder.startswith("src"):
+        return project_source_dir
+    elif remainder.startswith("build/"):
+        return build_dir / remainder[len("build/"):]
+    elif remainder.startswith("build"):
+        return build_dir
+    else:
+        return build_dir / remainder
+
+
+def _translate_command_paths(
+    command: str,
+    project_source_dir: Path,
+    build_dir: Path,
+) -> str:
+    """Translate /workspace/ paths inside a compile command string."""
+    parts = shlex.split(command)
+    translated = [
+        str(resolve_host_path(p, project_source_dir, build_dir))
+        if is_docker_path(p) else p
+        for p in parts
+    ]
+    return " ".join(shlex.quote(p) for p in translated)
+
+
+def resolve_compile_commands(
+    cc_path: Path,
+    project_source_dir: Path,
+    build_dir: Path,
+) -> list[dict]:
+    """Load compile_commands.json and resolve all Docker /workspace/ paths to host paths."""
+    with open(cc_path) as f:
+        entries = json.load(f)
+
+    needs_translation = any(
+        is_docker_path(e.get("directory", "")) or is_docker_path(e.get("file", ""))
+        for e in entries[:5]
+    )
+
+    if not needs_translation:
+        return entries
+
+    resolved = []
+    for entry in entries:
+        e = dict(entry)
+        if is_docker_path(e.get("directory", "")):
+            e["directory"] = str(resolve_host_path(e["directory"], project_source_dir, build_dir))
+        if is_docker_path(e.get("file", "")):
+            e["file"] = str(resolve_host_path(e["file"], project_source_dir, build_dir))
+        if "output" in e and is_docker_path(e["output"]):
+            e["output"] = str(resolve_host_path(e["output"], project_source_dir, build_dir))
+        if "command" in e:
+            e["command"] = _translate_command_paths(e["command"], project_source_dir, build_dir)
+        if "arguments" in e:
+            e["arguments"] = [
+                str(resolve_host_path(a, project_source_dir, build_dir))
+                if is_docker_path(a) else a
+                for a in e["arguments"]
+            ]
+        resolved.append(e)
+
+    return resolved
 
 
 def derive_dir_name_from_url(url: str) -> str | None:
