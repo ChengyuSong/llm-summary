@@ -98,7 +98,9 @@ def _recompile_to_bc(entry: dict, bc_output: Path, verbose: bool = False) -> boo
     """Recompile a source file with -emit-llvm to produce .bc.
 
     Parses the original compile command, replaces -o target with bc_output,
-    adds -emit-llvm, and runs on the host.
+    adds -emit-llvm, and runs on the host. Always substitutes the compiler
+    with clang-18/clang++-18 so -emit-llvm works regardless of the original
+    compiler (e.g., gcc).
 
     Returns True on success.
     """
@@ -108,6 +110,15 @@ def _recompile_to_bc(entry: dict, bc_output: Path, verbose: bool = False) -> boo
         args = shlex.split(entry["command"])
     else:
         return False
+
+    # Determine clang replacement based on source file extension
+    source_file = entry.get("file", "")
+    is_cxx = Path(source_file).suffix.lower() in {".cpp", ".cxx", ".cc", ".c++"}
+    clang_compiler = "clang++-18" if is_cxx else "clang-18"
+
+    # Replace the compiler (first argument) with clang-18/clang++-18
+    if args:
+        args[0] = clang_compiler
 
     # Rebuild the command with modifications
     new_args = []
@@ -321,7 +332,13 @@ def run_kamain(
     if not bc_files:
         return False, "No .bc files to analyze", 0.0
 
-    cmd = [kamain_bin] + [str(f) for f in bc_files] + [
+    # Write .bc paths to a list file to avoid command-line length limits
+    bc_list_path = output_json.parent / "bc_files.txt"
+    bc_list_path.parent.mkdir(parents=True, exist_ok=True)
+    bc_list_path.write_text("\n".join(str(f) for f in bc_files) + "\n")
+
+    cmd = [kamain_bin,
+        "--bc-list", str(bc_list_path),
         "--callgraph-json", str(output_json),
         "--verbose", str(verbose_level),
     ]
@@ -333,7 +350,7 @@ def run_kamain(
         cmd += ["--v-snapshot", str(snapshot_path)]
 
     if verbose:
-        print(f"    KAMain: {len(bc_files)} bitcode files -> {output_json.name}")
+        print(f"    KAMain: {len(bc_files)} bitcode files (via {bc_list_path.name}) -> {output_json.name}")
         print(f"    cmd: {shlex.join(cmd)}")
 
     output_json.parent.mkdir(parents=True, exist_ok=True)

@@ -44,6 +44,27 @@ def resolve_host_path(
         return build_dir / remainder
 
 
+def translate_arg(
+    arg: str,
+    project_source_dir: Path,
+    build_dir: Path,
+) -> str:
+    """Translate Docker /workspace/ paths within a single compiler argument.
+
+    Handles both standalone paths (/workspace/src/foo.c) and paths embedded
+    in flags (-I/workspace/src, -isystem/workspace/src, etc.).
+    """
+    if is_docker_path(arg):
+        return str(resolve_host_path(arg, project_source_dir, build_dir))
+    # Handle flags with embedded paths, e.g. -I/workspace/src or -isystem/workspace/...
+    for prefix in ("-I", "-isystem", "-isysroot", "-include", "-iprefix",
+                   "-iwithprefix", "-iwithprefixbefore", "-iquote"):
+        if arg.startswith(prefix) and is_docker_path(arg[len(prefix):]):
+            translated = resolve_host_path(arg[len(prefix):], project_source_dir, build_dir)
+            return f"{prefix}{translated}"
+    return arg
+
+
 def _translate_command_paths(
     command: str,
     project_source_dir: Path,
@@ -51,11 +72,7 @@ def _translate_command_paths(
 ) -> str:
     """Translate /workspace/ paths inside a compile command string."""
     parts = shlex.split(command)
-    translated = [
-        str(resolve_host_path(p, project_source_dir, build_dir))
-        if is_docker_path(p) else p
-        for p in parts
-    ]
+    translated = [translate_arg(p, project_source_dir, build_dir) for p in parts]
     return " ".join(shlex.quote(p) for p in translated)
 
 
@@ -68,10 +85,20 @@ def resolve_compile_commands(
     with open(cc_path) as f:
         entries = json.load(f)
 
-    needs_translation = any(
-        is_docker_path(e.get("directory", "")) or is_docker_path(e.get("file", ""))
-        for e in entries[:5]
-    )
+    def _arg_has_docker_path(a: str) -> bool:
+        return translate_arg(a, project_source_dir, build_dir) != a
+
+    def _entry_has_docker_path(e: dict) -> bool:
+        if is_docker_path(e.get("directory", "")) or is_docker_path(e.get("file", "")):
+            return True
+        for a in e.get("arguments", []):
+            if _arg_has_docker_path(a):
+                return True
+        if "/workspace/" in e.get("command", ""):
+            return True
+        return False
+
+    needs_translation = any(_entry_has_docker_path(e) for e in entries[:5])
 
     if not needs_translation:
         return entries
@@ -89,8 +116,7 @@ def resolve_compile_commands(
             e["command"] = _translate_command_paths(e["command"], project_source_dir, build_dir)
         if "arguments" in e:
             e["arguments"] = [
-                str(resolve_host_path(a, project_source_dir, build_dir))
-                if is_docker_path(a) else a
+                translate_arg(a, project_source_dir, build_dir)
                 for a in e["arguments"]
             ]
         resolved.append(e)
