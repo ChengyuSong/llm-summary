@@ -241,7 +241,8 @@ class CallGraphImporter:
         if ka_key in self._id_cache:
             return self._id_cache[ka_key]
 
-        file_path, name = _parse_ka_function_key(ka_key)
+        file_path, raw_name = _parse_ka_function_key(ka_key)
+        name = _normalize_callee_name(raw_name)
         ka_file = ka_info.get("file", file_path or "")
         ka_linkage = ka_info.get("linkage", "external")
         ka_line_start = ka_info.get("line_start", 0)

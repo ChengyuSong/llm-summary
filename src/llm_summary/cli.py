@@ -543,79 +543,210 @@ def clear(db_path):
 
 
 @main.command("init-stdlib")
-@click.option("--db", "db_path", default="summaries.db", help="Database file path")
-def init_stdlib(db_path):
-    """Initialize database with standard library summaries."""
-    from .models import Function
+@click.option("--db", "db_path", required=True, help="Database file path")
+@click.option(
+    "--abilist",
+    "extra_abilists",
+    multiple=True,
+    type=click.Path(exists=True),
+    help="Additional abilist file(s) to merge with the bundled list (repeatable)",
+)
+@click.option(
+    "--cache-db",
+    default=None,
+    help="Global stdlib cache path (default: ~/.llm-summary/stdlib_cache.db)",
+)
+@click.option(
+    "--backend",
+    type=click.Choice(["claude", "openai", "ollama", "llamacpp", "gemini"]),
+    default=None,
+    help="LLM backend to use for generating summaries of uncached externals",
+)
+@click.option("--model", default=None, help="Model name override for --backend")
+@click.option("--llm-host", default="localhost", help="Hostname for local LLM backends")
+@click.option("--llm-port", default=None, type=int, help="Port for local LLM backends")
+@click.option("--log-llm", type=click.Path(), default=None, help="Log LLM prompts/responses to file")
+@click.option("--verbose", "-v", is_flag=True, help="Verbose output")
+def init_stdlib(db_path, extra_abilists, cache_db, backend, model, llm_host, llm_port, log_llm, verbose):
+    """Populate external-function summaries using a persistent global cache.
+
+    For each function in the project DB that has no source body:
+
+    \b
+      1. If it is in the known-externals list (bundled abilist + --abilist):
+           a. Cache hit  → copy summaries from the global cache into the project DB.
+           b. Cache miss → generate summaries via LLM, save to cache, then copy.
+      2. If not in the known-externals list → skip (let the main summarizer handle it).
+
+    The global cache (~/.llm-summary/stdlib_cache.db) is pre-seeded with
+    hand-crafted entries for common libc functions (malloc, free, memcpy, …).
+    A --backend is only required when the cache is missing entries for
+    functions that appear in the project.
+    """
+    from .external_summarizer import ExternalFunctionSummarizer
+    from .models import Function, VerificationSummary
+    from .stdlib_cache import StdlibCache, load_known_externals
+
+    # 1. Load known-externals set
+    known_externals = load_known_externals(list(extra_abilists) if extra_abilists else None)
+    console.print(f"Known-externals registry: {len(known_externals):,} function names")
+
+    # 2. Open and seed the global stdlib cache
+    cache = StdlibCache(cache_db)
+    seeded = cache.seed_builtins()
+    if seeded:
+        console.print(f"  Seeded {seeded} hand-crafted builtin entries into cache")
 
     db = SummaryDB(db_path)
-
-    def _get_or_create(name: str) -> Function:
-        """Return existing stub or create a new function entry."""
-        existing = db.get_function_by_name(name)
-        if existing:
-            return existing[0]
-        func = Function(
-            name=name,
-            file_path="<stdlib>",
-            line_start=0,
-            line_end=0,
-            source="",
-            signature=f"{name}(...)",
-        )
-        func.id = db.insert_function(func)
-        return func
-
     try:
-        all_summaries: dict[str, list] = {}
-        for name, s in get_all_stdlib_summaries().items():
-            all_summaries.setdefault(name, []).append(s)
-        for name, s in get_all_stdlib_memsafe_summaries().items():
-            all_summaries.setdefault(name, []).append(s)
-        for name, s in get_all_stdlib_init_summaries().items():
-            all_summaries.setdefault(name, []).append(s)
-        for name, s in get_all_stdlib_free_summaries().items():
-            all_summaries.setdefault(name, []).append(s)
+        # 3. Identify functions that have no source and need summaries
+        all_funcs = db.get_all_functions()
+        sourceless = [f for f in all_funcs if not f.source]
 
-        console.print(f"Adding stdlib summaries for {len(all_summaries)} functions...")
+        def _needs_summary(f: Function) -> bool:
+            return (
+                db.get_summary_by_function_id(f.id) is None
+                or db.get_free_summary_by_function_id(f.id) is None
+                or db.get_init_summary_by_function_id(f.id) is None
+            )
 
-        from .models import (
-            AllocationSummary,
-            FreeSummary,
-            InitSummary,
-            MemsafeSummary,
-            VerificationSummary,
+        needs = [f for f in sourceless if _needs_summary(f)]
+
+        if not needs:
+            console.print("All external functions already have summaries.")
+            return
+
+        in_known = [f for f in needs if f.name in known_externals]
+        not_known = [f for f in needs if f.name not in known_externals]
+
+        cache_hits = [f for f in in_known if cache.has(f.name)]
+        cache_misses = [f for f in in_known if not cache.has(f.name)]
+
+        console.print(
+            f"  Functions needing summaries: {len(needs)} total  "
+            f"({len(in_known)} known-external, {len(not_known)} unknown)"
+        )
+        console.print(
+            f"  Known-externals breakdown: {len(cache_hits)} cache hits, "
+            f"{len(cache_misses)} cache misses"
         )
 
-        for name, summaries in all_summaries.items():
-            func = _get_or_create(name)
-            memsafe_summary = None
-            for summary in summaries:
-                if isinstance(summary, MemsafeSummary):
-                    db.upsert_memsafe_summary(func, summary, model_used="builtin")
-                    memsafe_summary = summary
-                elif isinstance(summary, FreeSummary):
-                    db.upsert_free_summary(func, summary, model_used="builtin")
-                elif isinstance(summary, InitSummary):
-                    db.upsert_init_summary(func, summary, model_used="builtin")
-                else:
-                    db.upsert_summary(func, summary, model_used="builtin")
+        # 4. Require --backend if there are cache misses
+        if cache_misses and not backend:
+            names = sorted(f.name for f in cache_misses)
+            console.print(
+                f"\n[red]Error: {len(cache_misses)} known-external function(s) have no cached "
+                f"summary and no --backend was given.[/red]"
+            )
+            console.print("  Re-run with --backend <claude|gemini|…> to generate them.")
+            console.print(f"  Missing: {', '.join(names)}")
+            sys.exit(1)
 
-            # Populate verification_summary with simplified_contracts from memsafe,
-            # so that bottom-up callers always find verified pre-conditions.
-            if memsafe_summary is not None:
+        # 5. Helper: get-or-create a function stub in the project DB
+        def _get_or_create(name: str) -> Function:
+            existing = db.get_function_by_name(name)
+            if existing:
+                return existing[0]
+            stub = Function(
+                name=name,
+                file_path="<stdlib>",
+                line_start=0,
+                line_end=0,
+                source="",
+                signature=f"{name}(...)",
+            )
+            stub.id = db.insert_function(stub)
+            return stub
+
+        # 6. Helper: apply a cache entry to the project DB
+        def _apply_entry(func: Function, entry) -> None:
+            model_used = entry.model_used
+
+            if entry.allocation_json:
+                alloc_obj = db._json_to_summary(entry.allocation_json)
+                db.upsert_summary(func, alloc_obj, model_used=model_used)
+
+            if entry.free_json:
+                free_obj = db._json_to_free_summary(entry.free_json)
+                db.upsert_free_summary(func, free_obj, model_used=model_used)
+
+            if entry.init_json:
+                init_obj = db._json_to_init_summary(entry.init_json)
+                db.upsert_init_summary(func, init_obj, model_used=model_used)
+
+            if entry.memsafe_json:
+                memsafe_obj = db._json_to_memsafe_summary(entry.memsafe_json)
+                db.upsert_memsafe_summary(func, memsafe_obj, model_used=model_used)
+                # Mirror contracts into verification_summary for bottom-up callers
                 ver = VerificationSummary(
-                    function_name=name,
-                    simplified_contracts=memsafe_summary.contracts,
+                    function_name=func.name,
+                    simplified_contracts=memsafe_obj.contracts,
                     issues=[],
-                    description=memsafe_summary.description,
+                    description=memsafe_obj.description,
                 )
-                db.upsert_verification_summary(func, ver, model_used="builtin")
+                db.upsert_verification_summary(func, ver, model_used=model_used)
 
-        console.print("Done.")
+        # 7. Apply cache hits
+        if cache_hits:
+            console.print(f"\nApplying {len(cache_hits)} cached summaries...")
+            for f in cache_hits:
+                entry = cache.get(f.name)
+                func = _get_or_create(f.name)
+                _apply_entry(func, entry)
+                if verbose:
+                    console.print(f"  [cache] {f.name}")
+
+        # 8. LLM-generate cache misses
+        if cache_misses and backend:
+            backend_kwargs = _build_backend_kwargs(backend, llm_host, llm_port, False)
+            llm = create_backend(backend, model=model, **backend_kwargs)
+            gen = ExternalFunctionSummarizer(llm, verbose=verbose, log_file=log_llm)
+            console.print(
+                f"\nGenerating summaries for {len(cache_misses)} uncached functions "
+                f"via {backend} ({llm.model})..."
+            )
+            with Progress(SpinnerColumn(), TextColumn("{task.description}"), console=console) as prog:
+                task = prog.add_task("", total=len(cache_misses))
+                for f in cache_misses:
+                    prog.update(task, description=f.name)
+                    result = gen.generate(f.name)
+                    cache.put(
+                        name=f.name,
+                        allocation_json=result.allocation_json,
+                        free_json=result.free_json,
+                        init_json=result.init_json,
+                        memsafe_json=result.memsafe_json,
+                        model_used=llm.model,
+                    )
+                    func = _get_or_create(f.name)
+                    entry = cache.get(f.name)
+                    _apply_entry(func, entry)
+                    prog.advance(task)
+
+            s = gen.stats
+            console.print(
+                f"  LLM calls: {s['llm_calls']}, processed: {s['functions_processed']}, "
+                f"errors: {s['errors']}"
+            )
+
+        # 9. Report skipped unknowns
+        if not_known:
+            names = sorted(f.name for f in not_known)
+            console.print(
+                f"\n[yellow]{len(not_known)} sourceless function(s) not in known-externals list "
+                f"(skipped — main summarizer will handle them):[/yellow]"
+            )
+            if verbose:
+                for n in names:
+                    console.print(f"  {n}")
+            else:
+                console.print(f"  {', '.join(names)}")
+
+        console.print("\n[green]Done.[/green]")
 
     finally:
         db.close()
+        cache.close()
 
 
 @main.command()
