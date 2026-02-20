@@ -1949,5 +1949,201 @@ def import_callgraph(json_path, db_path, clear_edges, verbose):
         db.close()
 
 
+@main.command("discover-link-units")
+@click.option("--project-name", default=None, help="Project name (default: inferred from project path)")
+@click.option("--project-path", type=click.Path(exists=True), required=True, help="Path to the project source")
+@click.option("--build-dir", type=click.Path(exists=True), required=True, help="Path to the build directory")
+@click.option("--compile-commands", "compile_commands_path", type=click.Path(exists=True), default=None,
+              help="Path to compile_commands.json (auto-detected if not given)")
+@click.option("--build-system", default=None, help="Build system hint (cmake, autotools, make)")
+@click.option("--output", "-o", type=click.Path(), default=None,
+              help="Output path (default: func-scans/<project>/link_units.json)")
+@click.option("--backend", type=click.Choice(["claude", "openai", "ollama", "llamacpp", "gemini"]), default="claude",
+              help="LLM backend (only needed for non-Ninja builds)")
+@click.option("--model", default=None, help="Model name")
+@click.option("--llm-host", default="localhost", help="Hostname for local LLM backends")
+@click.option("--llm-port", default=None, type=int, help="Port for local LLM backends")
+@click.option("--disable-thinking", is_flag=True, help="Disable thinking mode")
+@click.option("--container-image", default="llm-summary-builder:latest",
+              help="Docker image for sandboxed commands (agent mode only)")
+@click.option("--log-llm", type=click.Path(), default=None, help="Log LLM prompts/responses to file")
+@click.option("--verbose", "-v", is_flag=True, help="Verbose output")
+def discover_link_units(
+    project_name, project_path, build_dir, compile_commands_path,
+    build_system, output, backend, model, llm_host, llm_port,
+    disable_thinking, container_image, log_llm, verbose,
+):
+    """Discover link units (libraries and executables) from build artifacts.
+
+    Parses build artifacts to identify which object files and .bc files
+    belong to each library and executable. For CMake+Ninja builds, this
+    runs deterministically with no LLM calls.
+
+    \b
+    Examples:
+        # Deterministic fast path (CMake+Ninja, no LLM needed)
+        llm-summary discover-link-units \\
+          --project-path /data/csong/opensource/zlib \\
+          --build-dir /data/csong/build-artifacts/zlib -v
+
+        # Agent path (autotools, needs LLM)
+        llm-summary discover-link-units \\
+          --project-path /data/csong/opensource/binutils-gdb \\
+          --build-dir /data/csong/build-artifacts/binutils \\
+          --backend gemini -v
+    """
+    from .link_units.skills import discover_deterministic
+
+    project_path = Path(project_path).resolve()
+    build_dir = Path(build_dir).resolve()
+
+    # Infer project name
+    if not project_name:
+        project_name = project_path.name
+
+    # Auto-detect compile_commands.json
+    if compile_commands_path is None:
+        # Check build-scripts/<project>/compile_commands.json
+        candidate = Path("build-scripts") / project_name / "compile_commands.json"
+        if candidate.exists():
+            compile_commands_path = str(candidate)
+        else:
+            # Check build_dir/compile_commands.json
+            candidate = build_dir / "compile_commands.json"
+            if candidate.exists():
+                compile_commands_path = str(candidate)
+
+    if compile_commands_path:
+        compile_commands_path = Path(compile_commands_path).resolve()
+
+    # Auto-detect build system from config.json
+    if build_system is None:
+        config_path = Path("build-scripts") / project_name / "config.json"
+        if config_path.exists():
+            try:
+                with open(config_path) as f:
+                    config = json.load(f)
+                build_system = config.get("build_system")
+            except (json.JSONDecodeError, OSError):
+                pass
+
+    # Determine output path
+    if output is None:
+        output_dir = Path("func-scans") / project_name
+        output_dir.mkdir(parents=True, exist_ok=True)
+        output = str(output_dir / "link_units.json")
+
+    console.print(f"[bold]Link Unit Discovery[/bold]")
+    console.print(f"  Project: {project_name}")
+    console.print(f"  Source:  {project_path}")
+    console.print(f"  Build:   {build_dir}")
+    if compile_commands_path:
+        console.print(f"  CC:      {compile_commands_path}")
+    if build_system:
+        console.print(f"  System:  {build_system}")
+    console.print(f"  Output:  {output}")
+
+    # Try deterministic fast path first (build.ninja)
+    console.print("\n[bold]Attempting deterministic discovery...[/bold]")
+    result = discover_deterministic(
+        build_dir=build_dir,
+        compile_commands_path=compile_commands_path,
+        project_name=project_name,
+        project_path=project_path,
+        verbose=verbose,
+    )
+
+    if result is not None:
+        console.print(f"[green]Deterministic discovery succeeded (no LLM needed)[/green]")
+    else:
+        # Try heuristic path (prescan + Makefile parsing)
+        console.print("[yellow]No build.ninja — trying heuristic discovery...[/yellow]")
+
+        from .link_units.skills import discover_heuristic
+
+        heuristic_result, unresolved = discover_heuristic(build_dir, verbose=verbose)
+        heuristic_result["project"] = project_name
+
+        if not unresolved:
+            console.print(f"[green]Heuristic discovery fully resolved (no LLM needed)[/green]")
+            result = heuristic_result
+        else:
+            console.print(
+                f"[yellow]Heuristic resolved {len(heuristic_result['link_units'])} units, "
+                f"{len(unresolved)} unresolved — falling back to LLM agent[/yellow]"
+            )
+
+            # Initialize LLM backend
+            backend_kwargs = _build_backend_kwargs(backend, llm_host, llm_port, disable_thinking)
+            try:
+                llm = create_backend(backend, model=model, **backend_kwargs)
+            except Exception as e:
+                console.print(f"[red]Failed to initialize LLM backend: {e}[/red]")
+                console.print("[yellow]Using heuristic results only[/yellow]")
+                result = heuristic_result
+                llm = None
+
+            if llm is not None:
+                console.print(f"  Using {backend} backend ({llm.model})")
+
+                from .link_units.discoverer import LinkUnitDiscoverer
+
+                discoverer = LinkUnitDiscoverer(
+                    llm=llm,
+                    container_image=container_image,
+                    verbose=verbose,
+                    log_file=log_llm,
+                )
+
+                try:
+                    agent_result = discoverer.discover(
+                        project_name=project_name,
+                        project_path=project_path,
+                        build_dir=build_dir,
+                        build_system=build_system,
+                        heuristic_result=heuristic_result,
+                        unresolved_objects=unresolved,
+                    )
+                    result = agent_result
+                except Exception as e:
+                    console.print(f"[red]Agent failed: {e}[/red]")
+                    console.print("[yellow]Using heuristic results only[/yellow]")
+                    result = heuristic_result
+
+    # Write output
+    output_path = Path(output)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    with open(output_path, "w") as f:
+        json.dump(result, f, indent=2)
+
+    # Summary
+    link_units = result.get("link_units", [])
+    libs = [u for u in link_units if u.get("type") in ("static_library", "shared_library")]
+    exes = [u for u in link_units if u.get("type") == "executable"]
+    total_obj = sum(len(u.get("objects", [])) for u in link_units)
+    total_bc = sum(len(u.get("bc_files", [])) for u in link_units)
+
+    console.print(f"\n[bold]Results[/bold]")
+    console.print(f"  Link units: {len(link_units)} ({len(libs)} libraries, {len(exes)} executables)")
+    console.print(f"  Total objects: {total_obj}")
+    if total_bc:
+        console.print(f"  Total .bc files: {total_bc}")
+    console.print(f"  Written to: {output_path}")
+
+    if verbose and link_units:
+        console.print("\n[bold]Link Units:[/bold]")
+        for u in link_units:
+            obj_count = len(u.get("objects", []))
+            bc_count = len(u.get("bc_files", []))
+            deps = u.get("link_deps", [])
+            parts = [f"{obj_count} objects"]
+            if bc_count:
+                parts.append(f"{bc_count} bc")
+            if deps:
+                parts.append(f"deps=\\[{', '.join(deps)}]")
+            utype = u.get("type", "unknown")
+            console.print(f"  {utype:16s} {u['name']}: {', '.join(parts)}")
+
+
 if __name__ == "__main__":
     main()
