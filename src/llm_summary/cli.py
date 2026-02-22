@@ -2373,5 +2373,125 @@ def discover_link_units(
             console.print(f"  {utype:16s} {u['name']}: {', '.join(parts)}")
 
 
+@main.command("import-dep-summaries")
+@click.option("--db", "db_path", required=True, help="Target database path")
+@click.option("--dep-db", "dep_db_paths", multiple=True, required=True,
+              help="Source (dependency) database path(s). Repeat for multiple deps.")
+@click.option("--force", "-f", is_flag=True,
+              help="Overwrite existing summaries in target DB")
+@click.option("--verbose", "-v", is_flag=True)
+def import_dep_summaries(db_path, dep_db_paths, force, verbose):
+    """Copy function summaries from dependency DBs into the target DB.
+
+    For each function in a dep DB that has at least one summary, finds or
+    creates a matching stub in the target DB and copies all available
+    summaries (allocation, free, init, memsafe, verification).
+
+    Existing summaries in the target are skipped unless --force is given.
+    Imported summaries are tagged with model_used='dep:<dep_db_stem>'.
+
+    Example:
+        llm-summary import-dep-summaries \\
+            --db func-scans/libpng/libpng16/functions.db \\
+            --dep-db func-scans/zlib/zlibstatic/functions.db
+    """
+    summary_tables = [
+        "allocation_summaries",
+        "free_summaries",
+        "init_summaries",
+        "memsafe_summaries",
+        "verification_summaries",
+    ]
+
+    target_db = SummaryDB(db_path)
+    total_funcs = 0
+    total_summaries = 0
+
+    try:
+        for dep_path in dep_db_paths:
+            dep_db = SummaryDB(dep_path)
+            dep_tag = f"dep:{Path(dep_path).stem}"
+            copied_funcs = 0
+            copied_summaries = 0
+
+            try:
+                dep_funcs = dep_db.get_all_functions()
+
+                for src_func in dep_funcs:
+                    # Collect summaries available for this function in the dep DB
+                    src_summaries: dict[str, tuple[str, str]] = {}
+                    for table in summary_tables:
+                        row = dep_db.conn.execute(
+                            f"SELECT summary_json, model_used FROM {table}"
+                            " WHERE function_id = ?",
+                            (src_func.id,),
+                        ).fetchone()
+                        if row:
+                            src_summaries[table] = (row[0], dep_tag)
+
+                    if not src_summaries:
+                        continue
+
+                    # Find or create matching function in target DB
+                    candidates = target_db.get_function_by_name(src_func.name)
+                    tgt_func = candidates[0] if candidates else None
+                    if tgt_func is None:
+                        stub_id = target_db.insert_function_stub(
+                            name=src_func.name,
+                            file_path=src_func.file_path,
+                            line_start=src_func.line_start,
+                            line_end=src_func.line_end,
+                        )
+                        tgt_func = target_db.get_function(stub_id)
+
+                    if tgt_func is None:
+                        continue
+
+                    func_imported = False
+                    for table, (summary_json, model_used) in src_summaries.items():
+                        existing = target_db.conn.execute(
+                            f"SELECT id FROM {table} WHERE function_id = ?",
+                            (tgt_func.id,),
+                        ).fetchone()
+                        if existing and not force:
+                            continue
+
+                        target_db.conn.execute(
+                            f"INSERT INTO {table} (function_id, summary_json, model_used)"
+                            " VALUES (?, ?, ?)"
+                            " ON CONFLICT(function_id) DO UPDATE SET"
+                            "   summary_json = excluded.summary_json,"
+                            "   updated_at   = CURRENT_TIMESTAMP,"
+                            "   model_used   = excluded.model_used",
+                            (tgt_func.id, summary_json, model_used),
+                        )
+                        copied_summaries += 1
+                        func_imported = True
+
+                    if func_imported:
+                        copied_funcs += 1
+                        if verbose:
+                            kinds = [t.replace("_summaries", "") for t in src_summaries]
+                            console.print(f"  {src_func.name}: {', '.join(kinds)}")
+
+                target_db.conn.commit()
+            finally:
+                dep_db.close()
+
+            total_funcs += copied_funcs
+            total_summaries += copied_summaries
+            console.print(
+                f"  {Path(dep_path).name}: "
+                f"{copied_funcs} functions, {copied_summaries} summaries imported"
+            )
+
+        console.print(
+            f"\n[bold]Total:[/bold] {total_funcs} functions, "
+            f"{total_summaries} summaries imported into {db_path}"
+        )
+    finally:
+        target_db.close()
+
+
 if __name__ == "__main__":
     main()
