@@ -56,57 +56,55 @@ func-scans/
 
 ### link_units.json Format
 
-Produced by the link-unit discovery agent. Describes all targets, their
-bitcode files, and dependency relationships.
+Produced by the link-unit discovery agent. Describes all link units, their
+bitcode files, and intra-project dependency relationships.
+
+Top-level key is `"link_units"` (array). `bc_files` are **absolute host
+paths**. Same-project deps are listed under `"link_deps"` (by output
+filename). The `"objects"` field lists the `.o` members used to derive the
+`bc_files`.
 
 ```json
 {
   "project": "zlib",
   "build_system": "cmake",
   "build_dir": "/data/csong/build-artifacts/zlib",
-  "targets": [
+  "link_units": [
     {
       "name": "zlibstatic",
       "type": "static_library",
       "output": "libz.a",
-      "bc_files": [
-        "CMakeFiles/zlibstatic.dir/adler32.bc",
-        "CMakeFiles/zlibstatic.dir/compress.bc",
-        "CMakeFiles/zlibstatic.dir/deflate.bc"
+      "objects": [
+        "CMakeFiles/zlibstatic.dir/adler32.c.o",
+        "CMakeFiles/zlibstatic.dir/compress.c.o",
+        "CMakeFiles/zlibstatic.dir/deflate.c.o"
       ],
-      "deps": []
+      "bc_files": [
+        "/data/csong/build-artifacts/zlib/CMakeFiles/zlibstatic.dir/adler32.bc",
+        "/data/csong/build-artifacts/zlib/CMakeFiles/zlibstatic.dir/compress.bc",
+        "/data/csong/build-artifacts/zlib/CMakeFiles/zlibstatic.dir/deflate.bc"
+      ],
+      "link_deps": []
     },
     {
-      "name": "example",
+      "name": "zlib_static_example",
       "type": "executable",
-      "output": "test/example",
-      "bc_files": [
-        "test/CMakeFiles/zlib_static_example.dir/example.bc"
+      "output": "test/zlib_static_example",
+      "objects": [
+        "test/CMakeFiles/zlib_static_example.dir/example.c.o"
       ],
-      "deps": ["zlibstatic"]
-    }
-  ],
-  "external_deps": []
-}
-```
-
-Cross-project dependencies (e.g. libpng → zlib) are recorded as:
-
-```json
-{
-  "project": "libpng",
-  "targets": [
-    {
-      "name": "libpng16",
-      "type": "static_library",
-      "deps": [],
-      "external_deps": [
-        {"project": "zlib", "target": "zlibstatic"}
-      ]
+      "bc_files": [
+        "/data/csong/build-artifacts/zlib/test/CMakeFiles/zlib_static_example.dir/example.bc"
+      ],
+      "link_deps": ["libz.a"]
     }
   ]
 }
 ```
+
+Cross-project dependencies (e.g. libpng → zlib) are **not yet recorded** in
+`link_units.json`. They are tracked separately in the top-level
+`project_deps.json` registry (see Batch Processing).
 
 ## Pipeline
 
@@ -114,6 +112,11 @@ Cross-project dependencies (e.g. libpng → zlib) are recorded as:
 
 `build-learn` agent produces `build.sh`, compiles with LTO +
 `-save-temps=obj`, generates `compile_commands.json`.
+
+**Note:** `compile_commands.json` is generated inside the Docker build
+container and retains container-internal paths (`/workspace/src/`,
+`/workspace/build/`). Downstream tools that consume it on the host must
+remap these to the real host paths (see Phase 2).
 
 ### Phase 1: Discover Link Units (new)
 
@@ -145,13 +148,21 @@ build systems, it falls back to artifact inspection (archives, ELF headers,
 
 ```bash
 llm-summary scan \
-  --compile-commands build/compile_commands.json \
-  --db func-scans/zlib/zlibstatic/functions.db \
-  --bc-filter CMakeFiles/zlibstatic.dir/   # NEW: scope to target
+  --compile-commands /data/csong/build-artifacts/zlib/compile_commands.json \
+  --link-units func-scans/zlib/link_units.json \
+  --target zlibstatic \
+  --project-path /data/csong/opensource/zlib \
+  --db func-scans/zlib/zlibstatic/functions.db
 ```
 
-The `--bc-filter` option restricts extraction to source files whose
-corresponding `.bc` files match the target's bc_files list.
+- `--link-units` / `--target`: restrict extraction to source files whose
+  corresponding `.bc` files appear in the named target's `bc_files` list.
+  Without these options, all source files in `compile_commands.json` are
+  scanned (original behaviour).
+- `--project-path`: host path to the project source root. Required when
+  `compile_commands.json` uses Docker container paths (`/workspace/src/`).
+  Maps `/workspace/src` → `project-path` and `/workspace/build` → `build_dir`
+  from `link_units.json`.
 
 ### Phase 3: Call Graph (modified)
 
@@ -244,7 +255,9 @@ only new target-specific functions get LLM calls.
 ```
 Step 1: Analyze zlib (no deps)
   discover-link-units  → zlib/link_units.json
-  scan                 → zlib/zlibstatic/functions.db
+  scan (--link-units zlib/link_units.json --target zlibstatic
+        --project-path /data/.../zlib)
+                       → zlib/zlibstatic/functions.db
   KAMain               → zlib/zlibstatic/callgraph.json
                           zlib/zlibstatic/ka_export.json
   import-callgraph     → call_edges in functions.db
@@ -253,7 +266,9 @@ Step 1: Analyze zlib (no deps)
 
 Step 2: Analyze libpng (depends on zlib)
   discover-link-units  → libpng/link_units.json
-  scan                 → libpng/libpng16/functions.db
+  scan (--link-units libpng/link_units.json --target libpng16
+        --project-path /data/.../libpng)
+                       → libpng/libpng16/functions.db
   KAMain (--import-summary zlib/ka_export.json)
                        → libpng/libpng16/callgraph.json
   import-callgraph     → call_edges
