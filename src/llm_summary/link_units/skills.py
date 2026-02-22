@@ -13,6 +13,43 @@ from pathlib import Path
 from typing import Any
 
 
+# ---------------------------------------------------------------------------
+# Docker container path translation
+# /workspace/src  -> project source dir
+# /workspace/build -> build dir
+# ---------------------------------------------------------------------------
+
+def _is_docker_path(path: str) -> bool:
+    return path.startswith("/workspace/")
+
+
+def _resolve_host_path(container_path: str, project_source_dir: Path, build_dir: Path) -> Path:
+    if not _is_docker_path(container_path):
+        return Path(container_path)
+    remainder = container_path[len("/workspace/"):]
+    if remainder.startswith("src/"):
+        return project_source_dir / remainder[len("src/"):]
+    elif remainder == "src":
+        return project_source_dir
+    elif remainder.startswith("build/"):
+        return build_dir / remainder[len("build/"):]
+    elif remainder == "build":
+        return build_dir
+    else:
+        return build_dir / remainder
+
+
+def _translate_arg(arg: str, project_source_dir: Path, build_dir: Path) -> str:
+    if _is_docker_path(arg):
+        return str(_resolve_host_path(arg, project_source_dir, build_dir))
+    for prefix in ("-I", "-isystem", "-isysroot", "-include", "-iprefix",
+                   "-iwithprefix", "-iwithprefixbefore", "-iquote"):
+        if arg.startswith(prefix) and _is_docker_path(arg[len(prefix):]):
+            translated = _resolve_host_path(arg[len(prefix):], project_source_dir, build_dir)
+            return f"{prefix}{translated}"
+    return arg
+
+
 # Regex for CMake/Ninja link rules
 # Matches lines like:
 #   build libz.a: C_STATIC_LIBRARY_LINKER__zlibstatic_ obj1.o obj2.o | dep1 || order_dep

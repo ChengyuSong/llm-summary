@@ -1475,12 +1475,95 @@ def find_allocator_candidates(
         db.close()
 
 
+def _source_files_for_target(
+    compile_commands_path: str,
+    bc_files: set[str],
+    build_dir: str | None = None,
+) -> set[str]:
+    """Return resolved source file paths whose .bc output is in bc_files.
+
+    For each compile_commands.json entry, derives the expected .bc path from
+    the output .o path using the -save-temps=obj naming convention
+    (foo.c.o -> foo.bc in the same directory), then checks membership in
+    bc_files.  Also handles the -flto case where the .o file itself is bitcode.
+
+    When build_dir is provided (from link_units.json), matching is done on
+    relative paths so that container build paths (e.g. /workspace/build) are
+    correctly mapped to host bc_file paths (e.g. /data/.../build-artifacts).
+    """
+    import json as _json
+
+    with open(compile_commands_path) as f:
+        entries = _json.load(f)
+
+    # Build a set of relative bc paths by stripping build_dir prefix.
+    # This handles container/host path mismatches: compile_commands.json may
+    # use /workspace/build while bc_files use the host build-artifacts path.
+    rel_bc_files: set[str] = set()
+    build_dir_path = Path(build_dir) if build_dir else None
+    for bc in bc_files:
+        if build_dir_path:
+            try:
+                rel_bc_files.add(str(Path(bc).relative_to(build_dir_path)))
+                continue
+            except ValueError:
+                pass
+        rel_bc_files.add(bc)  # fallback: use as absolute
+
+    result: set[str] = set()
+    for entry in entries:
+        output = entry.get("output")
+        if not output:
+            continue
+        directory = entry.get("directory", "")
+        output_path = Path(output)
+
+        # Derive relative bc path from the output .o path.
+        # The output field is typically relative to directory; use it as-is
+        # to stay in build-dir-relative space for container-safe matching.
+        if output_path.is_absolute():
+            # If absolute, try to make it relative to its directory so the
+            # relative suffix can be compared against rel_bc_files.
+            try:
+                output_path = output_path.relative_to(directory)
+            except ValueError:
+                pass  # keep absolute
+
+        name = output_path.name
+        if name.endswith(".o"):
+            # Tier 1: -save-temps=obj  foo.c.o -> foo.bc
+            source_stem = Path(name[:-2]).stem  # strip .o then .c/.cpp etc.
+            rel_bc = str(output_path.parent / (source_stem + ".bc"))
+            match = rel_bc in rel_bc_files
+        else:
+            # Tier 2: -flto, the .o itself is bitcode
+            rel_bc = str(output_path)
+            match = rel_bc in rel_bc_files
+
+        if match:
+            file_path = entry.get("file", "")
+            if file_path:
+                if not Path(file_path).is_absolute():
+                    file_path = str(Path(directory) / file_path)
+                result.add(str(Path(file_path).resolve()))
+
+    return result
+
+
 @main.command()
 @click.option("--compile-commands", "compile_commands_path", type=click.Path(exists=True), required=True,
               help="Path to compile_commands.json")
+@click.option("--link-units", "link_units_path", type=click.Path(exists=True), default=None,
+              help="Path to link_units.json (from discover-link-units). Restricts scan to the named target.")
+@click.option("--target", "target_name", default=None,
+              help="Link-unit target name to scan (required when --link-units is given).")
+@click.option("--project-path", "project_path", type=click.Path(), default=None,
+              help="Host path to project source root. Required when compile_commands.json uses Docker "
+                   "container paths (/workspace/src/...). Maps /workspace/src -> project_path and "
+                   "/workspace/build -> build_dir.")
 @click.option("--db", "db_path", default="summaries.db", help="Database file path")
 @click.option("--verbose", "-v", is_flag=True, help="Verbose output")
-def scan(compile_commands_path, db_path, verbose):
+def scan(compile_commands_path, link_units_path, target_name, project_path, db_path, verbose):
     """Extract functions, scan indirect call targets, and find callsites (no LLM).
 
     This command runs the pre-LLM scanner phases:
@@ -1488,35 +1571,121 @@ def scan(compile_commands_path, db_path, verbose):
     2. Scan for indirect call targets (address-taken, virtual, attributes)
     3. Find indirect callsites
 
-    Example:
-        llm-summary scan --compile-commands build/compile_commands.json --db out.db
+    To scope the scan to a single link unit, pass --link-units and --target:
+
+        llm-summary scan \\
+          --compile-commands build/compile_commands.json \\
+          --link-units func-scans/zlib/link_units.json \\
+          --target zlibstatic \\
+          --project-path /data/csong/opensource/zlib \\
+          --db func-scans/zlib/zlibstatic/functions.db
+
+    When compile_commands.json was generated in a Docker container, pass
+    --project-path to remap /workspace/src/ paths to host paths.
+
+    Without --link-units, all C/C++ source files in compile_commands.json are scanned.
     """
+    import json as _json
+    import tempfile
     from collections import Counter
 
     from rich.progress import BarColumn, MofNCompleteColumn, TimeElapsedColumn
 
     from .models import TargetType
 
-    # Load compile_commands.json
+    # Validate --link-units / --target pairing
+    if link_units_path and not target_name:
+        console.print("[red]--target is required when --link-units is given[/red]")
+        return
+    if target_name and not link_units_path:
+        console.print("[red]--link-units is required when --target is given[/red]")
+        return
+
+    # Resolve bc_files filter from link_units.json
+    bc_files_filter: set[str] | None = None
+    lu_build_dir: str | None = None
+    if link_units_path:
+        with open(link_units_path) as f:
+            lu_data = _json.load(f)
+        targets_map = {t["name"]: t for t in lu_data.get("link_units", lu_data.get("targets", []))}
+        if target_name not in targets_map:
+            available = ", ".join(targets_map.keys()) or "(none)"
+            console.print(f"[red]Target '{target_name}' not found in {link_units_path}[/red]")
+            console.print(f"  Available targets: {available}")
+            return
+        bc_files_filter = set(targets_map[target_name].get("bc_files", []))
+        lu_build_dir = lu_data.get("build_dir")
+        console.print(f"Link-unit filter: target '{target_name}', {len(bc_files_filter)} bc files")
+
+    # Resolve Docker /workspace/ paths in compile_commands.json when --project-path is given.
+    # The container maps /workspace/src -> project source, /workspace/build -> build dir.
+    resolved_cc_path = compile_commands_path
+    _tmp_cc_file = None
+    if project_path:
+        from .link_units.skills import _is_docker_path, _resolve_host_path, _translate_arg
+
+        proj_dir = Path(project_path)
+        build_dir_for_remap = Path(lu_build_dir) if lu_build_dir else proj_dir
+
+        with open(compile_commands_path) as f:
+            raw_entries = _json.load(f)
+
+        needs_remap = any(
+            _is_docker_path(e.get("file", "")) or _is_docker_path(e.get("directory", ""))
+            for e in raw_entries[:5]
+        )
+
+        if needs_remap:
+            resolved_entries = []
+            for e in raw_entries:
+                e = dict(e)
+                if _is_docker_path(e.get("directory", "")):
+                    e["directory"] = str(_resolve_host_path(e["directory"], proj_dir, build_dir_for_remap))
+                if _is_docker_path(e.get("file", "")):
+                    e["file"] = str(_resolve_host_path(e["file"], proj_dir, build_dir_for_remap))
+                if "output" in e and _is_docker_path(e["output"]):
+                    e["output"] = str(_resolve_host_path(e["output"], proj_dir, build_dir_for_remap))
+                if "arguments" in e:
+                    e["arguments"] = [_translate_arg(a, proj_dir, build_dir_for_remap) for a in e["arguments"]]
+                resolved_entries.append(e)
+
+            _tmp_cc_file = tempfile.NamedTemporaryFile(suffix=".json", delete=False, mode="w")
+            _json.dump(resolved_entries, _tmp_cc_file)
+            _tmp_cc_file.flush()
+            _tmp_cc_file.close()
+            resolved_cc_path = _tmp_cc_file.name
+            console.print(f"Remapped compile_commands.json paths: /workspace/src -> {proj_dir}")
+
+    # Load compile_commands.json (possibly path-remapped)
     try:
-        compile_commands = CompileCommandsDB(compile_commands_path)
+        compile_commands = CompileCommandsDB(resolved_cc_path)
     except Exception as e:
         console.print(f"[red]Failed to load compile_commands.json: {e}[/red]")
+        if _tmp_cc_file:
+            Path(_tmp_cc_file.name).unlink(missing_ok=True)
         return
 
     # Filter to C/C++ source files
     c_extensions = {".c", ".cpp", ".cc", ".cxx", ".c++"}
     all_files = compile_commands.get_all_files()
-    source_files = [
-        f for f in all_files
-        if Path(f).suffix.lower() in c_extensions
-    ]
+
+    if bc_files_filter is not None:
+        # Use the resolved compile_commands path so source file paths match
+        scoped = _source_files_for_target(resolved_cc_path, bc_files_filter, build_dir=lu_build_dir)
+        source_files = [f for f in all_files if f in scoped and Path(f).suffix.lower() in c_extensions]
+        console.print(
+            f"Loaded compile_commands.json: {len(all_files)} entries, "
+            f"{len(source_files)} C/C++ source files (scoped to target '{target_name}')"
+        )
+    else:
+        source_files = [f for f in all_files if Path(f).suffix.lower() in c_extensions]
+        console.print(f"Loaded compile_commands.json: {len(all_files)} entries, {len(source_files)} C/C++ source files")
 
     if not source_files:
         console.print("[red]No C/C++ source files found in compile_commands.json[/red]")
+        if _tmp_cc_file:
+            Path(_tmp_cc_file.name).unlink(missing_ok=True)
         return
-
-    console.print(f"Loaded compile_commands.json: {len(all_files)} entries, {len(source_files)} C/C++ source files")
 
     db = SummaryDB(db_path)
 
@@ -1632,6 +1801,8 @@ def scan(compile_commands_path, db_path, verbose):
 
     finally:
         db.close()
+        if _tmp_cc_file:
+            Path(_tmp_cc_file.name).unlink(missing_ok=True)
 
 
 @main.command("build-learn")
