@@ -325,8 +325,11 @@ def summarize(db_path, backend, model, llm_host, llm_port, disable_thinking, ver
 @click.option("--db", "db_path", default="summaries.db", help="Database file path")
 @click.option("--compile-commands", "compile_commands_path", type=click.Path(exists=True), default=None,
               help="Path to compile_commands.json for proper macro/include handling")
+@click.option("--project-path", "project_path", type=click.Path(), default=None,
+              help="Host path to project source root. Required when compile_commands.json uses Docker "
+                   "container paths (/workspace/src/...).")
 @click.option("--recursive/--no-recursive", default=True)
-def extract(path_arg, path_opt, db_path, compile_commands_path, recursive):
+def extract(path_arg, path_opt, db_path, compile_commands_path, project_path, recursive):
     """Extract functions and build call graph (no LLM)."""
     # Accept path as either positional argument or --path option
     path = path_opt or path_arg
@@ -337,10 +340,13 @@ def extract(path_arg, path_opt, db_path, compile_commands_path, recursive):
 
     # Load compile_commands.json if provided
     compile_commands = None
+    _tmp_cc = None
     if compile_commands_path:
         try:
-            compile_commands = CompileCommandsDB(compile_commands_path)
+            compile_commands, _tmp_cc = _load_compile_commands(compile_commands_path, project_path)
             console.print(f"Loaded compile_commands.json ({len(compile_commands)} entries)")
+        except click.UsageError:
+            raise
         except Exception as e:
             console.print(f"[yellow]Warning: Failed to load compile_commands.json: {e}[/yellow]")
 
@@ -396,6 +402,8 @@ def extract(path_arg, path_opt, db_path, compile_commands_path, recursive):
 
     finally:
         db.close()
+        if _tmp_cc:
+            Path(_tmp_cc).unlink(missing_ok=True)
 
 
 @main.command()
@@ -857,6 +865,9 @@ def callgraph(db_path, output, fmt, no_header):
 @click.option("--db", "db_path", default="summaries.db", help="Database file path")
 @click.option("--compile-commands", "compile_commands_path", type=click.Path(exists=True), default=None,
               help="Path to compile_commands.json for proper macro/include handling")
+@click.option("--project-path", "project_path", type=click.Path(), default=None,
+              help="Host path to project source root. Required when compile_commands.json uses Docker "
+                   "container paths (/workspace/src/...).")
 @click.option("--backend", type=click.Choice(["claude", "openai", "ollama", "llamacpp", "gemini"]), default="claude")
 @click.option("--model", default=None, help="Model name to use")
 @click.option("--llm-host", default="localhost", help="Hostname for local LLM backends (llamacpp, ollama)")
@@ -869,8 +880,8 @@ def callgraph(db_path, output, fmt, no_header):
 @click.option("--pass1-only", is_flag=True, help="Only run Pass 1 (flow summarization)")
 @click.option("--pass2-only", is_flag=True, help="Only run Pass 2 (resolution), requires Pass 1 already done")
 def indirect_analyze(
-    path_arg, path_opt, db_path, compile_commands_path, backend, model, llm_host, llm_port, disable_thinking,
-    recursive, verbose, force, log_llm, pass1_only, pass2_only
+    path_arg, path_opt, db_path, compile_commands_path, project_path, backend, model, llm_host, llm_port,
+    disable_thinking, recursive, verbose, force, log_llm, pass1_only, pass2_only
 ):
     """
     Analyze indirect calls using LLM-based two-pass approach.
@@ -890,10 +901,13 @@ def indirect_analyze(
 
     # Load compile_commands.json if provided
     compile_commands = None
+    _tmp_cc = None
     if compile_commands_path:
         try:
-            compile_commands = CompileCommandsDB(compile_commands_path)
+            compile_commands, _tmp_cc = _load_compile_commands(compile_commands_path, project_path)
             console.print(f"Loaded compile_commands.json ({len(compile_commands)} entries)")
+        except click.UsageError:
+            raise
         except Exception as e:
             console.print(f"[yellow]Warning: Failed to load compile_commands.json: {e}[/yellow]")
 
@@ -1083,6 +1097,8 @@ def indirect_analyze(
 
     finally:
         db.close()
+        if _tmp_cc:
+            Path(_tmp_cc).unlink(missing_ok=True)
 
 
 @main.command("show-indirect")
@@ -1475,6 +1491,82 @@ def find_allocator_candidates(
         db.close()
 
 
+def _load_compile_commands(
+    compile_commands_path: str,
+    project_path: str | None = None,
+    build_dir: str | None = None,
+) -> tuple["CompileCommandsDB", str | None]:
+    """Load compile_commands.json, remapping Docker paths when project_path is given.
+
+    Returns (db, tmp_path).  tmp_path is a temp file that the caller must
+    unlink when done; it is None when no remapping was needed.
+
+    Raises click.UsageError when source file paths do not exist on disk and
+    no project_path was provided to perform remapping.
+    """
+    import json as _json
+    import tempfile
+
+    from .link_units.skills import _is_docker_path, _resolve_host_path, _translate_arg
+
+    with open(compile_commands_path) as f:
+        entries = _json.load(f)
+
+    # Sample the first few entries to detect bad/Docker paths.
+    sample = [e for e in entries[:5] if e.get("file")]
+    has_docker = any(
+        _is_docker_path(e.get("file", "")) or _is_docker_path(e.get("directory", ""))
+        for e in sample
+    )
+    has_missing = (
+        not has_docker
+        and bool(sample)
+        and not Path(sample[0]["file"]).exists()
+    )
+
+    if has_docker or has_missing:
+        if not project_path:
+            example = sample[0]["file"] if sample else "?"
+            if has_docker:
+                hint = (
+                    f"compile_commands.json uses Docker container paths "
+                    f"(e.g. {example!r}). "
+                    f"Pass --project-path <host-source-dir> to remap "
+                    f"/workspace/src to the host source directory."
+                )
+            else:
+                hint = (
+                    f"Source file not found on host: {example!r}. "
+                    f"Pass --project-path <host-source-dir> to remap paths."
+                )
+            raise click.UsageError(hint)
+
+        proj_dir = Path(project_path)
+        build_dir_path = Path(build_dir) if build_dir else proj_dir
+
+        resolved = []
+        for e in entries:
+            e = dict(e)
+            if _is_docker_path(e.get("directory", "")):
+                e["directory"] = str(_resolve_host_path(e["directory"], proj_dir, build_dir_path))
+            if _is_docker_path(e.get("file", "")):
+                e["file"] = str(_resolve_host_path(e["file"], proj_dir, build_dir_path))
+            if "output" in e and _is_docker_path(e["output"]):
+                e["output"] = str(_resolve_host_path(e["output"], proj_dir, build_dir_path))
+            if "arguments" in e:
+                e["arguments"] = [_translate_arg(a, proj_dir, build_dir_path) for a in e["arguments"]]
+            resolved.append(e)
+
+        tmp = tempfile.NamedTemporaryFile(suffix=".json", delete=False, mode="w")
+        _json.dump(resolved, tmp)
+        tmp.flush()
+        tmp.close()
+        console.print(f"Remapped compile_commands.json: /workspace/src -> {proj_dir}")
+        return CompileCommandsDB(tmp.name), tmp.name
+
+    return CompileCommandsDB(compile_commands_path), None
+
+
 def _source_files_for_target(
     compile_commands_path: str,
     bc_files: set[str],
@@ -1586,7 +1678,6 @@ def scan(compile_commands_path, link_units_path, target_name, project_path, db_p
     Without --link-units, all C/C++ source files in compile_commands.json are scanned.
     """
     import json as _json
-    import tempfile
     from collections import Counter
 
     from rich.progress import BarColumn, MofNCompleteColumn, TimeElapsedColumn
@@ -1617,52 +1708,18 @@ def scan(compile_commands_path, link_units_path, target_name, project_path, db_p
         lu_build_dir = lu_data.get("build_dir")
         console.print(f"Link-unit filter: target '{target_name}', {len(bc_files_filter)} bc files")
 
-    # Resolve Docker /workspace/ paths in compile_commands.json when --project-path is given.
-    # The container maps /workspace/src -> project source, /workspace/build -> build dir.
-    resolved_cc_path = compile_commands_path
-    _tmp_cc_file = None
-    if project_path:
-        from .link_units.skills import _is_docker_path, _resolve_host_path, _translate_arg
-
-        proj_dir = Path(project_path)
-        build_dir_for_remap = Path(lu_build_dir) if lu_build_dir else proj_dir
-
-        with open(compile_commands_path) as f:
-            raw_entries = _json.load(f)
-
-        needs_remap = any(
-            _is_docker_path(e.get("file", "")) or _is_docker_path(e.get("directory", ""))
-            for e in raw_entries[:5]
-        )
-
-        if needs_remap:
-            resolved_entries = []
-            for e in raw_entries:
-                e = dict(e)
-                if _is_docker_path(e.get("directory", "")):
-                    e["directory"] = str(_resolve_host_path(e["directory"], proj_dir, build_dir_for_remap))
-                if _is_docker_path(e.get("file", "")):
-                    e["file"] = str(_resolve_host_path(e["file"], proj_dir, build_dir_for_remap))
-                if "output" in e and _is_docker_path(e["output"]):
-                    e["output"] = str(_resolve_host_path(e["output"], proj_dir, build_dir_for_remap))
-                if "arguments" in e:
-                    e["arguments"] = [_translate_arg(a, proj_dir, build_dir_for_remap) for a in e["arguments"]]
-                resolved_entries.append(e)
-
-            _tmp_cc_file = tempfile.NamedTemporaryFile(suffix=".json", delete=False, mode="w")
-            _json.dump(resolved_entries, _tmp_cc_file)
-            _tmp_cc_file.flush()
-            _tmp_cc_file.close()
-            resolved_cc_path = _tmp_cc_file.name
-            console.print(f"Remapped compile_commands.json paths: /workspace/src -> {proj_dir}")
-
-    # Load compile_commands.json (possibly path-remapped)
+    # Load compile_commands.json, remapping Docker paths if needed.
     try:
-        compile_commands = CompileCommandsDB(resolved_cc_path)
+        compile_commands, _tmp_cc_file = _load_compile_commands(
+            compile_commands_path,
+            project_path=project_path,
+            build_dir=lu_build_dir,
+        )
+        resolved_cc_path = _tmp_cc_file if _tmp_cc_file else compile_commands_path
+    except click.UsageError:
+        raise
     except Exception as e:
         console.print(f"[red]Failed to load compile_commands.json: {e}[/red]")
-        if _tmp_cc_file:
-            Path(_tmp_cc_file.name).unlink(missing_ok=True)
         return
 
     # Filter to C/C++ source files
@@ -1684,7 +1741,7 @@ def scan(compile_commands_path, link_units_path, target_name, project_path, db_p
     if not source_files:
         console.print("[red]No C/C++ source files found in compile_commands.json[/red]")
         if _tmp_cc_file:
-            Path(_tmp_cc_file.name).unlink(missing_ok=True)
+            Path(_tmp_cc_file).unlink(missing_ok=True)
         return
 
     db = SummaryDB(db_path)
@@ -1802,7 +1859,7 @@ def scan(compile_commands_path, link_units_path, target_name, project_path, db_p
     finally:
         db.close()
         if _tmp_cc_file:
-            Path(_tmp_cc_file.name).unlink(missing_ok=True)
+            Path(_tmp_cc_file).unlink(missing_ok=True)
 
 
 @main.command("build-learn")
