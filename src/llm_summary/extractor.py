@@ -1,6 +1,7 @@
 """Function extraction from C/C++ source files using libclang."""
 
 import os
+import re
 from pathlib import Path
 
 from clang.cindex import (
@@ -284,6 +285,9 @@ class FunctionExtractor:
         if canonical_signature == signature:
             canonical_signature = None
 
+        params = self._extract_params(cursor)
+        callsites = self._extract_callsites(cursor)
+
         return Function(
             name=name,
             file_path=str(cursor.location.file),
@@ -292,7 +296,85 @@ class FunctionExtractor:
             source=source,
             signature=signature,
             canonical_signature=canonical_signature,
+            params=params,
+            callsites=callsites,
         )
+
+    def _extract_params(self, func_cursor: Cursor) -> list[str]:
+        """Return formal parameter names from PARM_DECL children."""
+        return [
+            child.spelling
+            for child in func_cursor.get_children()
+            if child.kind == CursorKind.PARM_DECL and child.spelling
+        ]
+
+    def _extract_callsites(self, func_cursor: Cursor) -> list[dict]:
+        """Walk CALL_EXPR nodes and collect per-callsite metadata.
+
+        Each entry: {callee, line, line_in_body, via_macro, macro_name, args}
+          - line:         1-based absolute line in source file
+          - line_in_body: 0-based line offset from function start
+          - via_macro:    True when the callee name is absent from the raw source line
+                          (i.e. the call is inside a macro expansion)
+          - macro_name:   uppercase identifier on that raw line (best-effort)
+          - args:         textual representations of the actual arguments
+        """
+        file_path = str(func_cursor.location.file)
+        func_start_line = func_cursor.extent.start.line  # 1-based
+
+        if file_path not in self._file_contents:
+            try:
+                with open(file_path, encoding="utf-8", errors="replace") as f:
+                    self._file_contents[file_path] = f.read()
+            except OSError:
+                return []
+
+        raw_lines = self._file_contents[file_path].splitlines()
+        callsites: list[dict] = []
+        seen: set[tuple[str, int]] = set()
+
+        def walk(cursor: Cursor) -> None:
+            for child in cursor.get_children():
+                if child.kind == CursorKind.CALL_EXPR:
+                    referenced = child.referenced
+                    if referenced is not None:
+                        callee_name = referenced.spelling
+                        if callee_name:
+                            line = child.location.line  # 1-based
+                            key = (callee_name, line)
+                            if key not in seen:
+                                seen.add(key)
+                                line_in_body = line - func_start_line  # 0-based
+                                raw_line = raw_lines[line - 1] if 0 < line <= len(raw_lines) else ""
+                                via_macro = not bool(
+                                    re.search(r"\b" + re.escape(callee_name) + r"\b", raw_line)
+                                )
+                                macro_name = None
+                                if via_macro:
+                                    m = re.search(r"\b([A-Z_][A-Z0-9_]{2,})\s*\(", raw_line)
+                                    macro_name = m.group(1) if m else None
+
+                                # Argument texts: skip first child (function reference)
+                                args: list[str] = []
+                                children = list(child.get_children())
+                                for arg_cursor in children[1:]:
+                                    tokens = list(arg_cursor.get_tokens())
+                                    arg_text = " ".join(t.spelling for t in tokens) if tokens else arg_cursor.spelling or ""
+                                    if arg_text:
+                                        args.append(arg_text)
+
+                                callsites.append({
+                                    "callee": callee_name,
+                                    "line": line,
+                                    "line_in_body": line_in_body,
+                                    "via_macro": via_macro,
+                                    "macro_name": macro_name,
+                                    "args": args,
+                                })
+                walk(child)
+
+        walk(func_cursor)
+        return callsites
 
     def _get_qualified_name(self, cursor: Cursor) -> str:
         """Get the fully qualified name for a function/method."""

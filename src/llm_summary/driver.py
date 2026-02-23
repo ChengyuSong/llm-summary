@@ -111,8 +111,14 @@ class MemsafePass:
     def get_cached(self, func_id: int, func: Function) -> MemsafeSummary | None:
         return self.db.get_memsafe_summary_by_function_id(func_id)
 
-    def summarize(self, func: Function, callee_summaries: dict[str, MemsafeSummary]) -> MemsafeSummary:
-        return self.summarizer.summarize_function(func, callee_summaries)
+    def summarize(
+        self,
+        func: Function,
+        callee_summaries: dict[str, MemsafeSummary],
+        callee_funcs: dict[str, Function] | None = None,
+    ) -> MemsafeSummary:
+        callee_params = {name: f.params for name, f in (callee_funcs or {}).items()}
+        return self.summarizer.summarize_function(func, callee_summaries, callee_params)
 
     def store(self, func: Function, summary: MemsafeSummary) -> None:
         self.db.upsert_memsafe_summary(func, summary, model_used=self.model)
@@ -261,21 +267,26 @@ class BottomUpDriver:
                             p.summarizer._stats["cache_hits"] += 1
                             continue
 
-                    # Gather callee summaries from this pass's results
+                    # Gather callee summaries and Function objects from this pass's results
                     callee_ids = graph.get(func_id, [])
                     callee_summaries: dict[str, Any] = {}
+                    callee_funcs: dict[str, Function] = {}
                     for callee_id in callee_ids:
                         if callee_id in results[p.name]:
                             callee_func = self.db.get_function(callee_id)
                             if callee_func:
                                 callee_summaries[callee_func.name] = results[p.name][callee_id]
+                                callee_funcs[callee_func.name] = callee_func
 
                     # Set progress on the underlying summarizer
                     p.summarizer._progress_current = current
                     p.summarizer._progress_total = total
 
-                    # Generate summary
-                    summary = p.summarize(func, callee_summaries)
+                    # Generate summary (passes that don't accept callee_funcs ignore it)
+                    try:
+                        summary = p.summarize(func, callee_summaries, callee_funcs=callee_funcs)
+                    except TypeError:
+                        summary = p.summarize(func, callee_summaries)
                     results[p.name][func_id] = summary
 
                     # Store in database

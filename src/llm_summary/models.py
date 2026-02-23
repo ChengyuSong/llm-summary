@@ -39,6 +39,10 @@ class Function:
     canonical_signature: str | None = None
     id: int | None = None
     source_hash: str | None = None
+    # Formal parameter names in declaration order (from PARM_DECL AST nodes)
+    params: list[str] = field(default_factory=list)
+    # Callsite metadata: list of {callee, line, line_in_body, via_macro, macro_name, args}
+    callsites: list[dict] = field(default_factory=list)
 
     def __hash__(self) -> int:
         return hash((self.name, self.signature, self.file_path))

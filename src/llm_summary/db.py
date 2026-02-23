@@ -43,6 +43,8 @@ CREATE TABLE IF NOT EXISTS functions (
     line_end INTEGER,
     source TEXT,
     source_hash TEXT,
+    params_json TEXT,
+    callsites_json TEXT,
     UNIQUE(name, signature, file_path)
 );
 
@@ -267,11 +269,17 @@ class SummaryDB:
             )
             self.conn.commit()
 
-        # Add canonical_signature column to functions if missing
+        # Add canonical_signature, params_json, callsites_json columns to functions if missing
         cursor = self.conn.execute("PRAGMA table_info(functions)")
         columns = {row[1] for row in cursor.fetchall()}
         if "canonical_signature" not in columns:
             self.conn.execute("ALTER TABLE functions ADD COLUMN canonical_signature TEXT")
+            self.conn.commit()
+        if "params_json" not in columns:
+            self.conn.execute("ALTER TABLE functions ADD COLUMN params_json TEXT")
+            self.conn.commit()
+        if "callsites_json" not in columns:
+            self.conn.execute("ALTER TABLE functions ADD COLUMN callsites_json TEXT")
             self.conn.commit()
 
     def close(self) -> None:
@@ -282,12 +290,16 @@ class SummaryDB:
 
     def insert_function(self, func: Function) -> int:
         """Insert a function and return its ID."""
+        import json as _json
         source_hash = compute_source_hash(func.source) if func.source else None
+        params_json = _json.dumps(func.params) if func.params else None
+        callsites_json = _json.dumps(func.callsites) if func.callsites else None
         cursor = self.conn.execute(
             """
             INSERT OR REPLACE INTO functions
-            (name, signature, canonical_signature, file_path, line_start, line_end, source, source_hash)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            (name, signature, canonical_signature, file_path, line_start, line_end,
+             source, source_hash, params_json, callsites_json)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 func.name,
@@ -298,6 +310,8 @@ class SummaryDB:
                 func.line_end,
                 func.source,
                 source_hash,
+                params_json,
+                callsites_json,
             ),
         )
         self.conn.commit()
@@ -350,21 +364,28 @@ class SummaryDB:
 
     def _row_to_function(self, row: sqlite3.Row) -> Function:
         """Convert a database row to a Function object."""
-        # canonical_signature may be absent in old DBs
-        try:
-            canonical_signature = row["canonical_signature"]
-        except (IndexError, KeyError):
-            canonical_signature = None
+        import json as _json
+
+        def _col(name: str, default=None):
+            try:
+                return row[name]
+            except (IndexError, KeyError):
+                return default
+
+        params_raw = _col("params_json")
+        callsites_raw = _col("callsites_json")
         return Function(
             id=row["id"],
             name=row["name"],
             signature=row["signature"],
-            canonical_signature=canonical_signature,
+            canonical_signature=_col("canonical_signature"),
             file_path=row["file_path"],
             line_start=row["line_start"],
             line_end=row["line_end"],
             source=row["source"],
             source_hash=row["source_hash"],
+            params=_json.loads(params_raw) if params_raw else [],
+            callsites=_json.loads(callsites_raw) if callsites_raw else [],
         )
 
     # ========== Summary Operations ==========
