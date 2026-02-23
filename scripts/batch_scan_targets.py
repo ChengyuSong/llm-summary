@@ -30,6 +30,7 @@ from llm_summary.db import SummaryDB
 from llm_summary.extractor import FunctionExtractor
 from llm_summary.indirect.callsites import IndirectCallsiteFinder
 from llm_summary.indirect.scanner import AddressTakenScanner
+from llm_summary.link_units.pipeline import load_link_units, topo_sort_link_units
 from llm_summary.models import TargetType
 from gpr_utils import resolve_compile_commands
 
@@ -71,12 +72,210 @@ def _load_project_root(project_dir: Path) -> Path | None:
     return None
 
 
-def scan_project(
+def _bare_stem(p: Path) -> str:
+    """Strip all extensions: adler32.c.o -> adler32, adler32.bc -> adler32."""
+    s = p.stem
+    while "." in s:
+        s = Path(s).stem
+    return s
+
+
+def _source_files_for_bc(
+    cc_entries: list[dict],
+    bc_files: list[Path],
+    build_dir: Path,
+) -> list[str]:
+    """Return source files whose compiled output corresponds to a bc_file.
+
+    compile_commands output fields may be relative to build_dir and use
+    -save-temps=obj naming (adler32.c.o). bc_files are absolute host paths
+    (adler32.bc). Match by (relative parent dir, bare stem) — stripping all
+    extensions from both sides.
+    """
+    # Build index: (rel_parent, bare_stem) -> source_file
+    idx: dict[tuple[str, str], str] = {}
+    for entry in cc_entries:
+        output = entry.get("output", "")
+        src = entry.get("file", "")
+        if not (output and src and Path(src).suffix.lower() in C_EXTENSIONS):
+            continue
+        out_path = Path(output)
+        # Make relative to build_dir if absolute
+        if out_path.is_absolute():
+            try:
+                out_path = out_path.relative_to(build_dir)
+            except ValueError:
+                pass
+        key = (str(out_path.parent), _bare_stem(out_path))
+        idx[key] = src
+
+    sources: list[str] = []
+    seen: set[str] = set()
+    for bc_file in bc_files:
+        try:
+            rel = bc_file.relative_to(build_dir)
+        except ValueError:
+            continue
+        key = (str(rel.parent), _bare_stem(rel))
+        src = idx.get(key)
+        if src and src not in seen:
+            sources.append(src)
+            seen.add(src)
+    return sources
+
+
+def _scan_files(
+    source_files: list[str],
+    cc: CompileCommandsDB,
+    db: SummaryDB,
+    project_root: Path | None,
+    verbose: bool,
+) -> tuple[int, int, int]:
+    """Extract functions, scan address-taken, find callsites. Returns (funcs, targets, callsites)."""
+    extractor = FunctionExtractor(compile_commands=cc, project_root=project_root)
+    all_functions = []
+    for f in source_files:
+        try:
+            all_functions.extend(extractor.extract_from_file(f))
+        except Exception:
+            pass
+    db.insert_functions_batch(all_functions)
+
+    scanner = AddressTakenScanner(db, compile_commands=cc)
+    for f in source_files:
+        try:
+            scanner.scan_files([f])
+        except Exception:
+            pass
+    atfs = db.get_address_taken_functions()
+
+    finder = IndirectCallsiteFinder(db, compile_commands=cc)
+    callsites = []
+    for f in source_files:
+        try:
+            callsites.extend(finder.find_in_files([f]))
+        except Exception:
+            pass
+
+    return len(all_functions), len(atfs), len(callsites)
+
+
+def scan_project_link_units(
     project_dir: Path,
-    db_path: str = ":memory:",
+    func_scans_dir: Path,
+    cc_entries: list[dict],
+    project_root: Path | None,
+    link_units_path: Path,
+    dry_run: bool = False,
     verbose: bool = False,
 ) -> dict:
-    """Scan a single project and return statistics."""
+    """Scan a project with link_units.json — one DB per target in topo order."""
+    project_name = project_dir.name
+    result = {
+        "project": project_name,
+        "link_unit_mode": True,
+        "targets": [],
+        "source_files": 0,
+        "functions": 0,
+        "total_targets": 0,
+        "callsites": 0,
+        "timing_seconds": 0.0,
+        "error": None,
+    }
+    start = time.monotonic()
+
+    lu_data, raw_units = load_link_units(link_units_path)
+    if not raw_units:
+        result["error"] = "link_units.json has no targets"
+        result["timing_seconds"] = round(time.monotonic() - start, 2)
+        return result
+
+    link_units = topo_sort_link_units(raw_units)
+    project_scan_dir = func_scans_dir / project_name
+    build_dir = Path(lu_data.get("build_dir", f"/data/csong/build-artifacts/{project_name}"))
+
+    # Build a resolved CompileCommandsDB from already-resolved entries
+    import tempfile as _tempfile
+    tmp = _tempfile.NamedTemporaryFile(suffix=".json", delete=False, mode="w")
+    import json as _json
+    _json.dump(cc_entries, tmp)
+    tmp.flush()
+    tmp_path = Path(tmp.name)
+    tmp.close()
+
+    try:
+        cc = CompileCommandsDB(tmp_path)
+
+        for lu in link_units:
+            target = lu["name"]
+            target_start = time.monotonic()
+            bc_files = [Path(p) for p in lu.get("bc_files", []) if Path(p).exists()]
+            source_files = _source_files_for_bc(cc_entries, bc_files, build_dir)
+
+            target_result: dict = {
+                "target": target,
+                "source_files": len(source_files),
+                "functions": 0,
+                "total_targets": 0,
+                "callsites": 0,
+                "error": None,
+                "timing_seconds": 0.0,
+            }
+
+            if not source_files:
+                target_result["error"] = "no_source_files_matched"
+                target_result["timing_seconds"] = round(time.monotonic() - target_start, 2)
+                result["targets"].append(target_result)
+                if verbose:
+                    print(f"    [{target}] SKIP: no source files matched {len(bc_files)} bc_files")
+                continue
+
+            if verbose:
+                print(f"    [{target}] {len(source_files)} source files from {len(bc_files)} bc files")
+
+            if dry_run:
+                db_path_str = ":memory:"
+            else:
+                target_dir = project_scan_dir / target
+                target_dir.mkdir(parents=True, exist_ok=True)
+                db_path_str = str(target_dir / "functions.db")
+
+            db = SummaryDB(db_path_str)
+            try:
+                n_funcs, n_targets, n_callsites = _scan_files(
+                    source_files, cc, db, project_root, verbose
+                )
+            finally:
+                db.close()
+
+            target_result["functions"] = n_funcs
+            target_result["total_targets"] = n_targets
+            target_result["callsites"] = n_callsites
+            target_result["timing_seconds"] = round(time.monotonic() - target_start, 2)
+            result["targets"].append(target_result)
+
+            result["source_files"] += len(source_files)
+            result["functions"] += n_funcs
+            result["total_targets"] += n_targets
+            result["callsites"] += n_callsites
+
+    finally:
+        tmp_path.unlink(missing_ok=True)
+
+    result["timing_seconds"] = round(time.monotonic() - start, 2)
+    return result
+
+
+def scan_project(
+    project_dir: Path,
+    func_scans_dir: Path,
+    dry_run: bool = False,
+    verbose: bool = False,
+) -> dict:
+    """Scan a single project and return statistics.
+
+    Auto-routes to scan_project_link_units when link_units.json is present.
+    """
     cc_path = project_dir / "compile_commands.json"
     project_name = project_dir.name
 
@@ -87,7 +286,7 @@ def scan_project(
         "targets_by_type": {},
         "total_targets": 0,
         "callsites": 0,
-        "db_path": None if db_path == ":memory:" else db_path,
+        "db_path": None,
         "timing_seconds": 0.0,
         "error": None,
     }
@@ -106,7 +305,22 @@ def scan_project(
             build_dir=build_dir,
         )
 
-        # Write resolved entries to a temporary file for CompileCommandsDB
+        # Auto-route to link-unit mode when link_units.json is present
+        link_units_path = func_scans_dir / project_name / "link_units.json"
+        if link_units_path.exists():
+            if verbose:
+                print(f"  link_units.json found — scanning per target")
+            return scan_project_link_units(
+                project_dir=project_dir,
+                func_scans_dir=func_scans_dir,
+                cc_entries=entries,
+                project_root=project_root,
+                link_units_path=link_units_path,
+                dry_run=dry_run,
+                verbose=verbose,
+            )
+
+        # --- Legacy single-DB mode ---
         tmp_cc = tempfile.NamedTemporaryFile(suffix=".json", delete=False, mode="w")
         json.dump(entries, tmp_cc)
         tmp_cc.flush()
@@ -126,55 +340,42 @@ def scan_project(
 
         result["source_files"] = len(source_files)
 
-        db = SummaryDB(db_path)
-
         if verbose and project_root:
             print(f"  project_root: {project_root} (header functions will be extracted)")
 
+        if dry_run:
+            db_path_str = ":memory:"
+        else:
+            project_scan_dir = func_scans_dir / project_name
+            project_scan_dir.mkdir(parents=True, exist_ok=True)
+            db_path_str = str(project_scan_dir / "functions.db")
+        result["db_path"] = None if dry_run else db_path_str
+
+        tmp_cc2 = tempfile.NamedTemporaryFile(suffix=".json", delete=False, mode="w")
+        json.dump(entries, tmp_cc2)
+        tmp_cc2.flush()
+        tmp_cc2_path = Path(tmp_cc2.name)
+        tmp_cc2.close()
         try:
-            # Extract functions
-            extractor = FunctionExtractor(compile_commands=cc, project_root=project_root)
-            all_functions = []
-            for f in source_files:
-                try:
-                    functions = extractor.extract_from_file(f)
-                    all_functions.extend(functions)
-                except Exception:
-                    pass
-
-            db.insert_functions_batch(all_functions)
-            result["functions"] = len(all_functions)
-
-            # Scan targets
-            scanner = AddressTakenScanner(db, compile_commands=cc)
-            for f in source_files:
-                try:
-                    scanner.scan_files([f])
-                except Exception:
-                    pass
-
-            atfs = db.get_address_taken_functions()
-            type_counts: Counter[str] = Counter()
-            for atf in atfs:
-                type_counts[atf.target_type] += 1
-
-            result["targets_by_type"] = dict(type_counts)
-            result["total_targets"] = len(atfs)
-
-            # Find callsites
-            finder = IndirectCallsiteFinder(db, compile_commands=cc)
-            callsites = []
-            for f in source_files:
-                try:
-                    cs = finder.find_in_files([f])
-                    callsites.extend(cs)
-                except Exception:
-                    pass
-
-            result["callsites"] = len(callsites)
-
+            cc = CompileCommandsDB(tmp_cc2_path)
+            db = SummaryDB(db_path_str)
+            try:
+                n_funcs, n_targets, n_callsites = _scan_files(
+                    source_files, cc, db, project_root, verbose
+                )
+                atfs = db.get_address_taken_functions()
+                type_counts: Counter[str] = Counter()
+                for atf in atfs:
+                    type_counts[atf.target_type] += 1
+                result["targets_by_type"] = dict(type_counts)
+            finally:
+                db.close()
         finally:
-            db.close()
+            tmp_cc2_path.unlink(missing_ok=True)
+
+        result["functions"] = n_funcs
+        result["total_targets"] = n_targets
+        result["callsites"] = n_callsites
 
     except Exception as e:
         result["error"] = str(e)
@@ -185,19 +386,26 @@ def scan_project(
 
 def _scan_worker(args: tuple) -> dict:
     """Worker wrapper for ProcessPoolExecutor (needs top-level picklable callable)."""
-    project_dir, db_path, verbose = args
-    return scan_project(Path(project_dir), db_path=db_path, verbose=verbose)
+    project_dir, func_scans_dir, dry_run, verbose = args
+    return scan_project(Path(project_dir), Path(func_scans_dir), dry_run=dry_run, verbose=verbose)
 
 
 def _format_result(result: dict) -> str:
     """Format a single result for printing."""
     if result["error"]:
         return f"SKIP ({result['error']})"
+    suffix = f"({result['timing_seconds']}s)"
+    if result.get("link_unit_mode"):
+        n_targets = len(result.get("targets", []))
+        return (
+            f"{n_targets} targets, "
+            f"{result['functions']} funcs, "
+            f"{result['callsites']} callsites {suffix}"
+        )
     return (
         f"{result['functions']} funcs, "
-        f"{result['total_targets']} targets, "
-        f"{result['callsites']} callsites "
-        f"({result['timing_seconds']}s)"
+        f"{result['total_targets']} addr-taken, "
+        f"{result['callsites']} callsites {suffix}"
     )
 
 
@@ -278,21 +486,16 @@ def main():
     if args.dry_run:
         print("Dry run: using in-memory DBs (no files written)")
     else:
-        print(f"DB output: {FUNC_SCANS_DIR}/<project>/functions.db")
+        print(f"DB output: {FUNC_SCANS_DIR}/<project>/[<target>/]functions.db")
     if num_workers > 1:
         print(f"Parallel workers: {num_workers}")
     print()
 
-    # Build work items: (project_dir, db_path, verbose)
-    work_items = []
-    for project_dir in projects:
-        if args.dry_run:
-            db_path = ":memory:"
-        else:
-            project_scan_dir = FUNC_SCANS_DIR / project_dir.name
-            project_scan_dir.mkdir(parents=True, exist_ok=True)
-            db_path = str(project_scan_dir / "functions.db")
-        work_items.append((str(project_dir), db_path, args.verbose))
+    # Build work items: (project_dir, func_scans_dir, dry_run, verbose)
+    work_items = [
+        (str(project_dir), str(FUNC_SCANS_DIR), args.dry_run, args.verbose)
+        for project_dir in projects
+    ]
 
     # Run scans
     results_by_name: dict[str, dict] = {}
@@ -350,7 +553,7 @@ def main():
             totals["total_functions"] += result["functions"]
             totals["total_targets"] += result["total_targets"]
             totals["total_callsites"] += result["callsites"]
-            totals["targets_by_type"].update(result["targets_by_type"])
+            totals["targets_by_type"].update(result.get("targets_by_type", {}))
 
     # Print summary
     print()
