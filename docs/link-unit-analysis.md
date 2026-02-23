@@ -36,19 +36,25 @@ KAMain invocation, which causes:
 ```
 func-scans/
   zlib/
-    link_units.json                 # discovered link structure
+    link_units.json                 # discovered link structure (output paths written back by batch_call_graph_gen)
+    allocator_candidates.json       # project-level allocator hints
     zlibstatic/
       functions.db                  # library analysis results
-      callgraph.json                # KAMain output
-      ka_export.json                # KAMain reusable summary (future)
-    example/
+      callgraph.json                # KAMain call graph output
+      zlibstatic.cflcg              # compressed CFL constraint graph (Phase 1)
+      zlibstatic.vsnap              # serialized V-relation snapshot (Phase 2)
+    zlib_static_example/
       functions.db                  # executable analysis
       callgraph.json
+      zlib_static_example.cflcg
+      zlib_static_example.vsnap
   libpng/
     link_units.json
     libpng16/
       functions.db                  # depends on zlib/zlibstatic
       callgraph.json
+      libpng16.cflcg
+      libpng16.vsnap
     pngtest/
       functions.db                  # depends on libpng16
       callgraph.json
@@ -177,40 +183,43 @@ llm-summary scan \
   Maps `/workspace/src` → `project-path` and `/workspace/build` → `build_dir`
   from `link_units.json`.
 
-### Phase 3: Call Graph (modified)
+### Phase 3: Call Graph (compositional CFL)
 
-#### Library targets (no external deps)
+Implemented in `batch_call_graph_gen.py --compositional`. Processes targets
+in topological order (deps before dependents). Two KAMain phases per target:
 
-Run KAMain on the library's own bc_files:
+#### Phase 1 — Compress constraint graph
+
+Run KAMain on the target's own bc_files to produce a compressed CFL
+constraint graph (`.cflcg`):
 
 ```bash
 KAMain --bc-list zlibstatic_bc.txt \
-       --callgraph-json func-scans/zlib/zlibstatic/callgraph.json \
-       --export-summary func-scans/zlib/zlibstatic/ka_export.json  # future
+       --cfl-compressed-output func-scans/zlib/zlibstatic/zlibstatic.cflcg \
+       --allocator-file func-scans/zlib/allocator_candidates.json
 ```
 
-#### Library targets (with external deps)
+#### Phase 2 — Compositional solve + call graph
 
-Import dep summaries instead of sending dep bitcode:
+Compose the target's constraint graph with those of its transitive deps to
+produce the call graph. All bc_files (target + deps) are passed so KAMain
+can resolve cross-boundary calls:
 
 ```bash
-KAMain --bc-list libpng16_bc.txt \
-       --import-summary func-scans/zlib/zlibstatic/ka_export.json \
-       --callgraph-json func-scans/libpng/libpng16/callgraph.json \
-       --export-summary func-scans/libpng/libpng16/ka_export.json
+KAMain --bc-list <target+dep bc_files> \
+       --cfl-compositional \
+       --cfl-compressed-input func-scans/zlib/zlibstatic/zlibstatic.cflcg \
+       --cfl-compressed-input func-scans/zlib/zlib_static_example/zlib_static_example.cflcg \
+       --callgraph-json func-scans/zlib/zlib_static_example/callgraph.json \
+       --v-snapshot   func-scans/zlib/zlib_static_example/zlib_static_example.vsnap \
+       --allocator-file func-scans/zlib/allocator_candidates.json
 ```
 
-`--import-summary` provides KAMain with pre-computed alias/call-edge info
-for the dependency, avoiding the need for its bitcode files. KAMain treats
-imported functions as opaque stubs with known call behavior.
+The `.vsnap` (V-relation snapshot) records value aliasing for downstream
+reuse without re-running CFL solving.
 
-**Fallback (before KAMain supports --import-summary):** pass dep bc_files
-alongside target bc_files, same as today but scoped per-target.
-
-#### Executable targets
-
-Same as library-with-deps, but the executable's `main` is the entry point
-and not a conflict since each executable is analyzed in its own DB.
+After both phases, `batch_call_graph_gen.py` writes `db_path`,
+`callgraph_json`, `cflcg`, and `vsnapshot` back into `link_units.json`.
 
 ### Phase 4: Import Call Graph (existing, per target)
 
@@ -268,27 +277,35 @@ only new target-specific functions get LLM calls.
 ```
 Step 1: Analyze zlib (no deps)
   discover-link-units  → zlib/link_units.json
-  scan (--link-units zlib/link_units.json --target zlibstatic
-        --project-path /data/.../zlib)
+  scan --link-units --target zlibstatic
                        → zlib/zlibstatic/functions.db
-  KAMain               → zlib/zlibstatic/callgraph.json
-                          zlib/zlibstatic/ka_export.json
-  import-callgraph     → call_edges in functions.db
-  init-stdlib          → stdlib stubs
-  summarize            → all zlib functions summarized
+  batch_call_graph_gen --compositional
+    Phase 1            → zlib/zlibstatic/zlibstatic.cflcg
+    Phase 2            → zlib/zlibstatic/callgraph.json
+                          zlib/zlibstatic/zlibstatic.vsnap
+    import-callgraph   → call_edges in functions.db
+    (writes db_path, callgraph_json, cflcg, vsnapshot → link_units.json)
+  batch_summarize --init-stdlib
+    import-dep-summaries (no intra-project deps for zlibstatic)
+    init-stdlib          → stdlib stubs populated
+    Pass 1 + Pass 2      → all zlibstatic functions summarized
 
 Step 2: Analyze libpng (depends on zlib)
   discover-link-units  → libpng/link_units.json
-  scan (--link-units libpng/link_units.json --target libpng16
-        --project-path /data/.../libpng)
+  scan --link-units --target libpng16
                        → libpng/libpng16/functions.db
-  KAMain (--import-summary zlib/ka_export.json)
+  batch_call_graph_gen --compositional
+    Phase 1            → libpng/libpng16/libpng16.cflcg
+    Phase 2 (+ zlib cflcg)
                        → libpng/libpng16/callgraph.json
-  import-callgraph     → call_edges
-  init-stdlib          → stdlib stubs
-  import-dep-summaries → zlib function summaries copied in
-  summarize            → only libpng-specific functions need LLM calls
-                          zlib functions → cache hit, skipped
+                          libpng/libpng16/libpng16.vsnap
+    import-callgraph   → call_edges
+  batch_summarize --init-stdlib
+    import-dep-summaries --dep-db zlib/zlibstatic/functions.db
+                         → zlib function summaries copied in
+    init-stdlib          → stdlib stubs
+    Pass 1 + Pass 2      → only libpng-specific functions need LLM calls
+                           zlib functions → cache hit, skipped
 ```
 
 ### Reanalysis
@@ -299,35 +316,33 @@ When zlib is updated and re-summarized:
    refresh the imported stubs, then re-run `summarize --force` on functions
    whose dep summaries changed.
 
-## KAMain Summary Export/Import (Future)
+## KAMain Artifacts Per Link Unit
 
-KAMain will support:
+| File | Flag | Description |
+|------|------|-------------|
+| `<target>.cflcg` | `--cfl-compressed-output` | Compressed CFL constraint graph. Phase 1 output; input to Phase 2 of dependents. |
+| `callgraph.json` | `--callgraph-json` | Call graph edges. Imported into `functions.db` via `import-callgraph`. |
+| `<target>.vsnap` | `--v-snapshot` | Serialized V-relation (value aliasing). For downstream reuse without re-running CFL solving. |
 
-| Flag | Description |
-|------|-------------|
-| `--export-summary PATH` | After analysis, write reusable results (function signatures, alias info, call edges, points-to summaries) to a JSON file. |
-| `--import-summary PATH` | Before analysis, load a previously exported summary. Functions from the import are treated as opaque stubs with known behavior — no bitcode required. |
-
-The export format captures enough information for KAMain to:
-- Resolve calls from the current target into the dependency.
-- Propagate alias/points-to information across the boundary.
-- Report accurate call edges without re-analyzing dep bitcode.
-
-**Granularity:** one export file per link unit. When a target has multiple
-deps, multiple `--import-summary` flags are passed.
+**Future:** `--export-summary` / `--import-summary` flags for opaque
+function-level summaries (alias info, call edges) without passing dep
+bitcode. Not yet implemented; current workaround passes dep bc_files in
+Phase 2.
 
 ## Batch Processing
 
-`batch_call_graph_gen.py` and `batch_summarize.py` are updated to:
+`batch_call_graph_gen.py` and `batch_summarize.py` implement link-unit
+awareness:
 
-1. Read `link_units.json` for each project.
-2. Process targets in dependency order (topological sort within and across
-   projects).
-3. Pass per-target bc_files to KAMain (not all project bc_files).
-4. Run `import-dep-summaries` before summarization.
+- `batch_call_graph_gen.py --compositional`: reads `link_units.json`,
+  toposorts targets, runs two-phase KAMain per target, writes `db_path`,
+  `callgraph_json`, `cflcg`, `vsnapshot` back into `link_units.json`.
+- `batch_summarize.py`: auto-detects `link_units.json`; processes targets
+  in topo order, runs `import-dep-summaries` from intra-project dep DBs
+  before each target's summarization passes.
 
-A new `project_deps.json` registry at the top level records cross-project
-dependencies:
+A `project_deps.json` registry at the top level records cross-project
+dependencies (used for inter-project `import-dep-summaries`):
 
 ```json
 {
