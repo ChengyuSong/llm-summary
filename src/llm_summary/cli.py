@@ -79,7 +79,9 @@ def main():
               help="Summary pass(es) to run (default: allocation). Can be specified multiple times.")
 @click.option("--deallocator-file", type=click.Path(exists=True), default=None,
               help="JSON file with custom deallocator names (for free pass)")
-def summarize(db_path, backend, model, llm_host, llm_port, disable_thinking, verbose, force, log_llm, init_stdlib, allocator_file, summary_types, deallocator_file):
+@click.option("--vsnap", type=click.Path(exists=True), default=None,
+              help="V-snapshot (.vsnap) file for alias context in memsafe/verify passes")
+def summarize(db_path, backend, model, llm_host, llm_port, disable_thinking, verbose, force, log_llm, init_stdlib, allocator_file, summary_types, deallocator_file, vsnap):
     """Generate allocation, free, init, memsafe, and/or verify summaries on a pre-populated database.
 
     Requires a database that already has functions and call_edges
@@ -219,19 +221,30 @@ def summarize(db_path, backend, model, llm_host, llm_port, disable_thinking, ver
             init_summarizer = InitSummarizer(db, llm, verbose=verbose, log_file=log_llm)
             passes.append(InitPass(init_summarizer, db, llm.model))
 
+        # Build alias context builder if --vsnap provided
+        alias_builder = None
+        if vsnap:
+            from .alias_context import AliasContextBuilder
+            alias_builder = AliasContextBuilder(vsnap, db)
+            if verbose:
+                console.print(f"  V-snapshot loaded: {vsnap} "
+                              f"(nodes={alias_builder.snap.node_count}, "
+                              f"reps={alias_builder.snap.rep_count}, "
+                              f"named={len(alias_builder.snap.named_entries)})")
+
         memsafe_summarizer = None
         if "memsafe" in summary_types:
             from .memsafe_summarizer import MemsafeSummarizer
 
             memsafe_summarizer = MemsafeSummarizer(db, llm, verbose=verbose, log_file=log_llm)
-            passes.append(MemsafePass(memsafe_summarizer, db, llm.model))
+            passes.append(MemsafePass(memsafe_summarizer, db, llm.model, alias_builder=alias_builder))
 
         verification_summarizer = None
         if "verify" in summary_types:
             from .verification_summarizer import VerificationSummarizer
 
             verification_summarizer = VerificationSummarizer(db, llm, verbose=verbose, log_file=log_llm)
-            passes.append(VerificationPass(verification_summarizer, db, llm.model))
+            passes.append(VerificationPass(verification_summarizer, db, llm.model, alias_builder=alias_builder))
 
         pass_names = " + ".join(p.name for p in passes)
         console.print(f"\n[bold]Running passes: {pass_names}[/bold]")

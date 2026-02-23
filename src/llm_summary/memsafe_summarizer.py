@@ -40,6 +40,8 @@ File: {file_path}
 
 {callee_note}
 
+{alias_context}
+
 ## Task
 
 Generate safety contracts (pre-conditions) for this function. Identify what the
@@ -145,6 +147,7 @@ class MemsafeSummarizer:
         func: Function,
         callee_summaries: dict[str, MemsafeSummary] | None = None,
         callee_params: dict[str, list[str]] | None = None,
+        alias_context: str | None = None,
     ) -> MemsafeSummary:
         """Generate safety contract summary for a single function.
 
@@ -174,6 +177,7 @@ class MemsafeSummarizer:
             signature=func.signature,
             file_path=func.file_path,
             callee_note=callee_note,
+            alias_context=alias_context or "",
         )
 
         try:

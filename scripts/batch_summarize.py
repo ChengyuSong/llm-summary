@@ -64,6 +64,7 @@ def run_summarize(
     init_stdlib: bool,
     verbose: bool,
     timeout: int,
+    vsnap_path: Path | None = None,
 ) -> tuple[bool, str, float]:
     """Invoke llm-summary summarize for a single project. Returns (success, error, duration)."""
     cmd = ["llm-summary", "summarize", "--db", str(db_path), "--backend", backend]
@@ -87,6 +88,8 @@ def run_summarize(
         cmd += ["--log-llm", str(log_llm)]
     if init_stdlib:
         cmd.append("--init-stdlib")
+    if vsnap_path and vsnap_path.exists():
+        cmd += ["--vsnap", str(vsnap_path)]
     if verbose:
         cmd.append("--verbose")
 
@@ -164,6 +167,7 @@ def _summarize_target(
     init_stdlib: bool,
     verbose: bool,
     timeout: int,
+    vsnap_path: Path | None = None,
 ) -> tuple[bool, str, float]:
     """Run Pass 1 (allocation+free+init) and Pass 2 (memsafe) for one DB.
 
@@ -212,6 +216,7 @@ def _summarize_target(
             init_stdlib=False,
             verbose=verbose,
             timeout=timeout,
+            vsnap_path=vsnap_path,
         )
         total_duration += dur
         if not ok:
@@ -316,6 +321,12 @@ def process_project_link_units(
                 target_errors.append(f"{target}: {target_result['error']}")
                 continue
 
+        # Resolve V-snapshot path per target
+        vsnap_str = lu.get("vsnapshot")
+        target_vsnap = Path(vsnap_str) if vsnap_str and Path(vsnap_str).exists() else None
+        if target_vsnap and verbose:
+            print(f"    [{target}] Using V-snapshot: {target_vsnap}")
+
         # Summarize
         ok, err, dur = _summarize_target(
             target=target,
@@ -332,6 +343,7 @@ def process_project_link_units(
             init_stdlib=init_stdlib,
             verbose=verbose,
             timeout=timeout,
+            vsnap_path=target_vsnap,
         )
         target_result["timing_seconds"] = round(time.monotonic() - target_start, 2)
         if not ok:
@@ -452,6 +464,12 @@ def process_project(
             if verbose:
                 print(f"    Using allocator file: {candidate}")
 
+    # Check for V-snapshot in legacy mode
+    legacy_vsnap = scan_dir / f"{project_name}.vsnap"
+    vsnap_path = legacy_vsnap if legacy_vsnap.exists() else None
+    if vsnap_path and verbose:
+        print(f"    Using V-snapshot: {vsnap_path}")
+
     ok, err, total_duration = _summarize_target(
         target=project_name,
         db_path=db_path,
@@ -467,6 +485,7 @@ def process_project(
         init_stdlib=init_stdlib,
         verbose=verbose,
         timeout=timeout,
+        vsnap_path=vsnap_path,
     )
     result["success"] = ok
     result["error"] = err if not ok else None

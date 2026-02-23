@@ -39,6 +39,8 @@ File: {file_path}
 
 {callee_section}
 
+{alias_context}
+
 ## Verification Tasks
 
 ### Check 1: Internal Safety
@@ -174,6 +176,7 @@ class VerificationSummarizer:
         self,
         func: Function,
         callee_summaries: dict[str, VerificationSummary] | None = None,
+        alias_context: str | None = None,
     ) -> VerificationSummary:
         """Verify a function and simplify its contracts."""
         if callee_summaries is None:
@@ -189,6 +192,7 @@ class VerificationSummarizer:
             file_path=func.file_path,
             own_contracts=own_contracts,
             callee_section=callee_section,
+            alias_context=alias_context or "",
         )
 
         try:

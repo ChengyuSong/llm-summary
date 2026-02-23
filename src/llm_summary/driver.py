@@ -103,10 +103,11 @@ class MemsafePass:
 
     name = "memsafe"
 
-    def __init__(self, summarizer, db: SummaryDB, model: str):
+    def __init__(self, summarizer, db: SummaryDB, model: str, alias_builder=None):
         self.summarizer = summarizer
         self.db = db
         self.model = model
+        self.alias_builder = alias_builder
 
     def get_cached(self, func_id: int, func: Function) -> MemsafeSummary | None:
         return self.db.get_memsafe_summary_by_function_id(func_id)
@@ -118,7 +119,13 @@ class MemsafePass:
         callee_funcs: dict[str, Function] | None = None,
     ) -> MemsafeSummary:
         callee_params = {name: f.params for name, f in (callee_funcs or {}).items()}
-        return self.summarizer.summarize_function(func, callee_summaries, callee_params)
+        alias_context = None
+        if self.alias_builder is not None:
+            callee_names = list((callee_funcs or {}).keys())
+            alias_context = self.alias_builder.build_context(func, callee_names)
+        return self.summarizer.summarize_function(
+            func, callee_summaries, callee_params, alias_context=alias_context
+        )
 
     def store(self, func: Function, summary: MemsafeSummary) -> None:
         self.db.upsert_memsafe_summary(func, summary, model_used=self.model)
@@ -129,16 +136,28 @@ class VerificationPass:
 
     name = "verify"
 
-    def __init__(self, summarizer, db: SummaryDB, model: str):
+    def __init__(self, summarizer, db: SummaryDB, model: str, alias_builder=None):
         self.summarizer = summarizer
         self.db = db
         self.model = model
+        self.alias_builder = alias_builder
 
     def get_cached(self, func_id: int, func: Function) -> VerificationSummary | None:
         return self.db.get_verification_summary_by_function_id(func_id)
 
-    def summarize(self, func: Function, callee_summaries: dict[str, VerificationSummary]) -> VerificationSummary:
-        return self.summarizer.summarize_function(func, callee_summaries)
+    def summarize(
+        self,
+        func: Function,
+        callee_summaries: dict[str, VerificationSummary],
+        callee_funcs: dict[str, Function] | None = None,
+    ) -> VerificationSummary:
+        alias_context = None
+        if self.alias_builder is not None:
+            callee_names = list((callee_funcs or {}).keys())
+            alias_context = self.alias_builder.build_context(func, callee_names)
+        return self.summarizer.summarize_function(
+            func, callee_summaries, alias_context=alias_context
+        )
 
     def store(self, func: Function, summary: VerificationSummary) -> None:
         self.db.upsert_verification_summary(func, summary, model_used=self.model)
@@ -289,7 +308,12 @@ class BottomUpDriver:
                         summary = p.summarize(func, callee_summaries)
                     results[p.name][func_id] = summary
 
-                    # Store in database
-                    p.store(func, summary)
+                    # Don't persist error summaries — they would poison the
+                    # cache and block retries on subsequent runs.
+                    desc = getattr(summary, "description", "") or ""
+                    is_error = desc.startswith("Error generating summary:") or \
+                        desc.startswith("Error during verification:")
+                    if not is_error:
+                        p.store(func, summary)
 
         return results
