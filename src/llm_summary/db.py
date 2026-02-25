@@ -3,6 +3,7 @@
 import hashlib
 import json
 import sqlite3
+import threading
 from pathlib import Path
 from typing import Any
 
@@ -235,10 +236,27 @@ class SummaryDB:
 
     def __init__(self, db_path: str | Path = ":memory:"):
         self.db_path = str(db_path)
-        self.conn = sqlite3.connect(self.db_path)
-        self.conn.row_factory = sqlite3.Row
-        self.conn.execute("PRAGMA foreign_keys = ON")
+        self._local = threading.local()
+        # Bootstrap the main-thread connection and run schema init
+        self._local.conn = self._make_conn()
         self._init_schema()
+
+    def _make_conn(self) -> sqlite3.Connection:
+        """Create a new connection with standard pragmas."""
+        conn = sqlite3.connect(self.db_path)
+        conn.row_factory = sqlite3.Row
+        conn.execute("PRAGMA foreign_keys = ON")
+        conn.execute("PRAGMA journal_mode=WAL")
+        return conn
+
+    @property
+    def conn(self) -> sqlite3.Connection:
+        """Per-thread connection (created on first access per thread)."""
+        c = getattr(self._local, "conn", None)
+        if c is None:
+            c = self._make_conn()
+            self._local.conn = c
+        return c
 
     def _init_schema(self) -> None:
         """Initialize database schema."""

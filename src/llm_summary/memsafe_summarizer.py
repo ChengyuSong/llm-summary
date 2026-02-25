@@ -2,6 +2,7 @@
 
 import json
 import re
+import threading
 
 
 def _substitute(expr: str, formals: list[str], actuals: list[str]) -> str:
@@ -135,12 +136,14 @@ class MemsafeSummarizer:
             "cache_hits": 0,
             "errors": 0,
         }
+        self._stats_lock = threading.Lock()
         self._progress_current = 0
         self._progress_total = 0
 
     @property
     def stats(self) -> dict[str, int]:
-        return self._stats.copy()
+        with self._stats_lock:
+            return self._stats.copy()
 
     def summarize_function(
         self,
@@ -188,18 +191,21 @@ class MemsafeSummarizer:
                     print(f"  Summarizing (memsafe): {func.name}")
 
             response = self.llm.complete(prompt)
-            self._stats["llm_calls"] += 1
+            with self._stats_lock:
+                self._stats["llm_calls"] += 1
 
             if self.log_file:
                 self._log_interaction(func.name, prompt, response)
 
             summary = self._parse_response(response, func.name)
-            self._stats["functions_processed"] += 1
+            with self._stats_lock:
+                self._stats["functions_processed"] += 1
 
             return summary
 
         except Exception as e:
-            self._stats["errors"] += 1
+            with self._stats_lock:
+                self._stats["errors"] += 1
             if self.verbose:
                 print(f"  Error summarizing (memsafe) {func.name}: {e}")
 

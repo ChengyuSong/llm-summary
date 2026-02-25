@@ -6,6 +6,7 @@ from .gemini import GeminiBackend
 from .llamacpp import LlamaCppBackend
 from .ollama import OllamaBackend
 from .openai import OpenAIBackend
+from .pool import LLMPool
 
 __all__ = [
     "LLMBackend",
@@ -14,6 +15,7 @@ __all__ = [
     "OpenAIBackend",
     "OllamaBackend",
     "LlamaCppBackend",
+    "LLMPool",
 ]
 
 

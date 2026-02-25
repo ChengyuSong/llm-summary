@@ -174,6 +174,43 @@ class ProcessingOrderer:
 
         return dict(scc_graph)
 
+    def get_parallel_levels(self) -> list[list[list[int]]]:
+        """Group SCCs into depth levels for parallel execution.
+
+        SCCs at the same depth level have no dependencies on each other
+        and can be processed in parallel.
+
+        Returns:
+            List of levels, where each level is a list of SCCs.
+            Level 0 contains leaf SCCs (no dependencies).
+        """
+        scc_graph = self.get_scc_graph()
+        num_sccs = len(self.sccs)
+
+        # Compute depth of each SCC (max depth of dependencies + 1)
+        depth: dict[int, int] = {}
+
+        def compute_depth(scc_idx: int) -> int:
+            if scc_idx in depth:
+                return depth[scc_idx]
+            deps = scc_graph.get(scc_idx, [])
+            if not deps:
+                depth[scc_idx] = 0
+            else:
+                depth[scc_idx] = max(compute_depth(d) for d in deps) + 1
+            return depth[scc_idx]
+
+        for i in range(num_sccs):
+            compute_depth(i)
+
+        # Group SCCs by depth
+        max_depth = max(depth.values()) if depth else 0
+        levels: list[list[list[int]]] = [[] for _ in range(max_depth + 1)]
+        for scc_idx, d in sorted(depth.items()):
+            levels[d].append(self.sccs[scc_idx])
+
+        return levels
+
     def get_stats(self) -> dict[str, int]:
         """Get statistics about the call graph."""
         num_nodes = len(set(self.graph.keys()) | {n for ns in self.graph.values() for n in ns})

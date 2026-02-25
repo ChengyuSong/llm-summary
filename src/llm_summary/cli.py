@@ -81,7 +81,8 @@ def main():
               help="JSON file with custom deallocator names (for free pass)")
 @click.option("--vsnap", type=click.Path(exists=True), default=None,
               help="V-snapshot (.vsnap) file for alias context in memsafe/verify passes")
-def summarize(db_path, backend, model, llm_host, llm_port, disable_thinking, verbose, force, log_llm, init_stdlib, allocator_file, summary_types, deallocator_file, vsnap):
+@click.option("-j", "jobs", default=1, type=int, help="Parallel LLM queries (default: 1)")
+def summarize(db_path, backend, model, llm_host, llm_port, disable_thinking, verbose, force, log_llm, init_stdlib, allocator_file, summary_types, deallocator_file, vsnap, jobs):
     """Generate allocation, free, init, memsafe, and/or verify summaries on a pre-populated database.
 
     Requires a database that already has functions and call_edges
@@ -249,8 +250,19 @@ def summarize(db_path, backend, model, llm_host, llm_port, disable_thinking, ver
         pass_names = " + ".join(p.name for p in passes)
         console.print(f"\n[bold]Running passes: {pass_names}[/bold]")
 
-        driver = BottomUpDriver(db, verbose=verbose)
-        results = driver.run(passes, force=force)
+        pool = None
+        if jobs > 1:
+            from .llm.pool import LLMPool
+            pool = LLMPool(max_workers=jobs)
+            if verbose:
+                console.print(f"  Thread pool: {jobs} workers")
+
+        driver = BottomUpDriver(db, verbose=verbose, pool=pool)
+        try:
+            results = driver.run(passes, force=force)
+        finally:
+            if pool is not None:
+                pool.shutdown()
 
         # Print stats per pass
         if alloc_summarizer is not None:

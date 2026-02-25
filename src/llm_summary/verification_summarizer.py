@@ -2,6 +2,7 @@
 
 import json
 import re
+import threading
 
 from .db import SummaryDB
 from .llm.base import LLMBackend
@@ -165,12 +166,14 @@ class VerificationSummarizer:
             "issues_found": 0,
             "contracts_simplified": 0,
         }
+        self._stats_lock = threading.Lock()
         self._progress_current = 0
         self._progress_total = 0
 
     @property
     def stats(self) -> dict[str, int]:
-        return self._stats.copy()
+        with self._stats_lock:
+            return self._stats.copy()
 
     def summarize_function(
         self,
@@ -206,28 +209,32 @@ class VerificationSummarizer:
                     print(f"  Verifying: {func.name}")
 
             response = self.llm.complete(prompt)
-            self._stats["llm_calls"] += 1
+            with self._stats_lock:
+                self._stats["llm_calls"] += 1
 
             if self.log_file:
                 self._log_interaction(func.name, prompt, response)
 
             summary = self._parse_response(response, func.name)
-            self._stats["functions_processed"] += 1
-            self._stats["issues_found"] += len(summary.issues)
+            with self._stats_lock:
+                self._stats["functions_processed"] += 1
+                self._stats["issues_found"] += len(summary.issues)
 
             # Count simplified contracts: raw - remaining
             raw_memsafe = self.db.get_memsafe_summary_by_function_id(func.id)
             if raw_memsafe and summary.simplified_contracts is not None:
                 raw_count = len(raw_memsafe.contracts)
                 remaining_count = len(summary.simplified_contracts)
-                self._stats["contracts_simplified"] += max(
-                    0, raw_count - remaining_count
-                )
+                with self._stats_lock:
+                    self._stats["contracts_simplified"] += max(
+                        0, raw_count - remaining_count
+                    )
 
             return summary
 
         except Exception as e:
-            self._stats["errors"] += 1
+            with self._stats_lock:
+                self._stats["errors"] += 1
             if self.verbose:
                 print(f"  Error verifying {func.name}: {e}")
 

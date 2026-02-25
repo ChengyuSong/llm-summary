@@ -2,8 +2,12 @@
 
 from __future__ import annotations
 
+import threading
 from collections import deque
+from concurrent.futures import as_completed
 from typing import Any, Protocol
+
+from .llm.pool import LLMPool
 
 from .db import SummaryDB
 from .models import (
@@ -167,9 +171,10 @@ class BottomUpDriver:
     """Builds the call graph once, then runs one or more summary passes
     over functions in bottom-up (callee-first) topological order."""
 
-    def __init__(self, db: SummaryDB, verbose: bool = False):
+    def __init__(self, db: SummaryDB, verbose: bool = False, pool: LLMPool | None = None):
         self.db = db
         self.verbose = verbose
+        self.pool = pool
         self._graph: dict[int, list[int]] | None = None
         self._orderer: ProcessingOrderer | None = None
 
@@ -221,6 +226,84 @@ class BottomUpDriver:
 
         return affected
 
+    def _process_func(
+        self,
+        func_id: int,
+        func: Function,
+        passes: list[SummaryPass],
+        graph: dict[int, list[int]],
+        results: dict[str, dict[int, Any]],
+        results_lock: threading.Lock,
+        force: bool,
+        affected: set[int] | None,
+        current: int,
+        total: int,
+    ) -> None:
+        """Process a single function through all passes. Thread-safe."""
+        # Skip sourceless stubs (e.g. stdlib) — nothing to summarize
+        if not func.source:
+            for p in passes:
+                cached = p.get_cached(func_id, func)
+                if cached is not None:
+                    with results_lock:
+                        results[p.name][func_id] = cached
+            return
+
+        # If incremental and function is not affected, load from cache
+        if affected is not None and func_id not in affected:
+            for p in passes:
+                cached = p.get_cached(func_id, func)
+                if cached is not None:
+                    with results_lock:
+                        results[p.name][func_id] = cached
+                    with p.summarizer._stats_lock:
+                        p.summarizer._stats["cache_hits"] += 1
+            return
+
+        for p in passes:
+            # Check cache
+            if not force:
+                cached = p.get_cached(func_id, func)
+                if cached is not None:
+                    with results_lock:
+                        results[p.name][func_id] = cached
+                    with p.summarizer._stats_lock:
+                        p.summarizer._stats["cache_hits"] += 1
+                    continue
+
+            # Gather callee summaries and Function objects from this pass's results
+            callee_ids = graph.get(func_id, [])
+            callee_summaries: dict[str, Any] = {}
+            callee_funcs: dict[str, Function] = {}
+            with results_lock:
+                for callee_id in callee_ids:
+                    if callee_id in results[p.name]:
+                        callee_func = self.db.get_function(callee_id)
+                        if callee_func:
+                            callee_summaries[callee_func.name] = results[p.name][callee_id]
+                            callee_funcs[callee_func.name] = callee_func
+
+            # Set progress on the underlying summarizer
+            p.summarizer._progress_current = current
+            p.summarizer._progress_total = total
+
+            # Generate summary (passes that don't accept callee_funcs ignore it)
+            try:
+                summary = p.summarize(func, callee_summaries, callee_funcs=callee_funcs)
+            except TypeError:
+                summary = p.summarize(func, callee_summaries)
+
+            with results_lock:
+                results[p.name][func_id] = summary
+
+            # Don't persist error summaries — they would poison the
+            # cache and block retries on subsequent runs.
+            desc = getattr(summary, "description", "") or ""
+            is_error = desc.startswith("Error generating summary:") or \
+                desc.startswith("Error during verification:")
+            if not is_error:
+                p.store(func, summary)
+
     def run(
         self,
         passes: list[SummaryPass],
@@ -252,76 +335,58 @@ class BottomUpDriver:
                 msg += f" ({stats['recursive_sccs']} recursive)"
             if affected is not None:
                 msg += f", {len(affected)} affected"
+            if self.pool is not None:
+                msg += f", {self.pool.max_workers} workers"
             print(msg)
 
         # Prepare per-pass result dicts
         results: dict[str, dict[int, Any]] = {p.name: {} for p in passes}
+        results_lock = threading.Lock()
 
-        processing_order = list(orderer.get_processing_order())
-        total = sum(len(scc) for scc in processing_order)
-        current = 0
+        if self.pool is not None:
+            # Parallel mode: process by depth levels
+            levels = orderer.get_parallel_levels()
+            total = sum(
+                len(scc)
+                for level in levels
+                for scc in level
+            )
+            current = 0
 
-        for scc in processing_order:
-            for func_id in scc:
-                current += 1
-                func = self.db.get_function(func_id)
-                if func is None:
-                    continue
-
-                # Skip sourceless stubs (e.g. stdlib) — nothing to summarize
-                if not func.source:
-                    for p in passes:
-                        cached = p.get_cached(func_id, func)
-                        if cached is not None:
-                            results[p.name][func_id] = cached
-                    continue
-
-                # If incremental and function is not affected, load from cache
-                if affected is not None and func_id not in affected:
-                    for p in passes:
-                        cached = p.get_cached(func_id, func)
-                        if cached is not None:
-                            results[p.name][func_id] = cached
-                            p.summarizer._stats["cache_hits"] += 1
-                    continue
-
-                for p in passes:
-                    # Check cache
-                    if not force:
-                        cached = p.get_cached(func_id, func)
-                        if cached is not None:
-                            results[p.name][func_id] = cached
-                            p.summarizer._stats["cache_hits"] += 1
+            for level in levels:
+                futures = []
+                for scc in level:
+                    for func_id in scc:
+                        current += 1
+                        func = self.db.get_function(func_id)
+                        if func is None:
                             continue
+                        fut = self.pool.submit(
+                            self._process_func,
+                            func_id, func, passes, graph, results,
+                            results_lock, force, affected, current, total,
+                        )
+                        futures.append(fut)
 
-                    # Gather callee summaries and Function objects from this pass's results
-                    callee_ids = graph.get(func_id, [])
-                    callee_summaries: dict[str, Any] = {}
-                    callee_funcs: dict[str, Function] = {}
-                    for callee_id in callee_ids:
-                        if callee_id in results[p.name]:
-                            callee_func = self.db.get_function(callee_id)
-                            if callee_func:
-                                callee_summaries[callee_func.name] = results[p.name][callee_id]
-                                callee_funcs[callee_func.name] = callee_func
+                # Wait for all functions at this level to complete before
+                # moving to the next level (which may depend on these results)
+                for fut in as_completed(futures):
+                    fut.result()  # re-raises any exception
+        else:
+            # Sequential mode: original behavior
+            processing_order = list(orderer.get_processing_order())
+            total = sum(len(scc) for scc in processing_order)
+            current = 0
 
-                    # Set progress on the underlying summarizer
-                    p.summarizer._progress_current = current
-                    p.summarizer._progress_total = total
-
-                    # Generate summary (passes that don't accept callee_funcs ignore it)
-                    try:
-                        summary = p.summarize(func, callee_summaries, callee_funcs=callee_funcs)
-                    except TypeError:
-                        summary = p.summarize(func, callee_summaries)
-                    results[p.name][func_id] = summary
-
-                    # Don't persist error summaries — they would poison the
-                    # cache and block retries on subsequent runs.
-                    desc = getattr(summary, "description", "") or ""
-                    is_error = desc.startswith("Error generating summary:") or \
-                        desc.startswith("Error during verification:")
-                    if not is_error:
-                        p.store(func, summary)
+            for scc in processing_order:
+                for func_id in scc:
+                    current += 1
+                    func = self.db.get_function(func_id)
+                    if func is None:
+                        continue
+                    self._process_func(
+                        func_id, func, passes, graph, results,
+                        results_lock, force, affected, current, total,
+                    )
 
         return results
