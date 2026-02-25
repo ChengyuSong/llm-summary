@@ -1,22 +1,35 @@
 # Architecture Overview
 
-This document describes the architecture of the LLM-based memory allocation summary analysis tool.
+This document describes the architecture of the LLM-based memory safety analysis tool.
 
 ## System Overview
 
-The tool performs compositional, bottom-up analysis of C/C++ code to generate memory allocation summaries. It processes functions in dependency order (callees before callers) so that callee summaries are available when analyzing callers.
+The tool performs compositional, bottom-up analysis of C/C++ code to generate memory safety summaries across five passes (allocation, free, initialization, safety contracts, verification). It processes functions in dependency order (callees before callers) so that callee summaries are available when analyzing callers.
+
+Analysis is **link-unit aware**: each build target (library, executable) gets its own database, and targets are processed in dependency order so that library summaries are available when analyzing executables that link them.
 
 ```
-┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
-│  Source Files   │────▶│ Function        │────▶│ Call Graph      │
-│  (.c/.cpp/.h)   │     │ Extractor       │     │ Builder         │
-└─────────────────┘     └─────────────────┘     └─────────────────┘
-                                                        │
-                                                        ▼
-┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
-│ Summary         │◀────│ LLM Summary     │◀────│ Topological     │
-│ Database        │     │ Generator       │     │ Ordering (SCCs) │
-└─────────────────┘     └─────────────────┘     └─────────────────┘
+Phase 0         Phase 1            Phase 2          Phase 3
+build-learn ──▶ discover-link- ──▶ scan (per ──▶ call graph
+(Docker,LTO)    units              target)      (KAMain CFL)
+                                   │                 │
+                                   ▼                 ▼
+                              functions.db      callgraph.json
+                                   │            .cflcg, .vsnap
+                                   │                 │
+                              Phase 4            Phase 5
+                              import-         ──▶ init-stdlib +
+                              callgraph           import-dep-summaries
+                                   │                 │
+                                   └────────┬────────┘
+                                            ▼
+                                       Phase 6
+                                       summarize (bottom-up)
+                                       alloc → free → init → memsafe → verify
+                                            │
+                                            ▼
+                                       functions.db
+                                       (per link unit)
 ```
 
 ## Components
@@ -195,15 +208,18 @@ LLM-driven incremental build system that can configure, build, and learn from C/
 - `ErrorAnalyzer` (`error_analyzer.py`): Parses build failures for actionable diagnostics
 - `ScriptGenerator` (`script_generator.py`): Auto-generates reproducible build scripts
 
-Supports CMake and Autotools projects. Assembly detection scans `compile_commands.json`, source files, and LLVM IR.
+Supports CMake, Autotools, Meson, Bazel, SCons, and custom build systems. Assembly detection scans `compile_commands.json`, source files, and LLVM IR. See [build-learn.md](build-learn.md) for details.
 
 ### 13. Link-Unit Pipeline (`link_units/`)
 
-Batch analysis pipeline aware of build targets (executables, libraries).
+Batch analysis pipeline aware of build targets (executables, libraries). One DB per link unit; targets processed in dependency order.
 
-- **`LinkUnitDiscoverer`** (`discoverer.py`): Detects link units from `compile_commands.json` or build system
+- **`LinkUnitDiscoverer`** (`discoverer.py`): ReAct agent that explores build artifacts to identify all link units and their dependency relationships
 - **`Pipeline`** (`pipeline.py`): Orchestrates per-target extract → summarize workflows
-- Enables dependency-aware analysis where shared libraries are analyzed before executables that link them
+- **`batch_call_graph_gen.py`**: Runs two-phase compositional KAMain per target in topo order
+- **`batch_summarize.py`**: Runs init-stdlib, import-dep-summaries, and summarization per target
+
+See [link-unit-analysis.md](link-unit-analysis.md) for the full design.
 
 ### 14. CLI (`cli.py`)
 
@@ -231,49 +247,160 @@ Command-line interface using Click.
 - `discover-link-units`: Detect build targets/link units
 - `import-dep-summaries`: Import summaries from dependency databases
 
-## Data Flow
+## End-to-End Pipeline
 
-### Analysis Pipeline
+The full pipeline for analyzing a project has seven phases. Each phase corresponds to one or more CLI commands. For link-unit projects, phases 2–6 run per target in dependency order (libraries before executables).
+
+See [link-unit-analysis.md](link-unit-analysis.md) for the full link-unit design and cross-project dependency handling.
+
+### Phase 0: Build (`build-learn`)
+
+LLM-driven ReAct agent that configures and builds the project inside a Docker container with LLVM 18. Produces `compile_commands.json` and `.bc` bitcode files (via `-flto=full -save-temps=obj`). Generates a reusable build script in `build-scripts/<project>/`.
+
+See [build-learn.md](build-learn.md) for details.
+
+**Output:** `compile_commands.json`, `.bc` files, `build.sh`, `config.json`
+
+### Phase 1: Discover Link Units (`discover-link-units`)
+
+ReAct agent that explores build artifacts to identify all link units (libraries, executables) and their intra-project dependency relationships. Parses `build.ninja`, `link.txt`, archives (`ar t`), and ELF headers.
+
+**Output:** `func-scans/<project>/link_units.json`
+
+### Phase 2: Scan Functions (`scan`)
+
+Per-target function extraction using libclang. Parses source files from `compile_commands.json`, extracts function definitions, builds the AST-based call graph, and identifies address-taken functions and indirect callsites.
+
+When `--link-units` and `--target` are given, restricts extraction to source files belonging to the named target.
+
+**Output:** `functions.db` per target (functions, call_edges, address_taken_functions, indirect_callsites)
+
+### Phase 3: Call Graph (`batch_call_graph_gen.py` / KAMain)
+
+LLVM IR-based CFL-reachability points-to analysis via KAMain. The batch script locates `.bc` files using a three-tier strategy:
+
+1. Look for `.bc` next to `.o` (from `-save-temps=obj`)
+2. Use `.o` as bitcode directly if `-flto` was used
+3. Recompile sources with `-emit-llvm` to produce `.bc`
+
+Two KAMain sub-phases per target:
+
+1. **Compress** — produces a compressed CFL constraint graph (`.cflcg`) from the target's `.bc` files
+2. **Compose + solve** — composes the target's constraint graph with those of its transitive deps to produce the call graph (`.json`) and V-snapshot (`.vsnap`)
+
+Processes targets in topological order (deps before dependents). Writes `db_path`, `callgraph_json`, `cflcg`, `vsnapshot` back into `link_units.json`. Also extracts allocator candidates from `functions.db` for KAMain.
+
+See [indirect-call-analysis.md](indirect-call-analysis.md) for details on indirect call resolution.
+
+**Output:** `callgraph.json`, `<target>.cflcg`, `<target>.vsnap` per target
+
+### Phase 4: Import Call Graph (`import-callgraph`)
+
+Imports KAMain JSON call graph into `functions.db`. Matches KAMain function entries to existing DB functions by name, file+name, or suffix. Creates stubs for unmatched external functions (libc, deps). Run automatically by `batch_call_graph_gen.py` after KAMain completes.
+
+**Output:** `call_edges` table populated in `functions.db`
+
+### Phase 5: Seed Summaries (`init-stdlib`, `import-dep-summaries`)
+
+Before summarization, populate the target DB with pre-existing summaries so the bottom-up driver treats them as cache hits:
+
+1. **`init-stdlib`** — inserts pre-defined summaries for C standard library functions (malloc, free, memcpy, etc.)
+2. **`import-dep-summaries`** — copies function stubs and all summary types from dependency DBs (e.g., zlib summaries imported when analyzing libpng), tagged with `model_used="dep:<project>/<target>"`
+
+**Output:** stdlib and dependency function stubs + summaries in `functions.db`
+
+### Phase 6: Summarize (`summarize`)
+
+Bottom-up LLM summarization via `BottomUpDriver`. Builds the call graph once, computes SCCs via Tarjan's algorithm, and traverses in topological order (callees first). Runs one or more summary passes per function:
+
+| Pass | Type | Direction | What it captures |
+|------|------|-----------|------------------|
+| 1 | `allocation` | Post-condition | Allocations, buffer-size pairs, may-be-null |
+| 2 | `free` | Post-condition | Deallocations, conditional frees, nulled-after |
+| 3 | `init` | Post-condition | Guaranteed initializations (caller-visible) |
+| 4 | `memsafe` | Pre-condition | Safety contracts (not-null, buffer-size, etc.) |
+| 5 | `verify` | Cross-pass | Issues + simplified contracts |
+
+Passes 1–4 are independent and can run together. Pass 5 requires passes 1–4 to exist. Optional `--vsnap` provides alias context for passes 4–5 (see [vsnapshot-alias-context.md](vsnapshot-alias-context.md)).
+
+Functions with existing summaries (stdlib, deps, prior runs) are cache hits. Only new/dirty functions get LLM calls. Parallel execution across SCC levels with `-j N`.
+
+**Output:** `allocation_summaries`, `free_summaries`, `init_summaries`, `memsafe_summaries`, `verification_summaries` in `functions.db`
+
+### Batch Processing
+
+Batch scripts under `scripts/` orchestrate the pipeline across multiple projects and link-unit targets. Projects are read from `gpr_projects.json` and filtered by tier, name, or skip list.
+
+| Script | Phase | What it does |
+|--------|-------|-------------|
+| `batch_build_learn.py` | 0 | Runs `build-learn` for each project sequentially |
+| `batch_scan_targets.py` | 2 | Extracts functions, address-taken, indirect callsites (`-j` parallel) |
+| `batch_call_graph_gen.py` | 3–4 | Runs KAMain (compositional CFL) + imports call graph per target |
+| `batch_summarize.py` | 5–6 | Seeds stdlib/dep summaries, runs passes 1–3 then pass 4 separately |
+| `batch_verify.py` | 6 | Runs pass 5 (verification) after passes 1–4 complete |
+| `batch_container_detect.py` | aux | Detects container functions (heuristic + LLM) |
+
+All link-unit-aware scripts read `link_units.json` and toposort targets by `link_deps`. `batch_summarize.py` runs `import-dep-summaries` from intra-project dep DBs before each target's summarization. Cross-project dependencies are tracked in `project_deps.json`.
+
+**Supporting scripts:**
+- `gpr_utils.py` — shared utilities (Docker path translation, project discovery)
+- `clone_gpr_projects.py` — clone projects from `gpr_projects.json` URLs
+- `update_gpr_projects.py` — git pull and update project metadata
+- `guess_language.py` — LLM-based language detection, auto-demotes non-C/C++ to tier 3
+- `fix_compile_commands.py` — fix Docker/container paths in `compile_commands.json`
+- `batch_rebuild.py` — re-run build scripts (e.g., with debug flags)
+
+### Example: libpng depends on zlib
 
 ```
-1. Source Files
-   │
-   ▼
-2. Function Extraction (libclang)
-   │
-   ├──▶ Functions stored in DB
-   │
-   ▼
-3. Call Graph Construction
-   │
-   ├──▶ Direct calls extracted from AST
-   ├──▶ Indirect callsites identified
-   ├──▶ Address-taken functions found
-   │
-   ▼
-4. Indirect Call Resolution (LLM)
-   │
-   ├──▶ Candidates filtered by signature
-   ├──▶ LLM determines likely targets
-   │
-   ▼
-5. BottomUpDriver (driver.py)
-   │
-   ├──▶ Build call graph + compute SCCs (once)
-   ├──▶ Traverse in topological order (callees first)
-   ├──▶ Run all registered passes per function:
-   │      AllocationPass, FreePass, InitPass, MemsafePass, VerificationPass
-   ├──▶ Optional: parallel execution across SCC levels (-j N)
-   │
-   ▼
-6. Summary Generation (LLM, per pass)
-   │
-   ├──▶ Gather callee summaries from prior results
-   ├──▶ Build prompt, query LLM, parse response
-   ├──▶ Store result in DB
-   │
-   ▼
-7. Summary Database
+Step 1: Analyze zlib (no deps)
+  build-learn              → compile_commands.json, .bc files
+  discover-link-units      → zlib/link_units.json
+  scan --target zlibstatic → zlib/zlibstatic/functions.db
+  KAMain phase 1           → zlib/zlibstatic/zlibstatic.cflcg
+  KAMain phase 2           → zlib/zlibstatic/callgraph.json, .vsnap
+  import-callgraph         → call_edges in functions.db
+  init-stdlib              → stdlib stubs
+  summarize alloc+free+init → post-condition summaries
+  summarize memsafe         → pre-condition contracts
+  summarize verify          → cross-pass verification
+
+Step 2: Analyze libpng (depends on zlib)
+  build-learn              → compile_commands.json, .bc files
+  discover-link-units      → libpng/link_units.json
+  scan --target libpng16   → libpng/libpng16/functions.db
+  KAMain phase 1           → libpng/libpng16/libpng16.cflcg
+  KAMain phase 2 (+zlib)   → libpng/libpng16/callgraph.json, .vsnap
+  import-callgraph         → call_edges
+  import-dep-summaries     → zlib summaries copied in
+  init-stdlib              → stdlib stubs
+  summarize alloc+free+init → post-condition summaries (zlib → cache hit)
+  summarize memsafe         → pre-condition contracts
+  summarize verify          → cross-pass verification
+```
+
+### Directory Layout
+
+```
+func-scans/
+  zlib/
+    link_units.json
+    allocator_candidates.json
+    zlibstatic/
+      functions.db
+      callgraph.json
+      zlibstatic.cflcg
+      zlibstatic.vsnap
+    zlib_static_example/
+      functions.db
+      callgraph.json
+  libpng/
+    link_units.json
+    libpng16/
+      functions.db
+      callgraph.json
+      libpng16.cflcg
+      libpng16.vsnap
 ```
 
 ### Incremental Updates
@@ -284,8 +411,8 @@ When source files change:
 2. Compare with stored hash
 3. If changed:
    - Invalidate function's summary
-   - Cascade invalidation to all callers
-4. Re-analyze invalidated functions
+   - Cascade invalidation to all callers (transitive)
+4. Re-analyze only invalidated functions (dirty set + reverse-edge closure)
 
 ## Memory Safety Analysis Framework
 
