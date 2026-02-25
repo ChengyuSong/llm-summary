@@ -43,6 +43,7 @@ CREATE TABLE IF NOT EXISTS functions (
     line_start INTEGER,
     line_end INTEGER,
     source TEXT,
+    pp_source TEXT,
     source_hash TEXT,
     params_json TEXT,
     callsites_json TEXT,
@@ -299,6 +300,9 @@ class SummaryDB:
         if "callsites_json" not in columns:
             self.conn.execute("ALTER TABLE functions ADD COLUMN callsites_json TEXT")
             self.conn.commit()
+        if "pp_source" not in columns:
+            self.conn.execute("ALTER TABLE functions ADD COLUMN pp_source TEXT")
+            self.conn.commit()
 
     def close(self) -> None:
         """Close the database connection."""
@@ -314,20 +318,23 @@ class SummaryDB:
         Only source-derived columns are updated on conflict; summaries are left intact.
         """
         import json as _json
-        source_hash = compute_source_hash(func.source) if func.source else None
+        # Use pp_source for hash when available (macro-expanded is the LLM-visible source)
+        hash_source = func.pp_source if func.pp_source else func.source
+        source_hash = compute_source_hash(hash_source) if hash_source else None
         params_json = _json.dumps(func.params) if func.params else None
         callsites_json = _json.dumps(func.callsites) if func.callsites else None
         cursor = self.conn.execute(
             """
             INSERT INTO functions
             (name, signature, canonical_signature, file_path, line_start, line_end,
-             source, source_hash, params_json, callsites_json)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+             source, pp_source, source_hash, params_json, callsites_json)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(name, signature, file_path) DO UPDATE SET
               canonical_signature = excluded.canonical_signature,
               line_start          = excluded.line_start,
               line_end            = excluded.line_end,
               source              = excluded.source,
+              pp_source           = excluded.pp_source,
               source_hash         = excluded.source_hash,
               params_json         = excluded.params_json,
               callsites_json      = excluded.callsites_json
@@ -340,6 +347,7 @@ class SummaryDB:
                 func.line_start,
                 func.line_end,
                 func.source,
+                func.pp_source,
                 source_hash,
                 params_json,
                 callsites_json,
@@ -424,6 +432,7 @@ class SummaryDB:
             source_hash=row["source_hash"],
             params=_json.loads(params_raw) if params_raw else [],
             callsites=_json.loads(callsites_raw) if callsites_raw else [],
+            pp_source=_col("pp_source"),
         )
 
     # ========== Summary Operations ==========
@@ -539,7 +548,8 @@ class SummaryDB:
 
     def needs_update(self, func: Function) -> bool:
         """Check if a function's summary needs updating based on source hash."""
-        current_hash = compute_source_hash(func.source) if func.source else None
+        hash_source = func.pp_source if func.pp_source else func.source
+        current_hash = compute_source_hash(hash_source) if hash_source else None
         row = self.conn.execute(
             """
             SELECT f.source_hash, s.id FROM functions f

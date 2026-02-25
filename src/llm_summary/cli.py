@@ -354,7 +354,8 @@ def summarize(db_path, backend, model, llm_host, llm_port, disable_thinking, ver
               help="Host path to project source root. Required when compile_commands.json uses Docker "
                    "container paths (/workspace/src/...).")
 @click.option("--recursive/--no-recursive", default=True)
-def extract(path_arg, path_opt, db_path, compile_commands_path, project_path, recursive):
+@click.option("--preprocess", is_flag=True, help="Run clang -E to expand macros and store preprocessed source")
+def extract(path_arg, path_opt, db_path, compile_commands_path, project_path, recursive, preprocess):
     """Extract functions and build call graph (no LLM)."""
     # Accept path as either positional argument or --path option
     path = path_opt or path_arg
@@ -400,7 +401,10 @@ def extract(path_arg, path_opt, db_path, compile_commands_path, project_path, re
     db = SummaryDB(db_path)
 
     try:
-        extractor = FunctionExtractor(compile_commands=compile_commands)
+        extractor = FunctionExtractor(
+            compile_commands=compile_commands,
+            enable_preprocessing=preprocess,
+        )
         all_functions = []
 
         for f in files:

@@ -122,7 +122,7 @@ class FreeSummarizer:
         callee_section = self._build_callee_section(func, callee_summaries)
 
         prompt = FREE_SUMMARY_PROMPT.format(
-            source=func.source,
+            source=func.llm_source,
             name=func.name,
             signature=func.signature,
             file_path=func.file_path,

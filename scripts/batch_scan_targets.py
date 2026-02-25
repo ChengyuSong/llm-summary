@@ -130,9 +130,13 @@ def _scan_files(
     db: SummaryDB,
     project_root: Path | None,
     verbose: bool,
+    preprocess: bool = False,
 ) -> tuple[int, int, int]:
     """Extract functions, scan address-taken, find callsites. Returns (funcs, targets, callsites)."""
-    extractor = FunctionExtractor(compile_commands=cc, project_root=project_root)
+    extractor = FunctionExtractor(
+        compile_commands=cc, project_root=project_root,
+        enable_preprocessing=preprocess,
+    )
     all_functions = []
     for f in source_files:
         try:
@@ -168,6 +172,7 @@ def scan_project_link_units(
     link_units_path: Path,
     dry_run: bool = False,
     verbose: bool = False,
+    preprocess: bool = False,
 ) -> dict:
     """Scan a project with link_units.json — one DB per target in topo order."""
     project_name = project_dir.name
@@ -243,7 +248,8 @@ def scan_project_link_units(
             db = SummaryDB(db_path_str)
             try:
                 n_funcs, n_targets, n_callsites = _scan_files(
-                    source_files, cc, db, project_root, verbose
+                    source_files, cc, db, project_root, verbose,
+                    preprocess=preprocess,
                 )
             finally:
                 db.close()
@@ -271,6 +277,7 @@ def scan_project(
     func_scans_dir: Path,
     dry_run: bool = False,
     verbose: bool = False,
+    preprocess: bool = False,
 ) -> dict:
     """Scan a single project and return statistics.
 
@@ -318,6 +325,7 @@ def scan_project(
                 link_units_path=link_units_path,
                 dry_run=dry_run,
                 verbose=verbose,
+                preprocess=preprocess,
             )
 
         # --- Legacy single-DB mode ---
@@ -361,7 +369,8 @@ def scan_project(
             db = SummaryDB(db_path_str)
             try:
                 n_funcs, n_targets, n_callsites = _scan_files(
-                    source_files, cc, db, project_root, verbose
+                    source_files, cc, db, project_root, verbose,
+                    preprocess=preprocess,
                 )
                 atfs = db.get_address_taken_functions()
                 type_counts: Counter[str] = Counter()
@@ -386,8 +395,9 @@ def scan_project(
 
 def _scan_worker(args: tuple) -> dict:
     """Worker wrapper for ProcessPoolExecutor (needs top-level picklable callable)."""
-    project_dir, func_scans_dir, dry_run, verbose = args
-    return scan_project(Path(project_dir), Path(func_scans_dir), dry_run=dry_run, verbose=verbose)
+    project_dir, func_scans_dir, dry_run, verbose = args[:4]
+    preprocess = args[4] if len(args) > 4 else False
+    return scan_project(Path(project_dir), Path(func_scans_dir), dry_run=dry_run, verbose=verbose, preprocess=preprocess)
 
 
 def _format_result(result: dict) -> str:
@@ -435,6 +445,14 @@ def main():
         "--filter", type=str, default=None,
         help="Only scan projects whose name contains this substring (case-insensitive)",
     )
+    parser.add_argument(
+        "--limit", type=int, default=None,
+        help="Limit to at most N projects",
+    )
+    parser.add_argument(
+        "--preprocess", action="store_true",
+        help="Run clang -E to expand macros and store preprocessed source (pp_source)",
+    )
     args = parser.parse_args()
 
     if not BUILD_SCRIPTS_DIR.exists():
@@ -480,6 +498,10 @@ def main():
         projects = [p for p in projects if p.name not in skip_names]
         print(f"Skip list: skipped {before - len(projects)}/{before} projects")
 
+    # Limit number of projects
+    if args.limit is not None:
+        projects = projects[: args.limit]
+
     num_workers = args.jobs if args.jobs > 0 else os.cpu_count()
 
     print(f"Found {len(projects)} projects with compile_commands.json")
@@ -491,9 +513,9 @@ def main():
         print(f"Parallel workers: {num_workers}")
     print()
 
-    # Build work items: (project_dir, func_scans_dir, dry_run, verbose)
+    # Build work items: (project_dir, func_scans_dir, dry_run, verbose, preprocess)
     work_items = [
-        (str(project_dir), str(FUNC_SCANS_DIR), args.dry_run, args.verbose)
+        (str(project_dir), str(FUNC_SCANS_DIR), args.dry_run, args.verbose, args.preprocess)
         for project_dir in projects
     ]
 

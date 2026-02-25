@@ -228,16 +228,18 @@ class MemsafeSummarizer:
         is provided. Returns used_inline=True when at least one annotation was added.
         """
         if not func.callsites or not callee_summaries:
-            return func.source, False
+            return func.llm_source, False
 
-        # Group callsites by line_in_body (0-based offset from function start line)
+        # Group callsites by line_in_body (0-based offset from function start line).
+        # line_in_body offsets are relative to the *original* source, so annotation
+        # must always operate on func.source, not pp_source.
         by_line: dict[int, list[dict]] = {}
         for cs in func.callsites:
             if cs["callee"] in callee_summaries:
                 by_line.setdefault(cs["line_in_body"], []).append(cs)
 
         if not by_line:
-            return func.source, False
+            return func.llm_source, False
 
         lines = func.source.splitlines()
         result: list[str] = []

@@ -164,7 +164,7 @@ class AllocationSummarizer:
 
         # Build prompt
         prompt = ALLOCATION_SUMMARY_PROMPT.format(
-            source=func.source,
+            source=func.llm_source,
             name=func.name,
             signature=func.signature,
             file_path=func.file_path,

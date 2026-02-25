@@ -14,6 +14,7 @@ from clang.cindex import (
 
 from .compile_commands import CompileCommandsDB
 from .models import Function
+from .preprocessor import PreprocessedFile, SourcePreprocessor
 
 
 def configure_libclang(libclang_path: str | None = None) -> None:
@@ -110,6 +111,7 @@ class FunctionExtractor:
         libclang_path: str | None = None,
         compile_commands: CompileCommandsDB | None = None,
         project_root: Path | str | None = None,
+        enable_preprocessing: bool = False,
     ):
         """
         Initialize the extractor.
@@ -121,6 +123,8 @@ class FunctionExtractor:
             project_root: If provided, functions defined in headers under this directory
                 are also extracted (not just functions in the main source file).
                 Deduplication across files is handled automatically via USR tracking.
+            enable_preprocessing: If True, run clang -E on each file and store
+                macro-expanded source as pp_source on each Function.
         """
         configure_libclang(libclang_path)
         self.index = Index.create()
@@ -132,6 +136,15 @@ class FunctionExtractor:
         # inline/template functions defined in headers are not extracted more than once
         # when multiple translation units include the same header.
         self._seen_usrs: set[str] = set()
+        self.enable_preprocessing = enable_preprocessing
+        self._preprocessor: SourcePreprocessor | None = None
+        # Cache of preprocessed files: file_path -> PreprocessedFile
+        self._pp_cache: dict[str, PreprocessedFile] = {}
+        if enable_preprocessing:
+            self._preprocessor = SourcePreprocessor(
+                compile_commands=compile_commands,
+                extra_args=compile_args,
+            )
 
     def extract_from_file(self, file_path: str | Path) -> list[Function]:
         """
@@ -144,6 +157,14 @@ class FunctionExtractor:
             List of Function objects
         """
         file_path = Path(file_path).resolve()
+
+        # Preprocess file once if enabled (cache across calls)
+        pp_file: PreprocessedFile | None = None
+        if self._preprocessor is not None:
+            key = str(file_path)
+            if key not in self._pp_cache:
+                self._pp_cache[key] = self._preprocessor.preprocess(file_path)
+            pp_file = self._pp_cache[key]
 
         # Get compile flags for this file
         args = self._get_compile_args(file_path)
@@ -161,6 +182,15 @@ class FunctionExtractor:
         self._extract_functions_recursive(
             tu.cursor, str(file_path), functions
         )
+
+        # Populate pp_source from preprocessed output
+        if pp_file is not None and pp_file.mappings:
+            for func in functions:
+                pp_src = pp_file.extract_pp_source(
+                    func.file_path, func.line_start, func.line_end
+                )
+                if pp_src:
+                    func.pp_source = pp_src
 
         return functions
 

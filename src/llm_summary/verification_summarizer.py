@@ -189,7 +189,7 @@ class VerificationSummarizer:
         own_contracts = self._build_own_contracts_section(func)
 
         prompt = VERIFICATION_PROMPT.format(
-            source=func.source,
+            source=func.llm_source,
             name=func.name,
             signature=func.signature,
             file_path=func.file_path,

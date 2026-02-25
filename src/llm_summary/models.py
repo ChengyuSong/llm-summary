@@ -43,6 +43,13 @@ class Function:
     params: list[str] = field(default_factory=list)
     # Callsite metadata: list of {callee, line, line_in_body, via_macro, macro_name, args}
     callsites: list[dict] = field(default_factory=list)
+    # Preprocessed (macro-expanded) source from clang -E, or None
+    pp_source: str | None = None
+
+    @property
+    def llm_source(self) -> str:
+        """Source to send to the LLM: preprocessed if available, else raw."""
+        return self.pp_source if self.pp_source else self.source
 
     def __hash__(self) -> int:
         return hash((self.name, self.signature, self.file_path))
