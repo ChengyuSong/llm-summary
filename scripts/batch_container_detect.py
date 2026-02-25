@@ -224,6 +224,10 @@ def main():
         "--filter", type=str, default=None,
         help="Only process projects matching this substring",
     )
+    parser.add_argument(
+        "--limit", type=int, default=None,
+        help="Limit to at most N projects",
+    )
     args = parser.parse_args()
 
     if args.heuristic_only:
@@ -270,6 +274,9 @@ def main():
         before = len(projects)
         projects = [p for p in projects if p.name not in skip_names]
         print(f"Skip list: skipped {before - len(projects)}/{before} projects")
+
+    if args.limit is not None:
+        projects = projects[: args.limit]
 
     num_workers = args.jobs if args.jobs > 0 else os.cpu_count()
 

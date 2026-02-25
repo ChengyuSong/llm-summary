@@ -231,6 +231,7 @@ def main():
     parser.add_argument("--success-list", type=str, default=None,
                         help="Append successfully verified project names to this file")
     parser.add_argument("--output", "-o", type=str, default=None, help="Output JSON report path")
+    parser.add_argument("--limit", type=int, default=None, help="Limit to at most N projects")
     args = parser.parse_args()
 
     func_scans_dir = args.func_scans_dir
@@ -266,6 +267,9 @@ def main():
         before = len(projects)
         projects = [p for p in projects if p not in skip_names]
         print(f"Skip list: skipped {before - len(projects)}/{before} projects")
+
+    if args.limit is not None:
+        projects = projects[: args.limit]
 
     print(f"\nProcessing {len(projects)} projects")
     print(f"Backend: {args.backend}" + (f" ({args.model})" if args.model else ""))
