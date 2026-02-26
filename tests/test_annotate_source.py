@@ -106,15 +106,17 @@ class TestAnnotateSource:
         assert used is True
         assert "[via macro CHECK_NOT_NULL]" in annotated
 
-    def test_no_callsites_with_pp_source_returns_pp_source(self):
-        """With no callsites, returns pp_source (llm_source) when available."""
+    def test_no_callsites_with_pp_source_returns_llm_source(self):
+        """With no callsites, returns llm_source (annotated diff) when pp_source available."""
         source = "D(fpu, 0)"
         pp_source = "int ZSTD_cpuid_fpu(ZSTD_cpuid_t cpuid) { return (cpuid.f1d & 1) != 0; }"
         ms = _make_summarizer()
         func = _make_func(source, callsites=[], pp_source=pp_source)
         annotated, used = ms._annotate_source(func, {}, {})
         assert used is False
-        assert annotated == pp_source
+        # llm_source includes the original as a macro comment + the expanded code
+        assert "// (macro) D(fpu, 0)" in annotated
+        assert "int ZSTD_cpuid_fpu" in annotated
 
     def test_with_callsites_uses_original_source_not_pp(self):
         """Annotation operates on func.source (line offsets), not pp_source."""

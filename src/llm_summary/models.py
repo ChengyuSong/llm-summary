@@ -1,8 +1,54 @@
 """Data models for the LLM summary system."""
 
+import difflib
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any
+
+
+def _annotate_macro_diff(source: str, pp_source: str) -> str:
+    """Produce a line-by-line annotated diff of original vs expanded source.
+
+    Unchanged lines pass through as-is.  For lines that changed due to macro
+    expansion, the original line is shown as a ``// (macro) ...`` comment
+    immediately above the expanded line so the LLM can see both the semantic
+    macro name and the expanded value.
+    """
+    src_lines = source.splitlines()
+    pp_lines = pp_source.splitlines()
+    result: list[str] = []
+
+    for tag, i1, i2, j1, j2 in difflib.SequenceMatcher(
+        None, src_lines, pp_lines
+    ).get_opcodes():
+        if tag == "equal":
+            result.extend(pp_lines[j1:j2])
+        elif tag == "replace":
+            # Show original lines as comments, then expanded lines
+            orig_chunk = src_lines[i1:i2]
+            pp_chunk = pp_lines[j1:j2]
+            # Use indent from first non-empty expanded line
+            indent = ""
+            for pl in pp_chunk:
+                if pl.strip():
+                    indent = " " * (len(pl) - len(pl.lstrip()))
+                    break
+            for line in orig_chunk:
+                if line.strip():
+                    result.append(f"{indent}// (macro) {line.strip()}")
+            for line in pp_chunk:
+                result.append(line)
+        elif tag == "delete":
+            # Lines only in original (removed by preprocessor — comments, blank lines)
+            for line in src_lines[i1:i2]:
+                if line.strip():
+                    indent = " " * (len(line) - len(line.lstrip()))
+                    result.append(f"{indent}// (macro) {line.strip()}")
+        elif tag == "insert":
+            # Lines only in expanded output
+            result.extend(pp_lines[j1:j2])
+
+    return "\n".join(result)
 
 
 class TargetType(str, Enum):
@@ -48,8 +94,17 @@ class Function:
 
     @property
     def llm_source(self) -> str:
-        """Source to send to the LLM: preprocessed if available, else raw."""
-        return self.pp_source if self.pp_source else self.source
+        """Source to send to the LLM: preprocessed if available, else raw.
+
+        When pp_source differs from source, produces a line-by-line annotated
+        version: unchanged lines pass through, changed lines get the original
+        as a ``// (macro)`` comment immediately above the expanded line.
+        """
+        if not self.pp_source:
+            return self.source
+        if self.pp_source == self.source:
+            return self.source
+        return _annotate_macro_diff(self.source, self.pp_source)
 
     def __hash__(self) -> int:
         return hash((self.name, self.signature, self.file_path))
