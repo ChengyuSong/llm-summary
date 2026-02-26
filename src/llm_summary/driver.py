@@ -19,6 +19,7 @@ from .models import (
     VerificationSummary,
 )
 from .ordering import ProcessingOrderer
+from .verification_summarizer import IncompleteCalleeError
 
 
 class SummaryPass(Protocol):
@@ -289,9 +290,57 @@ class BottomUpDriver:
 
             # Generate summary (passes that don't accept callee_funcs ignore it)
             try:
-                summary = p.summarize(func, callee_summaries, callee_funcs=callee_funcs)
-            except TypeError:
-                summary = p.summarize(func, callee_summaries)
+                try:
+                    summary = p.summarize(func, callee_summaries, callee_funcs=callee_funcs)
+                except TypeError:
+                    summary = p.summarize(func, callee_summaries)
+            except IncompleteCalleeError as e:
+                # A callee's prior pass failed (e.g. timeout). Re-run it now.
+                callee_name = e.callee_name
+                if self.verbose:
+                    print(f"  Re-running {p.name} for incomplete callee: {callee_name}")
+                # Find the callee's function ID and re-run
+                callee_id = next(
+                    (cid for cid in callee_ids
+                     if (cf := self.db.get_function(cid)) and cf.name == callee_name),
+                    None,
+                )
+                if callee_id is not None:
+                    callee_func_obj = self.db.get_function(callee_id)
+                    if callee_func_obj:
+                        # Gather the callee's own callees for the re-run
+                        sub_callee_ids = graph.get(callee_id, [])
+                        sub_summaries: dict[str, Any] = {}
+                        with results_lock:
+                            for sc_id in sub_callee_ids:
+                                if sc_id in results[p.name]:
+                                    sc_func = self.db.get_function(sc_id)
+                                    if sc_func:
+                                        sub_summaries[sc_func.name] = results[p.name][sc_id]
+                        try:
+                            try:
+                                callee_summary = p.summarize(callee_func_obj, sub_summaries, callee_funcs={})
+                            except TypeError:
+                                callee_summary = p.summarize(callee_func_obj, sub_summaries)
+                            with results_lock:
+                                results[p.name][callee_id] = callee_summary
+                                callee_summaries[callee_name] = callee_summary
+                            p.store(callee_func_obj, callee_summary)
+                        except Exception as retry_err:
+                            if self.verbose:
+                                print(f"  Re-run of {callee_name} failed: {retry_err}")
+                # Retry the original function
+                try:
+                    try:
+                        summary = p.summarize(func, callee_summaries, callee_funcs=callee_funcs)
+                    except TypeError:
+                        summary = p.summarize(func, callee_summaries)
+                except IncompleteCalleeError as e2:
+                    # Still incomplete after retry — skip this pass for this function
+                    if self.verbose:
+                        print(f"  Skipping {p.name} for {func.name}: "
+                              f"callee '{e2.callee_name}' still incomplete after retry")
+                    continue
 
             with results_lock:
                 results[p.name][func_id] = summary

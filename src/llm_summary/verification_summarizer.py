@@ -5,6 +5,21 @@ import re
 import threading
 
 from .db import SummaryDB
+
+
+class IncompleteCalleeError(RuntimeError):
+    """Raised when a callee's verification summary has simplified_contracts=None.
+
+    The driver should catch this, re-run verification for the named callee,
+    then retry the current function.
+    """
+
+    def __init__(self, callee_name: str):
+        self.callee_name = callee_name
+        super().__init__(
+            f"Callee '{callee_name}' has simplified_contracts=None "
+            f"(failed or incomplete prior verification)"
+        )
 from .llm.base import LLMBackend
 from .models import (
     Function,
@@ -268,11 +283,8 @@ class VerificationSummarizer:
             # Pre-conditions: from verified summary (simplified_contracts)
             if callee_name in callee_summaries:
                 verified = callee_summaries[callee_name]
-                assert verified.simplified_contracts is not None, (
-                    f"Callee '{callee_name}' has a verification summary with "
-                    f"simplified_contracts=None — this indicates a failed or "
-                    f"incomplete prior verification pass."
-                )
+                if verified.simplified_contracts is None:
+                    raise IncompleteCalleeError(callee_name)
                 if verified.simplified_contracts:
                     section_lines.append("**Pre-conditions (simplified):**")
                     for c in verified.simplified_contracts:

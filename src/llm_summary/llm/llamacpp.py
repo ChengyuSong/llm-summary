@@ -113,7 +113,7 @@ class LlamaCppBackend(LLMBackend):
         )
 
         try:
-            with urllib.request.urlopen(request, timeout=300) as response:
+            with urllib.request.urlopen(request, timeout=600) as response:
                 result = json.loads(response.read().decode("utf-8"))
         except urllib.error.URLError as e:
             raise RuntimeError(f"Failed to connect to llama.cpp at {self.base_url}: {e}")
@@ -299,7 +299,7 @@ class LlamaCppBackend(LLMBackend):
         )
 
         try:
-            with urllib.request.urlopen(request, timeout=300) as response:
+            with urllib.request.urlopen(request, timeout=600) as response:
                 result = json.loads(response.read().decode("utf-8"))
         except urllib.error.URLError as e:
             raise RuntimeError(f"Failed to connect to llama.cpp at {self.base_url}: {e}")
