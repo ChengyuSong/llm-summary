@@ -8,8 +8,10 @@ from .db import SummaryDB
 from .llm.base import LLMBackend
 from .models import (
     Function,
+    FunctionBlock,
     InitOp,
     InitSummary,
+    build_skeleton,
 )
 
 INIT_SUMMARY_PROMPT = """You are analyzing C/C++ code to generate initialization summaries (post-conditions).
@@ -84,6 +86,46 @@ If the function does not unconditionally initialize any caller-visible state, re
 """
 
 
+BLOCK_INIT_PROMPT = """You are analyzing a code block from a large C/C++ function.
+
+## Context
+
+Function: `{name}`
+Signature: `{signature}`
+File: {file_path}
+
+## Code Block
+
+```c
+{block_source}
+```
+
+## Task
+
+Analyze this code block for initialization operations (caller-visible only).
+Also suggest a descriptive pseudo-function name and signature.
+
+Respond in JSON:
+```json
+{{{{
+  "suggested_name": "descriptive_name_for_this_case",
+  "suggested_signature": "void descriptive_name(args)",
+  "inits": [
+    {{{{
+      "target": "expression being initialized",
+      "target_kind": "parameter|field|return_value",
+      "initializer": "how it is initialized",
+      "byte_count": "n|sizeof(T)|full|null"
+    }}}}
+  ],
+  "summary": "One-sentence description of what this case block does regarding initialization"
+}}}}
+```
+
+If no caller-visible initializations, return empty inits list with a summary.
+"""
+
+
 class InitSummarizer:
     """Generates initialization summaries for functions using LLM."""
 
@@ -121,6 +163,11 @@ class InitSummarizer:
         """Generate init summary for a single function."""
         if callee_summaries is None:
             callee_summaries = {}
+
+        # Check for large function with blocks
+        blocks = self.db.get_function_blocks(func.id) if func.id else []
+        if blocks and len(func.llm_source) > 40000:
+            return self._summarize_large_function(func, callee_summaries, blocks)
 
         callee_section = self._build_callee_section(func, callee_summaries)
 
@@ -162,6 +209,97 @@ class InitSummarizer:
                 function_name=func.name,
                 description=f"Error generating summary: {e}",
             )
+
+    def _summarize_large_function(
+        self,
+        func: Function,
+        callee_summaries: dict[str, InitSummary],
+        blocks: list[FunctionBlock],
+    ) -> InitSummary:
+        """Chunked summarization for large functions (init pass)."""
+        if self.verbose:
+            print(f"  Large function ({len(func.llm_source)} chars, {len(blocks)} blocks): {func.name}")
+
+        block_summaries: dict[int, str] = {}
+        all_block_inits: list[InitOp] = []
+
+        for i, block in enumerate(blocks):
+            if block.summary_json:
+                try:
+                    data = json.loads(block.summary_json)
+                    block_summaries[block.id] = data.get("summary", "")
+                    for init in data.get("inits", []):
+                        all_block_inits.append(InitOp(
+                            target=init.get("target", ""),
+                            target_kind=init.get("target_kind", "parameter"),
+                            initializer=init.get("initializer", "assignment"),
+                            byte_count=init.get("byte_count"),
+                        ))
+                except (json.JSONDecodeError, TypeError):
+                    pass
+                continue
+
+            prompt = BLOCK_INIT_PROMPT.format(
+                name=func.name, signature=func.signature,
+                file_path=func.file_path, block_source=block.source,
+            )
+
+            try:
+                if self.verbose:
+                    print(f"    Block {i+1}/{len(blocks)}: {block.label[:60]}")
+                response = self.llm.complete(prompt)
+                with self._stats_lock:
+                    self._stats["llm_calls"] += 1
+
+                json_match = re.search(r"```json\s*(.*?)\s*```", response, re.DOTALL)
+                if json_match:
+                    json_str = json_match.group(1)
+                else:
+                    json_match = re.search(r"\{.*\}", response, re.DOTALL)
+                    json_str = json_match.group(0) if json_match else "{}"
+
+                data = json.loads(json_str)
+                block_summaries[block.id] = data.get("summary", "no summary")
+                self.db.update_function_block_summary(
+                    block.id, json.dumps(data),
+                    data.get("suggested_name"), data.get("suggested_signature"),
+                )
+
+                for init in data.get("inits", []):
+                    all_block_inits.append(InitOp(
+                        target=init.get("target", ""),
+                        target_kind=init.get("target_kind", "parameter"),
+                        initializer=init.get("initializer", "assignment"),
+                        byte_count=init.get("byte_count"),
+                    ))
+            except Exception as e:
+                if self.verbose:
+                    print(f"    Error summarizing block {block.label}: {e}")
+                block_summaries[block.id] = f"(error: {e})"
+
+        skeleton = build_skeleton(func.llm_source, func.line_start, blocks, block_summaries)
+        callee_section = self._build_callee_section(func, callee_summaries)
+        prompt = INIT_SUMMARY_PROMPT.format(
+            source=skeleton, name=func.name, signature=func.signature,
+            file_path=func.file_path, callee_summaries=callee_section,
+        )
+
+        try:
+            response = self.llm.complete(prompt)
+            with self._stats_lock:
+                self._stats["llm_calls"] += 1
+            skeleton_summary = self._parse_response(response, func.name)
+        except Exception as e:
+            with self._stats_lock:
+                self._stats["errors"] += 1
+            skeleton_summary = InitSummary(
+                function_name=func.name, description=f"Error summarizing skeleton: {e}",
+            )
+
+        skeleton_summary.inits = list(skeleton_summary.inits) + all_block_inits
+        with self._stats_lock:
+            self._stats["functions_processed"] += 1
+        return skeleton_summary
 
     def _build_callee_section(
         self,

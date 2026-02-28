@@ -23,8 +23,10 @@ from .db import SummaryDB
 from .llm.base import LLMBackend
 from .models import (
     Function,
+    FunctionBlock,
     MemsafeContract,
     MemsafeSummary,
+    build_skeleton,
 )
 
 MEMSAFE_SUMMARY_PROMPT = """You are analyzing C/C++ code to generate safety pre-condition contracts.
@@ -103,6 +105,47 @@ If the function has no safety pre-conditions (e.g., all pointers are checked bef
 ```
 """
 
+BLOCK_MEMSAFE_PROMPT = """You are analyzing a code block from a large C/C++ function.
+
+## Context
+
+Function: `{name}`
+Signature: `{signature}`
+File: {file_path}
+
+## Code Block
+
+```c
+{block_source}
+```
+
+## Task
+
+Generate safety contracts (pre-conditions) for this code block. What must the
+caller guarantee for memory-safe execution of this block? Also suggest a descriptive
+pseudo-function name and signature.
+
+Respond in JSON:
+```json
+{{{{
+  "suggested_name": "descriptive_name_for_this_case",
+  "suggested_signature": "void descriptive_name(args)",
+  "contracts": [
+    {{{{
+      "target": "parameter or expression",
+      "contract_kind": "not_null|not_freed|initialized|buffer_size",
+      "description": "brief description",
+      "size_expr": "n (buffer_size only)",
+      "relationship": "byte_count (buffer_size only)"
+    }}}}
+  ],
+  "summary": "One-sentence description of this block's safety requirements"
+}}}}
+```
+
+If no safety pre-conditions, return empty contracts list with a summary.
+"""
+
 _CALLEE_NOTE_WITH_ANNOTATIONS = """\
 ## Callee Safety Contracts
 
@@ -166,6 +209,13 @@ class MemsafeSummarizer:
         if callee_params is None:
             callee_params = {}
 
+        # Check for large function with blocks
+        blocks = self.db.get_function_blocks(func.id) if func.id else []
+        if blocks and len(func.llm_source) > 40000:
+            return self._summarize_large_function(
+                func, callee_summaries, callee_params, blocks, alias_context
+            )
+
         annotated_source, used_inline = self._annotate_source(func, callee_summaries, callee_params)
 
         if used_inline:
@@ -213,6 +263,140 @@ class MemsafeSummarizer:
                 function_name=func.name,
                 description=f"Error generating summary: {e}",
             )
+
+    def _summarize_large_function(
+        self,
+        func: Function,
+        callee_summaries: dict[str, MemsafeSummary],
+        callee_params: dict[str, list[str]],
+        blocks: list[FunctionBlock],
+        alias_context: str | None = None,
+    ) -> MemsafeSummary:
+        """Chunked summarization for large functions (memsafe pass)."""
+        if self.verbose:
+            print(f"  Large function ({len(func.llm_source)} chars, {len(blocks)} blocks): {func.name}")
+
+        block_summaries: dict[int, str] = {}
+        all_block_contracts: list[MemsafeContract] = []
+
+        for i, block in enumerate(blocks):
+            if block.summary_json:
+                try:
+                    data = json.loads(block.summary_json)
+                    block_summaries[block.id] = data.get("summary", "")
+                    for c in data.get("contracts", []):
+                        all_block_contracts.append(MemsafeContract(
+                            target=c.get("target", ""),
+                            contract_kind=c.get("contract_kind", "not_null"),
+                            description=c.get("description", ""),
+                            size_expr=c.get("size_expr"),
+                            relationship=c.get("relationship"),
+                        ))
+                except (json.JSONDecodeError, TypeError):
+                    pass
+                continue
+
+            prompt = BLOCK_MEMSAFE_PROMPT.format(
+                name=func.name, signature=func.signature,
+                file_path=func.file_path, block_source=block.source,
+            )
+
+            try:
+                if self.verbose:
+                    print(f"    Block {i+1}/{len(blocks)}: {block.label[:60]}")
+                response = self.llm.complete(prompt)
+                with self._stats_lock:
+                    self._stats["llm_calls"] += 1
+
+                json_match = re.search(r"```json\s*(.*?)\s*```", response, re.DOTALL)
+                if json_match:
+                    json_str = json_match.group(1)
+                else:
+                    json_match = re.search(r"\{.*\}", response, re.DOTALL)
+                    json_str = json_match.group(0) if json_match else "{}"
+
+                data = json.loads(json_str)
+                block_summaries[block.id] = data.get("summary", "no summary")
+                self.db.update_function_block_summary(
+                    block.id, json.dumps(data),
+                    data.get("suggested_name"), data.get("suggested_signature"),
+                )
+
+                for c in data.get("contracts", []):
+                    all_block_contracts.append(MemsafeContract(
+                        target=c.get("target", ""),
+                        contract_kind=c.get("contract_kind", "not_null"),
+                        description=c.get("description", ""),
+                        size_expr=c.get("size_expr"),
+                        relationship=c.get("relationship"),
+                    ))
+            except Exception as e:
+                if self.verbose:
+                    print(f"    Error summarizing block {block.label}: {e}")
+                block_summaries[block.id] = f"(error: {e})"
+
+        # Phase B: Build skeleton from llm_source (preprocessed when available)
+        skeleton = build_skeleton(func.llm_source, func.line_start, blocks, block_summaries)
+
+        # Create a temporary Function-like object with skeleton source for annotation
+        # We need to filter callsites to only those outside removed blocks
+        block_line_ranges: set[int] = set()
+        for block in blocks:
+            if block.id in block_summaries:
+                for line in range(block.line_start + 1, block.line_end + 1):
+                    block_line_ranges.add(line - func.line_start)  # 0-based line_in_body
+
+        skeleton_callsites = [
+            cs for cs in func.callsites
+            if cs["line_in_body"] not in block_line_ranges
+        ]
+
+        skeleton_func = Function(
+            name=func.name, file_path=func.file_path,
+            line_start=func.line_start, line_end=func.line_end,
+            source=skeleton, signature=func.signature,
+            params=func.params, callsites=skeleton_callsites,
+        )
+
+        annotated_source, used_inline = self._annotate_source(
+            skeleton_func, callee_summaries, callee_params
+        )
+
+        if used_inline:
+            callee_note = _CALLEE_NOTE_WITH_ANNOTATIONS
+        else:
+            flat = self._build_flat_callee_list(callee_summaries)
+            callee_note = _CALLEE_NOTE_FLAT.format(flat_list=flat)
+
+        prompt = MEMSAFE_SUMMARY_PROMPT.format(
+            source=annotated_source, name=func.name, signature=func.signature,
+            file_path=func.file_path, callee_note=callee_note,
+            alias_context=alias_context or "",
+        )
+
+        try:
+            response = self.llm.complete(prompt)
+            with self._stats_lock:
+                self._stats["llm_calls"] += 1
+            skeleton_summary = self._parse_response(response, func.name)
+        except Exception as e:
+            with self._stats_lock:
+                self._stats["errors"] += 1
+            skeleton_summary = MemsafeSummary(
+                function_name=func.name, description=f"Error summarizing skeleton: {e}",
+            )
+
+        # Phase C: merge — deduplicate contracts by (target, contract_kind)
+        seen = {(c.target, c.contract_kind) for c in skeleton_summary.contracts}
+        for c in all_block_contracts:
+            key = (c.target, c.contract_kind)
+            if key not in seen:
+                seen.add(key)
+                skeleton_summary.contracts.append(c)
+
+        with self._stats_lock:
+            self._stats["functions_processed"] += 1
+        return skeleton_summary
 
     def _annotate_source(
         self,

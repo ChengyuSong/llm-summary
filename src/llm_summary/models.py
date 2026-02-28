@@ -51,6 +51,86 @@ def _annotate_macro_diff(source: str, pp_source: str) -> str:
     return "\n".join(result)
 
 
+@dataclass
+class FunctionBlock:
+    """A code block extracted from a large function for chunked summarization."""
+
+    function_id: int | None
+    kind: str  # "switch_case" | "default_case" | "block"
+    label: str  # "case OP_Init:" or "default:" or "case A: case B:"
+    line_start: int  # 1-based absolute line in file
+    line_end: int  # 1-based absolute line in file
+    source: str
+    id: int | None = None
+    suggested_name: str | None = None
+    suggested_signature: str | None = None
+    summary_json: str | None = None
+
+
+def build_skeleton(
+    source: str,
+    func_line_start: int,
+    blocks: list[FunctionBlock],
+    block_summaries: dict[int, str],
+) -> str:
+    """Build a skeleton of a large function by replacing block bodies with summary comments.
+
+    Args:
+        source: The full function source text.
+        func_line_start: 1-based absolute line number of the function start.
+        blocks: FunctionBlock instances with line ranges.
+        block_summaries: Mapping from block.id to one-line summary text.
+
+    Returns:
+        Function source with each block's body replaced by a summary comment.
+    """
+    lines = source.splitlines()
+
+    # Build a set of line ranges to replace (0-based indices into `lines`)
+    # Sort blocks by line_start so we process top-to-bottom
+    sorted_blocks = sorted(blocks, key=lambda b: b.line_start)
+
+    # Mark lines to suppress and where to insert summaries
+    suppress: set[int] = set()  # 0-based line indices to skip
+    insertions: dict[int, str] = {}  # 0-based index -> summary comment to insert
+
+    for block in sorted_blocks:
+        block_id = block.id
+        if block_id is None or block_id not in block_summaries:
+            continue
+
+        # Convert absolute line numbers to 0-based indices into the function source
+        rel_start = block.line_start - func_line_start  # 0-based
+        rel_end = block.line_end - func_line_start  # 0-based (inclusive)
+
+        if rel_start < 0 or rel_end >= len(lines):
+            continue
+
+        # Detect indentation from the first line of the block
+        first_line = lines[rel_start] if rel_start < len(lines) else ""
+        indent = " " * (len(first_line) - len(first_line.lstrip()))
+
+        summary_text = block_summaries[block_id]
+        # Keep the case label line, replace the body with a summary comment
+        # The label line is rel_start; body is rel_start+1 .. rel_end
+        if rel_start + 1 <= rel_end:
+            for i in range(rel_start + 1, rel_end + 1):
+                suppress.add(i)
+            insertions[rel_start + 1] = f"{indent}  /* {block.label} — {summary_text} */"
+        else:
+            # Single-line block — just add a summary comment after it
+            insertions[rel_start + 1] = f"{indent}  /* {block.label} — {summary_text} */"
+
+    result: list[str] = []
+    for i, line in enumerate(lines):
+        if i in insertions:
+            result.append(insertions[i])
+        if i not in suppress:
+            result.append(line)
+
+    return "\n".join(result)
+
+
 class TargetType(str, Enum):
     """Type of indirect call target."""
 
@@ -91,6 +171,8 @@ class Function:
     callsites: list[dict] = field(default_factory=list)
     # Preprocessed (macro-expanded) source from clang -E, or None
     pp_source: str | None = None
+    # Switch-case blocks extracted from large functions (not persisted on Function itself)
+    blocks: list["FunctionBlock"] = field(default_factory=list)
 
     @property
     def llm_source(self) -> str:

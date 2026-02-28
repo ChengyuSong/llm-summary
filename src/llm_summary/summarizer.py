@@ -12,7 +12,9 @@ from .models import (
     AllocationType,
     BufferSizePair,
     Function,
+    FunctionBlock,
     ParameterInfo,
+    build_skeleton,
 )
 
 ALLOCATION_SUMMARY_PROMPT = """You are analyzing C/C++ code to generate memory allocation summaries.
@@ -110,6 +112,50 @@ If the function does not allocate memory (directly or via callees), return:
 """
 
 
+BLOCK_ALLOCATION_PROMPT = """You are analyzing a code block from a large C/C++ function.
+
+## Context
+
+Function: `{name}`
+Signature: `{signature}`
+File: {file_path}
+
+## Code Block
+
+```c
+{block_source}
+```
+
+## Task
+
+Analyze this code block for memory allocations. Also suggest a descriptive
+pseudo-function name and signature for this block (as if it were extracted into its
+own function).
+
+Respond in JSON:
+```json
+{{{{
+  "suggested_name": "descriptive_name_for_this_case",
+  "suggested_signature": "void descriptive_name(args)",
+  "allocations": [
+    {{{{
+      "type": "heap|stack|static",
+      "source": "allocator function name",
+      "size_expr": "size expression or null",
+      "size_params": [],
+      "returned": false,
+      "stored_to": "field or null",
+      "may_be_null": true
+    }}}}
+  ],
+  "summary": "One-sentence description of what this case block does regarding allocation"
+}}}}
+```
+
+If no allocations, return empty allocations list with a summary of what the block does.
+"""
+
+
 class AllocationSummarizer:
     """Generates allocation summaries for functions using LLM."""
 
@@ -159,6 +205,11 @@ class AllocationSummarizer:
         if callee_summaries is None:
             callee_summaries = {}
 
+        # Check for large function with blocks
+        blocks = self.db.get_function_blocks(func.id) if func.id else []
+        if blocks and len(func.llm_source) > 40000:
+            return self._summarize_large_function(func, callee_summaries, blocks)
+
         # Build callee summaries section
         callee_section = self._build_callee_section(func, callee_summaries)
 
@@ -204,6 +255,141 @@ class AllocationSummarizer:
                 function_name=func.name,
                 description=f"Error generating summary: {e}",
             )
+
+    def _summarize_large_function(
+        self,
+        func: Function,
+        callee_summaries: dict[str, AllocationSummary],
+        blocks: list[FunctionBlock],
+    ) -> AllocationSummary:
+        """Chunked summarization for functions too large for a single prompt.
+
+        Phase A: Summarize each switch-case block individually.
+        Phase B: Build a skeleton with block summaries, then summarize the skeleton.
+        Phase C: Merge block-level and skeleton-level results.
+        """
+        if self.verbose:
+            print(f"  Large function ({len(func.llm_source)} chars, {len(blocks)} blocks): {func.name}")
+
+        # Phase A: Summarize each block
+        block_summaries: dict[int, str] = {}
+        all_block_allocations: list[Allocation] = []
+
+        for i, block in enumerate(blocks):
+            if block.summary_json:
+                # Already summarized (cached)
+                try:
+                    data = json.loads(block.summary_json)
+                    block_summaries[block.id] = data.get("summary", "")
+                    for a in data.get("allocations", []):
+                        alloc_type_str = a.get("type", "unknown").lower()
+                        try:
+                            alloc_type = AllocationType(alloc_type_str)
+                        except ValueError:
+                            alloc_type = AllocationType.UNKNOWN
+                        all_block_allocations.append(Allocation(
+                            alloc_type=alloc_type,
+                            source=a.get("source", ""),
+                            size_expr=a.get("size_expr"),
+                            size_params=a.get("size_params", []),
+                            returned=a.get("returned", False),
+                            stored_to=a.get("stored_to"),
+                            may_be_null=a.get("may_be_null", True),
+                        ))
+                except (json.JSONDecodeError, TypeError):
+                    pass
+                continue
+
+            prompt = BLOCK_ALLOCATION_PROMPT.format(
+                name=func.name,
+                signature=func.signature,
+                file_path=func.file_path,
+                block_source=block.source,
+            )
+
+            try:
+                if self.verbose:
+                    print(f"    Block {i+1}/{len(blocks)}: {block.label[:60]}")
+
+                response = self.llm.complete(prompt)
+                with self._stats_lock:
+                    self._stats["llm_calls"] += 1
+
+                # Parse block response
+                json_match = re.search(r"```json\s*(.*?)\s*```", response, re.DOTALL)
+                if json_match:
+                    json_str = json_match.group(1)
+                else:
+                    json_match = re.search(r"\{.*\}", response, re.DOTALL)
+                    json_str = json_match.group(0) if json_match else "{}"
+
+                data = json.loads(json_str)
+                summary_text = data.get("summary", "no summary")
+                block_summaries[block.id] = summary_text
+
+                # Store block summary in DB
+                self.db.update_function_block_summary(
+                    block.id,
+                    json.dumps(data),
+                    data.get("suggested_name"),
+                    data.get("suggested_signature"),
+                )
+
+                # Collect allocations from block
+                for a in data.get("allocations", []):
+                    alloc_type_str = a.get("type", "unknown").lower()
+                    try:
+                        alloc_type = AllocationType(alloc_type_str)
+                    except ValueError:
+                        alloc_type = AllocationType.UNKNOWN
+                    all_block_allocations.append(Allocation(
+                        alloc_type=alloc_type,
+                        source=a.get("source", ""),
+                        size_expr=a.get("size_expr"),
+                        size_params=a.get("size_params", []),
+                        returned=a.get("returned", False),
+                        stored_to=a.get("stored_to"),
+                        may_be_null=a.get("may_be_null", True),
+                    ))
+
+            except Exception as e:
+                if self.verbose:
+                    print(f"    Error summarizing block {block.label}: {e}")
+                block_summaries[block.id] = f"(error: {e})"
+
+        # Phase B: Build skeleton and summarize
+        skeleton = build_skeleton(func.llm_source, func.line_start, blocks, block_summaries)
+
+        callee_section = self._build_callee_section(func, callee_summaries)
+        prompt = ALLOCATION_SUMMARY_PROMPT.format(
+            source=skeleton,
+            name=func.name,
+            signature=func.signature,
+            file_path=func.file_path,
+            callee_summaries=callee_section,
+        )
+
+        try:
+            response = self.llm.complete(prompt)
+            with self._stats_lock:
+                self._stats["llm_calls"] += 1
+            skeleton_summary = self._parse_response(response, func.name)
+        except Exception as e:
+            with self._stats_lock:
+                self._stats["errors"] += 1
+            skeleton_summary = AllocationSummary(
+                function_name=func.name,
+                description=f"Error summarizing skeleton: {e}",
+            )
+
+        # Phase C: Merge — combine block allocations with skeleton allocations
+        merged_allocations = list(skeleton_summary.allocations) + all_block_allocations
+        skeleton_summary.allocations = merged_allocations
+
+        with self._stats_lock:
+            self._stats["functions_processed"] += 1
+
+        return skeleton_summary
 
     def _build_callee_section(
         self,

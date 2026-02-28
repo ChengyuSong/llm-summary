@@ -23,9 +23,11 @@ class IncompleteCalleeError(RuntimeError):
 from .llm.base import LLMBackend
 from .models import (
     Function,
+    FunctionBlock,
     MemsafeContract,
     SafetyIssue,
     VerificationSummary,
+    build_skeleton,
 )
 
 VERIFICATION_PROMPT = """You are verifying memory safety of a C/C++ function using Hoare-logic-style reasoning.
@@ -148,6 +150,50 @@ If no issues and no contracts remain:
 ```
 """
 
+BLOCK_VERIFICATION_PROMPT = """You are verifying memory safety of a code block from a large C/C++ function.
+
+## Context
+
+Function: `{name}`
+Signature: `{signature}`
+File: {file_path}
+
+## This Function's Pre-conditions — assume these hold
+
+{own_contracts}
+
+## Code Block
+
+```c
+{block_source}
+```
+
+## Task
+
+Verify this code block for memory safety issues. Check for null dereferences, buffer overflows,
+use-after-free, double-free, and uninitialized use. Also suggest a descriptive pseudo-function
+name and signature.
+
+Respond in JSON:
+```json
+{{{{
+  "suggested_name": "descriptive_name_for_this_case",
+  "suggested_signature": "void descriptive_name(args)",
+  "issues": [
+    {{{{
+      "location": "line N or description",
+      "issue_kind": "null_deref|buffer_overflow|use_after_free|double_free|uninitialized_use",
+      "description": "what the problem is",
+      "severity": "high|medium|low"
+    }}}}
+  ],
+  "summary": "One-sentence verification summary for this block"
+}}}}
+```
+
+If no issues, return empty issues list with a summary.
+"""
+
 _VALID_ISSUE_KINDS = {
     "null_deref",
     "buffer_overflow",
@@ -199,6 +245,13 @@ class VerificationSummarizer:
         """Verify a function and simplify its contracts."""
         if callee_summaries is None:
             callee_summaries = {}
+
+        # Check for large function with blocks
+        blocks = self.db.get_function_blocks(func.id) if func.id else []
+        if blocks and len(func.llm_source) > 40000:
+            return self._summarize_large_function(
+                func, callee_summaries, blocks, alias_context
+            )
 
         callee_section = self._build_callee_section(func, callee_summaries)
         own_contracts = self._build_own_contracts_section(func)
@@ -257,6 +310,132 @@ class VerificationSummarizer:
                 function_name=func.name,
                 description=f"Error during verification: {e}",
             )
+
+    def _summarize_large_function(
+        self,
+        func: Function,
+        callee_summaries: dict[str, VerificationSummary],
+        blocks: list[FunctionBlock],
+        alias_context: str | None = None,
+    ) -> VerificationSummary:
+        """Chunked verification for large functions."""
+        import json
+
+        if self.verbose:
+            print(f"  Large function ({len(func.llm_source)} chars, {len(blocks)} blocks): {func.name}")
+
+        own_contracts = self._build_own_contracts_section(func)
+        block_summaries: dict[int, str] = {}
+        all_block_issues: list[SafetyIssue] = []
+
+        for i, block in enumerate(blocks):
+            if block.summary_json:
+                try:
+                    data = json.loads(block.summary_json)
+                    block_summaries[block.id] = data.get("summary", "")
+                    for issue in data.get("issues", []):
+                        issue_kind = issue.get("issue_kind", "null_deref")
+                        if issue_kind not in _VALID_ISSUE_KINDS:
+                            issue_kind = "null_deref"
+                        severity = issue.get("severity", "medium")
+                        if severity not in _VALID_SEVERITIES:
+                            severity = "medium"
+                        all_block_issues.append(SafetyIssue(
+                            location=issue.get("location", ""),
+                            issue_kind=issue_kind,
+                            description=issue.get("description", ""),
+                            severity=severity,
+                            callee=issue.get("callee"),
+                            contract_kind=issue.get("contract_kind"),
+                        ))
+                except (json.JSONDecodeError, TypeError):
+                    pass
+                continue
+
+            prompt = BLOCK_VERIFICATION_PROMPT.format(
+                name=func.name, signature=func.signature,
+                file_path=func.file_path, own_contracts=own_contracts,
+                block_source=block.source,
+            )
+
+            try:
+                if self.verbose:
+                    print(f"    Block {i+1}/{len(blocks)}: {block.label[:60]}")
+                response = self.llm.complete(prompt)
+                with self._stats_lock:
+                    self._stats["llm_calls"] += 1
+
+                json_match = re.search(r"```json\s*(.*?)\s*```", response, re.DOTALL)
+                if json_match:
+                    json_str = json_match.group(1)
+                else:
+                    json_match = re.search(r"\{.*\}", response, re.DOTALL)
+                    json_str = json_match.group(0) if json_match else "{}"
+
+                data = json.loads(json_str)
+                block_summaries[block.id] = data.get("summary", "no summary")
+                self.db.update_function_block_summary(
+                    block.id, json.dumps(data),
+                    data.get("suggested_name"), data.get("suggested_signature"),
+                )
+
+                for issue in data.get("issues", []):
+                    issue_kind = issue.get("issue_kind", "null_deref")
+                    if issue_kind not in _VALID_ISSUE_KINDS:
+                        issue_kind = "null_deref"
+                    severity = issue.get("severity", "medium")
+                    if severity not in _VALID_SEVERITIES:
+                        severity = "medium"
+                    all_block_issues.append(SafetyIssue(
+                        location=issue.get("location", ""),
+                        issue_kind=issue_kind,
+                        description=issue.get("description", ""),
+                        severity=severity,
+                        callee=issue.get("callee"),
+                        contract_kind=issue.get("contract_kind"),
+                    ))
+            except Exception as e:
+                if self.verbose:
+                    print(f"    Error verifying block {block.label}: {e}")
+                block_summaries[block.id] = f"(error: {e})"
+
+        # Phase B: skeleton verification
+        skeleton = build_skeleton(func.llm_source, func.line_start, blocks, block_summaries)
+        callee_section = self._build_callee_section(func, callee_summaries)
+
+        prompt = VERIFICATION_PROMPT.format(
+            source=skeleton, name=func.name, signature=func.signature,
+            file_path=func.file_path, own_contracts=own_contracts,
+            callee_section=callee_section, alias_context=alias_context or "",
+        )
+
+        try:
+            response = self.llm.complete(prompt)
+            with self._stats_lock:
+                self._stats["llm_calls"] += 1
+            skeleton_summary = self._parse_response(response, func.name)
+        except Exception as e:
+            with self._stats_lock:
+                self._stats["errors"] += 1
+            skeleton_summary = VerificationSummary(
+                function_name=func.name, description=f"Error verifying skeleton: {e}",
+            )
+
+        # Phase C: merge issues
+        skeleton_summary.issues = list(skeleton_summary.issues) + all_block_issues
+
+        # Count simplified contracts
+        raw_memsafe = self.db.get_memsafe_summary_by_function_id(func.id)
+        if raw_memsafe and skeleton_summary.simplified_contracts is not None:
+            raw_count = len(raw_memsafe.contracts)
+            remaining_count = len(skeleton_summary.simplified_contracts)
+            with self._stats_lock:
+                self._stats["contracts_simplified"] += max(0, raw_count - remaining_count)
+
+        with self._stats_lock:
+            self._stats["functions_processed"] += 1
+            self._stats["issues_found"] += len(skeleton_summary.issues)
+        return skeleton_summary
 
     def _build_callee_section(
         self,

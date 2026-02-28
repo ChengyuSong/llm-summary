@@ -21,6 +21,7 @@ from .models import (
     FreeOp,
     FreeSummary,
     Function,
+    FunctionBlock,
     IndirectCallsite,
     IndirectCallTarget,
     InitOp,
@@ -224,6 +225,21 @@ CREATE INDEX IF NOT EXISTS idx_flow_summaries_function ON address_flow_summaries
 CREATE INDEX IF NOT EXISTS idx_build_configs_name ON build_configs(project_name);
 CREATE INDEX IF NOT EXISTS idx_container_summaries_function ON container_summaries(function_id);
 CREATE INDEX IF NOT EXISTS idx_typedefs_name ON typedefs(name);
+
+-- Function blocks (switch-case chunks for large function summarization)
+CREATE TABLE IF NOT EXISTS function_blocks (
+    id INTEGER PRIMARY KEY,
+    function_id INTEGER REFERENCES functions(id) ON DELETE CASCADE,
+    kind TEXT NOT NULL,
+    label TEXT NOT NULL,
+    line_start INTEGER,
+    line_end INTEGER,
+    source TEXT,
+    suggested_name TEXT,
+    suggested_signature TEXT,
+    summary_json TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_blocks_function ON function_blocks(function_id);
 """
 
 
@@ -364,12 +380,22 @@ class SummaryDB:
         return cursor.lastrowid
 
     def insert_functions_batch(self, functions: list[Function]) -> dict[Function, int]:
-        """Batch insert functions and return mapping to IDs."""
+        """Batch insert functions and return mapping to IDs.
+
+        Also persists any FunctionBlock instances attached to each Function.
+        Stale blocks from prior scans are always deleted.
+        """
         result = {}
         for func in functions:
             func_id = self.insert_function(func)
             func.id = func_id
             result[func] = func_id
+            # Always delete old blocks (handles re-scan with changed threshold)
+            self.delete_function_blocks(func_id)
+            if func.blocks:
+                for block in func.blocks:
+                    block.function_id = func_id
+                self.insert_function_blocks(func.blocks)
         return result
 
     def get_function(self, func_id: int) -> Function | None:
@@ -434,6 +460,84 @@ class SummaryDB:
             callsites=_json.loads(callsites_raw) if callsites_raw else [],
             pp_source=_col("pp_source"),
         )
+
+    # ========== Function Block Operations ==========
+
+    def insert_function_blocks(self, blocks: list[FunctionBlock]) -> list[int]:
+        """Insert function blocks and return their IDs."""
+        ids = []
+        for block in blocks:
+            cursor = self.conn.execute(
+                """
+                INSERT INTO function_blocks
+                (function_id, kind, label, line_start, line_end, source,
+                 suggested_name, suggested_signature, summary_json)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    block.function_id,
+                    block.kind,
+                    block.label,
+                    block.line_start,
+                    block.line_end,
+                    block.source,
+                    block.suggested_name,
+                    block.suggested_signature,
+                    block.summary_json,
+                ),
+            )
+            block.id = cursor.lastrowid
+            ids.append(cursor.lastrowid)
+        self.conn.commit()
+        return ids
+
+    def get_function_blocks(self, function_id: int) -> list[FunctionBlock]:
+        """Get all blocks for a function, ordered by line_start."""
+        rows = self.conn.execute(
+            "SELECT * FROM function_blocks WHERE function_id = ? ORDER BY line_start",
+            (function_id,),
+        ).fetchall()
+        return [
+            FunctionBlock(
+                id=row["id"],
+                function_id=row["function_id"],
+                kind=row["kind"],
+                label=row["label"],
+                line_start=row["line_start"],
+                line_end=row["line_end"],
+                source=row["source"],
+                suggested_name=row["suggested_name"],
+                suggested_signature=row["suggested_signature"],
+                summary_json=row["summary_json"],
+            )
+            for row in rows
+        ]
+
+    def delete_function_blocks(self, function_id: int) -> None:
+        """Delete all blocks for a function."""
+        self.conn.execute(
+            "DELETE FROM function_blocks WHERE function_id = ?",
+            (function_id,),
+        )
+        self.conn.commit()
+
+    def update_function_block_summary(
+        self,
+        block_id: int,
+        summary_json: str,
+        suggested_name: str | None = None,
+        suggested_signature: str | None = None,
+    ) -> None:
+        """Update a block's summary and suggested name/signature."""
+        self.conn.execute(
+            """
+            UPDATE function_blocks
+            SET summary_json = ?, suggested_name = ?, suggested_signature = ?
+            WHERE id = ?
+            """,
+            (summary_json, suggested_name, suggested_signature, block_id),
+        )
+        self.conn.commit()
 
     # ========== Summary Operations ==========
 

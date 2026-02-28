@@ -13,7 +13,7 @@ from clang.cindex import (
 )
 
 from .compile_commands import CompileCommandsDB
-from .models import Function
+from .models import Function, FunctionBlock
 from .preprocessor import PreprocessedFile, SourcePreprocessor
 
 
@@ -192,6 +192,17 @@ class FunctionExtractor:
                 if pp_src:
                     func.pp_source = pp_src
 
+        # Update block source text from llm_source (preprocessed when available).
+        # Block line ranges are absolute file lines, so re-extract from llm_source.
+        for func in functions:
+            if func.blocks:
+                llm_lines = func.llm_source.splitlines()
+                for block in func.blocks:
+                    rel_start = block.line_start - func.line_start  # 0-based
+                    rel_end = block.line_end - func.line_start  # 0-based inclusive
+                    if 0 <= rel_start and rel_end < len(llm_lines):
+                        block.source = "\n".join(llm_lines[rel_start : rel_end + 1])
+
         return functions
 
     def _get_compile_args(self, file_path: Path) -> list[str]:
@@ -318,7 +329,7 @@ class FunctionExtractor:
         params = self._extract_params(cursor)
         callsites = self._extract_callsites(cursor)
 
-        return Function(
+        func = Function(
             name=name,
             file_path=str(cursor.location.file),
             line_start=cursor.extent.start.line,
@@ -329,6 +340,17 @@ class FunctionExtractor:
             params=params,
             callsites=callsites,
         )
+
+        # Extract code blocks for large functions.
+        # Use a conservative threshold on raw source (10K) since preprocessed
+        # source (llm_source) may be much larger after macro expansion.
+        # The summarizers apply the real 40K threshold on llm_source.
+        if len(source) > 10000:
+            func.blocks = self._extract_blocks(
+                cursor, source, cursor.extent.start.line
+            )
+
+        return func
 
     def _extract_params(self, func_cursor: Cursor) -> list[str]:
         """Return formal parameter names from PARM_DECL children."""
@@ -405,6 +427,209 @@ class FunctionExtractor:
 
         walk(func_cursor)
         return callsites
+
+    # -- Block extraction helpers ------------------------------------------------
+
+    # Minimum lines for a child to be kept as its own block (smaller ones get
+    # merged with adjacent siblings).
+    _MIN_BLOCK_LINES = 10
+    # Maximum chars for a single block before we recurse one level deeper.
+    _MAX_BLOCK_CHARS = 40000
+    # Maximum recursion depth when splitting oversized blocks.
+    _MAX_SPLIT_DEPTH = 2
+
+    def _extract_blocks(
+        self,
+        func_cursor: Cursor,
+        source: str,
+        func_line_start: int,
+    ) -> list[FunctionBlock]:
+        """Extract code blocks from a large function using AST subtree sizes.
+
+        Works regardless of how clang represents switch internals (CASE_STMT
+        vs COMPOUND_STMT) by measuring cursor.extent line spans of direct
+        children of the relevant compound statement.
+
+        Strategy:
+          1. Find function body COMPOUND_STMT.
+          2. Check for a dominant switch (>60% of function lines).
+             If found, split at the switch body's children; otherwise split
+             at the function body's children.
+          3. Group small adjacent children; keep large ones as individual blocks.
+          4. Infer kind/label from source text.
+        """
+        file_path = str(func_cursor.location.file)
+        if file_path not in self._file_contents:
+            try:
+                with open(file_path, encoding="utf-8", errors="replace") as f:
+                    self._file_contents[file_path] = f.read()
+            except OSError:
+                return []
+
+        raw_lines = self._file_contents[file_path].splitlines()
+
+        # 1. Find function body COMPOUND_STMT
+        body = self._find_compound_child(func_cursor)
+        if body is None:
+            return []
+
+        # 2. Check for a dominant switch
+        func_lines = func_cursor.extent.end.line - func_cursor.extent.start.line + 1
+        split_target = self._find_dominant_switch_body(body, func_lines) or body
+
+        # 3. Collect direct children and group into blocks
+        children = list(split_target.get_children())
+        if not children:
+            return []
+
+        return self._group_children_into_blocks(children, raw_lines, depth=0)
+
+    @staticmethod
+    def _find_compound_child(cursor: Cursor) -> Cursor | None:
+        """Return the first COMPOUND_STMT child of *cursor*, or None."""
+        for child in cursor.get_children():
+            if child.kind == CursorKind.COMPOUND_STMT:
+                return child
+        return None
+
+    def _find_dominant_switch_body(
+        self, body: Cursor, func_lines: int
+    ) -> Cursor | None:
+        """Return the COMPOUND_STMT of a switch that spans >60% of the function.
+
+        Searches up to 3 levels deep to handle common patterns like
+        ``for (...) { switch (...) { ... } }`` (e.g. sqlite3VdbeExec).
+        """
+        def _search(cursor: Cursor, depth: int) -> Cursor | None:
+            for child in cursor.get_children():
+                if child.kind == CursorKind.SWITCH_STMT:
+                    switch_lines = child.extent.end.line - child.extent.start.line + 1
+                    if switch_lines > func_lines * 0.6:
+                        compound = self._find_compound_child(child)
+                        if compound is not None:
+                            return compound
+                if depth < 3:
+                    result = _search(child, depth + 1)
+                    if result is not None:
+                        return result
+            return None
+
+        return _search(body, 0)
+
+    def _group_children_into_blocks(
+        self,
+        children: list[Cursor],
+        raw_lines: list[str],
+        depth: int,
+    ) -> list[FunctionBlock]:
+        """Group AST children into blocks based on their line spans.
+
+        Small children (< _MIN_BLOCK_LINES) are merged with adjacent siblings.
+        Large children are kept as individual blocks.
+        If a single child exceeds _MAX_BLOCK_CHARS, recurse one level to split
+        it further (up to _MAX_SPLIT_DEPTH).
+        """
+        # Build (start_line, end_line, cursor) tuples, skip children without extent
+        spans: list[tuple[int, int, Cursor]] = []
+        for child in children:
+            if child.extent and child.extent.start.file:
+                start = child.extent.start.line
+                end = child.extent.end.line
+                if end >= start:
+                    spans.append((start, end, child))
+
+        if not spans:
+            return []
+
+        # Sort by start line
+        spans.sort(key=lambda s: s[0])
+
+        # Group small spans with adjacent ones
+        groups: list[tuple[int, int]] = []  # (start_line, end_line) of each group
+        cur_start, cur_end, _ = spans[0]
+        for i in range(1, len(spans)):
+            s, e, _ = spans[i]
+            cur_span_lines = cur_end - cur_start + 1
+            next_span_lines = e - s + 1
+            if cur_span_lines < self._MIN_BLOCK_LINES and next_span_lines < self._MIN_BLOCK_LINES:
+                # Merge: extend current group
+                cur_end = max(cur_end, e)
+            else:
+                # Flush current group
+                groups.append((cur_start, cur_end))
+                cur_start, cur_end = s, e
+        groups.append((cur_start, cur_end))
+
+        # Build FunctionBlock for each group
+        blocks: list[FunctionBlock] = []
+        for line_start, line_end in groups:
+            block = self._make_block(raw_lines, line_start, line_end)
+            if block is None:
+                continue
+
+            # Recurse if block is too large and we haven't hit depth limit
+            if len(block.source) > self._MAX_BLOCK_CHARS and depth < self._MAX_SPLIT_DEPTH:
+                # Find the cursor(s) in this range and try to split their children
+                sub_children: list[Cursor] = []
+                for s, e, cursor in spans:
+                    if s >= line_start and e <= line_end:
+                        # Try to get this cursor's compound children
+                        compound = self._find_compound_child(cursor)
+                        if compound is not None:
+                            sub_children.extend(compound.get_children())
+                        else:
+                            sub_children.extend(cursor.get_children())
+                if len(sub_children) > 1:
+                    sub_blocks = self._group_children_into_blocks(
+                        sub_children, raw_lines, depth + 1
+                    )
+                    if sub_blocks:
+                        blocks.extend(sub_blocks)
+                        continue
+            blocks.append(block)
+
+        return blocks
+
+    @staticmethod
+    def _make_block(
+        raw_lines: list[str], line_start: int, line_end: int
+    ) -> FunctionBlock | None:
+        """Create a FunctionBlock from a line range, inferring kind/label from source."""
+        if line_start < 1 or line_end > len(raw_lines) or line_end < line_start:
+            return None
+
+        block_source = "\n".join(raw_lines[line_start - 1 : line_end])
+
+        # Infer kind and label from the first non-blank line
+        kind = "block"
+        label = ""
+        for line in raw_lines[line_start - 1 : line_end]:
+            stripped = line.strip()
+            if not stripped:
+                continue
+            if re.match(r"^case\s+.+:", stripped):
+                kind = "switch_case"
+                # Extract "case X:" as label
+                m = re.match(r"^(case\s+.+?:)", stripped)
+                label = m.group(1) if m else stripped[:60]
+            elif stripped.startswith("default:"):
+                kind = "default_case"
+                label = "default:"
+            else:
+                label = stripped[:60]
+            break
+
+        if not label:
+            label = f"lines {line_start}-{line_end}"
+
+        return FunctionBlock(
+            function_id=None,
+            kind=kind,
+            label=label,
+            line_start=line_start,
+            line_end=line_end,
+            source=block_source,
+        )
 
     def _get_qualified_name(self, cursor: Cursor) -> str:
         """Get the fully qualified name for a function/method."""
