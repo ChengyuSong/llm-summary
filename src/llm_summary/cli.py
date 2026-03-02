@@ -82,7 +82,9 @@ def main():
 @click.option("--vsnap", type=click.Path(exists=True), default=None,
               help="V-snapshot (.vsnap) file for alias context in memsafe/verify passes")
 @click.option("-j", "jobs", default=1, type=int, help="Parallel LLM queries (default: 1)")
-def summarize(db_path, backend, model, llm_host, llm_port, disable_thinking, verbose, force, log_llm, init_stdlib, allocator_file, summary_types, deallocator_file, vsnap, jobs):
+@click.option("--cache-mode", type=click.Choice(["none", "instructions", "source"]), default="none",
+              help="Prompt caching mode: none (default), instructions (cache task instructions), source (cache function source)")
+def summarize(db_path, backend, model, llm_host, llm_port, disable_thinking, verbose, force, log_llm, init_stdlib, allocator_file, summary_types, deallocator_file, vsnap, jobs, cache_mode):
     """Generate allocation, free, init, memsafe, and/or verify summaries on a pre-populated database.
 
     Requires a database that already has functions and call_edges
@@ -177,6 +179,8 @@ def summarize(db_path, backend, model, llm_host, llm_port, disable_thinking, ver
         backend_kwargs = _build_backend_kwargs(backend, llm_host, llm_port, disable_thinking)
         llm = create_backend(backend, model=model, **backend_kwargs)
         console.print(f"Using {backend} backend ({llm.model})")
+        if cache_mode != "none":
+            console.print(f"  Prompt cache mode: {cache_mode}")
 
         # Load alias context builder early (needed for candidate confirmation + memsafe/verify)
         alias_builder = None
@@ -214,7 +218,7 @@ def summarize(db_path, backend, model, llm_host, llm_port, disable_thinking, ver
                                   f"{len(remaining)} unconfirmed (dropped)")
                     allocators = confirmed
 
-            alloc_summarizer = AllocationSummarizer(db, llm, verbose=verbose, log_file=log_llm, allocators=allocators)
+            alloc_summarizer = AllocationSummarizer(db, llm, verbose=verbose, log_file=log_llm, allocators=allocators, cache_mode=cache_mode)
             passes.append(AllocationPass(alloc_summarizer, db, llm.model))
 
         if "free" in summary_types:
@@ -239,28 +243,28 @@ def summarize(db_path, backend, model, llm_host, llm_port, disable_thinking, ver
                                   f"{len(dremaining)} unconfirmed (dropped)")
                     deallocators = dconfirmed
 
-            free_summarizer = FreeSummarizer(db, llm, verbose=verbose, log_file=log_llm, deallocators=deallocators)
+            free_summarizer = FreeSummarizer(db, llm, verbose=verbose, log_file=log_llm, deallocators=deallocators, cache_mode=cache_mode)
             passes.append(FreePass(free_summarizer, db, llm.model))
 
         init_summarizer = None
         if "init" in summary_types:
             from .init_summarizer import InitSummarizer
 
-            init_summarizer = InitSummarizer(db, llm, verbose=verbose, log_file=log_llm)
+            init_summarizer = InitSummarizer(db, llm, verbose=verbose, log_file=log_llm, cache_mode=cache_mode)
             passes.append(InitPass(init_summarizer, db, llm.model))
 
         memsafe_summarizer = None
         if "memsafe" in summary_types:
             from .memsafe_summarizer import MemsafeSummarizer
 
-            memsafe_summarizer = MemsafeSummarizer(db, llm, verbose=verbose, log_file=log_llm)
+            memsafe_summarizer = MemsafeSummarizer(db, llm, verbose=verbose, log_file=log_llm, cache_mode=cache_mode)
             passes.append(MemsafePass(memsafe_summarizer, db, llm.model, alias_builder=alias_builder))
 
         verification_summarizer = None
         if "verify" in summary_types:
             from .verification_summarizer import VerificationSummarizer
 
-            verification_summarizer = VerificationSummarizer(db, llm, verbose=verbose, log_file=log_llm)
+            verification_summarizer = VerificationSummarizer(db, llm, verbose=verbose, log_file=log_llm, cache_mode=cache_mode)
             passes.append(VerificationPass(verification_summarizer, db, llm.model, alias_builder=alias_builder))
 
         pass_names = " + ".join(p.name for p in passes)
@@ -288,6 +292,9 @@ def summarize(db_path, backend, model, llm_host, llm_port, disable_thinking, ver
             console.print(f"  Functions processed: {s['functions_processed']}")
             console.print(f"  LLM calls: {s['llm_calls']}")
             console.print(f"  Cache hits: {s['cache_hits']}")
+            if cache_mode != "none" and (s.get("cache_read_tokens") or s.get("cache_creation_tokens")):
+                console.print(f"  Cache read tokens: {s['cache_read_tokens']:,}")
+                console.print(f"  Cache creation tokens: {s['cache_creation_tokens']:,}")
             if s["errors"] > 0:
                 console.print(f"  [yellow]Errors: {s['errors']}[/yellow]")
 
@@ -301,6 +308,9 @@ def summarize(db_path, backend, model, llm_host, llm_port, disable_thinking, ver
             console.print(f"  Functions processed: {s['functions_processed']}")
             console.print(f"  LLM calls: {s['llm_calls']}")
             console.print(f"  Cache hits: {s['cache_hits']}")
+            if cache_mode != "none" and (s.get("cache_read_tokens") or s.get("cache_creation_tokens")):
+                console.print(f"  Cache read tokens: {s['cache_read_tokens']:,}")
+                console.print(f"  Cache creation tokens: {s['cache_creation_tokens']:,}")
             if s["errors"] > 0:
                 console.print(f"  [yellow]Errors: {s['errors']}[/yellow]")
 
@@ -314,6 +324,9 @@ def summarize(db_path, backend, model, llm_host, llm_port, disable_thinking, ver
             console.print(f"  Functions processed: {s['functions_processed']}")
             console.print(f"  LLM calls: {s['llm_calls']}")
             console.print(f"  Cache hits: {s['cache_hits']}")
+            if cache_mode != "none" and (s.get("cache_read_tokens") or s.get("cache_creation_tokens")):
+                console.print(f"  Cache read tokens: {s['cache_read_tokens']:,}")
+                console.print(f"  Cache creation tokens: {s['cache_creation_tokens']:,}")
             if s["errors"] > 0:
                 console.print(f"  [yellow]Errors: {s['errors']}[/yellow]")
 
@@ -327,6 +340,9 @@ def summarize(db_path, backend, model, llm_host, llm_port, disable_thinking, ver
             console.print(f"  Functions processed: {s['functions_processed']}")
             console.print(f"  LLM calls: {s['llm_calls']}")
             console.print(f"  Cache hits: {s['cache_hits']}")
+            if cache_mode != "none" and (s.get("cache_read_tokens") or s.get("cache_creation_tokens")):
+                console.print(f"  Cache read tokens: {s['cache_read_tokens']:,}")
+                console.print(f"  Cache creation tokens: {s['cache_creation_tokens']:,}")
             if s["errors"] > 0:
                 console.print(f"  [yellow]Errors: {s['errors']}[/yellow]")
 
@@ -340,6 +356,9 @@ def summarize(db_path, backend, model, llm_host, llm_port, disable_thinking, ver
             console.print(f"  Functions processed: {s['functions_processed']}")
             console.print(f"  LLM calls: {s['llm_calls']}")
             console.print(f"  Cache hits: {s['cache_hits']}")
+            if cache_mode != "none" and (s.get("cache_read_tokens") or s.get("cache_creation_tokens")):
+                console.print(f"  Cache read tokens: {s['cache_read_tokens']:,}")
+                console.print(f"  Cache creation tokens: {s['cache_creation_tokens']:,}")
             console.print(f"  Contracts simplified: {s['contracts_simplified']}")
             if s["errors"] > 0:
                 console.print(f"  [yellow]Errors: {s['errors']}[/yellow]")

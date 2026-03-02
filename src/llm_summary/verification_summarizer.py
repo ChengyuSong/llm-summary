@@ -204,7 +204,6 @@ _VALID_ISSUE_KINDS = {
 _VALID_SEVERITIES = {"high", "medium", "low"}
 _VALID_CONTRACT_KINDS = {"not_null", "not_freed", "initialized", "buffer_size"}
 
-
 class VerificationSummarizer:
     """Verifies memory safety and simplifies contracts using cross-pass data."""
 
@@ -214,11 +213,13 @@ class VerificationSummarizer:
         llm: LLMBackend,
         verbose: bool = False,
         log_file: str | None = None,
+        cache_mode: str = "none",
     ):
         self.db = db
         self.llm = llm
         self.verbose = verbose
         self.log_file = log_file
+        self.cache_mode = cache_mode
         self._stats = {
             "functions_processed": 0,
             "llm_calls": 0,
@@ -226,6 +227,8 @@ class VerificationSummarizer:
             "errors": 0,
             "issues_found": 0,
             "contracts_simplified": 0,
+            "cache_read_tokens": 0,
+            "cache_creation_tokens": 0,
         }
         self._stats_lock = threading.Lock()
         self._progress_current = 0
@@ -256,14 +259,8 @@ class VerificationSummarizer:
         callee_section = self._build_callee_section(func, callee_summaries)
         own_contracts = self._build_own_contracts_section(func)
 
-        prompt = VERIFICATION_PROMPT.format(
-            source=func.llm_source,
-            name=func.name,
-            signature=func.signature,
-            file_path=func.file_path,
-            own_contracts=own_contracts,
-            callee_section=callee_section,
-            alias_context=alias_context or "",
+        prompt, system, cache_system = self._build_prompt_and_system(
+            func.llm_source, func, own_contracts, callee_section, alias_context,
         )
 
         try:
@@ -276,14 +273,20 @@ class VerificationSummarizer:
                 else:
                     print(f"  Verifying: {func.name}")
 
-            response = self.llm.complete(prompt)
+            llm_response = self.llm.complete_with_metadata(
+                prompt, system=system, cache_system=cache_system,
+            )
             with self._stats_lock:
                 self._stats["llm_calls"] += 1
+                if llm_response.cached:
+                    self._stats["cache_hits"] += 1
+                self._stats["cache_read_tokens"] += llm_response.cache_read_tokens
+                self._stats["cache_creation_tokens"] += llm_response.cache_creation_tokens
 
             if self.log_file:
-                self._log_interaction(func.name, prompt, response)
+                self._log_interaction(func.name, prompt, llm_response.content)
 
-            summary = self._parse_response(response, func.name)
+            summary = self._parse_response(llm_response.content, func.name)
             with self._stats_lock:
                 self._stats["functions_processed"] += 1
                 self._stats["issues_found"] += len(summary.issues)
@@ -403,17 +406,21 @@ class VerificationSummarizer:
         skeleton = build_skeleton(func.llm_source, func.line_start, blocks, block_summaries)
         callee_section = self._build_callee_section(func, callee_summaries)
 
-        prompt = VERIFICATION_PROMPT.format(
-            source=skeleton, name=func.name, signature=func.signature,
-            file_path=func.file_path, own_contracts=own_contracts,
-            callee_section=callee_section, alias_context=alias_context or "",
+        prompt, system, cache_system = self._build_prompt_and_system(
+            skeleton, func, own_contracts, callee_section, alias_context,
         )
 
         try:
-            response = self.llm.complete(prompt)
+            llm_response = self.llm.complete_with_metadata(
+                prompt, system=system, cache_system=cache_system,
+            )
             with self._stats_lock:
                 self._stats["llm_calls"] += 1
-            skeleton_summary = self._parse_response(response, func.name)
+                if llm_response.cached:
+                    self._stats["cache_hits"] += 1
+                self._stats["cache_read_tokens"] += llm_response.cache_read_tokens
+                self._stats["cache_creation_tokens"] += llm_response.cache_creation_tokens
+            skeleton_summary = self._parse_response(llm_response.content, func.name)
         except Exception as e:
             with self._stats_lock:
                 self._stats["errors"] += 1
@@ -436,6 +443,27 @@ class VerificationSummarizer:
             self._stats["functions_processed"] += 1
             self._stats["issues_found"] += len(skeleton_summary.issues)
         return skeleton_summary
+
+    def _build_prompt_and_system(
+        self, source: str, func: Function, own_contracts: str,
+        callee_section: str, alias_context: str | None,
+    ) -> tuple[str, str | None, bool]:
+        """Return (prompt, system, cache_system).
+
+        Verification always uses the monolithic prompt regardless of cache_mode.
+        The complex Hoare-logic reasoning requires source, contracts, and callee
+        context tightly coupled in a single prompt.
+        """
+        prompt = VERIFICATION_PROMPT.format(
+            source=source,
+            name=func.name,
+            signature=func.signature,
+            file_path=func.file_path,
+            own_contracts=own_contracts,
+            callee_section=callee_section,
+            alias_context=alias_context or "",
+        )
+        return prompt, None, False
 
     def _build_callee_section(
         self,

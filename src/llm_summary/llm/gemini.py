@@ -72,13 +72,15 @@ class GeminiBackend(LLMBackend):
             )
         return self._client
 
-    def complete(self, prompt: str, system: str | None = None) -> str:
+    def complete(
+        self, prompt: str, system: str | None = None, cache_system: bool = False,
+    ) -> str:
         """Generate a completion using Gemini."""
         response = self.complete_with_metadata(prompt, system)
         return response.content
 
     def complete_with_metadata(
-        self, prompt: str, system: str | None = None
+        self, prompt: str, system: str | None = None, cache_system: bool = False,
     ) -> LLMResponse:
         """Generate a completion with metadata."""
         from google.genai import types

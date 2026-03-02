@@ -64,9 +64,11 @@ class ClaudeBackend(LLMBackend):
                 )
         return self._client
 
-    def complete(self, prompt: str, system: str | None = None) -> str:
+    def complete(
+        self, prompt: str, system: str | None = None, cache_system: bool = False,
+    ) -> str:
         """Generate a completion using Claude."""
-        response = self.complete_with_metadata(prompt, system)
+        response = self.complete_with_metadata(prompt, system, cache_system=cache_system)
         return response.content
 
     def complete_with_tools(
@@ -106,7 +108,7 @@ class ClaudeBackend(LLMBackend):
         return response
 
     def complete_with_metadata(
-        self, prompt: str, system: str | None = None
+        self, prompt: str, system: str | None = None, cache_system: bool = False,
     ) -> LLMResponse:
         """Generate a completion with metadata."""
         kwargs = {
@@ -116,7 +118,16 @@ class ClaudeBackend(LLMBackend):
         }
 
         if system:
-            kwargs["system"] = system
+            if cache_system:
+                kwargs["system"] = [
+                    {
+                        "type": "text",
+                        "text": system,
+                        "cache_control": {"type": "ephemeral"},
+                    }
+                ]
+            else:
+                kwargs["system"] = system
 
         response = self.client.messages.create(**kwargs)
 
@@ -144,10 +155,10 @@ class ClaudeBackend(LLMBackend):
         input_tokens = getattr(response.usage, "input_tokens", 0)
         output_tokens = getattr(response.usage, "output_tokens", 0)
 
-        # Check for cache hit
-        cached = False
-        if hasattr(response.usage, "cache_read_input_tokens"):
-            cached = response.usage.cache_read_input_tokens > 0
+        # Extract cache token stats
+        cache_read_tokens = getattr(response.usage, "cache_read_input_tokens", 0) or 0
+        cache_creation_tokens = getattr(response.usage, "cache_creation_input_tokens", 0) or 0
+        cached = cache_read_tokens > 0
 
         return LLMResponse(
             content=content,
@@ -155,4 +166,6 @@ class ClaudeBackend(LLMBackend):
             input_tokens=input_tokens,
             output_tokens=output_tokens,
             cached=cached,
+            cache_read_tokens=cache_read_tokens,
+            cache_creation_tokens=cache_creation_tokens,
         )

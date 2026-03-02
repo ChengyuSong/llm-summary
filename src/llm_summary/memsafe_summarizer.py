@@ -158,7 +158,6 @@ _CALLEE_NOTE_FLAT = """\
 {flat_list}\
 """
 
-
 class MemsafeSummarizer:
     """Generates safety contract summaries for functions using LLM."""
 
@@ -168,16 +167,20 @@ class MemsafeSummarizer:
         llm: LLMBackend,
         verbose: bool = False,
         log_file: str | None = None,
+        cache_mode: str = "none",
     ):
         self.db = db
         self.llm = llm
         self.verbose = verbose
         self.log_file = log_file
+        self.cache_mode = cache_mode
         self._stats = {
             "functions_processed": 0,
             "llm_calls": 0,
             "cache_hits": 0,
             "errors": 0,
+            "cache_read_tokens": 0,
+            "cache_creation_tokens": 0,
         }
         self._stats_lock = threading.Lock()
         self._progress_current = 0
@@ -224,13 +227,8 @@ class MemsafeSummarizer:
             flat = self._build_flat_callee_list(callee_summaries)
             callee_note = _CALLEE_NOTE_FLAT.format(flat_list=flat)
 
-        prompt = MEMSAFE_SUMMARY_PROMPT.format(
-            source=annotated_source,
-            name=func.name,
-            signature=func.signature,
-            file_path=func.file_path,
-            callee_note=callee_note,
-            alias_context=alias_context or "",
+        prompt, system, cache_system = self._build_prompt_and_system(
+            annotated_source, func, callee_note, alias_context, used_inline,
         )
 
         try:
@@ -240,14 +238,20 @@ class MemsafeSummarizer:
                 else:
                     print(f"  Summarizing (memsafe): {func.name}")
 
-            response = self.llm.complete(prompt)
+            llm_response = self.llm.complete_with_metadata(
+                prompt, system=system, cache_system=cache_system,
+            )
             with self._stats_lock:
                 self._stats["llm_calls"] += 1
+                if llm_response.cached:
+                    self._stats["cache_hits"] += 1
+                self._stats["cache_read_tokens"] += llm_response.cache_read_tokens
+                self._stats["cache_creation_tokens"] += llm_response.cache_creation_tokens
 
             if self.log_file:
-                self._log_interaction(func.name, prompt, response)
+                self._log_interaction(func.name, prompt, llm_response.content)
 
-            summary = self._parse_response(response, func.name)
+            summary = self._parse_response(llm_response.content, func.name)
             with self._stats_lock:
                 self._stats["functions_processed"] += 1
 
@@ -368,17 +372,21 @@ class MemsafeSummarizer:
             flat = self._build_flat_callee_list(callee_summaries)
             callee_note = _CALLEE_NOTE_FLAT.format(flat_list=flat)
 
-        prompt = MEMSAFE_SUMMARY_PROMPT.format(
-            source=annotated_source, name=func.name, signature=func.signature,
-            file_path=func.file_path, callee_note=callee_note,
-            alias_context=alias_context or "",
+        prompt, system, cache_system = self._build_prompt_and_system(
+            annotated_source, func, callee_note, alias_context, used_inline,
         )
 
         try:
-            response = self.llm.complete(prompt)
+            llm_response = self.llm.complete_with_metadata(
+                prompt, system=system, cache_system=cache_system,
+            )
             with self._stats_lock:
                 self._stats["llm_calls"] += 1
-            skeleton_summary = self._parse_response(response, func.name)
+                if llm_response.cached:
+                    self._stats["cache_hits"] += 1
+                self._stats["cache_read_tokens"] += llm_response.cache_read_tokens
+                self._stats["cache_creation_tokens"] += llm_response.cache_creation_tokens
+            skeleton_summary = self._parse_response(llm_response.content, func.name)
         except Exception as e:
             with self._stats_lock:
                 self._stats["errors"] += 1
@@ -397,6 +405,26 @@ class MemsafeSummarizer:
         with self._stats_lock:
             self._stats["functions_processed"] += 1
         return skeleton_summary
+
+    def _build_prompt_and_system(
+        self, source: str, func: Function, callee_note: str,
+        alias_context: str | None, used_inline: bool,
+    ) -> tuple[str, str | None, bool]:
+        """Return (prompt, system, cache_system).
+
+        Memsafe always uses the monolithic prompt regardless of cache_mode.
+        Splitting source from task instructions degrades contract quality
+        (39% agreement vs baseline in A/B testing).
+        """
+        prompt = MEMSAFE_SUMMARY_PROMPT.format(
+            source=source,
+            name=func.name,
+            signature=func.signature,
+            file_path=func.file_path,
+            callee_note=callee_note,
+            alias_context=alias_context or "",
+        )
+        return prompt, None, False
 
     def _annotate_source(
         self,

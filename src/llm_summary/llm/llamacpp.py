@@ -70,13 +70,15 @@ class LlamaCppBackend(LLMBackend):
                 openai_tools.append(tool)
         return openai_tools
 
-    def complete(self, prompt: str, system: str | None = None) -> str:
+    def complete(
+        self, prompt: str, system: str | None = None, cache_system: bool = False,
+    ) -> str:
         """Generate a completion using llama.cpp."""
         response = self.complete_with_metadata(prompt, system)
         return response.content
 
     def complete_with_metadata(
-        self, prompt: str, system: str | None = None
+        self, prompt: str, system: str | None = None, cache_system: bool = False,
     ) -> LLMResponse:
         """Generate a completion with metadata."""
         # Use OpenAI-compatible chat completions endpoint for better control

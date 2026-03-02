@@ -13,6 +13,8 @@ class LLMResponse:
     input_tokens: int = 0
     output_tokens: int = 0
     cached: bool = False
+    cache_read_tokens: int = 0
+    cache_creation_tokens: int = 0
 
 
 class LLMBackend(ABC):
@@ -28,13 +30,16 @@ class LLMBackend(ABC):
         pass
 
     @abstractmethod
-    def complete(self, prompt: str, system: str | None = None) -> str:
+    def complete(
+        self, prompt: str, system: str | None = None, cache_system: bool = False,
+    ) -> str:
         """
         Generate a completion for the given prompt.
 
         Args:
             prompt: The user prompt
             system: Optional system message
+            cache_system: If True, request caching of the system message (backend-specific)
 
         Returns:
             The completion text
@@ -43,7 +48,7 @@ class LLMBackend(ABC):
 
     @abstractmethod
     def complete_with_metadata(
-        self, prompt: str, system: str | None = None
+        self, prompt: str, system: str | None = None, cache_system: bool = False,
     ) -> LLMResponse:
         """
         Generate a completion with metadata.
@@ -51,6 +56,7 @@ class LLMBackend(ABC):
         Args:
             prompt: The user prompt
             system: Optional system message
+            cache_system: If True, request caching of the system message (backend-specific)
 
         Returns:
             LLMResponse with content and metadata

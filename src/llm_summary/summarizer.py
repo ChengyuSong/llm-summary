@@ -111,6 +111,194 @@ If the function does not allocate memory (directly or via callees), return:
 ```
 """
 
+# --- Approach A templates (cache_mode="instructions") ---
+# System: static task instructions (cached across all functions in a pass)
+# User: function source + callee summaries (varies per function)
+
+ALLOCATION_SYSTEM_PROMPT = """\
+You are analyzing C/C++ code to generate memory allocation summaries.
+
+## Task
+
+Generate a memory allocation summary for the function provided in the user message. Identify:
+
+1. **Allocations**: Any memory allocations (malloc, calloc, realloc, new, etc.)
+   - Type: heap, stack, or static
+   - Source: The allocating function/operator
+   - Size expression: How size is computed
+   - Size parameters: Which function parameters affect size
+   - Returned: Is the allocation returned?
+   - Stored to: Is it stored to a field/global?
+   - May be null: Can allocation fail?
+
+2. **Parameters**: Role of each parameter
+   - Role: size_indicator, buffer, count, pointer_out, etc.
+   - Used in allocation: Does it affect allocation size?
+
+3. **Buffer-size pairs** (post-condition only): Identify (buffer, size) pairs that this function **creates or establishes**. Only include pairs where this function is the one that sets up the relationship (e.g., allocates the buffer with the given size, or assigns both fields of a struct). Do NOT include pairs that the function merely reads, accesses, or requires as input — those are pre-conditions and belong to a separate analysis.
+   - "param_pair": function allocates a buffer and stores it alongside its size (e.g., `buf = malloc(n); *out_buf = buf; *out_len = n;`)
+   - "struct_field": function sets both buffer and size fields on a struct (e.g., `s->data = malloc(n); s->len = n;`)
+   - "flexible_array": function allocates a struct with a trailing flexible array and sets the length field
+   - Kind must be exactly one of: "param_pair", "struct_field", "flexible_array"
+   - Both buffer and size must be non-null — omit entries where the size is unknown
+   - Relationship: how the size relates to the buffer (e.g., "byte count", "element count")
+
+4. **Description**: One-sentence summary of what this function allocates
+
+Consider:
+- Wrapper functions that call allocators
+- Size calculations (n + 1, n * sizeof(T), etc.)
+- Conditional allocations
+- Allocations stored to struct fields or output parameters
+
+Respond in JSON format:
+```json
+{{
+  "function": "<function_name>",
+  "allocations": [
+    {{
+      "type": "heap|stack|static",
+      "source": "allocator function name",
+      "size_expr": "size expression or null",
+      "size_params": ["parameter names affecting size"],
+      "returned": true|false,
+      "stored_to": "field/variable name or null",
+      "may_be_null": true|false
+    }}
+  ],
+  "parameters": {{
+    "param_name": {{
+      "role": "role description",
+      "used_in_allocation": true|false
+    }}
+  }},
+  "buffer_size_pairs": [
+    {{
+      "buffer": "buffer variable/field",
+      "size": "size variable/field",
+      "kind": "param_pair|struct_field|flexible_array",
+      "relationship": "byte count|element count|max capacity"
+    }}
+  ],
+  "description": "One-sentence description"
+}}
+```
+
+If the function does not allocate memory (directly or via callees), return:
+```json
+{{
+  "function": "<function_name>",
+  "allocations": [],
+  "parameters": {{}},
+  "buffer_size_pairs": [],
+  "description": "Does not allocate memory"
+}}
+```\
+"""
+
+ALLOCATION_USER_PROMPT = """\
+## Function to Analyze
+
+```c
+{source}
+```
+
+Function: `{name}`
+Signature: `{signature}`
+File: {file_path}
+
+## Callee Summaries
+
+{callee_summaries}\
+"""
+
+# --- Approach B template (cache_mode="source") ---
+# System: function source (cached across passes for same function, via prompts.py)
+# User: task instructions + callee summaries
+
+ALLOC_TASK_PROMPT = """\
+## Task
+
+Generate a memory allocation summary for the function in the system message. Identify:
+
+1. **Allocations**: Any memory allocations (malloc, calloc, realloc, new, etc.)
+   - Type: heap, stack, or static
+   - Source: The allocating function/operator
+   - Size expression: How size is computed
+   - Size parameters: Which function parameters affect size
+   - Returned: Is the allocation returned?
+   - Stored to: Is it stored to a field/global?
+   - May be null: Can allocation fail?
+
+2. **Parameters**: Role of each parameter
+   - Role: size_indicator, buffer, count, pointer_out, etc.
+   - Used in allocation: Does it affect allocation size?
+
+3. **Buffer-size pairs** (post-condition only): Identify (buffer, size) pairs that this function **creates or establishes**. Only include pairs where this function is the one that sets up the relationship. Do NOT include pairs that the function merely reads, accesses, or requires as input.
+   - "param_pair": function allocates a buffer and stores it alongside its size
+   - "struct_field": function sets both buffer and size fields on a struct
+   - "flexible_array": function allocates a struct with a trailing flexible array and sets the length field
+   - Kind must be exactly one of: "param_pair", "struct_field", "flexible_array"
+   - Both buffer and size must be non-null — omit entries where the size is unknown
+   - Relationship: how the size relates to the buffer (e.g., "byte count", "element count")
+
+4. **Description**: One-sentence summary of what this function allocates
+
+Consider:
+- Wrapper functions that call allocators
+- Size calculations (n + 1, n * sizeof(T), etc.)
+- Conditional allocations
+- Allocations stored to struct fields or output parameters
+
+## Callee Summaries
+
+{callee_summaries}
+
+Respond in JSON format:
+```json
+{{{{
+  "function": "{name}",
+  "allocations": [
+    {{{{
+      "type": "heap|stack|static",
+      "source": "allocator function name",
+      "size_expr": "size expression or null",
+      "size_params": ["parameter names affecting size"],
+      "returned": true|false,
+      "stored_to": "field/variable name or null",
+      "may_be_null": true|false
+    }}}}
+  ],
+  "parameters": {{{{
+    "param_name": {{{{
+      "role": "role description",
+      "used_in_allocation": true|false
+    }}}}
+  }}}},
+  "buffer_size_pairs": [
+    {{{{
+      "buffer": "buffer variable/field",
+      "size": "size variable/field",
+      "kind": "param_pair|struct_field|flexible_array",
+      "relationship": "byte count|element count|max capacity"
+    }}}}
+  ],
+  "description": "One-sentence description"
+}}}}
+```
+
+If the function does not allocate memory (directly or via callees), return:
+```json
+{{{{
+  "function": "{name}",
+  "allocations": [],
+  "parameters": {{{{}}}},
+  "buffer_size_pairs": [],
+  "description": "Does not allocate memory"
+}}}}
+```\
+"""
+
 
 BLOCK_ALLOCATION_PROMPT = """You are analyzing a code block from a large C/C++ function.
 
@@ -166,17 +354,21 @@ class AllocationSummarizer:
         verbose: bool = False,
         log_file: str | None = None,
         allocators: list[str] | None = None,
+        cache_mode: str = "none",
     ):
         self.db = db
         self.llm = llm
         self.verbose = verbose
         self.log_file = log_file
         self.allocators = allocators or []
+        self.cache_mode = cache_mode
         self._stats = {
             "functions_processed": 0,
             "llm_calls": 0,
             "cache_hits": 0,
             "errors": 0,
+            "cache_read_tokens": 0,
+            "cache_creation_tokens": 0,
         }
         self._stats_lock = threading.Lock()
         self._progress_current = 0
@@ -213,13 +405,9 @@ class AllocationSummarizer:
         # Build callee summaries section
         callee_section = self._build_callee_section(func, callee_summaries)
 
-        # Build prompt
-        prompt = ALLOCATION_SUMMARY_PROMPT.format(
-            source=func.llm_source,
-            name=func.name,
-            signature=func.signature,
-            file_path=func.file_path,
-            callee_summaries=callee_section,
+        # Build prompt (with optional system message for caching)
+        prompt, system, cache_system = self._build_prompt_and_system(
+            func.llm_source, func, callee_section,
         )
 
         # Query LLM
@@ -230,15 +418,21 @@ class AllocationSummarizer:
                 else:
                     print(f"  Summarizing: {func.name}")
 
-            response = self.llm.complete(prompt)
+            llm_response = self.llm.complete_with_metadata(
+                prompt, system=system, cache_system=cache_system,
+            )
             with self._stats_lock:
                 self._stats["llm_calls"] += 1
+                if llm_response.cached:
+                    self._stats["cache_hits"] += 1
+                self._stats["cache_read_tokens"] += llm_response.cache_read_tokens
+                self._stats["cache_creation_tokens"] += llm_response.cache_creation_tokens
 
             # Log prompt and response if requested
             if self.log_file:
-                self._log_interaction(func.name, prompt, response)
+                self._log_interaction(func.name, prompt, llm_response.content)
 
-            summary = self._parse_response(response, func.name)
+            summary = self._parse_response(llm_response.content, func.name)
             with self._stats_lock:
                 self._stats["functions_processed"] += 1
 
@@ -361,19 +555,21 @@ class AllocationSummarizer:
         skeleton = build_skeleton(func.llm_source, func.line_start, blocks, block_summaries)
 
         callee_section = self._build_callee_section(func, callee_summaries)
-        prompt = ALLOCATION_SUMMARY_PROMPT.format(
-            source=skeleton,
-            name=func.name,
-            signature=func.signature,
-            file_path=func.file_path,
-            callee_summaries=callee_section,
+        prompt, system, cache_system = self._build_prompt_and_system(
+            skeleton, func, callee_section,
         )
 
         try:
-            response = self.llm.complete(prompt)
+            llm_response = self.llm.complete_with_metadata(
+                prompt, system=system, cache_system=cache_system,
+            )
             with self._stats_lock:
                 self._stats["llm_calls"] += 1
-            skeleton_summary = self._parse_response(response, func.name)
+                if llm_response.cached:
+                    self._stats["cache_hits"] += 1
+                self._stats["cache_read_tokens"] += llm_response.cache_read_tokens
+                self._stats["cache_creation_tokens"] += llm_response.cache_creation_tokens
+            skeleton_summary = self._parse_response(llm_response.content, func.name)
         except Exception as e:
             with self._stats_lock:
                 self._stats["errors"] += 1
@@ -390,6 +586,42 @@ class AllocationSummarizer:
             self._stats["functions_processed"] += 1
 
         return skeleton_summary
+
+    def _build_prompt_and_system(
+        self, source: str, func: Function, callee_section: str,
+    ) -> tuple[str, str | None, bool]:
+        """Return (prompt, system, cache_system) based on self.cache_mode."""
+        if self.cache_mode == "instructions":
+            prompt = ALLOCATION_USER_PROMPT.format(
+                source=source,
+                name=func.name,
+                signature=func.signature,
+                file_path=func.file_path,
+                callee_summaries=callee_section,
+            )
+            return prompt, ALLOCATION_SYSTEM_PROMPT, True
+        elif self.cache_mode == "source":
+            from .prompts import FUNCTION_CONTEXT_SYSTEM
+            system = FUNCTION_CONTEXT_SYSTEM.format(
+                source=source,
+                name=func.name,
+                signature=func.signature,
+                file_path=func.file_path,
+            )
+            prompt = ALLOC_TASK_PROMPT.format(
+                name=func.name,
+                callee_summaries=callee_section,
+            )
+            return prompt, system, True
+        else:
+            prompt = ALLOCATION_SUMMARY_PROMPT.format(
+                source=source,
+                name=func.name,
+                signature=func.signature,
+                file_path=func.file_path,
+                callee_summaries=callee_section,
+            )
+            return prompt, None, False
 
     def _build_callee_section(
         self,

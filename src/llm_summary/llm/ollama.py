@@ -22,13 +22,15 @@ class OllamaBackend(LLMBackend):
     def default_model(self) -> str:
         return "llama3.1"
 
-    def complete(self, prompt: str, system: str | None = None) -> str:
+    def complete(
+        self, prompt: str, system: str | None = None, cache_system: bool = False,
+    ) -> str:
         """Generate a completion using Ollama."""
         response = self.complete_with_metadata(prompt, system)
         return response.content
 
     def complete_with_metadata(
-        self, prompt: str, system: str | None = None
+        self, prompt: str, system: str | None = None, cache_system: bool = False,
     ) -> LLMResponse:
         """Generate a completion with metadata."""
         url = f"{self.base_url}/api/generate"

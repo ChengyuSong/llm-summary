@@ -122,6 +122,131 @@ If no frees, return empty frees list with a summary of what the block does.
 """
 
 
+# --- Approach A templates (cache_mode="instructions") ---
+
+FREE_SYSTEM_PROMPT = """\
+You are analyzing C/C++ code to generate deallocation (free) summaries.
+
+## Task
+
+Generate a deallocation summary for the function provided in the user message. Identify every buffer or resource
+that this function frees (directly or via callees).
+
+For each free operation, identify:
+
+1. **target**: What gets freed — the expression (e.g., "ptr", "info_ptr->palette", "row_buf")
+2. **target_kind**: One of:
+   - "parameter" — a function parameter is freed
+   - "field" — a struct field (accessed via parameter or global) is freed
+   - "local" — a local variable is freed
+   - "return_value" — the freed pointer is also returned (rare)
+3. **deallocator**: The function that performs the free (e.g., "free", "png_free", "g_free")
+4. **conditional**: true if the free is inside an if-block, error path, or conditional
+5. **nulled_after**: true if the pointer is set to NULL after the free
+
+Consider:
+- Direct calls to free/deallocator functions
+- Wrapper functions that free (use callee summaries)
+- Conditional frees (inside if-blocks, error paths)
+- Whether the pointer is NULLed after free (defensive pattern)
+
+Respond in JSON format:
+```json
+{{
+  "function": "<function_name>",
+  "frees": [
+    {{
+      "target": "expression being freed",
+      "target_kind": "parameter|field|local|return_value",
+      "deallocator": "free function name",
+      "conditional": true|false,
+      "nulled_after": true|false
+    }}
+  ],
+  "description": "One-sentence description of what this function frees"
+}}
+```
+
+If the function does not free any memory (directly or via callees), return:
+```json
+{{
+  "function": "<function_name>",
+  "frees": [],
+  "description": "Does not free memory"
+}}
+```\
+"""
+
+FREE_USER_PROMPT = """\
+## Function to Analyze
+
+```c
+{source}
+```
+
+Function: `{name}`
+Signature: `{signature}`
+File: {file_path}
+
+## Callee Free Summaries
+
+{callee_summaries}\
+"""
+
+# --- Approach B template (cache_mode="source") ---
+
+FREE_TASK_PROMPT = """\
+## Task
+
+Generate a deallocation summary for the function in the system message. Identify every buffer or resource
+that this function frees (directly or via callees).
+
+For each free operation, identify:
+
+1. **target**: What gets freed — the expression
+2. **target_kind**: One of: "parameter", "field", "local", "return_value"
+3. **deallocator**: The function that performs the free
+4. **conditional**: true if the free is conditional
+5. **nulled_after**: true if the pointer is set to NULL after the free
+
+Consider:
+- Direct calls to free/deallocator functions
+- Wrapper functions that free (use callee summaries)
+- Conditional frees (inside if-blocks, error paths)
+- Whether the pointer is NULLed after free (defensive pattern)
+
+## Callee Free Summaries
+
+{callee_summaries}
+
+Respond in JSON format:
+```json
+{{{{
+  "function": "{name}",
+  "frees": [
+    {{{{
+      "target": "expression being freed",
+      "target_kind": "parameter|field|local|return_value",
+      "deallocator": "free function name",
+      "conditional": true|false,
+      "nulled_after": true|false
+    }}}}
+  ],
+  "description": "One-sentence description of what this function frees"
+}}}}
+```
+
+If the function does not free any memory (directly or via callees), return:
+```json
+{{{{
+  "function": "{name}",
+  "frees": [],
+  "description": "Does not free memory"
+}}}}
+```\
+"""
+
+
 class FreeSummarizer:
     """Generates free/deallocation summaries for functions using LLM."""
 
@@ -132,17 +257,21 @@ class FreeSummarizer:
         verbose: bool = False,
         log_file: str | None = None,
         deallocators: list[str] | None = None,
+        cache_mode: str = "none",
     ):
         self.db = db
         self.llm = llm
         self.verbose = verbose
         self.log_file = log_file
         self.deallocators = deallocators or []
+        self.cache_mode = cache_mode
         self._stats = {
             "functions_processed": 0,
             "llm_calls": 0,
             "cache_hits": 0,
             "errors": 0,
+            "cache_read_tokens": 0,
+            "cache_creation_tokens": 0,
         }
         self._stats_lock = threading.Lock()
         self._progress_current = 0
@@ -169,12 +298,8 @@ class FreeSummarizer:
 
         callee_section = self._build_callee_section(func, callee_summaries)
 
-        prompt = FREE_SUMMARY_PROMPT.format(
-            source=func.llm_source,
-            name=func.name,
-            signature=func.signature,
-            file_path=func.file_path,
-            callee_summaries=callee_section,
+        prompt, system, cache_system = self._build_prompt_and_system(
+            func.llm_source, func, callee_section,
         )
 
         try:
@@ -184,14 +309,20 @@ class FreeSummarizer:
                 else:
                     print(f"  Summarizing (free): {func.name}")
 
-            response = self.llm.complete(prompt)
+            llm_response = self.llm.complete_with_metadata(
+                prompt, system=system, cache_system=cache_system,
+            )
             with self._stats_lock:
                 self._stats["llm_calls"] += 1
+                if llm_response.cached:
+                    self._stats["cache_hits"] += 1
+                self._stats["cache_read_tokens"] += llm_response.cache_read_tokens
+                self._stats["cache_creation_tokens"] += llm_response.cache_creation_tokens
 
             if self.log_file:
-                self._log_interaction(func.name, prompt, response)
+                self._log_interaction(func.name, prompt, llm_response.content)
 
-            summary = self._parse_response(response, func.name)
+            summary = self._parse_response(llm_response.content, func.name)
             with self._stats_lock:
                 self._stats["functions_processed"] += 1
 
@@ -282,16 +413,21 @@ class FreeSummarizer:
         # Phase B: skeleton
         skeleton = build_skeleton(func.llm_source, func.line_start, blocks, block_summaries)
         callee_section = self._build_callee_section(func, callee_summaries)
-        prompt = FREE_SUMMARY_PROMPT.format(
-            source=skeleton, name=func.name, signature=func.signature,
-            file_path=func.file_path, callee_summaries=callee_section,
+        prompt, system, cache_system = self._build_prompt_and_system(
+            skeleton, func, callee_section,
         )
 
         try:
-            response = self.llm.complete(prompt)
+            llm_response = self.llm.complete_with_metadata(
+                prompt, system=system, cache_system=cache_system,
+            )
             with self._stats_lock:
                 self._stats["llm_calls"] += 1
-            skeleton_summary = self._parse_response(response, func.name)
+                if llm_response.cached:
+                    self._stats["cache_hits"] += 1
+                self._stats["cache_read_tokens"] += llm_response.cache_read_tokens
+                self._stats["cache_creation_tokens"] += llm_response.cache_creation_tokens
+            skeleton_summary = self._parse_response(llm_response.content, func.name)
         except Exception as e:
             with self._stats_lock:
                 self._stats["errors"] += 1
@@ -304,6 +440,42 @@ class FreeSummarizer:
         with self._stats_lock:
             self._stats["functions_processed"] += 1
         return skeleton_summary
+
+    def _build_prompt_and_system(
+        self, source: str, func: Function, callee_section: str,
+    ) -> tuple[str, str | None, bool]:
+        """Return (prompt, system, cache_system) based on self.cache_mode."""
+        if self.cache_mode == "instructions":
+            prompt = FREE_USER_PROMPT.format(
+                source=source,
+                name=func.name,
+                signature=func.signature,
+                file_path=func.file_path,
+                callee_summaries=callee_section,
+            )
+            return prompt, FREE_SYSTEM_PROMPT, True
+        elif self.cache_mode == "source":
+            from .prompts import FUNCTION_CONTEXT_SYSTEM
+            system = FUNCTION_CONTEXT_SYSTEM.format(
+                source=source,
+                name=func.name,
+                signature=func.signature,
+                file_path=func.file_path,
+            )
+            prompt = FREE_TASK_PROMPT.format(
+                name=func.name,
+                callee_summaries=callee_section,
+            )
+            return prompt, system, True
+        else:
+            prompt = FREE_SUMMARY_PROMPT.format(
+                source=source,
+                name=func.name,
+                signature=func.signature,
+                file_path=func.file_path,
+                callee_summaries=callee_section,
+            )
+            return prompt, None, False
 
     def _build_callee_section(
         self,

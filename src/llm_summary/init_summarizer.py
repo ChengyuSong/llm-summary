@@ -126,6 +126,136 @@ If no caller-visible initializations, return empty inits list with a summary.
 """
 
 
+# --- Approach A templates (cache_mode="instructions") ---
+
+INIT_SYSTEM_PROMPT = """\
+You are analyzing C/C++ code to generate initialization summaries (post-conditions).
+
+## Task
+
+Generate an initialization summary for the function provided in the user message. Identify what this function
+**always** initializes on ALL non-error exit paths — only guaranteed, unconditional
+initializations. This is a post-condition: only things visible to the CALLER matter.
+
+Only include caller-visible initializations:
+- **Output parameters**: memory written via pointer parameters (e.g., `*out = value`)
+- **Struct fields**: fields written via a parameter (e.g., `ctx->data = ...`)
+- **Return values**: the function's return value itself
+
+Do NOT include local variables — they are not visible to the caller after return.
+
+For each initialization, identify:
+
+1. **target**: What gets initialized — the expression (e.g., "*out", "ctx->data", "return value")
+2. **target_kind**: One of:
+   - "parameter" — an output parameter is written via pointer dereference
+   - "field" — a struct field is written via a parameter
+   - "return_value" — the return value is always set
+3. **initializer**: How it's initialized (e.g., "memset", "assignment", "calloc", "callee:func_name")
+4. **byte_count**: How many bytes are initialized — "n", "sizeof(T)", "full", or null if unknown
+
+Consider:
+- Direct assignments to output parameters and struct fields
+- Calls to memset, memcpy, calloc, etc. (use callee summaries)
+- Only include initializations that happen on ALL non-error exit paths
+- If a field is only initialized on some paths, do NOT include it
+
+Respond in JSON format:
+```json
+{{
+  "function": "<function_name>",
+  "inits": [
+    {{
+      "target": "expression being initialized",
+      "target_kind": "parameter|field|return_value",
+      "initializer": "how it is initialized",
+      "byte_count": "n|sizeof(T)|full|null"
+    }}
+  ],
+  "description": "One-sentence description of what this function always initializes"
+}}
+```
+
+If the function does not unconditionally initialize any caller-visible state, return:
+```json
+{{
+  "function": "<function_name>",
+  "inits": [],
+  "description": "Does not unconditionally initialize caller-visible state"
+}}
+```\
+"""
+
+INIT_USER_PROMPT = """\
+## Function to Analyze
+
+```c
+{source}
+```
+
+Function: `{name}`
+Signature: `{signature}`
+File: {file_path}
+
+## Callee Initialization Summaries
+
+{callee_summaries}\
+"""
+
+# --- Approach B template (cache_mode="source") ---
+
+INIT_TASK_PROMPT = """\
+## Task
+
+Generate an initialization summary for the function in the system message. Identify what this function
+**always** initializes on ALL non-error exit paths — only guaranteed, unconditional
+initializations. This is a post-condition: only things visible to the CALLER matter.
+
+Only include caller-visible initializations:
+- **Output parameters**: memory written via pointer parameters
+- **Struct fields**: fields written via a parameter
+- **Return values**: the function's return value itself
+
+Do NOT include local variables.
+
+For each initialization, identify:
+
+1. **target**: What gets initialized
+2. **target_kind**: One of: "parameter", "field", "return_value"
+3. **initializer**: How it's initialized
+4. **byte_count**: How many bytes — "n", "sizeof(T)", "full", or null
+
+## Callee Initialization Summaries
+
+{callee_summaries}
+
+Respond in JSON format:
+```json
+{{{{
+  "function": "{name}",
+  "inits": [
+    {{{{
+      "target": "expression being initialized",
+      "target_kind": "parameter|field|return_value",
+      "initializer": "how it is initialized",
+      "byte_count": "n|sizeof(T)|full|null"
+    }}}}
+  ],
+  "description": "One-sentence description of what this function always initializes"
+}}}}
+```
+
+If the function does not unconditionally initialize any caller-visible state, return:
+```json
+{{{{
+  "function": "{name}",
+  "inits": [],
+  "description": "Does not unconditionally initialize caller-visible state"
+}}}}
+```\
+"""
+
+
 class InitSummarizer:
     """Generates initialization summaries for functions using LLM."""
 
@@ -135,16 +265,20 @@ class InitSummarizer:
         llm: LLMBackend,
         verbose: bool = False,
         log_file: str | None = None,
+        cache_mode: str = "none",
     ):
         self.db = db
         self.llm = llm
         self.verbose = verbose
         self.log_file = log_file
+        self.cache_mode = cache_mode
         self._stats = {
             "functions_processed": 0,
             "llm_calls": 0,
             "cache_hits": 0,
             "errors": 0,
+            "cache_read_tokens": 0,
+            "cache_creation_tokens": 0,
         }
         self._stats_lock = threading.Lock()
         self._progress_current = 0
@@ -171,12 +305,8 @@ class InitSummarizer:
 
         callee_section = self._build_callee_section(func, callee_summaries)
 
-        prompt = INIT_SUMMARY_PROMPT.format(
-            source=func.llm_source,
-            name=func.name,
-            signature=func.signature,
-            file_path=func.file_path,
-            callee_summaries=callee_section,
+        prompt, system, cache_system = self._build_prompt_and_system(
+            func.llm_source, func, callee_section,
         )
 
         try:
@@ -186,14 +316,20 @@ class InitSummarizer:
                 else:
                     print(f"  Summarizing (init): {func.name}")
 
-            response = self.llm.complete(prompt)
+            llm_response = self.llm.complete_with_metadata(
+                prompt, system=system, cache_system=cache_system,
+            )
             with self._stats_lock:
                 self._stats["llm_calls"] += 1
+                if llm_response.cached:
+                    self._stats["cache_hits"] += 1
+                self._stats["cache_read_tokens"] += llm_response.cache_read_tokens
+                self._stats["cache_creation_tokens"] += llm_response.cache_creation_tokens
 
             if self.log_file:
-                self._log_interaction(func.name, prompt, response)
+                self._log_interaction(func.name, prompt, llm_response.content)
 
-            summary = self._parse_response(response, func.name)
+            summary = self._parse_response(llm_response.content, func.name)
             with self._stats_lock:
                 self._stats["functions_processed"] += 1
 
@@ -279,16 +415,21 @@ class InitSummarizer:
 
         skeleton = build_skeleton(func.llm_source, func.line_start, blocks, block_summaries)
         callee_section = self._build_callee_section(func, callee_summaries)
-        prompt = INIT_SUMMARY_PROMPT.format(
-            source=skeleton, name=func.name, signature=func.signature,
-            file_path=func.file_path, callee_summaries=callee_section,
+        prompt, system, cache_system = self._build_prompt_and_system(
+            skeleton, func, callee_section,
         )
 
         try:
-            response = self.llm.complete(prompt)
+            llm_response = self.llm.complete_with_metadata(
+                prompt, system=system, cache_system=cache_system,
+            )
             with self._stats_lock:
                 self._stats["llm_calls"] += 1
-            skeleton_summary = self._parse_response(response, func.name)
+                if llm_response.cached:
+                    self._stats["cache_hits"] += 1
+                self._stats["cache_read_tokens"] += llm_response.cache_read_tokens
+                self._stats["cache_creation_tokens"] += llm_response.cache_creation_tokens
+            skeleton_summary = self._parse_response(llm_response.content, func.name)
         except Exception as e:
             with self._stats_lock:
                 self._stats["errors"] += 1
@@ -300,6 +441,42 @@ class InitSummarizer:
         with self._stats_lock:
             self._stats["functions_processed"] += 1
         return skeleton_summary
+
+    def _build_prompt_and_system(
+        self, source: str, func: Function, callee_section: str,
+    ) -> tuple[str, str | None, bool]:
+        """Return (prompt, system, cache_system) based on self.cache_mode."""
+        if self.cache_mode == "instructions":
+            prompt = INIT_USER_PROMPT.format(
+                source=source,
+                name=func.name,
+                signature=func.signature,
+                file_path=func.file_path,
+                callee_summaries=callee_section,
+            )
+            return prompt, INIT_SYSTEM_PROMPT, True
+        elif self.cache_mode == "source":
+            from .prompts import FUNCTION_CONTEXT_SYSTEM
+            system = FUNCTION_CONTEXT_SYSTEM.format(
+                source=source,
+                name=func.name,
+                signature=func.signature,
+                file_path=func.file_path,
+            )
+            prompt = INIT_TASK_PROMPT.format(
+                name=func.name,
+                callee_summaries=callee_section,
+            )
+            return prompt, system, True
+        else:
+            prompt = INIT_SUMMARY_PROMPT.format(
+                source=source,
+                name=func.name,
+                signature=func.signature,
+                file_path=func.file_path,
+                callee_summaries=callee_section,
+            )
+            return prompt, None, False
 
     def _build_callee_section(
         self,
