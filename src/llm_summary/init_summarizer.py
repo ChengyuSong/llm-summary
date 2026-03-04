@@ -33,7 +33,7 @@ File: {file_path}
 ## Task
 
 Generate an initialization summary for this function. Identify what this function
-**always** initializes on ALL non-error exit paths — only guaranteed, unconditional
+**always** initializes on ALL exit paths — only guaranteed, unconditional
 initializations. This is a post-condition: only things visible to the CALLER matter.
 
 Only include caller-visible initializations:
@@ -43,20 +43,24 @@ Only include caller-visible initializations:
 
 Do NOT include local variables — they are not visible to the caller after return.
 
+**Return value rule**: If every exit path returns a value (including NULL, 0, or error codes),
+the return value IS unconditionally initialized. A function that returns NULL on error and a
+pointer on success still always initializes its return value.
+
 For each initialization, identify:
 
 1. **target**: What gets initialized — the expression (e.g., "*out", "ctx->data", "return value")
 2. **target_kind**: One of:
    - "parameter" — an output parameter is written via pointer dereference
    - "field" — a struct field is written via a parameter
-   - "return_value" — the return value is always set
+   - "return_value" — the return value is always set (including NULL/error returns)
 3. **initializer**: How it's initialized (e.g., "memset", "assignment", "calloc", "callee:func_name")
 4. **byte_count**: How many bytes are initialized — "n", "sizeof(T)", "full", or null if unknown
 
 Consider:
 - Direct assignments to output parameters and struct fields
 - Calls to memset, memcpy, calloc, etc. (use callee summaries)
-- Only include initializations that happen on ALL non-error exit paths
+- Only include initializations that happen on ALL exit paths
 - If a field is only initialized on some paths, do NOT include it
 
 Respond in JSON format:
@@ -134,7 +138,7 @@ You are analyzing C/C++ code to generate initialization summaries (post-conditio
 ## Task
 
 Generate an initialization summary for the function provided in the user message. Identify what this function
-**always** initializes on ALL non-error exit paths — only guaranteed, unconditional
+**always** initializes on ALL exit paths — only guaranteed, unconditional
 initializations. This is a post-condition: only things visible to the CALLER matter.
 
 Only include caller-visible initializations:
@@ -144,20 +148,24 @@ Only include caller-visible initializations:
 
 Do NOT include local variables — they are not visible to the caller after return.
 
+**Return value rule**: If every exit path returns a value (including NULL, 0, or error codes),
+the return value IS unconditionally initialized. A function that returns NULL on error and a
+pointer on success still always initializes its return value.
+
 For each initialization, identify:
 
 1. **target**: What gets initialized — the expression (e.g., "*out", "ctx->data", "return value")
 2. **target_kind**: One of:
    - "parameter" — an output parameter is written via pointer dereference
    - "field" — a struct field is written via a parameter
-   - "return_value" — the return value is always set
+   - "return_value" — the return value is always set (including NULL/error returns)
 3. **initializer**: How it's initialized (e.g., "memset", "assignment", "calloc", "callee:func_name")
 4. **byte_count**: How many bytes are initialized — "n", "sizeof(T)", "full", or null if unknown
 
 Consider:
 - Direct assignments to output parameters and struct fields
 - Calls to memset, memcpy, calloc, etc. (use callee summaries)
-- Only include initializations that happen on ALL non-error exit paths
+- Only include initializations that happen on ALL exit paths
 - If a field is only initialized on some paths, do NOT include it
 
 Respond in JSON format:
@@ -208,7 +216,7 @@ INIT_TASK_PROMPT = """\
 ## Task
 
 Generate an initialization summary for the function in the system message. Identify what this function
-**always** initializes on ALL non-error exit paths — only guaranteed, unconditional
+**always** initializes on ALL exit paths — only guaranteed, unconditional
 initializations. This is a post-condition: only things visible to the CALLER matter.
 
 Only include caller-visible initializations:
@@ -217,6 +225,9 @@ Only include caller-visible initializations:
 - **Return values**: the function's return value itself
 
 Do NOT include local variables.
+
+**Return value rule**: If every exit path returns a value (including NULL, 0, or error codes),
+the return value IS unconditionally initialized.
 
 For each initialization, identify:
 
