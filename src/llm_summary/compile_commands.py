@@ -60,12 +60,12 @@ class CompileCommandsDB:
             return
 
         # Filter out the compiler and source file, keep relevant flags
-        flags = self._extract_flags(args, file_path)
+        flags = self._extract_flags(args, file_path, directory)
 
         self._commands[file_path] = flags
         self._directory_map[file_path] = directory
 
-    def _extract_flags(self, args: list[str], source_file: str) -> list[str]:
+    def _extract_flags(self, args: list[str], source_file: str, directory: str = "") -> list[str]:
         """
         Extract relevant compiler flags from command arguments.
 
@@ -116,8 +116,15 @@ class CompileCommandsDB:
             if arg == "-c":
                 continue
 
-            # Keep include paths
+            # Keep include paths, resolving relative paths against directory
             if arg.startswith("-I") or arg.startswith("-isystem") or arg.startswith("-iquote"):
+                if directory:
+                    for prefix in ("-I", "-isystem", "-iquote"):
+                        if arg.startswith(prefix):
+                            inc_path = arg[len(prefix):]
+                            if inc_path and not Path(inc_path).is_absolute():
+                                arg = f"{prefix}{Path(directory) / inc_path}"
+                            break
                 flags.append(arg)
                 continue
 
