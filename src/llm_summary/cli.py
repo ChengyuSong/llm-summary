@@ -2449,7 +2449,9 @@ def discover_link_units(
 
         from .link_units.skills import discover_heuristic
 
-        heuristic_result, unresolved = discover_heuristic(build_dir, verbose=verbose)
+        heuristic_result, unresolved = discover_heuristic(
+            build_dir, verbose=verbose, compile_commands_path=compile_commands_path,
+        )
         heuristic_result["project"] = project_name
 
         if not unresolved:

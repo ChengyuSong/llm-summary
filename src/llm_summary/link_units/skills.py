@@ -533,9 +533,39 @@ def _parse_autotools_link_units(
     return resolved, unresolved
 
 
+def _build_basename_index(
+    compile_commands_path: Path | None,
+) -> dict[str, str]:
+    """Build an index from object basename to full output path.
+
+    Maps e.g. "aio.lo" -> "/data/.../obj/src/aio/aio.c.lo"
+    so that flat ar-t member names can be resolved to real paths.
+
+    When multiple entries share a basename, the first one wins (ambiguous
+    members will fall through to bc-mapping later).
+    """
+    index: dict[str, str] = {}
+    if not compile_commands_path or not compile_commands_path.exists():
+        return index
+    try:
+        with open(compile_commands_path) as f:
+            entries = json.load(f)
+        for entry in entries:
+            output = entry.get("output")
+            if not output:
+                continue
+            basename = Path(output).name
+            if basename not in index:
+                index[basename] = output
+    except (json.JSONDecodeError, OSError):
+        pass
+    return index
+
+
 def discover_heuristic(
     build_dir: Path,
     verbose: bool = False,
+    compile_commands_path: Path | None = None,
 ) -> tuple[dict, list[str]]:
     """Heuristic link-unit discovery for non-Ninja builds.
 
@@ -546,6 +576,8 @@ def discover_heuristic(
     Args:
         build_dir: Path to the build directory
         verbose: Print progress
+        compile_commands_path: Optional path to compile_commands.json for
+            resolving ar-t member names to real output paths
 
     Returns:
         Tuple of (result_dict, unresolved_objects):
@@ -557,6 +589,11 @@ def discover_heuristic(
     if verbose:
         print("[heuristic] Running prescan...")
     prescan = prescan_build_dir(build_dir, verbose=verbose)
+
+    # Build basename index for resolving flat ar-t names to real paths
+    basename_index = _build_basename_index(compile_commands_path)
+    if verbose and basename_index:
+        print(f"[heuristic] Loaded {len(basename_index)} compile_commands outputs for member resolution")
 
     link_units = []
 
@@ -583,9 +620,18 @@ def discover_heuristic(
             continue
         seen_archives[archive_filename] = archive_rel
 
-        # Build full object paths relative to the archive's directory
-        archive_dir = str(Path(archive_rel).parent)
-        objects = [str(Path(archive_dir) / m) for m in members]
+        # Resolve member names to real output paths via compile_commands
+        objects = []
+        resolved_count = 0
+        for m in members:
+            real_path = basename_index.get(m)
+            if real_path:
+                objects.append(real_path)
+                resolved_count += 1
+            else:
+                # Fallback: path relative to archive directory
+                archive_dir = str(Path(archive_rel).parent)
+                objects.append(str(Path(archive_dir) / m))
 
         link_units.append({
             "name": name,
@@ -596,7 +642,10 @@ def discover_heuristic(
         })
 
         if verbose:
-            print(f"[heuristic]   {name}: {len(members)} objects")
+            if resolved_count:
+                print(f"[heuristic]   {name}: {len(members)} objects ({resolved_count} resolved via compile_commands)")
+            else:
+                print(f"[heuristic]   {name}: {len(members)} objects")
 
     # Step 2: Executables from ELF binaries + Makefile parsing
     if verbose:

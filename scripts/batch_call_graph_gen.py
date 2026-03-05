@@ -415,7 +415,10 @@ def run_kamain(
                 sig_name = _signal.Signals(-rc).name
             except (ValueError, AttributeError):
                 sig_name = f"signal {-rc}"
-            return False, f"killed by {sig_name}", duration
+            error = f"killed by {sig_name}"
+            if result.stderr:
+                error += f"\n{result.stderr[-500:]}"
+            return False, error, duration
 
         error = f"exit code {rc}"
         if result.stderr:
@@ -769,6 +772,85 @@ def process_project_compositional(
     return results
 
 
+def _populate_link_unit_bc_files(
+    link_units_path: Path,
+    cc_path: Path,
+    scan_dir: Path,
+    source_dir: Path,
+    build_root: Path,
+    project_scripts_dir: Path,
+    project_name: str,
+    recompile: bool = True,
+    verbose: bool = False,
+) -> None:
+    """Populate bc_files in link_units.json for units that have objects but no bc_files.
+
+    Loads compile_commands.json, filters entries to those whose output matches
+    a link unit's objects, and runs the 3-tier bc collection (including tier-3
+    recompilation if enabled).  Updates link_units.json in place.
+    """
+    lu_data, raw_units = load_link_units(link_units_path)
+    needs_bc = [lu for lu in raw_units if lu.get("objects") and not lu.get("bc_files")]
+    if not needs_bc:
+        return
+
+    # Resolve compile_commands paths
+    config_path = project_scripts_dir / "config.json"
+    if config_path.exists():
+        with open(config_path) as f:
+            config = json.load(f)
+        project_source_dir = Path(config.get("project_path", str(source_dir / project_name)))
+    else:
+        project_source_dir = source_dir / project_name
+    build_dir = build_root / project_name
+
+    try:
+        entries = resolve_compile_commands(cc_path, project_source_dir, build_dir)
+    except Exception:
+        return
+
+    if not entries:
+        return
+
+    # Build index: output path -> compile_commands entry
+    output_to_entry: dict[str, dict] = {}
+    for entry in entries:
+        output = entry.get("output")
+        if output:
+            output_to_entry[str(Path(output).resolve())] = entry
+            # Also index by basename for flat ar-t member matching
+            output_to_entry[Path(output).name] = entry
+
+    recompile_dir = (scan_dir / "recompiled_bc") if recompile else None
+    updated = False
+
+    for lu in needs_bc:
+        # Find compile_commands entries matching this unit's objects
+        matching_entries = []
+        for obj in lu["objects"]:
+            resolved = str(Path(obj).resolve())
+            entry = output_to_entry.get(resolved) or output_to_entry.get(Path(obj).name)
+            if entry and entry not in matching_entries:
+                matching_entries.append(entry)
+
+        if not matching_entries:
+            continue
+
+        bc_files, stats = collect_bc_files(matching_entries, recompile_dir=recompile_dir, verbose=False)
+        if bc_files:
+            lu["bc_files"] = [str(p) for p in bc_files]
+            updated = True
+            if verbose:
+                print(
+                    f"    [{lu['name']}] Populated {len(bc_files)} bc files "
+                    f"(T1:{stats['tier1_save_temps']} T2:{stats['tier2_lto_obj']} "
+                    f"T3:{stats['tier3_recompiled']})"
+                )
+
+    if updated:
+        update_link_units_file(link_units_path, lu_data)
+
+
 def process_project(
     project_name: str,
     build_scripts_dir: Path,
@@ -817,6 +899,16 @@ def process_project(
     if compositional is not False and link_units_path.exists():
         if verbose:
             print(f"    link_units.json found — using compositional CFL analysis")
+
+        # Populate bc_files for link units that have objects but no bc_files
+        cc_path = project_scripts_dir / "compile_commands.json"
+        if cc_path.exists():
+            _populate_link_unit_bc_files(
+                link_units_path, cc_path, scan_dir,
+                source_dir, build_root, project_scripts_dir, project_name,
+                recompile=recompile, verbose=verbose,
+            )
+
         # Extract project-level allocator candidates if a project-level DB exists
         allocator_json = scan_dir / "allocator_candidates.json"
         project_db = scan_dir / "functions.db"
