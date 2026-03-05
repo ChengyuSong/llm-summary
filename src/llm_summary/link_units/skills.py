@@ -563,6 +563,7 @@ def discover_heuristic(
     # Step 1: Libraries from .a files
     if verbose:
         print(f"[heuristic] Processing {len(prescan['archives'])} archives...")
+    seen_archives: dict[str, str] = {}  # filename -> first archive_rel (dedup)
     for archive_rel in prescan["archives"]:
         archive_path = build_dir / archive_rel
         members = run_ar_t(archive_path)
@@ -570,9 +571,17 @@ def discover_heuristic(
             continue
 
         # Derive library name from filename
-        name = Path(archive_rel).stem  # e.g., "libbfd" from "libbfd.a"
+        archive_filename = Path(archive_rel).name  # e.g., "libbfd.a"
+        name = Path(archive_rel).stem  # e.g., "libbfd"
         if name.startswith("lib"):
             name = name[3:]  # strip "lib" prefix
+
+        # Deduplicate: skip if we already processed an archive with the same filename
+        if archive_filename in seen_archives:
+            if verbose:
+                print(f"[heuristic]   {name}: skipped (duplicate of {seen_archives[archive_filename]})")
+            continue
+        seen_archives[archive_filename] = archive_rel
 
         # Build full object paths relative to the archive's directory
         archive_dir = str(Path(archive_rel).parent)

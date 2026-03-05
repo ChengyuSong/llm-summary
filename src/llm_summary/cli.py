@@ -2396,16 +2396,24 @@ def discover_link_units(
     if compile_commands_path:
         compile_commands_path = Path(compile_commands_path).resolve()
 
-    # Auto-detect build system from config.json
-    if build_system is None:
-        config_path = Path("build-scripts") / project_name / "config.json"
-        if config_path.exists():
-            try:
-                with open(config_path) as f:
-                    config = json.load(f)
+    # Auto-detect build system and in-tree build flag from config.json
+    use_build_dir = True
+    config_path = Path("build-scripts") / project_name / "config.json"
+    if config_path.exists():
+        try:
+            with open(config_path) as f:
+                config = json.load(f)
+            if build_system is None:
                 build_system = config.get("build_system")
-            except (json.JSONDecodeError, OSError):
-                pass
+            use_build_dir = config.get("use_build_dir", True)
+        except (json.JSONDecodeError, OSError):
+            pass
+
+    # For in-tree builds (use_build_dir=false), scan the source tree for artifacts
+    if not use_build_dir:
+        build_dir = project_path
+        if verbose:
+            console.print(f"[yellow]In-tree build detected — using source dir as build dir[/yellow]")
 
     # Determine output path
     if output is None:
