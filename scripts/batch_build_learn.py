@@ -56,12 +56,20 @@ def run_build_learn(
     start_time = datetime.now()
 
     try:
-        result = subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True,
-            timeout=1800,  # 10 minute timeout per project
-        )
+        if verbose:
+            # Stream output directly to terminal in verbose mode
+            result = subprocess.run(
+                cmd,
+                text=True,
+                timeout=1800,  # 30 minute timeout per project
+            )
+        else:
+            result = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                timeout=1800,  # 30 minute timeout per project
+            )
 
         duration = (datetime.now() - start_time).total_seconds()
 
@@ -69,10 +77,11 @@ def run_build_learn(
             return True, "", duration, False
         else:
             error_msg = f"Exit code {result.returncode}\n"
-            if result.stderr:
-                error_msg += f"STDERR:\n{result.stderr}\n"
-            if result.stdout:
-                error_msg += f"STDOUT:\n{result.stdout}"
+            if not verbose:
+                if result.stderr:
+                    error_msg += f"STDERR:\n{result.stderr}\n"
+                if result.stdout:
+                    error_msg += f"STDOUT:\n{result.stdout}"
 
             # Check if this is a connection/server error for the LLM
             combined_output = (result.stderr or "") + (result.stdout or "")

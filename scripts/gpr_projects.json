@@ -742,5 +742,13 @@
     "tier": 2,
     "area": "Widespread web application framework",
     "project_dir": "php"
+  },
+  {
+    "name": "musl",
+    "url": "https://git.musl-libc.org/cgit/musl",
+    "tier": 1,
+    "area": "Other essential libraries",
+    "project_dir": "musl",
+    "language": "C"
   }
 ]

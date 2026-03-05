@@ -716,6 +716,16 @@ If you recognize this project, leverage your knowledge of its typical build requ
                             build_succeeded = False
                         elif block.name == "make_clean":
                             build_succeeded = False
+                        elif block.name == "run_command" and result.get("success"):
+                            # Check if run_command produced compile_commands.json
+                            cc_in_build = (Path(self.build_dir) / "compile_commands.json") if self.build_dir else None
+                            cc_in_src = cmake_actions.project_path / "compile_commands.json"
+                            if (cc_in_build and cc_in_build.exists()) or cc_in_src.exists():
+                                build_succeeded = True
+                                if build_system_used == "unknown":
+                                    build_system_used = "custom"
+                                if self.verbose:
+                                    print("[State] run_command produced compile_commands.json — build validated")
                         elif block.name == "test_build_script" and result.get("success"):
                             build_succeeded = True
                             if self.verbose:
@@ -752,7 +762,7 @@ If you recognize this project, leverage your knowledge of its typical build requ
                                 }
                                 if self.verbose:
                                     print("[ReAct] Denied turn extension — max extensions reached")
-                        elif block.name == "finish":
+                        elif block.name == "finish" and not result.get("error"):
                             finished = True
                             finish_status = block.input.get("status")
                             finish_summary = block.input.get("summary")
