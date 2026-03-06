@@ -62,6 +62,7 @@ class IndirectCallsiteFinder:
         """Find indirect call sites in all files in a directory."""
         directory = Path(directory)
 
+        files: list[str | Path]
         if recursive:
             files = [f for f in directory.rglob("*") if f.suffix.lower() in extensions]
         else:
@@ -81,7 +82,7 @@ class IndirectCallsiteFinder:
         except OSError:
             self._file_contents[str(file_path)] = []
 
-        callsites = []
+        callsites: list[IndirectCallsite] = []
         self._find_recursive(tu.cursor, str(file_path), callsites, None)
         return callsites
 
@@ -218,13 +219,13 @@ class IndirectCallsiteFinder:
             children = list(callee.get_children())
             if children:
                 base = self._get_callee_expr(children[0])
-                member = callee.spelling
+                member: str = callee.spelling
                 # Determine if arrow or dot
                 return f"{base}->{member}" if base else member
-            return callee.spelling
+            return str(callee.spelling)
 
         elif callee.kind == CursorKind.DECL_REF_EXPR:
-            return callee.spelling
+            return str(callee.spelling)
 
         elif callee.kind == CursorKind.ARRAY_SUBSCRIPT_EXPR:
             children = list(callee.get_children())

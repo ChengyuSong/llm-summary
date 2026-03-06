@@ -25,12 +25,13 @@ class SummaryPass(Protocol):
     """Interface each pass must implement."""
 
     name: str
+    summarizer: Any
 
     def get_cached(self, func_id: int, func: Function) -> Any | None:
         """Return cached summary if available, else None."""
         ...
 
-    def summarize(self, func: Function, callee_summaries: dict[str, Any]) -> Any:
+    def summarize(self, func: Function, callee_summaries: dict[str, Any], **kwargs: Any) -> Any:
         """Generate a summary for *func* given its callee summaries."""
         ...
 
@@ -44,7 +45,7 @@ class AllocationPass:
 
     name = "allocation"
 
-    def __init__(self, summarizer, db: SummaryDB, model: str):
+    def __init__(self, summarizer: Any, db: SummaryDB, model: str):
         self.summarizer = summarizer
         self.db = db
         self.model = model
@@ -58,8 +59,12 @@ class AllocationPass:
     def summarize(
         self, func: Function,
         callee_summaries: dict[str, AllocationSummary],
+        **kwargs: Any,
     ) -> AllocationSummary:
-        return self.summarizer.summarize_function(func, callee_summaries)
+        result: AllocationSummary = self.summarizer.summarize_function(
+            func, callee_summaries,
+        )
+        return result
 
     def store(self, func: Function, summary: AllocationSummary) -> None:
         self.db.upsert_summary(func, summary, model_used=self.model)
@@ -70,7 +75,7 @@ class FreePass:
 
     name = "free"
 
-    def __init__(self, summarizer, db: SummaryDB, model: str):
+    def __init__(self, summarizer: Any, db: SummaryDB, model: str):
         self.summarizer = summarizer
         self.db = db
         self.model = model
@@ -78,8 +83,13 @@ class FreePass:
     def get_cached(self, func_id: int, func: Function) -> FreeSummary | None:
         return self.db.get_free_summary_by_function_id(func_id)
 
-    def summarize(self, func: Function, callee_summaries: dict[str, FreeSummary]) -> FreeSummary:
-        return self.summarizer.summarize_function(func, callee_summaries)
+    def summarize(
+        self, func: Function, callee_summaries: dict[str, FreeSummary], **kwargs: Any,
+    ) -> FreeSummary:
+        result: FreeSummary = self.summarizer.summarize_function(
+            func, callee_summaries,
+        )
+        return result
 
     def store(self, func: Function, summary: FreeSummary) -> None:
         self.db.upsert_free_summary(func, summary, model_used=self.model)
@@ -90,7 +100,7 @@ class InitPass:
 
     name = "init"
 
-    def __init__(self, summarizer, db: SummaryDB, model: str):
+    def __init__(self, summarizer: Any, db: SummaryDB, model: str):
         self.summarizer = summarizer
         self.db = db
         self.model = model
@@ -98,8 +108,13 @@ class InitPass:
     def get_cached(self, func_id: int, func: Function) -> InitSummary | None:
         return self.db.get_init_summary_by_function_id(func_id)
 
-    def summarize(self, func: Function, callee_summaries: dict[str, InitSummary]) -> InitSummary:
-        return self.summarizer.summarize_function(func, callee_summaries)
+    def summarize(
+        self, func: Function, callee_summaries: dict[str, InitSummary], **kwargs: Any,
+    ) -> InitSummary:
+        result: InitSummary = self.summarizer.summarize_function(
+            func, callee_summaries,
+        )
+        return result
 
     def store(self, func: Function, summary: InitSummary) -> None:
         self.db.upsert_init_summary(func, summary, model_used=self.model)
@@ -110,7 +125,7 @@ class MemsafePass:
 
     name = "memsafe"
 
-    def __init__(self, summarizer, db: SummaryDB, model: str, alias_builder=None):
+    def __init__(self, summarizer: Any, db: SummaryDB, model: str, alias_builder: Any = None):
         self.summarizer = summarizer
         self.db = db
         self.model = model
@@ -124,15 +139,17 @@ class MemsafePass:
         func: Function,
         callee_summaries: dict[str, MemsafeSummary],
         callee_funcs: dict[str, Function] | None = None,
+        **kwargs: Any,
     ) -> MemsafeSummary:
         callee_params = {name: f.params for name, f in (callee_funcs or {}).items()}
         alias_context = None
         if self.alias_builder is not None:
             callee_names = list((callee_funcs or {}).keys())
             alias_context = self.alias_builder.build_context(func, callee_names)
-        return self.summarizer.summarize_function(
-            func, callee_summaries, callee_params, alias_context=alias_context
+        result: MemsafeSummary = self.summarizer.summarize_function(
+            func, callee_summaries, callee_params, alias_context=alias_context,
         )
+        return result
 
     def store(self, func: Function, summary: MemsafeSummary) -> None:
         self.db.upsert_memsafe_summary(func, summary, model_used=self.model)
@@ -143,7 +160,7 @@ class VerificationPass:
 
     name = "verify"
 
-    def __init__(self, summarizer, db: SummaryDB, model: str, alias_builder=None):
+    def __init__(self, summarizer: Any, db: SummaryDB, model: str, alias_builder: Any = None):
         self.summarizer = summarizer
         self.db = db
         self.model = model
@@ -157,14 +174,16 @@ class VerificationPass:
         func: Function,
         callee_summaries: dict[str, VerificationSummary],
         callee_funcs: dict[str, Function] | None = None,
+        **kwargs: Any,
     ) -> VerificationSummary:
         alias_context = None
         if self.alias_builder is not None:
             callee_names = list((callee_funcs or {}).keys())
             alias_context = self.alias_builder.build_context(func, callee_names)
-        return self.summarizer.summarize_function(
-            func, callee_summaries, alias_context=alias_context
+        result: VerificationSummary = self.summarizer.summarize_function(
+            func, callee_summaries, alias_context=alias_context,
         )
+        return result
 
     def store(self, func: Function, summary: VerificationSummary) -> None:
         self.db.upsert_verification_summary(func, summary, model_used=self.model)
@@ -302,16 +321,16 @@ class BottomUpDriver:
                 if self.verbose:
                     print(f"  Re-running {p.name} for incomplete callee: {callee_name}")
                 # Find the callee's function ID and re-run
-                callee_id = next(
+                retry_callee_id: int | None = next(
                     (cid for cid in callee_ids
                      if (cf := self.db.get_function(cid)) and cf.name == callee_name),
                     None,
                 )
-                if callee_id is not None:
-                    callee_func_obj = self.db.get_function(callee_id)
+                if retry_callee_id is not None:
+                    callee_func_obj = self.db.get_function(retry_callee_id)
                     if callee_func_obj:
                         # Gather the callee's own callees for the re-run
-                        sub_callee_ids = graph.get(callee_id, [])
+                        sub_callee_ids = graph.get(retry_callee_id, [])
                         sub_summaries: dict[str, Any] = {}
                         with results_lock:
                             for sc_id in sub_callee_ids:
@@ -328,7 +347,7 @@ class BottomUpDriver:
                             except TypeError:
                                 callee_summary = p.summarize(callee_func_obj, sub_summaries)
                             with results_lock:
-                                results[p.name][callee_id] = callee_summary
+                                results[p.name][retry_callee_id] = callee_summary
                                 callee_summaries[callee_name] = callee_summary
                             p.store(callee_func_obj, callee_summary)
                         except Exception as retry_err:

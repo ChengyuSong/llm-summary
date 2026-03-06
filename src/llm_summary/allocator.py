@@ -603,6 +603,7 @@ class AllocatorDetector:
             if self.verbose:
                 print(f"  Analyzing: {func.name} (score={score})")
 
+            assert self.llm is not None
             llm_response = self.llm.complete_with_metadata(prompt)
             self._stats["llm_calls"] += 1
             self._stats["input_tokens"] += llm_response.input_tokens
@@ -631,6 +632,7 @@ class AllocatorDetector:
             if self.verbose:
                 print(f"  Analyzing (dealloc): {func.name} (score={score})")
 
+            assert self.llm is not None
             llm_response = self.llm.complete_with_metadata(prompt)
             self._stats["llm_calls"] += 1
             self._stats["input_tokens"] += llm_response.input_tokens
@@ -679,6 +681,8 @@ class AllocatorDetector:
 
     def _log_interaction(self, func_name: str, prompt: str, response: str) -> None:
         """Log LLM interaction to file."""
+        if not self.log_file:
+            return
         import datetime
 
         with open(self.log_file, "a", encoding="utf-8") as f:

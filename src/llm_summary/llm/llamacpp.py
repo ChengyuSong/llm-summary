@@ -3,6 +3,7 @@
 import json
 import urllib.error
 import urllib.request
+from typing import Any
 
 from .base import LLMBackend, LLMResponse
 
@@ -230,7 +231,7 @@ class LlamaCppBackend(LLMBackend):
                                 }
                             })
 
-                openai_msg = {"role": "assistant"}
+                openai_msg: dict[str, Any] = {"role": "assistant"}
 
                 # OpenAI requires either content or tool_calls
                 if text_content:
@@ -358,7 +359,7 @@ class LlamaCppBackend(LLMBackend):
         try:
             url = f"{self.base_url}/health"
             with urllib.request.urlopen(url, timeout=10) as response:
-                return response.status == 200
+                return bool(response.status == 200)
         except Exception:
             return False
 

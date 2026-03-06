@@ -266,11 +266,12 @@ class ContainerDetector:
         results: dict[int, ContainerSummary] = {}
 
         for func, score, signals in candidates:
+            assert func.id is not None
             # Check cache
             if not force and self.db.has_container_summary(func.id):
-                existing = self.db.get_container_summary(func.id)
-                if existing:
-                    results[func.id] = existing
+                cached = self.db.get_container_summary(func.id)
+                if cached:
+                    results[func.id] = cached
                     self._stats["cache_hits"] += 1
                     if self.verbose:
                         print(f"  Cached: {func.name}")
@@ -295,10 +296,10 @@ class ContainerDetector:
                 continue
 
             # LLM confirmation
-            summary = self._analyze_function(func, score, signals)
-            if summary:
-                self.db.add_container_summary(summary)
-                results[func.id] = summary
+            analyzed = self._analyze_function(func, score, signals)
+            if analyzed:
+                self.db.add_container_summary(analyzed)
+                results[func.id] = analyzed
                 self._stats["containers_found"] += 1
 
         return results
@@ -530,19 +531,21 @@ class ContainerDetector:
         )
 
     def _analyze_function(
-        self, func: Function, score: int, signals: list[str]
+        self, func: Function, score: int, signals: list[str],
     ) -> ContainerSummary | None:
         """
         Analyze a single candidate function using the LLM.
 
         Returns ContainerSummary if confirmed as container, None otherwise.
         """
+        assert func.id is not None
         prompt = self._build_prompt(func, signals)
 
         try:
             if self.verbose:
                 print(f"  Analyzing: {func.name} (score={score})")
 
+            assert self.llm is not None
             llm_response = self.llm.complete_with_metadata(prompt)
             self._stats["llm_calls"] += 1
             self._stats["input_tokens"] += llm_response.input_tokens
@@ -598,6 +601,7 @@ class ContainerDetector:
             data.get("container_type", "other")
         )
 
+        assert func.id is not None
         return ContainerSummary(
             function_id=func.id,
             container_arg=container_arg,
@@ -612,6 +616,8 @@ class ContainerDetector:
 
     def _log_interaction(self, func_name: str, prompt: str, response: str) -> None:
         """Log LLM interaction to file."""
+        if not self.log_file:
+            return
         import datetime
 
         with open(self.log_file, "a", encoding="utf-8") as f:

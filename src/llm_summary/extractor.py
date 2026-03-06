@@ -178,7 +178,7 @@ class FunctionExtractor:
         except Exception as e:
             raise RuntimeError(f"Failed to parse {file_path}: {e}") from e
 
-        functions = []
+        functions: list[Function] = []
         self._extract_functions_recursive(
             tu.cursor, str(file_path), functions
         )
@@ -246,6 +246,7 @@ class FunctionExtractor:
         """Extract functions from all C/C++ files in a directory."""
         directory = Path(directory)
 
+        files: list[str | Path]
         if recursive:
             files = [
                 f for f in directory.rglob("*") if f.suffix.lower() in extensions
@@ -321,10 +322,9 @@ class FunctionExtractor:
         # Get qualified name for C++ methods
         name = self._get_qualified_name(cursor)
         signature = get_type_spelling(cursor)
-        canonical_signature = get_canonical_type_spelling(cursor)
+        raw_canonical = get_canonical_type_spelling(cursor)
         # Only store canonical_signature if it differs from signature
-        if canonical_signature == signature:
-            canonical_signature = None
+        canonical_signature = None if raw_canonical == signature else raw_canonical
 
         params = self._extract_params(cursor)
         callsites = self._extract_callsites(cursor)
@@ -334,8 +334,8 @@ class FunctionExtractor:
         func = Function(
             name=name,
             file_path=str(cursor.location.file),
-            line_start=cursor.extent.start.line,
-            line_end=cursor.extent.end.line,
+            line_start=int(cursor.extent.start.line),
+            line_end=int(cursor.extent.end.line),
             source=source,
             signature=signature,
             canonical_signature=canonical_signature,
@@ -474,10 +474,10 @@ class FunctionExtractor:
         """Extract raw source text for a cursor's extent from file lines."""
         if not cursor.extent or not cursor.extent.start.file:
             return ""
-        sl = cursor.extent.start.line - 1
-        sc = cursor.extent.start.column - 1
-        el = cursor.extent.end.line - 1
-        ec = cursor.extent.end.column - 1
+        sl: int = cursor.extent.start.line - 1
+        sc: int = cursor.extent.start.column - 1
+        el: int = cursor.extent.end.line - 1
+        ec: int = cursor.extent.end.column - 1
         if sl < 0 or el >= len(raw_lines):
             return ""
         if sl == el:
@@ -869,7 +869,7 @@ class FunctionExtractorWithBodies(FunctionExtractor):
         except Exception as e:
             raise RuntimeError(f"Failed to parse {file_path}: {e}") from e
 
-        functions = []
+        functions: list[Function] = []
         self._extract_functions_recursive(tu.cursor, str(file_path), functions)
 
         return functions

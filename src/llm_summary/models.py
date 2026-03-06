@@ -510,7 +510,7 @@ class FlowDestination:
     line_number: int = 0  # Line number where flow occurs
 
     def to_dict(self) -> dict[str, Any]:
-        result = {
+        result: dict[str, Any] = {
             "type": self.dest_type,
             "name": self.name,
             "confidence": self.confidence,

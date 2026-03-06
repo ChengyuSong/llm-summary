@@ -404,7 +404,7 @@ def truncate_messages(messages: list, max_tokens: int = 100000) -> list:
     # (which typically contains tool_result blocks).
     first = messages[0]
     rest = messages[1:]
-    pairs = []
+    pairs: list[tuple[dict, ...]] = []
     i = 0
     while i < len(rest):
         if rest[i].get("role") == "assistant" and i + 1 < len(rest):
@@ -416,7 +416,7 @@ def truncate_messages(messages: list, max_tokens: int = 100000) -> list:
             i += 1
 
     # Keep pairs from the end until we'd exceed the budget
-    kept_pairs = []
+    kept_pairs: list[tuple[dict, ...]] = []
     kept_tokens = estimate_tokens(json.dumps(first.get("content", "")))
     for pair in reversed(pairs):
         pair_tokens = sum(

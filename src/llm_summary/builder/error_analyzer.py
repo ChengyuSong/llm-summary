@@ -2,7 +2,7 @@
 
 import json
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from ..llm.base import LLMBackend
 from .constants import MAX_TURNS_ERROR_ANALYSIS
@@ -98,7 +98,7 @@ When done investigating, return ONLY valid JSON:
 
 If missing_dependencies is non-empty, the error CANNOT be fixed with available tools."""
 
-        messages = [{
+        messages: list[dict[str, Any]] = [{
             "role": "user",
             "content": f"""A {error_type} error occurred. Please investigate and suggest fixes.
 
@@ -238,7 +238,7 @@ When ready, return your analysis as JSON."""
         try:
             if tool_name == "read_file":
                 return build_tools.read_file(
-                    file_path=tool_input.get("file_path"),
+                    file_path=tool_input.get("file_path", ""),
                     max_lines=tool_input.get("max_lines", 200),
                     start_line=tool_input.get("start_line", 1),
                 )

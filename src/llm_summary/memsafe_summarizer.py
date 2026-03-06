@@ -304,6 +304,7 @@ class MemsafeSummarizer:
         all_block_contracts: list[MemsafeContract] = []
 
         for i, block in enumerate(blocks):
+            assert block.id is not None
             if block.summary_json:
                 try:
                     data = json.loads(block.summary_json)
@@ -522,7 +523,7 @@ class MemsafeSummarizer:
                     result.append(f"{indent}/* {callee}: {callee_attrs[callee]} */")
 
                 # Add contract annotations
-                if has_contracts:
+                if has_contracts and summary is not None:
                     result.append(f"{indent}/* PRE[{header}]:")
                     for c in summary.contracts:
                         target = _substitute(c.target, formal_params, actual_args)
@@ -568,6 +569,8 @@ class MemsafeSummarizer:
 
     def _log_interaction(self, func_name: str, prompt: str, response: str) -> None:
         """Log LLM interaction to file."""
+        if not self.log_file:
+            return
         import datetime
 
         with open(self.log_file, "a", encoding="utf-8") as f:

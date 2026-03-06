@@ -183,6 +183,8 @@ class ExternalFunctionSummarizer:
         )
 
     def _log(self, name: str, prompt: str, response: str) -> None:
+        if not self.log_file:
+            return
         with open(self.log_file, "a", encoding="utf-8") as fh:
             fh.write(f"\n{'='*60}\n")
             fh.write(f"EXTERNAL SUMMARIZER: {name}\n")
@@ -199,12 +201,14 @@ def _extract_json(text: str) -> dict:
     match = re.search(r"\{.*\}", cleaned, re.DOTALL)
     if match:
         try:
-            return json.loads(match.group(0))
+            result: dict = json.loads(match.group(0))
+            return result
         except json.JSONDecodeError:
             pass
 
     # Fall back: try parsing the whole cleaned string
     try:
-        return json.loads(cleaned)
+        result = json.loads(cleaned)
+        return result
     except json.JSONDecodeError:
         return {}

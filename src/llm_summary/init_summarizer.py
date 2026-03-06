@@ -386,6 +386,7 @@ class InitSummarizer:
         all_block_inits: list[InitOp] = []
 
         for i, block in enumerate(blocks):
+            assert block.id is not None
             if block.summary_json:
                 try:
                     data = json.loads(block.summary_json)
@@ -555,6 +556,8 @@ class InitSummarizer:
 
     def _log_interaction(self, func_name: str, prompt: str, response: str) -> None:
         """Log LLM interaction to file."""
+        if not self.log_file:
+            return
         import datetime
 
         with open(self.log_file, "a", encoding="utf-8") as f:

@@ -57,6 +57,7 @@ class AddressTakenScanner:
         """Scan all files in a directory."""
         directory = Path(directory)
 
+        files: list[str | Path]
         if recursive:
             files = [f for f in directory.rglob("*") if f.suffix.lower() in extensions]
         else:
@@ -289,9 +290,9 @@ class AddressTakenScanner:
         if callee.kind == CursorKind.UNEXPOSED_EXPR:
             for child in callee.get_children():
                 if child.kind == CursorKind.DECL_REF_EXPR:
-                    return child.spelling
+                    return str(child.spelling)
         elif callee.kind == CursorKind.DECL_REF_EXPR:
-            return callee.spelling
+            return str(callee.spelling)
 
         return ""
 

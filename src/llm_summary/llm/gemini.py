@@ -7,22 +7,22 @@ from typing import Any
 from .base import LLMBackend, LLMResponse
 
 
-def _sig_to_str(sig) -> str | None:
+def _sig_to_str(sig: Any) -> str | None:
     """Convert thought_signature (bytes or str) to str for JSON safety."""
     if sig is None:
         return None
     if isinstance(sig, bytes):
         return base64.b64encode(sig).decode("ascii")
-    return sig
+    return str(sig)
 
 
-def _sig_to_bytes(sig) -> bytes | None:
+def _sig_to_bytes(sig: Any) -> bytes | None:
     """Convert thought_signature str back to bytes for the Gemini API."""
     if sig is None:
         return None
     if isinstance(sig, str):
         return base64.b64decode(sig)
-    return sig
+    return bytes(sig)
 
 
 class GeminiBackend(LLMBackend):

@@ -244,6 +244,9 @@ class AliasContextBuilder:
         """
         if self._rep_to_entries is None or self._func_to_reps is None:
             self._build_index()
+        assert self._rep_to_entries is not None
+        assert self._func_to_reps is not None
+        assert self._heap_reps is not None
 
         # Collect all reps for query functions, excluding heap-level reps
         # (allocator returns, deallocator args) that alias with everything.
@@ -456,7 +459,7 @@ class AliasContextBuilder:
         candidates = group.functions - query_names
 
         # Filter and rank candidates
-        scored: list[tuple[int, Function]] = []
+        scored: list[tuple[float, Function]] = []
         for cand_name in candidates:
             cand_funcs = self.db.get_function_by_name(cand_name)
             if cand_funcs and self._is_context_provider(cand_funcs[0]):

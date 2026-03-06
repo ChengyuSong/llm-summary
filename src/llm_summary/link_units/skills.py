@@ -202,8 +202,8 @@ def map_objects_to_bc(
         # Tier 2: If -flto, the .o file IS bitcode
         if bc_path is None:
             resolved_obj = str(obj_path.resolve())
-            entry = cc_by_output.get(resolved_obj)
-            if entry and _has_flto(entry) and obj_path.exists():
+            cc_entry = cc_by_output.get(resolved_obj)
+            if cc_entry and _has_flto(cc_entry) and obj_path.exists():
                 bc_path = resolved_obj
                 stats["tier2"] += 1
 

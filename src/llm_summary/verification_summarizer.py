@@ -305,14 +305,15 @@ class VerificationSummarizer:
                 self._stats["issues_found"] += len(summary.issues)
 
             # Count simplified contracts: raw - remaining
-            raw_memsafe = self.db.get_memsafe_summary_by_function_id(func.id)
-            if raw_memsafe and summary.simplified_contracts is not None:
-                raw_count = len(raw_memsafe.contracts)
-                remaining_count = len(summary.simplified_contracts)
-                with self._stats_lock:
-                    self._stats["contracts_simplified"] += max(
-                        0, raw_count - remaining_count
-                    )
+            if func.id is not None:
+                raw_memsafe = self.db.get_memsafe_summary_by_function_id(func.id)
+                if raw_memsafe and summary.simplified_contracts is not None:
+                    raw_count = len(raw_memsafe.contracts)
+                    remaining_count = len(summary.simplified_contracts)
+                    with self._stats_lock:
+                        self._stats["contracts_simplified"] += max(
+                            0, raw_count - remaining_count
+                        )
 
             return summary
 
@@ -349,6 +350,7 @@ class VerificationSummarizer:
         all_block_issues: list[SafetyIssue] = []
 
         for i, block in enumerate(blocks):
+            assert block.id is not None
             if block.summary_json:
                 try:
                     data = json.loads(block.summary_json)
@@ -449,7 +451,10 @@ class VerificationSummarizer:
         skeleton_summary.issues = list(skeleton_summary.issues) + all_block_issues
 
         # Count simplified contracts
-        raw_memsafe = self.db.get_memsafe_summary_by_function_id(func.id)
+        if func.id is None:
+            raw_memsafe = None
+        else:
+            raw_memsafe = self.db.get_memsafe_summary_by_function_id(func.id)
         if raw_memsafe and skeleton_summary.simplified_contracts is not None:
             raw_count = len(raw_memsafe.contracts)
             remaining_count = len(skeleton_summary.simplified_contracts)
@@ -619,6 +624,8 @@ class VerificationSummarizer:
 
     def _log_interaction(self, func_name: str, prompt: str, response: str) -> None:
         """Log LLM interaction to file."""
+        if not self.log_file:
+            return
         import datetime
 
         with open(self.log_file, "a", encoding="utf-8") as f:

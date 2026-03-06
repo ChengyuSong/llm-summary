@@ -77,6 +77,7 @@ class CallGraphBuilder:
         """Build call graph from all files in a directory."""
         directory = Path(directory)
 
+        files: list[str | Path]
         if recursive:
             files = [f for f in directory.rglob("*") if f.suffix.lower() in extensions]
         else:
@@ -89,7 +90,7 @@ class CallGraphBuilder:
         file_path = Path(file_path).resolve()
         tu = self.extractor.get_translation_unit(file_path)
 
-        edges = []
+        edges: list[CallEdge] = []
         self._find_calls_recursive(tu.cursor, str(file_path), edges)
         return edges
 

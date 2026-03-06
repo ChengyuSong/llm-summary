@@ -1,5 +1,7 @@
 """LLM-based indirect call resolution."""
 
+from typing import Any
+
 from ..db import SummaryDB
 from ..llm.base import LLMBackend
 from ..models import AddressFlowSummary, IndirectCallsite, IndirectCallTarget
@@ -158,6 +160,8 @@ class IndirectCallResolver:
         self, callsite: IndirectCallsite, prompt: str, response: str
     ) -> None:
         """Log LLM interaction to file."""
+        if not self.log_file:
+            return
         import datetime
 
         with open(self.log_file, "a", encoding="utf-8") as f:
@@ -251,7 +255,7 @@ class IndirectCallResolver:
         if not summary:
             return {"available": False}
 
-        result = {"available": True}
+        result: dict[str, Any] = {"available": True}
 
         if summary.semantic_role:
             result["semantic_role"] = summary.semantic_role

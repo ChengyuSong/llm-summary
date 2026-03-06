@@ -226,7 +226,7 @@ def summarize(
                 """Find or create a stdlib function stub."""
                 existing = db.get_function_by_name(name)
                 if existing:
-                    func = existing[0]
+                    func: Function = existing[0]
                     # Update attributes if not already set
                     attrs = STDLIB_ATTRIBUTES.get(name, "")
                     if attrs and not func.attributes:
@@ -911,7 +911,8 @@ def init_stdlib(
         def _get_or_create(name: str) -> Function:
             existing = db.get_function_by_name(name)
             if existing:
-                return existing[0]
+                result: Function = existing[0]
+                return result
             stub = Function(
                 name=name,
                 file_path="<stdlib>",

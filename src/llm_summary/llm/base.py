@@ -2,6 +2,7 @@
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from typing import Any
 
 
 @dataclass
@@ -62,6 +63,15 @@ class LLMBackend(ABC):
             LLMResponse with content and metadata
         """
         pass
+
+    def complete_with_tools(
+        self,
+        messages: list[dict],
+        tools: list[dict] | None = None,
+        system: str | None = None,
+    ) -> Any:
+        """Generate a completion with tool use. Override in subclasses that support tools."""
+        raise NotImplementedError(f"{self.__class__.__name__} does not support tool use")
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(model={self.model!r})"

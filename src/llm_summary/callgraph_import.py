@@ -152,6 +152,8 @@ class CallGraphImporter:
         """Pre-load DB functions into lookup caches."""
         all_funcs = self.db.get_all_functions()
         for f in all_funcs:
+            if f.id is None:
+                continue
             self._db_funcs_by_name.setdefault(f.name, []).append(f.id)
             self._db_funcs_by_name_file[(f.name, f.file_path)] = f.id
 

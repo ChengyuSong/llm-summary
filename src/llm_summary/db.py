@@ -401,6 +401,7 @@ class SummaryDB:
                 (func.name, func.signature, func.file_path),
             ).fetchone()
             return row["id"] if row else 0
+        assert cursor.lastrowid is not None, "lastrowid should be set after INSERT"
         return cursor.lastrowid
 
     def insert_functions_batch(self, functions: list[Function]) -> dict[Function, int]:
@@ -488,9 +489,9 @@ class SummaryDB:
 
     # ========== Function Block Operations ==========
 
-    def insert_function_blocks(self, blocks: list[FunctionBlock]) -> list[int]:
+    def insert_function_blocks(self, blocks: list[FunctionBlock]) -> list[int | None]:
         """Insert function blocks and return their IDs."""
-        ids = []
+        ids: list[int | None] = []
         for block in blocks:
             cursor = self.conn.execute(
                 """
@@ -1037,7 +1038,7 @@ class SummaryDB:
 
     # ========== Call Graph Operations ==========
 
-    def add_call_edge(self, edge: CallEdge) -> int:
+    def add_call_edge(self, edge: CallEdge) -> int | None:
         """Add a call edge between two functions. Returns the edge ID."""
         cursor = self.conn.execute(
             """
@@ -1137,7 +1138,7 @@ class SummaryDB:
 
     # ========== Indirect Call Operations ==========
 
-    def add_address_taken_function(self, atf: AddressTakenFunction) -> int:
+    def add_address_taken_function(self, atf: AddressTakenFunction) -> int | None:
         """Add an address-taken function."""
         cursor = self.conn.execute(
             """
@@ -1181,7 +1182,7 @@ class SummaryDB:
             for row in rows
         ]
 
-    def add_address_flow(self, flow: AddressFlow) -> int:
+    def add_address_flow(self, flow: AddressFlow) -> int | None:
         """Add an address flow record. Ignores duplicates."""
         cursor = self.conn.execute(
             """
@@ -1217,7 +1218,7 @@ class SummaryDB:
             for row in rows
         ]
 
-    def add_indirect_callsite(self, callsite: IndirectCallsite) -> int:
+    def add_indirect_callsite(self, callsite: IndirectCallsite) -> int | None:
         """Add an indirect call site. Ignores duplicates."""
         cursor = self.conn.execute(
             """
@@ -1297,7 +1298,7 @@ class SummaryDB:
 
     # ========== Address Flow Summary Operations (Pass 1 LLM) ==========
 
-    def add_flow_summary(self, summary: AddressFlowSummary) -> int:
+    def add_flow_summary(self, summary: AddressFlowSummary) -> int | None:
         """Add or update an LLM-generated flow summary for an address-taken function."""
         flow_destinations_json = json.dumps(
             [fd.to_dict() for fd in summary.flow_destinations]
@@ -1394,7 +1395,7 @@ class SummaryDB:
 
     # ========== Container Summary Operations ==========
 
-    def add_container_summary(self, summary: ContainerSummary) -> int:
+    def add_container_summary(self, summary: ContainerSummary) -> int | None:
         """Add or update a container function summary."""
         store_args_json = json.dumps(summary.store_args)
         heuristic_signals_json = json.dumps(summary.heuristic_signals)
@@ -1507,7 +1508,7 @@ class SummaryDB:
         file_path: str,
         line_number: int | None = None,
         kind: str = "typedef",
-    ) -> int:
+    ) -> int | None:
         """Insert a type declaration. Ignores duplicates (same name+kind+file)."""
         cursor = self.conn.execute(
             """

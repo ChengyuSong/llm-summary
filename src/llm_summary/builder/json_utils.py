@@ -2,6 +2,7 @@
 
 import json
 import re
+from typing import cast
 
 
 def repair_json(text: str) -> str:
@@ -63,10 +64,10 @@ def extract_json(response: str) -> dict:
         last_err: Exception | None = None
         for json_str in reversed(json_blocks):
             try:
-                return json.loads(json_str)
+                return cast(dict, json.loads(json_str))
             except json.JSONDecodeError:
                 try:
-                    return json.loads(repair_json(json_str))
+                    return cast(dict, json.loads(repair_json(json_str)))
                 except json.JSONDecodeError as e:
                     last_err = e
         raise last_err  # type: ignore[misc]
@@ -77,9 +78,9 @@ def extract_json(response: str) -> dict:
         raise ValueError("No JSON found in LLM response")
     raw = json_match.group(0)
     try:
-        return json.loads(raw)
+        return cast(dict, json.loads(raw))
     except json.JSONDecodeError:
-        return json.loads(repair_json(raw))
+        return cast(dict, json.loads(repair_json(raw)))
 
 
 def strip_markdown_json(text: str) -> str:
@@ -123,7 +124,7 @@ def parse_llm_json(
 
     try:
         json_str = strip_markdown_json(text)
-        return json.loads(json_str)
+        return cast(dict, json.loads(json_str))
     except json.JSONDecodeError as e:
         if verbose:
             print(f"[ERROR] Failed to parse LLM response as JSON: {e}")

@@ -135,7 +135,7 @@ class ScriptGenerator:
         build_script: str | None = None,
     ) -> Path:
         """Generate config.json metadata file."""
-        config = {
+        config: dict[str, str | list[str] | bool] = {
             "project_name": project_name,
             "project_path": project_path,
             "build_system": build_system,

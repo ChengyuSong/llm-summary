@@ -84,7 +84,7 @@ class Builder:
             return None
         try:
             with open(config_path) as f:
-                config = json.load(f)
+                config: dict = json.load(f)
             if self.verbose:
                 print(f"[Prior Config] Loaded from {config_path}")
             return config
@@ -251,8 +251,8 @@ class Builder:
                 print(f"  {flag}")
 
         # Attempt build with retries (fallback for simple mode)
-        build_log = []
-        error_messages = []
+        build_log: list[str] = []
+        error_messages: list[str] = []
         attempts = 0
 
         for attempt in range(1, self.max_retries + 1):
@@ -555,7 +555,7 @@ class Builder:
                 "then proceed with the build."
             )
 
-        messages = [{"role": "user", "content": user_content}]
+        messages: list[dict[str, Any]] = [{"role": "user", "content": user_content}]
 
         if self.verbose:
             print("[LLM] Requesting initial configuration (unified mode)...")
@@ -635,7 +635,7 @@ class Builder:
         result = parse_llm_json(response, default_response={}, verbose=self.verbose)
 
         if result:
-            flags = result.get("cmake_flags", [])
+            flags: list[str] = result.get("cmake_flags", [])
 
             if self.verbose and result.get("reasoning"):
                 print(f"[LLM Reasoning] {result['reasoning'][:200]}...")
@@ -700,7 +700,7 @@ class Builder:
         build_system_used = "unknown"
         use_build_dir = True
         build_script: str | None = None
-        tool_history = {}
+        tool_history: dict[str, Any] = {}
         installed_packages: set[str] = set()
         dependencies: list[str] = []
 
@@ -1154,7 +1154,7 @@ class Builder:
             # File tools
             if tool_name == "read_file":
                 return file_tools.read_file(
-                    file_path=tool_input.get("file_path"),
+                    file_path=tool_input.get("file_path", ""),
                     max_lines=tool_input.get("max_lines", 200),
                     start_line=tool_input.get("start_line", 1),
                 )

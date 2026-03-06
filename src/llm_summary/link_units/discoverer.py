@@ -293,10 +293,10 @@ class LinkUnitDiscoverer:
                                 turn_extensions_used += 1
                                 reason = block.input.get("reason", "")
                                 result = {
-                                    "granted": TURNS_EXTENSION,
-                                    "total_remaining": self.max_turns - turn - 1,
-                                    "extensions_used": turn_extensions_used,
-                                    "extensions_remaining": (
+                                    "granted": str(TURNS_EXTENSION),
+                                    "total_remaining": str(self.max_turns - turn - 1),
+                                    "extensions_used": str(turn_extensions_used),
+                                    "extensions_remaining": str(
                                         MAX_TURN_EXTENSIONS - turn_extensions_used
                                     ),
                                 }
@@ -311,7 +311,7 @@ class LinkUnitDiscoverer:
                             else:
                                 result = {
                                     "error": "Maximum extensions reached. Call finish() now.",
-                                    "extensions_used": turn_extensions_used,
+                                    "extensions_used": str(turn_extensions_used),
                                 }
 
                         tool_results.append({
