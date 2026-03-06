@@ -386,6 +386,7 @@ class BottomUpDriver:
         passes: list[SummaryPass],
         force: bool = False,
         dirty_ids: set[int] | None = None,
+        target_ids: set[int] | None = None,
     ) -> dict[str, dict[int, Any]]:
         """Run all *passes* over the call graph in a single traversal.
 
@@ -394,6 +395,8 @@ class BottomUpDriver:
             force: Re-summarize even if a cached summary exists.
             dirty_ids: If provided, only re-summarize these function IDs
                 and their transitive callers.  Others load from cache.
+            target_ids: If provided, only summarize these exact function IDs.
+                Others load from cache (no transitive expansion).
 
         Returns:
             ``{pass.name: {func_id: summary}}``
@@ -405,12 +408,18 @@ class BottomUpDriver:
         if dirty_ids is not None:
             affected = self.compute_affected(dirty_ids, graph)
 
+        # target_ids takes precedence over affected
+        if target_ids is not None:
+            affected = target_ids
+
         if self.verbose:
             stats = orderer.get_stats()
             msg = f"Processing {stats['nodes']} functions in {stats['sccs']} SCCs"
             if stats["recursive_sccs"] > 0:
                 msg += f" ({stats['recursive_sccs']} recursive)"
-            if affected is not None:
+            if target_ids is not None:
+                msg += f", {len(target_ids)} targeted"
+            elif affected is not None:
                 msg += f", {len(affected)} affected"
             if self.pool is not None:
                 msg += f", {self.pool.max_workers} workers"

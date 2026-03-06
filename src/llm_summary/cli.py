@@ -129,11 +129,15 @@ def main():
          "instructions (cache task instructions), "
          "source (cache function source)",
 )
+@click.option(
+    "--function", "function_names", multiple=True,
+    help="Only summarize these function(s). Can be specified multiple times.",
+)
 def summarize(
     db_path, backend, model, llm_host, llm_port,
     disable_thinking, verbose, force, log_llm, init_stdlib,
     allocator_file, summary_types, deallocator_file, vsnap,
-    jobs, cache_mode,
+    jobs, cache_mode, function_names,
 ):
     """Generate allocation, free, init, memsafe, and/or verify
     summaries on a pre-populated database.
@@ -413,6 +417,23 @@ def summarize(
         pass_names = " + ".join(p.name for p in passes)
         console.print(f"\n[bold]Running passes: {pass_names}[/bold]")
 
+        # Resolve --function names to IDs
+        target_ids = None
+        if function_names:
+            target_ids = set()
+            for fname in function_names:
+                found = db.get_function_by_name(fname)
+                if found:
+                    for f in found:
+                        target_ids.add(f.id)
+                else:
+                    console.print(f"[yellow]Warning: function '{fname}' not found in DB[/yellow]")
+            if not target_ids:
+                console.print("[red]No matching functions found.[/red]")
+                return
+            console.print(f"  Targeting {len(target_ids)} function(s): {', '.join(function_names)}")
+            force = True  # always re-summarize targeted functions
+
         pool = None
         if jobs > 1:
             from .llm.pool import LLMPool
@@ -422,7 +443,7 @@ def summarize(
 
         driver = BottomUpDriver(db, verbose=verbose, pool=pool)
         try:
-            results = driver.run(passes, force=force)
+            results = driver.run(passes, force=force, target_ids=target_ids)
         finally:
             if pool is not None:
                 pool.shutdown()
