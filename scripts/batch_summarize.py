@@ -297,11 +297,19 @@ def process_project_link_units(
         }
 
         if not db_path.exists():
-            target_result["error"] = f"no_functions_db"
-            target_result["timing_seconds"] = round(time.monotonic() - target_start, 2)
-            result["targets"].append(target_result)
-            target_errors.append(f"{target}: no_functions_db")
-            continue
+            # Fall back to project-level functions.db (e.g. single-target projects
+            # scanned before link-unit-aware scan was introduced)
+            project_db = project_scan_dir / "functions.db"
+            if project_db.exists():
+                if verbose:
+                    print(f"    [{target}] Per-target DB not found, using project-level functions.db")
+                db_path = project_db
+            else:
+                target_result["error"] = "no_functions_db"
+                target_result["timing_seconds"] = round(time.monotonic() - target_start, 2)
+                result["targets"].append(target_result)
+                target_errors.append(f"{target}: no_functions_db")
+                continue
 
         # Import dep summaries from intra-project deps
         dep_db_paths = resolve_dep_db_paths(lu, by_output, project_scan_dir)
