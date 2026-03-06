@@ -5,6 +5,15 @@ import re
 import threading
 
 from .db import SummaryDB
+from .llm.base import LLMBackend
+from .models import (
+    Function,
+    FunctionBlock,
+    MemsafeContract,
+    SafetyIssue,
+    VerificationSummary,
+    build_skeleton,
+)
 
 
 class IncompleteCalleeError(RuntimeError):
@@ -20,24 +29,20 @@ class IncompleteCalleeError(RuntimeError):
             f"Callee '{callee_name}' has simplified_contracts=None "
             f"(failed or incomplete prior verification)"
         )
-from .llm.base import LLMBackend
-from .models import (
-    Function,
-    FunctionBlock,
-    MemsafeContract,
-    SafetyIssue,
-    VerificationSummary,
-    build_skeleton,
-)
 
-VERIFICATION_PROMPT = """You are verifying memory safety of a C/C++ function using Hoare-logic-style reasoning.
+VERIFICATION_PROMPT = """\
+You are verifying memory safety of a C/C++ function \
+using Hoare-logic-style reasoning.
 
 ## Reasoning Model
 
-Assume this function's own pre-conditions (contracts from Pass 4) are ALREADY SATISFIED by its callers.
-Your job is to check what the function does *given* those pre-conditions hold — not to re-flag them as bugs.
+Assume this function's own pre-conditions (contracts from Pass 4) \
+are ALREADY SATISFIED by its callers.
+Your job is to check what the function does *given* those \
+pre-conditions hold — not to re-flag them as bugs.
 
-An issue is only real if it can occur even when all pre-conditions are satisfied.
+An issue is only real if it can occur even when all \
+pre-conditions are satisfied.
 
 ## Function Under Verification
 
@@ -68,7 +73,8 @@ Assuming all pre-conditions hold, does the function perform any unsafe operation
 **Do NOT report an issue if:**
 - The unsafe operation is guarded by a runtime check (e.g., `if (ptr)` before deref)
 - The condition is already covered by one of this function's own pre-conditions listed above
-- The value is guaranteed safe by a callee's post-condition (e.g., successful malloc returns non-null)
+- The value is guaranteed safe by a callee's post-condition \
+(e.g., successful malloc returns non-null)
 
 ### Check 2: Callee Pre-condition Satisfaction
 For EACH call to a callee that has pre-conditions, determine whether this function
@@ -77,7 +83,8 @@ establishes those pre-conditions before the call — given its own pre-condition
 A callee pre-condition is SATISFIED if:
 - The argument is guarded before the call (e.g., null check)
 - The value comes from an allocation that guarantees the property (e.g., calloc → initialized)
-- The value flows from a parameter covered by this function's own pre-conditions (propagation)
+- The value flows from a parameter covered by this function's \
+own pre-conditions (propagation)
 - The callee has a `nullable` contract on that parameter (meaning it accepts NULL safely)
 
 A callee pre-condition is VIOLATED if none of the above hold — this is a real bug.
@@ -154,7 +161,9 @@ If no issues and no contracts remain:
 ```
 """
 
-BLOCK_VERIFICATION_PROMPT = """You are verifying memory safety of a code block from a large C/C++ function.
+BLOCK_VERIFICATION_PROMPT = """\
+You are verifying memory safety of a code block from a \
+large C/C++ function.
 
 ## Context
 
@@ -326,10 +335,14 @@ class VerificationSummarizer:
         alias_context: str | None = None,
     ) -> VerificationSummary:
         """Chunked verification for large functions."""
-        import json
 
         if self.verbose:
-            print(f"  Large function ({len(func.llm_source)} chars, {len(blocks)} blocks): {func.name}")
+            n_chars = len(func.llm_source)
+            n_blocks = len(blocks)
+            print(
+                f"  Large function ({n_chars} chars, "
+                f"{n_blocks} blocks): {func.name}"
+            )
 
         own_contracts = self._build_own_contracts_section(func)
         block_summaries: dict[int, str] = {}

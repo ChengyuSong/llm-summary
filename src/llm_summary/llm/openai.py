@@ -33,7 +33,7 @@ class OpenAIBackend(LLMBackend):
             except ImportError:
                 raise ImportError(
                     "openai package required. Install with: pip install openai"
-                )
+                ) from None
 
             if not self.api_key:
                 raise ValueError(

@@ -304,11 +304,14 @@ class SummaryDB:
         columns = {row[1] for row in cursor.fetchall()}
         if "target_type" not in columns:
             self.conn.execute(
-                "ALTER TABLE address_taken_functions ADD COLUMN target_type TEXT NOT NULL DEFAULT 'address_taken'"
+                "ALTER TABLE address_taken_functions "
+                "ADD COLUMN target_type TEXT NOT NULL "
+                "DEFAULT 'address_taken'"
             )
-            # Recreate unique index to include target_type
-            # Drop old unique constraint by recreating the table is complex;
-            # instead just create a new unique index (old UNIQUE(function_id) stays as-is for old DBs)
+            # Recreate unique index to include target_type.
+            # Drop old unique constraint by recreating the table
+            # is complex; instead just create a new unique index
+            # (old UNIQUE(function_id) stays as-is for old DBs)
             self.conn.commit()
 
         # Add kind column to typedefs if missing
@@ -1518,7 +1521,11 @@ class SummaryDB:
         return cursor.lastrowid
 
     def insert_typedefs_batch(self, typedefs: list[dict]) -> None:
-        """Batch insert type declarations. Each dict has name, kind, underlying_type, canonical_type, file_path, line_number."""
+        """Batch insert type declarations.
+
+        Each dict has name, kind, underlying_type,
+        canonical_type, file_path, line_number.
+        """
         self.conn.executemany(
             """
             INSERT OR IGNORE INTO typedefs

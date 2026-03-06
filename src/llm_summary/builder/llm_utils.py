@@ -254,7 +254,11 @@ def compress_stale_results(messages: list, tool_history: dict) -> list:
                             "tool_use_id": tool_use_id,
                             "content": json.dumps({
                                 "compressed": True,
-                                "message": f"Earlier {tool_name} attempt ({'succeeded' if success else 'failed'}), see later attempt"
+                                "message": (
+                                f"Earlier {tool_name} attempt "
+                                f"({'succeeded' if success else 'failed'}), "
+                                f"see later attempt"
+                            )
                             })
                         })
                         continue
@@ -278,7 +282,11 @@ def compress_stale_results(messages: list, tool_history: dict) -> list:
                     if this_read_turn is not None:
                         for turn, start, end in seen_reads[file_path]:
                             # Only consider reads from LATER turns
-                            if turn > this_read_turn and _ranges_overlap(result_start, result_end, start, end):
+                            if (turn > this_read_turn
+                                    and _ranges_overlap(
+                                        result_start, result_end,
+                                        start, end,
+                                    )):
                                 is_stale = True
                                 break
 
@@ -288,7 +296,11 @@ def compress_stale_results(messages: list, tool_history: dict) -> list:
                             "tool_use_id": tool_use_id,
                             "content": json.dumps({
                                 "compressed": True,
-                                "message": f"File {file_path} lines {result_start}-{result_end} re-read later"
+                                "message": (
+                                    f"File {file_path} lines "
+                                    f"{result_start}-{result_end} "
+                                    f"re-read later"
+                                )
                             })
                         })
                         continue

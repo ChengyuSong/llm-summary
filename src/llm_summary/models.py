@@ -398,7 +398,8 @@ class VerificationSummary:
     """Complete verification result for a function."""
 
     function_name: str
-    simplified_contracts: list[MemsafeContract] | None = None  # None = not yet analyzed; [] = analyzed, no contracts
+    # None = not yet analyzed; [] = analyzed, no contracts
+    simplified_contracts: list[MemsafeContract] | None = None
     issues: list[SafetyIssue] = field(default_factory=list)
     description: str = ""
 
@@ -582,9 +583,11 @@ class ContainerSummary:
 
     function_id: int
     container_arg: int  # 0-based index of container object param
-    store_args: list[int] = field(default_factory=list)  # indices of value params stored INTO container
+    # indices of value params stored INTO container
+    store_args: list[int] = field(default_factory=list)
     load_return: bool = False  # return value loaded FROM container
-    container_type: str = "other"  # hash_table, linked_list, tree, map, cache, queue, set, array, other
+    # hash_table, linked_list, tree, map, cache, queue, set, array, other
+    container_type: str = "other"
     confidence: str = "medium"  # high, medium, low
     heuristic_score: int = 0  # pre-filter score
     heuristic_signals: list[str] = field(default_factory=list)  # which signals triggered
@@ -677,15 +680,20 @@ class AssemblyCheckResult:
         parts = []
         if self.standalone_asm_files:
             files = [f.file_path for f in self.standalone_asm_files]
-            count_str = f"{len(self.standalone_asm_files)}+" if self.standalone_truncated else str(len(self.standalone_asm_files))
+            n = len(self.standalone_asm_files)
+            count_str = f"{n}+" if self.standalone_truncated else str(n)
             parts.append(f"{count_str} standalone .s/.S/.asm file(s): {', '.join(files[:3])}")
             if len(files) > 3:
                 parts[-1] += f" (+{len(files) - 3} more)"
         if self.inline_asm_sources:
-            count_str = f"{len(self.inline_asm_sources)}+" if self.inline_sources_truncated else str(len(self.inline_asm_sources))
+            n = len(self.inline_asm_sources)
+            count_str = (
+                f"{n}+" if self.inline_sources_truncated else str(n)
+            )
             parts.append(f"{count_str} C/C++ file(s) with inline asm")
         if self.inline_asm_ir:
-            count_str = f"{len(self.inline_asm_ir)}+" if self.inline_ir_truncated else str(len(self.inline_asm_ir))
+            n = len(self.inline_asm_ir)
+            count_str = f"{n}+" if self.inline_ir_truncated else str(n)
             parts.append(f"{count_str} LLVM IR file(s) with inline asm")
 
         summary = "Assembly detected: " + "; ".join(parts) if parts else "No new assembly"

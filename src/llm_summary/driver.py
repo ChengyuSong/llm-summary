@@ -7,9 +7,8 @@ from collections import deque
 from concurrent.futures import as_completed
 from typing import Any, Protocol
 
-from .llm.pool import LLMPool
-
 from .db import SummaryDB
+from .llm.pool import LLMPool
 from .models import (
     AllocationSummary,
     FreeSummary,
@@ -56,7 +55,10 @@ class AllocationPass:
             return existing
         return None
 
-    def summarize(self, func: Function, callee_summaries: dict[str, AllocationSummary]) -> AllocationSummary:
+    def summarize(
+        self, func: Function,
+        callee_summaries: dict[str, AllocationSummary],
+    ) -> AllocationSummary:
         return self.summarizer.summarize_function(func, callee_summaries)
 
     def store(self, func: Function, summary: AllocationSummary) -> None:
@@ -319,7 +321,10 @@ class BottomUpDriver:
                                         sub_summaries[sc_func.name] = results[p.name][sc_id]
                         try:
                             try:
-                                callee_summary = p.summarize(callee_func_obj, sub_summaries, callee_funcs={})
+                                callee_summary = p.summarize(
+                                callee_func_obj, sub_summaries,
+                                callee_funcs={},
+                            )
                             except TypeError:
                                 callee_summary = p.summarize(callee_func_obj, sub_summaries)
                             with results_lock:

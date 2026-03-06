@@ -14,7 +14,9 @@ from .models import (
     build_skeleton,
 )
 
-INIT_SUMMARY_PROMPT = """You are analyzing C/C++ code to generate initialization summaries (post-conditions).
+INIT_SUMMARY_PROMPT = """\
+You are analyzing C/C++ code to generate initialization \
+summaries (post-conditions).
 
 ## Function to Analyze
 
@@ -54,7 +56,8 @@ For each initialization, identify:
    - "parameter" — an output parameter is written via pointer dereference
    - "field" — a struct field is written via a parameter
    - "return_value" — the return value is always set (including NULL/error returns)
-3. **initializer**: How it's initialized (e.g., "memset", "assignment", "calloc", "callee:func_name")
+3. **initializer**: How it's initialized \
+(e.g., "memset", "assignment", "calloc", "callee:func_name")
 4. **byte_count**: How many bytes are initialized — "n", "sizeof(T)", "full", or null if unknown
 
 Consider:
@@ -137,7 +140,8 @@ You are analyzing C/C++ code to generate initialization summaries (post-conditio
 
 ## Task
 
-Generate an initialization summary for the function provided in the user message. Identify what this function
+Generate an initialization summary for the function provided in the \
+user message. Identify what this function
 **always** initializes on ALL exit paths — only guaranteed, unconditional
 initializations. This is a post-condition: only things visible to the CALLER matter.
 
@@ -159,7 +163,8 @@ For each initialization, identify:
    - "parameter" — an output parameter is written via pointer dereference
    - "field" — a struct field is written via a parameter
    - "return_value" — the return value is always set (including NULL/error returns)
-3. **initializer**: How it's initialized (e.g., "memset", "assignment", "calloc", "callee:func_name")
+3. **initializer**: How it's initialized \
+(e.g., "memset", "assignment", "calloc", "callee:func_name")
 4. **byte_count**: How many bytes are initialized — "n", "sizeof(T)", "full", or null if unknown
 
 Consider:
@@ -215,7 +220,8 @@ File: {file_path}
 INIT_TASK_PROMPT = """\
 ## Task
 
-Generate an initialization summary for the function in the system message. Identify what this function
+Generate an initialization summary for the function in the system \
+message. Identify what this function
 **always** initializes on ALL exit paths — only guaranteed, unconditional
 initializations. This is a post-condition: only things visible to the CALLER matter.
 
@@ -323,7 +329,11 @@ class InitSummarizer:
         try:
             if self.verbose:
                 if self._progress_total > 0:
-                    print(f"  ({self._progress_current}/{self._progress_total}) Summarizing (init): {func.name}")
+                    print(
+                        f"  ({self._progress_current}/"
+                        f"{self._progress_total})"
+                        f" Summarizing (init): {func.name}"
+                    )
                 else:
                     print(f"  Summarizing (init): {func.name}")
 
@@ -365,7 +375,12 @@ class InitSummarizer:
     ) -> InitSummary:
         """Chunked summarization for large functions (init pass)."""
         if self.verbose:
-            print(f"  Large function ({len(func.llm_source)} chars, {len(blocks)} blocks): {func.name}")
+            src_len = len(func.llm_source)
+            n_blocks = len(blocks)
+            print(
+                f"  Large function ({src_len} chars,"
+                f" {n_blocks} blocks): {func.name}"
+            )
 
         block_summaries: dict[int, str] = {}
         all_block_inits: list[InitOp] = []
@@ -505,7 +520,10 @@ class InitSummarizer:
     ) -> str:
         """Build the callee init summaries section for the prompt."""
         if not callee_summaries:
-            return "No callee initialization summaries available (leaf function or external calls only)."
+            return (
+                "No callee initialization summaries available"
+                " (leaf function or external calls only)."
+            )
 
         callee_attrs = self._get_callee_attributes(list(callee_summaries.keys()))
 
@@ -519,10 +537,19 @@ class InitSummarizer:
                 )
                 lines.append(f"- `{name}`: Initializes {init_desc}{attr_suffix}")
             else:
-                lines.append(f"- `{name}`: {summary.description or 'Does not initialize caller-visible state'}{attr_suffix}")
+                desc = (
+                    summary.description
+                    or "Does not initialize caller-visible state"
+                )
+                lines.append(
+                    f"- `{name}`: {desc}{attr_suffix}"
+                )
 
         if not lines:
-            return "No callee initialization summaries available (leaf function or external calls only)."
+            return (
+                "No callee initialization summaries available"
+                " (leaf function or external calls only)."
+            )
 
         return "\n".join(lines)
 
@@ -551,11 +578,11 @@ class InitSummarizer:
         data = extract_json(response)
 
         # Parse inits
-        _VALID_KINDS = {"parameter", "field", "return_value"}
+        valid_kinds = {"parameter", "field", "return_value"}
         inits = []
         for i in data.get("inits", []):
             target_kind = i.get("target_kind", "parameter")
-            if target_kind not in _VALID_KINDS:
+            if target_kind not in valid_kinds:
                 target_kind = "parameter"
             inits.append(
                 InitOp(

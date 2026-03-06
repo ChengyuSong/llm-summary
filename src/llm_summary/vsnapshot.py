@@ -28,13 +28,11 @@ Binary format (little-endian):
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-from bisect import bisect_left
 import json
 import struct
+from bisect import bisect_left
 from collections import defaultdict
-from typing import Dict, List, Tuple
-
+from dataclasses import dataclass
 
 MAGIC = b"KAVSNAP1"
 VERSION = 1
@@ -52,11 +50,11 @@ class VSnapshot:
         self,
         label_v: int,
         flags: int,
-        metadata: Dict,
-        node_to_rep: List[int],
-        rep_to_node: List[int],
-        rep_rows: List[List[int]],
-        named_entries: List[NamedEntry],
+        metadata: dict,
+        node_to_rep: list[int],
+        rep_to_node: list[int],
+        rep_rows: list[list[int]],
+        named_entries: list[NamedEntry],
     ) -> None:
         self.label_v = label_v
         self.flags = flags
@@ -69,17 +67,17 @@ class VSnapshot:
         self.node_count = len(node_to_rep)
         self.rep_count = len(rep_to_node)
 
-        self.rep_members: List[List[int]] = [[] for _ in range(self.rep_count)]
+        self.rep_members: list[list[int]] = [[] for _ in range(self.rep_count)]
         for node, rep in enumerate(node_to_rep):
             self.rep_members[rep].append(node)
 
-        name_to_nodes: Dict[str, List[int]] = defaultdict(list)
+        name_to_nodes: dict[str, list[int]] = defaultdict(list)
         for e in named_entries:
             name_to_nodes[e.name].append(e.node)
         self.name_to_nodes = dict(name_to_nodes)
 
     @staticmethod
-    def _read_varuint(buf: memoryview, pos: int) -> Tuple[int, int]:
+    def _read_varuint(buf: memoryview, pos: int) -> tuple[int, int]:
         value = 0
         shift = 0
         while pos < len(buf):
@@ -94,7 +92,7 @@ class VSnapshot:
         raise ValueError("truncated varuint")
 
     @classmethod
-    def load(cls, path: str) -> "VSnapshot":
+    def load(cls, path: str) -> VSnapshot:
         with open(path, "rb") as f:
             raw = f.read()
         buf = memoryview(raw)
@@ -130,10 +128,10 @@ class VSnapshot:
                 raise ValueError("rep_to_node out of range")
             rep_to_node[i] = v
 
-        rep_rows: List[List[int]] = [[] for _ in range(rep_count)]
+        rep_rows: list[list[int]] = [[] for _ in range(rep_count)]
         for r in range(rep_count):
             degree, pos = cls._read_varuint(buf, pos)
-            row: List[int] = []
+            row: list[int] = []
             prev = 0
             for i in range(degree):
                 delta, pos = cls._read_varuint(buf, pos)
@@ -144,7 +142,7 @@ class VSnapshot:
                 prev = cur
             rep_rows[r] = row
 
-        named_entries: List[NamedEntry] = []
+        named_entries: list[NamedEntry] = []
         if pos < len(buf):
             named_count, pos = cls._read_varuint(buf, pos)
             for _ in range(named_count):
@@ -184,15 +182,15 @@ class VSnapshot:
         i = bisect_left(row, rep_b)
         return i < len(row) and row[i] == rep_b
 
-    def aliases_of_rep(self, rep: int) -> List[int]:
+    def aliases_of_rep(self, rep: int) -> list[int]:
         if rep < 0 or rep >= self.rep_count:
             raise IndexError(f"rep out of range: {rep}")
         return self.rep_rows[rep]
 
-    def aliases_of_node(self, node: int) -> List[int]:
+    def aliases_of_node(self, node: int) -> list[int]:
         return self.aliases_of_rep(self.rep(node))
 
-    def resolve_name(self, name: str) -> List[int]:
+    def resolve_name(self, name: str) -> list[int]:
         return list(self.name_to_nodes.get(name, []))
 
     def may_alias_name(self, name_a: str, name_b: str) -> bool:

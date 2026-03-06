@@ -47,7 +47,7 @@ class ClaudeBackend(LLMBackend):
             except ImportError:
                 raise ImportError(
                     "anthropic package required. Install with: pip install anthropic"
-                )
+                ) from None
 
             if self.api_key:
                 self._client = anthropic.Anthropic(api_key=self.api_key)

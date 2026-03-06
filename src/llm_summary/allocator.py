@@ -115,8 +115,8 @@ If this is NOT an allocator function, return:
 """
 
 
-DEALLOCATOR_PROMPT = """You are analyzing a C/C++ function to determine if it is a memory deallocator \
-that frees or releases memory.
+DEALLOCATOR_PROMPT = """You are analyzing a C/C++ function to determine \
+if it is a memory deallocator that frees or releases memory.
 
 ## Function Source
 

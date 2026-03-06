@@ -172,8 +172,6 @@ class Builder:
             shutil.rmtree(build_dir)
         build_dir.mkdir(parents=True, exist_ok=True)
 
-        project_name = project_path.name
-
         # Get initial configuration from LLM
         if self.verbose:
             print("\n[1/3] Analyzing project with LLM...")
@@ -216,7 +214,11 @@ class Builder:
                     "build_system_used": build_system_used,
                     "attempts": 1,
                     "build_log": "ReAct loop terminated without successful build",
-                    "error_messages": ["LLM identified blockers that cannot be resolved with available tools (e.g., missing dependencies)"],
+                    "error_messages": [
+                        "LLM identified blockers that cannot be "
+                        "resolved with available tools "
+                        "(e.g., missing dependencies)"
+                    ],
                     "use_build_dir": use_build_dir,
                     "dependencies": result.get("dependencies", []),
                 }
@@ -357,98 +359,188 @@ class Builder:
             verbose=self.verbose, ccache_dir=self.ccache_dir,
         )
 
-        system = f"""You are a build configuration expert. Build this project iteratively using the available tools.
+        system = (
+            "You are a build configuration expert. "
+            "Build this project iteratively using "
+            "the available tools.\n\n"
+            f"**Turn Budget:** You have {MAX_TURNS} tool-use "
+            "turns to complete the build. Be efficient — "
+            "minimize exploratory reads and move to building "
+            "quickly. If you recognize the project or build "
+            "system, skip unnecessary exploration. You will "
+            "be warned when turns are running low. If you "
+            "need more turns (e.g., complex build with many "
+            "dependencies), call the request_more_turns tool "
+            "with a reason.\n\n"
+            "**Step 1 - Explore the project root** to "
+            "determine the build system:\n"
+            "- Use list_dir and read_file to examine the "
+            "project structure\n"
+            "- Keep exploration minimal — 2-3 reads max "
+            "before starting the build\n\n"
+            "**Step 2 - Choose the appropriate build "
+            "approach:**\n"
+            "- If `CMakeLists.txt` exists → prefer "
+            "cmake_configure + cmake_build (generates "
+            "compile_commands.json natively)\n"
+            "- If `configure` or `configure.ac` exists → "
+            "use run_configure + make_build; run autoreconf "
+            "first if only configure.ac\n"
+            "- If only `Makefile` exists → use make_build "
+            "directly with use_build_dir=false\n"
+            "- For Meson, Bazel, SCons, or custom build "
+            "systems → use run_command to explore and build\n"
+            "- For simple/straightforward CMake projects, "
+            "you may return JSON configuration instead of "
+            "using tools\n\n"
 
-**Turn Budget:** You have {MAX_TURNS} tool-use turns to complete the build. Be efficient — minimize exploratory reads and move to building quickly. If you recognize the project or build system, skip unnecessary exploration. You will be warned when turns are running low. If you need more turns (e.g., complex build with many dependencies), call the request_more_turns tool with a reason.
-
-**Step 1 - Explore the project root** to determine the build system:
-- Use list_dir and read_file to examine the project structure
-- Keep exploration minimal — 2-3 reads max before starting the build
-
-**Step 2 - Choose the appropriate build approach:**
-- If `CMakeLists.txt` exists → prefer cmake_configure + cmake_build (generates compile_commands.json natively)
-- If `configure` or `configure.ac` exists → use run_configure + make_build; run autoreconf first if only configure.ac
-- If only `Makefile` exists → use make_build directly with use_build_dir=false
-- For Meson, Bazel, SCons, or custom build systems → use run_command to explore and build
-- For simple/straightforward CMake projects, you may return JSON configuration instead of using tools
-
-**Simple mode (for straightforward CMake projects):**
-Return JSON configuration directly:
-{{
-  "cmake_flags": ["-DCMAKE_EXPORT_COMPILE_COMMANDS=ON", ...],
-  "reasoning": "...",
-  "dependencies": [...]
-}}
-
-**Available Tools:**
-- read_file: Read project files and build artifacts
-- list_dir: Explore project structure and build directory
-- cmake_configure: Run cmake configure with flags
-- cmake_build: Run ninja build after cmake configure
-- bootstrap: Run bootstrap/autogen.sh script
-- autoreconf: Run autoreconf -fi to regenerate configure script
-- run_configure: Run ./configure with flags (env vars default to clang-18 + LTO, but can be overridden)
-- make_build: Run bear -- make to build and capture compile commands
-- make_clean: Run make clean
-- make_distclean: Run make distclean
-- run_command: Run arbitrary shell commands in Docker (for Meson, Bazel, SCons, custom build systems)
-- test_build_script: Test a build script from scratch in a clean temp dir (verifies compile_commands.json)
-- check_assembly: Explicit assembly check after run_command builds
-- install_packages: Install system packages (apt) when build fails due to missing headers/libraries
-- request_more_turns: Request additional turns if running low and still making progress
-- finish: Signal completion (MUST call this when done)
-
-**IMPORTANT**: All file/directory paths in tools must be RELATIVE to project root (e.g., ".", "cmake/", "src/config.h", "build/compile_commands.json"). The build directory is accessible at "build/". Absolute paths are not allowed.
-
-**Build Requirements (mandatory):**
-- Generate compile_commands.json (cmake: CMAKE_EXPORT_COMPILE_COMMANDS=ON; make: via bear)
-- Disable SIMD/hardware optimizations to minimize assembly code
-
-**Build Preferences (use these by default, but fall back if the project doesn't support them):**
-- Prefer Clang 18 (cmake: CMAKE_C_COMPILER=clang-18; configure/make: auto-injected env vars). If the project fails to build with clang, fall back to gcc.
-- Prefer LLVM LTO (cmake: CMAKE_INTERPROCEDURAL_OPTIMIZATION=ON; configure/make: auto-injected). If LTO causes build failures, disable it.
-- Prefer static libraries only (cmake: BUILD_SHARED_LIBS=OFF; configure: --disable-shared --enable-static). If the project requires shared libraries, that's fine.
-- Prefer LLVM IR generation (cmake: CMAKE_C_FLAGS='-g -flto=full -save-temps=obj'; configure/make: auto-injected). Only applicable when using clang with LTO. The -g flag is required so .bc files retain debug info for downstream analysis.
-
-**Assembly Verification:**
-After each successful build (cmake_build or make_build), an assembly check runs automatically. If assembly is detected, try different flags to avoid it.
-
-**Tool ordering rules:**
-- cmake_configure can be called freely (cmake handles reconfigure)
-- cmake_build requires a prior cmake_configure
-- run_configure requires make_distclean first if you already configured (to reconfigure with new flags)
-- make_build requires a prior run_configure (unless Makefile-only project with use_build_dir=false)
-
-**Normal workflow:**
-explore (list_dir/read_file) → configure (cmake_configure or run_configure) → build (cmake_build or make_build) → finish
-
-**Workflow for Meson, Bazel, SCons, or custom build systems:**
-1. Use run_command to explore the project and try building (trial and error)
-2. After figuring out the build, distill working commands into a clean script
-3. Call test_build_script(script) to verify it works from scratch
-   - The test runs in a fresh build dir and REQUIRES compile_commands.json to be generated
-   - If it fails, adjust the script and retry
-4. Only call finish() after test_build_script succeeds
-5. Include the validated build_script in finish(build_script=...)
-
-**Assembly minimization workflow:**
-After a successful build, if assembly is detected, you may iterate:
-- CMake: cmake_configure (new flags) → cmake_build → check → repeat
-- Make: make_distclean → run_configure (new flags) → make_build → check → repeat
-- Custom: adjust script → test_build_script → check_assembly → repeat
-Once assembly results are acceptable, call finish(status="success", summary="...")
-
-**Installing missing packages:**
-- If a build fails due to missing headers or libraries (e.g., zlib.h not found), use install_packages to install the required dev package (e.g., zlib1g-dev)
-- After installing, retry the build (you may need to re-run cmake_configure or run_configure)
-- When calling finish, report which installed packages are actual build dependencies in the 'dependencies' field
-
-**CRITICAL - When to STOP:**
-- Once build succeeds with acceptable assembly results, call finish(status="success", summary="...", dependencies=[...])
-- If you've exhausted all reasonable options, call finish(status="failure", summary="...")
-
-You are working on: {project_name}
-If you recognize this project, leverage your knowledge of its typical build requirements."""
+            "**Simple mode (for straightforward CMake "
+            "projects):**\n"
+            "Return JSON configuration directly:\n"
+            "{{\n"
+            '  "cmake_flags": '
+            '["-DCMAKE_EXPORT_COMPILE_COMMANDS=ON", ...],\n'
+            '  "reasoning": "...",\n'
+            '  "dependencies": [...]\n'
+            "}}\n\n"
+            "**Available Tools:**\n"
+            "- read_file: Read project files and build "
+            "artifacts\n"
+            "- list_dir: Explore project structure and "
+            "build directory\n"
+            "- cmake_configure: Run cmake configure with "
+            "flags\n"
+            "- cmake_build: Run ninja build after cmake "
+            "configure\n"
+            "- bootstrap: Run bootstrap/autogen.sh script\n"
+            "- autoreconf: Run autoreconf -fi to regenerate "
+            "configure script\n"
+            "- run_configure: Run ./configure with flags "
+            "(env vars default to clang-18 + LTO, but can "
+            "be overridden)\n"
+            "- make_build: Run bear -- make to build and "
+            "capture compile commands\n"
+            "- make_clean: Run make clean\n"
+            "- make_distclean: Run make distclean\n"
+            "- run_command: Run arbitrary shell commands in "
+            "Docker (for Meson, Bazel, SCons, custom build "
+            "systems)\n"
+            "- test_build_script: Test a build script from "
+            "scratch in a clean temp dir (verifies "
+            "compile_commands.json)\n"
+            "- check_assembly: Explicit assembly check after "
+            "run_command builds\n"
+            "- install_packages: Install system packages "
+            "(apt) when build fails due to missing "
+            "headers/libraries\n"
+            "- request_more_turns: Request additional turns "
+            "if running low and still making progress\n"
+            "- finish: Signal completion (MUST call this "
+            "when done)\n\n"
+            "**IMPORTANT**: All file/directory paths in "
+            "tools must be RELATIVE to project root (e.g., "
+            '".", "cmake/", "src/config.h", '
+            '"build/compile_commands.json"). The build '
+            'directory is accessible at "build/". Absolute '
+            "paths are not allowed.\n\n"
+            "**Build Requirements (mandatory):**\n"
+            "- Generate compile_commands.json (cmake: "
+            "CMAKE_EXPORT_COMPILE_COMMANDS=ON; make: via "
+            "bear)\n"
+            "- Disable SIMD/hardware optimizations to "
+            "minimize assembly code\n\n"
+            "**Build Preferences (use these by default, but "
+            "fall back if the project doesn't support "
+            "them):**\n"
+            "- Prefer Clang 18 (cmake: "
+            "CMAKE_C_COMPILER=clang-18; configure/make: "
+            "auto-injected env vars). If the project fails "
+            "to build with clang, fall back to gcc.\n"
+            "- Prefer LLVM LTO (cmake: "
+            "CMAKE_INTERPROCEDURAL_OPTIMIZATION=ON; "
+            "configure/make: auto-injected). If LTO causes "
+            "build failures, disable it.\n"
+            "- Prefer static libraries only (cmake: "
+            "BUILD_SHARED_LIBS=OFF; configure: "
+            "--disable-shared --enable-static). If the "
+            "project requires shared libraries, that's "
+            "fine.\n"
+            "- Prefer LLVM IR generation (cmake: "
+            "CMAKE_C_FLAGS='-g -flto=full -save-temps=obj';"
+            " configure/make: auto-injected). Only "
+            "applicable when using clang with LTO. The -g "
+            "flag is required so .bc files retain debug info"
+            " for downstream analysis.\n\n"
+            "**Assembly Verification:**\n"
+            "After each successful build (cmake_build or "
+            "make_build), an assembly check runs "
+            "automatically. If assembly is detected, try "
+            "different flags to avoid it.\n\n"
+            "**Tool ordering rules:**\n"
+            "- cmake_configure can be called freely (cmake "
+            "handles reconfigure)\n"
+            "- cmake_build requires a prior "
+            "cmake_configure\n"
+            "- run_configure requires make_distclean first "
+            "if you already configured (to reconfigure with "
+            "new flags)\n"
+            "- make_build requires a prior run_configure "
+            "(unless Makefile-only project with "
+            "use_build_dir=false)\n\n"
+            "**Normal workflow:**\n"
+            "explore (list_dir/read_file) → configure "
+            "(cmake_configure or run_configure) → build "
+            "(cmake_build or make_build) → finish\n\n"
+            "**Workflow for Meson, Bazel, SCons, or custom "
+            "build systems:**\n"
+            "1. Use run_command to explore the project and "
+            "try building (trial and error)\n"
+            "2. After figuring out the build, distill "
+            "working commands into a clean script\n"
+            "3. Call test_build_script(script) to verify it "
+            "works from scratch\n"
+            "   - The test runs in a fresh build dir and "
+            "REQUIRES compile_commands.json to be "
+            "generated\n"
+            "   - If it fails, adjust the script and "
+            "retry\n"
+            "4. Only call finish() after test_build_script "
+            "succeeds\n"
+            "5. Include the validated build_script in "
+            "finish(build_script=...)\n\n"
+            "**Assembly minimization workflow:**\n"
+            "After a successful build, if assembly is "
+            "detected, you may iterate:\n"
+            "- CMake: cmake_configure (new flags) → "
+            "cmake_build → check → repeat\n"
+            "- Make: make_distclean → run_configure (new "
+            "flags) → make_build → check → repeat\n"
+            "- Custom: adjust script → test_build_script → "
+            "check_assembly → repeat\n"
+            "Once assembly results are acceptable, call "
+            'finish(status="success", summary="...")\n\n'
+            "**Installing missing packages:**\n"
+            "- If a build fails due to missing headers or "
+            "libraries (e.g., zlib.h not found), use "
+            "install_packages to install the required dev "
+            "package (e.g., zlib1g-dev)\n"
+            "- After installing, retry the build (you may "
+            "need to re-run cmake_configure or "
+            "run_configure)\n"
+            "- When calling finish, report which installed "
+            "packages are actual build dependencies in the "
+            "'dependencies' field\n\n"
+            "**CRITICAL - When to STOP:**\n"
+            "- Once build succeeds with acceptable assembly "
+            "results, call finish(status=\"success\", "
+            'summary="...", dependencies=[...])\n'
+            "- If you've exhausted all reasonable options, "
+            'call finish(status="failure", '
+            'summary="...")\n\n'
+            f"You are working on: {project_name}\n"
+            "If you recognize this project, leverage your "
+            "knowledge of its typical build requirements."
+        )
 
         # Build the initial user message, incorporating prior config if available
         prior_config = self._load_prior_config(project_name)
@@ -468,7 +560,15 @@ If you recognize this project, leverage your knowledge of its typical build requ
         if self.verbose:
             print("[LLM] Requesting initial configuration (unified mode)...")
             print(f"[LLM] Project: {project_name}")
-            print("[LLM] Available tools: read_file, list_dir, cmake_configure, cmake_build, bootstrap, autoreconf, run_configure, make_build, make_clean, make_distclean, run_command, test_build_script, check_assembly, install_packages, request_more_turns, finish")
+            print(
+                "[LLM] Available tools: read_file, "
+                "list_dir, cmake_configure, cmake_build, "
+                "bootstrap, autoreconf, run_configure, "
+                "make_build, make_clean, make_distclean, "
+                "run_command, test_build_script, "
+                "check_assembly, install_packages, "
+                "request_more_turns, finish"
+            )
 
         if self.log_file:
             with open(self.log_file, "a") as f:
@@ -619,8 +719,16 @@ If you recognize this project, leverage your knowledge of its typical build requ
                 if not build_succeeded:
                     react_terminated = True
                     if self.verbose:
-                        print(f"[ReAct] LLM terminated without successful build after {turn + 1} turns")
-                        print("[ReAct] This typically means the LLM identified blockers it cannot resolve")
+                        print(
+                            "[ReAct] LLM terminated without "
+                            f"successful build after {turn + 1}"
+                            " turns"
+                        )
+                        print(
+                            "[ReAct] This typically means "
+                            "the LLM identified blockers "
+                            "it cannot resolve"
+                        )
                 else:
                     if self.verbose:
                         print(f"[ReAct] LLM finished after {turn + 1} turns")
@@ -693,7 +801,10 @@ If you recognize this project, leverage your knowledge of its typical build requ
                             # (e.g., ./configure --help succeeds but produces nothing)
                             _ubd = block.input.get("use_build_dir", True)
                             if _ubd:
-                                _mf_dir = autotools_actions.build_dir or (autotools_actions.project_path / "build")
+                                _mf_dir = (
+                                    autotools_actions.build_dir
+                                    or (autotools_actions.project_path / "build")
+                                )
                             else:
                                 _mf_dir = autotools_actions.project_path
                             if (_mf_dir / "Makefile").exists():
@@ -703,7 +814,11 @@ If you recognize this project, leverage your knowledge of its typical build requ
                                 final_flags = block.input.get("configure_flags", [])
                                 use_build_dir = _ubd
                             elif self.verbose:
-                                print(f"[State] run_configure returned success but no Makefile at {_mf_dir}")
+                                print(
+                                    "[State] run_configure returned "
+                                    "success but no Makefile at "
+                                    f"{_mf_dir}"
+                                )
                         elif block.name == "make_build" and result.get("success"):
                             build_succeeded = True
                             if build_system_used == "unknown":
@@ -718,14 +833,25 @@ If you recognize this project, leverage your knowledge of its typical build requ
                             build_succeeded = False
                         elif block.name == "run_command" and result.get("success"):
                             # Check if run_command produced compile_commands.json
-                            cc_in_build = (Path(self.build_dir) / "compile_commands.json") if self.build_dir else None
+                            cc_in_build = (
+                                (Path(self.build_dir) / "compile_commands.json")
+                                if self.build_dir else None
+                            )
                             cc_in_src = cmake_actions.project_path / "compile_commands.json"
-                            if (cc_in_build and cc_in_build.exists()) or cc_in_src.exists():
+                            cc_exists = (
+                                (cc_in_build and cc_in_build.exists())
+                                or cc_in_src.exists()
+                            )
+                            if cc_exists:
                                 build_succeeded = True
                                 if build_system_used == "unknown":
                                     build_system_used = "custom"
                                 if self.verbose:
-                                    print("[State] run_command produced compile_commands.json — build validated")
+                                    print(
+                                        "[State] run_command produced "
+                                        "compile_commands.json — "
+                                        "build validated"
+                                    )
                         elif block.name == "test_build_script" and result.get("success"):
                             build_succeeded = True
                             if self.verbose:
@@ -749,15 +875,27 @@ If you recognize this project, leverage your knowledge of its typical build requ
                                     "extra_turns": TURNS_EXTENSION,
                                     "new_max_turns": max_turns,
                                     "remaining_turns": max_turns - turn - 1,
-                                    "extensions_remaining": MAX_TURN_EXTENSIONS - turn_extensions_used,
+                                    "extensions_remaining": (
+                                        MAX_TURN_EXTENSIONS - turn_extensions_used
+                                    ),
                                 }
                                 if self.verbose:
-                                    print(f"[ReAct] Granted {TURNS_EXTENSION} extra turns (reason: {reason})")
-                                    print(f"[ReAct] New max: {max_turns}, remaining: {max_turns - turn - 1}")
+                                    print(
+                                        f"[ReAct] Granted {TURNS_EXTENSION} "
+                                        f"extra turns (reason: {reason})"
+                                    )
+                                    remaining = max_turns - turn - 1
+                                    print(
+                                        f"[ReAct] New max: {max_turns}, "
+                                        f"remaining: {remaining}"
+                                    )
                             else:
                                 result = {
                                     "granted": False,
-                                    "error": f"Maximum extensions ({MAX_TURN_EXTENSIONS}) already used. Wrap up and call finish.",
+                                    "error": (
+                                        f"Maximum extensions ({MAX_TURN_EXTENSIONS}) "
+                                        "already used. Wrap up and call finish."
+                                    ),
                                     "remaining_turns": max_turns - turn - 1,
                                 }
                                 if self.verbose:
@@ -786,7 +924,11 @@ If you recognize this project, leverage your knowledge of its typical build requ
                                     print(f"[ReAct] Reported dependencies: {reported_deps}")
                                     print(f"[ReAct] Validated dependencies: {dependencies}")
                                 if build_script:
-                                    print(f"[ReAct] Build script provided ({len(build_script)} chars)")
+                                    bs_len = len(build_script)
+                                    print(
+                                        "[ReAct] Build script "
+                                        f"provided ({bs_len} chars)"
+                                    )
 
                         tool_results.append({
                             "type": "tool_result",
@@ -809,11 +951,16 @@ If you recognize this project, leverage your knowledge of its typical build requ
                         "You MUST call finish() before running out of turns."
                     )
                     if self.verbose:
-                        print(f"[ReAct] Injected low-turn warning ({remaining_turns} turns left)")
+                        print(
+                            "[ReAct] Injected low-turn warning "
+                            f"({remaining_turns} turns left)"
+                        )
                 elif remaining_turns == 1 and not build_succeeded:
                     warning = (
                         "\n\n[SYSTEM WARNING] This is your LAST turn. "
-                        "Call finish(status='failure', summary='...') now to report what you accomplished."
+                        "Call finish(status='failure', "
+                        "summary='...') now to report "
+                        "what you accomplished."
                     )
                     if self.verbose:
                         print("[ReAct] Injected final-turn warning")
@@ -841,11 +988,16 @@ If you recognize this project, leverage your knowledge of its typical build requ
                 # Get next response
                 if turn < max_turns - 1:
                     compressed_messages = compress_stale_results(messages, tool_history)
-                    truncated_messages = truncate_messages(compressed_messages, max_tokens=MAX_CONTEXT_TOKENS)
+                    truncated_messages = truncate_messages(
+                        compressed_messages,
+                        max_tokens=MAX_CONTEXT_TOKENS,
+                    )
 
                     if self.verbose and len(truncated_messages) < len(messages):
-                        print(f"[Context] Truncated {len(messages) - len(truncated_messages)} messages")
-                        print(f"[Context] Estimated tokens: {estimate_messages_tokens(truncated_messages)}")
+                        n = len(messages) - len(truncated_messages)
+                        print(f"[Context] Truncated {n} messages")
+                        est = estimate_messages_tokens(truncated_messages)
+                        print(f"[Context] Estimated tokens: {est}")
 
                     if self.log_file:
                         with open(self.log_file, "a") as f:
@@ -853,7 +1005,10 @@ If you recognize this project, leverage your knowledge of its typical build requ
                             f.write(f"REACT TURN {turn + 1} - LLM REQUEST\n")
                             f.write(f"{'='*80}\n\n")
                             f.write(f"Messages count: {len(truncated_messages)}\n")
-                            f.write(f"Estimated tokens: {estimate_messages_tokens(truncated_messages)}\n")
+                            est = estimate_messages_tokens(
+                                truncated_messages
+                            )
+                            f.write(f"Estimated tokens: {est}\n")
                             f.write(f"System prompt length: {len(system)} chars\n")
                             f.write(f"Tools: {len(UNIFIED_TOOL_DEFINITIONS)} available\n\n")
                             f.write("MESSAGES:\n")
@@ -861,7 +1016,11 @@ If you recognize this project, leverage your knowledge of its typical build requ
                                 f.write(f"[Message {i}] Role: {msg.get('role')}\n")
                                 content = msg.get('content', '')
                                 if isinstance(content, str):
-                                    preview = content[:200] + '...' if len(content) > 200 else content
+                                    preview = (
+                                        content[:200] + '...'
+                                        if len(content) > 200
+                                        else content
+                                    )
                                     f.write(f"  Content (preview): {preview}\n")
                                 elif isinstance(content, list):
                                     f.write(f"  Content blocks: {len(content)}\n")
@@ -987,7 +1146,10 @@ If you recognize this project, leverage your knowledge of its typical build requ
         tool_input: dict,
         run_command_action: RunCommandAction | None = None,
     ) -> dict:
-        """Execute tool with security checks. Routes to CMake, autotools, and custom build actions."""
+        """Execute tool with security checks.
+
+        Routes to CMake, autotools, and custom build actions.
+        """
         try:
             # File tools
             if tool_name == "read_file":
@@ -1154,7 +1316,10 @@ If you recognize this project, leverage your knowledge of its typical build requ
 
         build_output = build_result["output"]
 
-        return f"=== Configure Output ===\n{configure_output}\n\n=== Build Output ===\n{build_output}"
+        return (
+            f"=== Configure Output ===\n{configure_output}"
+            f"\n\n=== Build Output ===\n{build_output}"
+        )
 
     def _apply_suggestions(
         self, current_flags: list[str], analysis: dict
@@ -1177,7 +1342,10 @@ If you recognize this project, leverage your knowledge of its typical build requ
             print("[Note] The following dependencies are missing from the Docker image:")
             for dep in missing_deps:
                 print(f"  - {dep}")
-            print("[Note] Update the Dockerfile to include these dependencies and rebuild the image")
+            print(
+                "[Note] Update the Dockerfile to include "
+                "these dependencies and rebuild the image"
+            )
 
         return flags
 
@@ -1295,7 +1463,11 @@ If you recognize this project, leverage your knowledge of its typical build requ
                 # The original Docker path may also help
                 for bc in build_candidates:
                     if Path(bc).exists():
-                        rel = Path(bc).relative_to(build_dir) if bc.startswith(bd) else Path(bc).name
+                        rel = (
+                            Path(bc).relative_to(build_dir)
+                            if bc.startswith(bd)
+                            else Path(bc).name
+                        )
                         dest = sources_dir / rel
                         dest.parent.mkdir(parents=True, exist_ok=True)
                         shutil.copy2(bc, dest)

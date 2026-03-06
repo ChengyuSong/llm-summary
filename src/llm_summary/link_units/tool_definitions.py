@@ -146,7 +146,10 @@ FINISH_TOOL = {
                             "type": "string",
                             "enum": ["static_library", "shared_library", "executable"],
                         },
-                        "output": {"type": "string", "description": "Output path relative to build dir"},
+                        "output": {
+                            "type": "string",
+                            "description": "Output path relative to build dir",
+                        },
                         "objects": {
                             "type": "array",
                             "items": {"type": "string"},
@@ -167,4 +170,7 @@ FINISH_TOOL = {
     },
 }
 
-DISCOVERY_TOOL_DEFINITIONS = FILE_TOOLS + SKILL_TOOLS + [COMMAND_TOOL, REQUEST_MORE_TURNS_TOOL, FINISH_TOOL]
+DISCOVERY_TOOL_DEFINITIONS = (
+    FILE_TOOLS + SKILL_TOOLS
+    + [COMMAND_TOOL, REQUEST_MORE_TURNS_TOOL, FINISH_TOOL]
+)

@@ -86,8 +86,7 @@ def get_processing_order(graph: dict[int, list[int]]) -> Iterator[list[int]]:
     sccs = topological_order_sccs(graph)
 
     # SCCs are already in reverse topological order from Tarjan's
-    for scc in sccs:
-        yield scc
+    yield from sccs
 
 
 class ProcessingOrderer:
@@ -123,8 +122,7 @@ class ProcessingOrderer:
 
     def get_processing_order(self) -> Iterator[list[int]]:
         """Yield SCCs in processing order (callees first)."""
-        for scc in self.sccs:
-            yield scc
+        yield from self.sccs
 
     def is_recursive(self, func_id: int) -> bool:
         """Check if a function is part of a recursive SCC."""

@@ -50,10 +50,19 @@ Generate a memory allocation summary for this function. Identify:
    - Role: size_indicator, buffer, count, pointer_out, etc.
    - Used in allocation: Does it affect allocation size?
 
-3. **Buffer-size pairs** (post-condition only): Identify (buffer, size) pairs that this function **creates or establishes**. Only include pairs where this function is the one that sets up the relationship (e.g., allocates the buffer with the given size, or assigns both fields of a struct). Do NOT include pairs that the function merely reads, accesses, or requires as input — those are pre-conditions and belong to a separate analysis.
-   - "param_pair": function allocates a buffer and stores it alongside its size (e.g., `buf = malloc(n); *out_buf = buf; *out_len = n;`)
-   - "struct_field": function sets both buffer and size fields on a struct (e.g., `s->data = malloc(n); s->len = n;`)
-   - "flexible_array": function allocates a struct with a trailing flexible array and sets the length field
+3. **Buffer-size pairs** (post-condition only): Identify (buffer, size) \
+pairs that this function **creates or establishes**. Only include pairs \
+where this function is the one that sets up the relationship (e.g., \
+allocates the buffer with the given size, or assigns both fields of a \
+struct). Do NOT include pairs that the function merely reads, accesses, \
+or requires as input — those are pre-conditions and belong to a \
+separate analysis.
+   - "param_pair": function allocates a buffer and stores it alongside \
+its size (e.g., `buf = malloc(n); *out_buf = buf; *out_len = n;`)
+   - "struct_field": function sets both buffer and size fields on a \
+struct (e.g., `s->data = malloc(n); s->len = n;`)
+   - "flexible_array": function allocates a struct with a trailing \
+flexible array and sets the length field
    - Kind must be exactly one of: "param_pair", "struct_field", "flexible_array"
    - Both buffer and size must be non-null — omit entries where the size is unknown
    - Relationship: how the size relates to the buffer (e.g., "byte count", "element count")
@@ -120,7 +129,8 @@ You are analyzing C/C++ code to generate memory allocation summaries.
 
 ## Task
 
-Generate a memory allocation summary for the function provided in the user message. Identify:
+Generate a memory allocation summary for the function provided \
+in the user message. Identify:
 
 1. **Allocations**: Any memory allocations (malloc, calloc, realloc, new, etc.)
    - Type: heap, stack, or static
@@ -135,10 +145,19 @@ Generate a memory allocation summary for the function provided in the user messa
    - Role: size_indicator, buffer, count, pointer_out, etc.
    - Used in allocation: Does it affect allocation size?
 
-3. **Buffer-size pairs** (post-condition only): Identify (buffer, size) pairs that this function **creates or establishes**. Only include pairs where this function is the one that sets up the relationship (e.g., allocates the buffer with the given size, or assigns both fields of a struct). Do NOT include pairs that the function merely reads, accesses, or requires as input — those are pre-conditions and belong to a separate analysis.
-   - "param_pair": function allocates a buffer and stores it alongside its size (e.g., `buf = malloc(n); *out_buf = buf; *out_len = n;`)
-   - "struct_field": function sets both buffer and size fields on a struct (e.g., `s->data = malloc(n); s->len = n;`)
-   - "flexible_array": function allocates a struct with a trailing flexible array and sets the length field
+3. **Buffer-size pairs** (post-condition only): Identify (buffer, size) \
+pairs that this function **creates or establishes**. Only include pairs \
+where this function is the one that sets up the relationship (e.g., \
+allocates the buffer with the given size, or assigns both fields of a \
+struct). Do NOT include pairs that the function merely reads, accesses, \
+or requires as input — those are pre-conditions and belong to a \
+separate analysis.
+   - "param_pair": function allocates a buffer and stores it alongside \
+its size (e.g., `buf = malloc(n); *out_buf = buf; *out_len = n;`)
+   - "struct_field": function sets both buffer and size fields on a \
+struct (e.g., `s->data = malloc(n); s->len = n;`)
+   - "flexible_array": function allocates a struct with a trailing \
+flexible array and sets the length field
    - Kind must be exactly one of: "param_pair", "struct_field", "flexible_array"
    - Both buffer and size must be non-null — omit entries where the size is unknown
    - Relationship: how the size relates to the buffer (e.g., "byte count", "element count")
@@ -234,10 +253,15 @@ Generate a memory allocation summary for the function in the system message. Ide
    - Role: size_indicator, buffer, count, pointer_out, etc.
    - Used in allocation: Does it affect allocation size?
 
-3. **Buffer-size pairs** (post-condition only): Identify (buffer, size) pairs that this function **creates or establishes**. Only include pairs where this function is the one that sets up the relationship. Do NOT include pairs that the function merely reads, accesses, or requires as input.
+3. **Buffer-size pairs** (post-condition only): Identify (buffer, size) \
+pairs that this function **creates or establishes**. Only include pairs \
+where this function is the one that sets up the relationship. Do NOT \
+include pairs that the function merely reads, accesses, or requires \
+as input.
    - "param_pair": function allocates a buffer and stores it alongside its size
    - "struct_field": function sets both buffer and size fields on a struct
-   - "flexible_array": function allocates a struct with a trailing flexible array and sets the length field
+   - "flexible_array": function allocates a struct with a trailing \
+flexible array and sets the length field
    - Kind must be exactly one of: "param_pair", "struct_field", "flexible_array"
    - Both buffer and size must be non-null — omit entries where the size is unknown
    - Relationship: how the size relates to the buffer (e.g., "byte count", "element count")
@@ -414,7 +438,11 @@ class AllocationSummarizer:
         try:
             if self.verbose:
                 if self._progress_total > 0:
-                    print(f"  ({self._progress_current}/{self._progress_total}) Summarizing: {func.name}")
+                    print(
+                        f"  ({self._progress_current}/"
+                        f"{self._progress_total})"
+                        f" Summarizing: {func.name}"
+                    )
                 else:
                     print(f"  Summarizing: {func.name}")
 
@@ -463,7 +491,12 @@ class AllocationSummarizer:
         Phase C: Merge block-level and skeleton-level results.
         """
         if self.verbose:
-            print(f"  Large function ({len(func.llm_source)} chars, {len(blocks)} blocks): {func.name}")
+            src_len = len(func.llm_source)
+            n_blocks = len(blocks)
+            print(
+                f"  Large function ({src_len} chars,"
+                f" {n_blocks} blocks): {func.name}"
+            )
 
         # Phase A: Summarize each block
         block_summaries: dict[int, str] = {}
@@ -725,7 +758,7 @@ class AllocationSummarizer:
             )
 
         # Parse buffer-size pairs (validate and filter)
-        _VALID_KINDS = {"param_pair", "struct_field", "flexible_array"}
+        valid_kinds = {"param_pair", "struct_field", "flexible_array"}
         buffer_size_pairs = []
         for p in data.get("buffer_size_pairs", []):
             buf = p.get("buffer")
@@ -733,7 +766,7 @@ class AllocationSummarizer:
             if not buf or not size or size == "None":
                 continue
             kind = p.get("kind", "param_pair")
-            if kind not in _VALID_KINDS:
+            if kind not in valid_kinds:
                 continue
             buffer_size_pairs.append(
                 BufferSizePair(
@@ -756,7 +789,13 @@ class AllocationSummarizer:
 class IncrementalSummarizer:
     """Handles incremental updates when source files change."""
 
-    def __init__(self, db: SummaryDB, llm: LLMBackend, verbose: bool = False, log_file: str | None = None):
+    def __init__(
+        self,
+        db: SummaryDB,
+        llm: LLMBackend,
+        verbose: bool = False,
+        log_file: str | None = None,
+    ):
         self.db = db
         self.llm = llm
         self.verbose = verbose
@@ -793,7 +832,9 @@ class IncrementalSummarizer:
         results = driver.run([alloc_pass], force=False)
         return results["allocation"]
 
-    def update_file(self, file_path: str, new_functions: list[Function]) -> dict[int, AllocationSummary]:
+    def update_file(
+        self, file_path: str, new_functions: list[Function],
+    ) -> dict[int, AllocationSummary]:
         """
         Update summaries for all functions in a file.
 

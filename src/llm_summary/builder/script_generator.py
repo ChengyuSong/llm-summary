@@ -204,7 +204,7 @@ class ScriptGenerator:
         # and chown build outputs at the end to preserve host user ownership
         if dependencies:
             user_flag = ""
-            chown_suffix = f" && chown -R $(id -u):$(id -g) /workspace/build /artifacts"
+            chown_suffix = " && chown -R $(id -u):$(id -g) /workspace/build /artifacts"
         else:
             user_flag = "-u $(id -u):$(id -g)"
             chown_suffix = ""
@@ -262,7 +262,8 @@ docker run --rm \\
         if enable_ir:
             script_content += ''' && \\
            echo 'Collecting LLVM IR artifacts...' && \\
-           find . -name '*.bc' -o -name '*.ll' | xargs -I {{}} cp {{}} /artifacts/ 2>/dev/null || true'''
+           find . -name '*.bc' -o -name '*.ll' \\
+           | xargs -I {{}} cp {{}} /artifacts/ 2>/dev/null || true'''
 
         # Add chown for root-mode builds (when deps need apt-get)
         if chown_suffix:
@@ -273,7 +274,7 @@ docker run --rm \\
         # Add post-build steps
         script_content += '''
 
-# Copy compile_commands.json to script directory (build-scripts/<project>/)
+# Copy compile_commands.json to script directory
 if [ -f "$BUILD_DIR/compile_commands.json" ]; then
     cp "$BUILD_DIR/compile_commands.json" "$SCRIPT_DIR/"
     echo ""
@@ -445,7 +446,8 @@ echo "Building {project_name}..."
         if enable_ir:
             script_content += ''' && \\
            echo 'Collecting LLVM IR artifacts...' && \\
-           find . -name '*.bc' -o -name '*.ll' | xargs -I {{}} cp {{}} /artifacts/ 2>/dev/null || true'''
+           find . -name '*.bc' -o -name '*.ll' \\
+           | xargs -I {{}} cp {{}} /artifacts/ 2>/dev/null || true'''
 
         # Add chown for root-mode builds (when deps need apt-get)
         if chown_suffix:
@@ -479,7 +481,8 @@ if [ -f "$PROJECT_PATH/compile_commands.json" ]; then
 elif [ -f "$SCRIPT_DIR/compile_commands.json" ]; then
     FOUND_CC=""  # already in place
 else
-    FOUND_CC=$(find "$PROJECT_PATH" -maxdepth 3 -name compile_commands.json -print -quit 2>/dev/null)
+    FOUND_CC=$(find "$PROJECT_PATH" -maxdepth 3 \
+        -name compile_commands.json -print -quit 2>/dev/null)
 fi
 '''
 
@@ -607,7 +610,8 @@ docker run --rm \\
   -v "$ARTIFACTS_DIR":/artifacts \\
   -w /workspace/build \\
   {container_image} \\
-  bash -c 'find . -name "*.bc" -o -name "*.ll" | xargs -I {{}} cp {{}} /artifacts/ 2>/dev/null || true'
+  bash -c 'find . -name "*.bc" -o -name "*.ll" \
+    | xargs -I {{}} cp {{}} /artifacts/ 2>/dev/null || true'
 '''
 
         # Add post-build steps: search both build dir and project dir for compile_commands.json
@@ -652,7 +656,8 @@ fi
         """Generate README.md for the build-scripts directory."""
         readme_content = """# Build Scripts
 
-This directory contains automatically generated build scripts for OSS projects analyzed with llm-summary.
+This directory contains automatically generated build scripts
+for OSS projects analyzed with llm-summary.
 
 ## Structure
 

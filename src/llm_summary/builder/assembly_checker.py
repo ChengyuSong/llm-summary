@@ -101,7 +101,8 @@ class AssemblyChecker:
                 self._unavoidable_keys.add(finding.stable_key())
 
             if self.verbose and self._unavoidable_keys:
-                print(f"[AssemblyChecker] Loaded {len(self._unavoidable_keys)} known unavoidable findings")
+                n = len(self._unavoidable_keys)
+                print(f"[AssemblyChecker] Loaded {n} known unavoidable findings")
 
         except (json.JSONDecodeError, OSError) as e:
             if self.verbose:
@@ -141,7 +142,9 @@ class AssemblyChecker:
             json.dump({"unavoidable": existing}, f, indent=2)
 
         if self.verbose:
-            print(f"[AssemblyChecker] Saved {len(existing)} unavoidable findings to {self.unavoidable_asm_path}")
+            n = len(existing)
+            path = self.unavoidable_asm_path
+            print(f"[AssemblyChecker] Saved {n} unavoidable findings to {path}")
 
     def _translate_docker_path(self, docker_path: str) -> str:
         """Translate Docker container paths to host paths."""

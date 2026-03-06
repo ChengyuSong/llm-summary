@@ -58,7 +58,7 @@ class GeminiBackend(LLMBackend):
             except ImportError:
                 raise ImportError(
                     "google-genai package required. Install with: pip install google-genai"
-                )
+                ) from None
 
             if not self.project_id:
                 raise ValueError(
@@ -104,7 +104,9 @@ class GeminiBackend(LLMBackend):
             candidate = response.candidates[0]
             finish_reason = getattr(candidate, "finish_reason", None)
             # FinishReason.STOP == 1; anything else (MAX_TOKENS==2, etc.) is abnormal
-            if finish_reason is not None and str(finish_reason) not in ("FinishReason.STOP", "1", "STOP"):
+            if finish_reason is not None and str(finish_reason) not in (
+                "FinishReason.STOP", "1", "STOP",
+            ):
                 import sys
                 print(
                     f"WARNING: Gemini response may be incomplete "
@@ -210,7 +212,9 @@ class GeminiBackend(LLMBackend):
                                 if item.get("thought"):
                                     part_kwargs["thought"] = True
                                 if item.get("thought_signature"):
-                                    part_kwargs["thought_signature"] = _sig_to_bytes(item["thought_signature"])
+                                    part_kwargs["thought_signature"] = (
+                                        _sig_to_bytes(item["thought_signature"])
+                                    )
                                 parts.append(types.Part(**part_kwargs))
                         elif item.get("type") == "tool_use":
                             tool_id = item["id"]
@@ -224,7 +228,9 @@ class GeminiBackend(LLMBackend):
                                 ),
                             }
                             if item.get("thought_signature"):
-                                part_kwargs["thought_signature"] = _sig_to_bytes(item["thought_signature"])
+                                part_kwargs["thought_signature"] = (
+                                    _sig_to_bytes(item["thought_signature"])
+                                )
                             parts.append(types.Part(**part_kwargs))
                 if parts:
                     contents.append(types.Content(role="model", parts=parts))

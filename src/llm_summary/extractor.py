@@ -176,7 +176,7 @@ class FunctionExtractor:
                 options=TranslationUnit.PARSE_DETAILED_PROCESSING_RECORD,
             )
         except Exception as e:
-            raise RuntimeError(f"Failed to parse {file_path}: {e}")
+            raise RuntimeError(f"Failed to parse {file_path}: {e}") from e
 
         functions = []
         self._extract_functions_recursive(
@@ -442,7 +442,11 @@ class FunctionExtractor:
                                 children = list(child.get_children())
                                 for arg_cursor in children[1:]:
                                     tokens = list(arg_cursor.get_tokens())
-                                    arg_text = " ".join(t.spelling for t in tokens) if tokens else arg_cursor.spelling or ""
+                                    arg_text = (
+                                        " ".join(t.spelling for t in tokens)
+                                        if tokens
+                                        else arg_cursor.spelling or ""
+                                    )
                                     # get_tokens() can return the entire macro
                                     # expansion; fall back to raw source text.
                                     if len(arg_text) > 200:
@@ -722,7 +726,8 @@ class FunctionExtractor:
         - C++ using aliases (kind='using')
         - struct/class/union definitions (kind='struct'/'class'/'union')
 
-        Returns list of dicts with: name, kind, underlying_type, canonical_type, file_path, line_number
+        Returns list of dicts with: name, kind, underlying_type,
+        canonical_type, file_path, line_number
         """
         file_path = Path(file_path).resolve()
         args = self._get_compile_args(file_path)
@@ -780,7 +785,9 @@ class FunctionExtractor:
                 CursorKind.UNION_DECL,
             ):
                 # Only record definitions (not forward declarations), skip anonymous
-                if child.is_definition() and child.spelling and "(unnamed" not in child.spelling and "(anonymous" not in child.spelling:
+                if (child.is_definition() and child.spelling
+                        and "(unnamed" not in child.spelling
+                        and "(anonymous" not in child.spelling):
                     kind_map = {
                         CursorKind.STRUCT_DECL: "struct",
                         CursorKind.CLASS_DECL: "class",
@@ -860,7 +867,7 @@ class FunctionExtractorWithBodies(FunctionExtractor):
                 options=TranslationUnit.PARSE_DETAILED_PROCESSING_RECORD,
             )
         except Exception as e:
-            raise RuntimeError(f"Failed to parse {file_path}: {e}")
+            raise RuntimeError(f"Failed to parse {file_path}: {e}") from e
 
         functions = []
         self._extract_functions_recursive(tu.cursor, str(file_path), functions)

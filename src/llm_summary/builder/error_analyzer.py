@@ -51,30 +51,42 @@ class ErrorAnalyzer:
 
         error_type = "CMake configuration" if is_cmake_error else "build/compilation"
 
-        system = f"""You are a build error diagnostic expert. Analyze the {error_type} error and suggest fixes.
+        system = f"""You are a build error diagnostic expert. \
+Analyze the {error_type} error and suggest fixes.
 
 You have tools to explore the project:
-- read_file: Read any project file (CMakeLists.txt, source files, config files, etc.) or build artifact
+- read_file: Read any project file (CMakeLists.txt, source files, \
+config files, etc.) or build artifact
 - list_dir: Explore project structure and build directory
 
-**IMPORTANT**: All file/directory paths must be RELATIVE to project root (e.g., ".", "CMakeLists.txt", "cmake/FindZLIB.cmake", "build/compile_commands.json"). The build directory is accessible at "build/".
+**IMPORTANT**: All file/directory paths must be RELATIVE to project \
+root (e.g., ".", "CMakeLists.txt", "cmake/FindZLIB.cmake", \
+"build/compile_commands.json"). The build directory is accessible \
+at "build/".
 
 **CRITICAL - No install tool available**:
 - You CANNOT install packages or dependencies
-- If the error is due to missing system dependencies (libraries, headers, packages), you MUST stop and report this
-- Dependencies can only be fixed by updating the Docker image, which you cannot do
+- If the error is due to missing system dependencies (libraries, \
+headers, packages), you MUST stop and report this
+- Dependencies can only be fixed by updating the Docker image, \
+which you cannot do
 
 Context:
-- Build runs in Docker container (source at /workspace/src, build at /workspace/build)
+- Build runs in Docker container (source at /workspace/src, \
+build at /workspace/build)
 - Error messages reference container paths
-- Preferring Clang 18, LTO, and static linking — but these are soft preferences. If the error is caused by clang or LTO incompatibility, suggest falling back to gcc or disabling LTO.
+- Preferring Clang 18, LTO, and static linking — but these are \
+soft preferences. If the error is caused by clang or LTO \
+incompatibility, suggest falling back to gcc or disabling LTO.
 
 Your task:
 1. Read the error output carefully
-2. Use tools to investigate (read relevant CMakeLists.txt sections, config files, etc.)
+2. Use tools to investigate (read relevant CMakeLists.txt sections, \
+config files, etc.)
 3. Identify the root cause
 4. If the issue can be fixed with CMake flags → suggest them
-5. If the issue requires missing dependencies → report them and STOP (no further investigation needed)
+5. If the issue requires missing dependencies → report them and \
+STOP (no further investigation needed)
 
 When done investigating, return ONLY valid JSON:
 {{

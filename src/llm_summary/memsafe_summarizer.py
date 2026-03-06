@@ -4,21 +4,6 @@ import json
 import re
 import threading
 
-
-def _substitute(expr: str, formals: list[str], actuals: list[str]) -> str:
-    """Replace formal parameter names with actual argument texts in an expression.
-
-    Performs whole-word replacement in declaration order so longer formals are
-    processed first to avoid partial matches (e.g., 'buf' before 'buf_size').
-    """
-    if not formals or not actuals:
-        return expr
-    pairs = sorted(zip(formals, actuals), key=lambda p: -len(p[0]))
-    for formal, actual in pairs:
-        if formal and actual and formal != actual:
-            expr = re.sub(r"\b" + re.escape(formal) + r"\b", actual, expr)
-    return expr
-
 from .db import SummaryDB
 from .llm.base import LLMBackend
 from .models import (
@@ -28,6 +13,21 @@ from .models import (
     MemsafeSummary,
     build_skeleton,
 )
+
+
+def _substitute(expr: str, formals: list[str], actuals: list[str]) -> str:
+    """Replace formal parameter names with actual argument texts in an expression.
+
+    Performs whole-word replacement in declaration order so longer formals are
+    processed first to avoid partial matches (e.g., 'buf' before 'buf_size').
+    """
+    if not formals or not actuals:
+        return expr
+    pairs = sorted(zip(formals, actuals, strict=False), key=lambda p: -len(p[0]))
+    for formal, actual in pairs:
+        if formal and actual and formal != actual:
+            expr = re.sub(r"\b" + re.escape(formal) + r"\b", actual, expr)
+    return expr
 
 MEMSAFE_SUMMARY_PROMPT = """You are analyzing C/C++ code to generate safety pre-condition contracts.
 
@@ -62,21 +62,30 @@ For each contract, identify:
 1. **target**: The parameter or expression the contract applies to (e.g., "ptr", "buf", "ctx->data")
 2. **contract_kind**: One of:
    - "not_null" — pointer parameter that is dereferenced and must not be NULL
-   - "nullable" — pointer parameter that is explicitly checked for NULL before use (caller MAY pass NULL)
-   - "not_freed" — pointer passed to free/dealloc that must point to live memory
-   - "buffer_size" — pointer used with memcpy/memset/indexing that must have sufficient capacity
+   - "nullable" — pointer parameter that is explicitly checked \
+for NULL before use (caller MAY pass NULL)
+   - "not_freed" — pointer passed to free/dealloc that must \
+point to live memory
+   - "buffer_size" — pointer used with memcpy/memset/indexing \
+that must have sufficient capacity
    - "initialized" — variable/field used in dereference, branch, or index that must be initialized
 3. **description**: Brief description of the requirement
-4. **size_expr**: (buffer_size only) The size expression required, e.g., "n", "sizeof(T)", "strlen(src)+1"
+4. **size_expr**: (buffer_size only) The size expression required, \
+e.g., "n", "sizeof(T)", "strlen(src)+1"
 5. **relationship**: (buffer_size only) One of "byte_count" or "element_count"
 
 Rules:
-- Pointer params that are **dereferenced** (read/write through `*p`, `p->field`, `p[i]`) without a NULL check → `not_null`
-- Pointer params that are **checked for NULL** before any dereference (e.g., `if (p == NULL) return`) → `nullable`
+- Pointer params that are **dereferenced** (read/write through \
+`*p`, `p->field`, `p[i]`) without a NULL check → `not_null`
+- Pointer params that are **checked for NULL** before any \
+dereference (e.g., `if (p == NULL) return`) → `nullable`
 - Params passed to `free()` or deallocators → `not_freed`
-- Params used in memcpy/memset/array indexing with a size → `buffer_size` (include size_expr + relationship)
-- Params/fields used in dereference, branch, or index before being set → `initialized`
-- If a callee PRE annotation lists a requirement this function does NOT satisfy internally, propagate it
+- Params used in memcpy/memset/array indexing with a size → \
+`buffer_size` (include size_expr + relationship)
+- Params/fields used in dereference, branch, or index before \
+being set → `initialized`
+- If a callee PRE annotation lists a requirement this function \
+does NOT satisfy internally, propagate it
 - Only include size_expr and relationship for buffer_size contracts
 
 Respond in JSON format:
@@ -235,7 +244,12 @@ class MemsafeSummarizer:
         try:
             if self.verbose:
                 if self._progress_total > 0:
-                    print(f"  ({self._progress_current}/{self._progress_total}) Summarizing (memsafe): {func.name}")
+                    cur = self._progress_current
+                    tot = self._progress_total
+                    print(
+                        f"  ({cur}/{tot}) "
+                        f"Summarizing (memsafe): {func.name}"
+                    )
                 else:
                     print(f"  Summarizing (memsafe): {func.name}")
 
@@ -279,7 +293,12 @@ class MemsafeSummarizer:
     ) -> MemsafeSummary:
         """Chunked summarization for large functions (memsafe pass)."""
         if self.verbose:
-            print(f"  Large function ({len(func.llm_source)} chars, {len(blocks)} blocks): {func.name}")
+            n_chars = len(func.llm_source)
+            n_blocks = len(blocks)
+            print(
+                f"  Large function ({n_chars} chars, "
+                f"{n_blocks} blocks): {func.name}"
+            )
 
         block_summaries: dict[int, str] = {}
         all_block_contracts: list[MemsafeContract] = []
@@ -540,7 +559,10 @@ class MemsafeSummarizer:
                         contract_descs.append(f"{c.target}: {c.contract_kind}")
                 lines.append(f"- `{name}`: Requires {', '.join(contract_descs)}{attr_suffix}")
             else:
-                lines.append(f"- `{name}`: {summary.description or 'No safety pre-conditions'}{attr_suffix}")
+                desc = summary.description or 'No safety pre-conditions'
+                lines.append(
+                    f"- `{name}`: {desc}{attr_suffix}"
+                )
 
         return "\n".join(lines) if lines else "No callee safety contracts available."
 
@@ -569,11 +591,11 @@ class MemsafeSummarizer:
         data = extract_json(response)
 
         # Parse contracts
-        _VALID_KINDS = {"not_null", "nullable", "not_freed", "initialized", "buffer_size"}
+        valid_kinds = {"not_null", "nullable", "not_freed", "initialized", "buffer_size"}
         contracts = []
         for c in data.get("contracts", []):
             contract_kind = c.get("contract_kind", "not_null")
-            if contract_kind not in _VALID_KINDS:
+            if contract_kind not in valid_kinds:
                 contract_kind = "not_null"
 
             size_expr = None

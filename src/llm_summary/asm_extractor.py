@@ -101,7 +101,7 @@ def extract_asm_functions(
     # to the line before the next global/function label (or EOF)
     functions = []
     func_label_indices = []
-    for i, (label, line_num) in enumerate(all_labels):
+    for i, (label, _line_num) in enumerate(all_labels):
         if label in func_names:
             func_label_indices.append(i)
 

@@ -129,8 +129,9 @@ You are analyzing C/C++ code to generate deallocation (free) summaries.
 
 ## Task
 
-Generate a deallocation summary for the function provided in the user message. Identify every buffer or resource
-that this function frees (directly or via callees).
+Generate a deallocation summary for the function provided in the \
+user message. Identify every buffer or resource that this function \
+frees (directly or via callees).
 
 For each free operation, identify:
 
@@ -198,8 +199,9 @@ File: {file_path}
 FREE_TASK_PROMPT = """\
 ## Task
 
-Generate a deallocation summary for the function in the system message. Identify every buffer or resource
-that this function frees (directly or via callees).
+Generate a deallocation summary for the function in the system \
+message. Identify every buffer or resource that this function \
+frees (directly or via callees).
 
 For each free operation, identify:
 
@@ -305,7 +307,12 @@ class FreeSummarizer:
         try:
             if self.verbose:
                 if self._progress_total > 0:
-                    print(f"  ({self._progress_current}/{self._progress_total}) Summarizing (free): {func.name}")
+                    cur = self._progress_current
+                    tot = self._progress_total
+                    print(
+                        f"  ({cur}/{tot}) "
+                        f"Summarizing (free): {func.name}"
+                    )
                 else:
                     print(f"  Summarizing (free): {func.name}")
 
@@ -347,7 +354,12 @@ class FreeSummarizer:
     ) -> FreeSummary:
         """Chunked summarization for large functions (free pass)."""
         if self.verbose:
-            print(f"  Large function ({len(func.llm_source)} chars, {len(blocks)} blocks): {func.name}")
+            n_chars = len(func.llm_source)
+            n_blocks = len(blocks)
+            print(
+                f"  Large function ({n_chars} chars, "
+                f"{n_blocks} blocks): {func.name}"
+            )
 
         block_summaries: dict[int, str] = {}
         all_block_frees: list[FreeOp] = []
@@ -507,7 +519,10 @@ class FreeSummarizer:
                 )
                 lines.append(f"- `{name}`: Frees {free_desc}{attr_suffix}")
             else:
-                lines.append(f"- `{name}`: {summary.description or 'Does not free memory'}{attr_suffix}")
+                desc = summary.description or 'Does not free memory'
+                lines.append(
+                    f"- `{name}`: {desc}{attr_suffix}"
+                )
 
         # Append project-specific deallocators not already covered
         covered_names = set(callee_summaries.keys())
@@ -545,11 +560,11 @@ class FreeSummarizer:
         data = extract_json(response)
 
         # Parse frees
-        _VALID_KINDS = {"parameter", "field", "local", "return_value"}
+        valid_kinds = {"parameter", "field", "local", "return_value"}
         frees = []
         for f in data.get("frees", []):
             target_kind = f.get("target_kind", "local")
-            if target_kind not in _VALID_KINDS:
+            if target_kind not in valid_kinds:
                 target_kind = "local"
             frees.append(
                 FreeOp(

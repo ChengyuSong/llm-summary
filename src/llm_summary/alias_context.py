@@ -208,7 +208,11 @@ class AliasContextBuilder:
                     cands = json.load(f)
                 for name in cands.get("candidates", []) + cands.get("confirmed", []):
                     allocator_names.add(name)
-                for name in cands.get("dealloc_candidates", []) + cands.get("dealloc_confirmed", []):
+                deallocs = (
+                    cands.get("dealloc_candidates", [])
+                    + cands.get("dealloc_confirmed", [])
+                )
+                for name in deallocs:
                     deallocator_names.add(name)
             except (OSError, json.JSONDecodeError):
                 pass
@@ -223,7 +227,9 @@ class AliasContextBuilder:
             if entry.kind == 6 and func_name in allocator_names:
                 heap_reps.add(self.snap.rep(entry.node))
             # Deallocator first arg (kind 3 = funcname::arg#0)
-            if entry.kind == 3 and entry.name.endswith("::arg#0") and func_name in deallocator_names:
+            if (entry.kind == 3
+                    and entry.name.endswith("::arg#0")
+                    and func_name in deallocator_names):
                 heap_reps.add(self.snap.rep(entry.node))
 
         return heap_reps
@@ -322,7 +328,7 @@ class AliasContextBuilder:
         for qname in query_names:
             # Check common prefix of at least 3 chars
             prefix_len = 0
-            for a, b in zip(func_name, qname):
+            for a, b in zip(func_name, qname, strict=False):
                 if a == b:
                     prefix_len += 1
                 else:

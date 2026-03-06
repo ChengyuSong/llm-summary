@@ -54,7 +54,7 @@ class BuildTools:
             full_path.relative_to(base_dir)
             return full_path
         except ValueError:
-            raise ValueError(f"Path escapes {dir_name}: {path}")
+            raise ValueError(f"Path escapes {dir_name}: {path}") from None
 
     def _check_symlink_escape(self, base_dir: Path, relative_path: Path, dir_name: str) -> None:
         """
@@ -88,9 +88,11 @@ class BuildTools:
                 except ValueError:
                     raise ValueError(
                         f"Symlink escape detected: {part} points outside {dir_name}"
-                    )
+                    ) from None
 
-    def read_file(self, file_path: str, max_lines: int = 200, start_line: int = 1) -> dict[str, Any]:
+    def read_file(
+        self, file_path: str, max_lines: int = 200, start_line: int = 1,
+    ) -> dict[str, Any]:
         """
         Read a file from the project directory.
 
@@ -131,7 +133,9 @@ class BuildTools:
                     # Check if we've read enough lines
                     if lines_read >= max_lines:
                         lines.append(
-                            f"\n... (truncated after {max_lines} lines, use start_line={current_line} to continue)"
+                            f"\n... (truncated after {max_lines} lines,"
+                            f" use start_line={current_line}"
+                            f" to continue)"
                         )
                         break
 
@@ -144,7 +148,10 @@ class BuildTools:
                 # Check if we skipped past the end
                 if current_line < start_line:
                     return {
-                        "error": f"start_line {start_line} exceeds file length ({current_line} lines)"
+                        "error": (
+                        f"start_line {start_line} exceeds file length"
+                        f" ({current_line} lines)"
+                    )
                     }
 
             return {
@@ -247,17 +254,27 @@ TOOL_DEFINITIONS = [
     {
         "name": "read_file",
         "description": (
-            "Read a file from the project or build directory. Use this to examine build scripts, "
-            "source files, configuration files, or build artifacts (like compile_commands.json). "
-            "Paths must be RELATIVE to project root. Use 'build/' prefix to access build directory. "
-            "If errors reference specific line numbers, use start_line to jump to that section."
+            "Read a file from the project or build directory. "
+            "Use this to examine build scripts, source files, "
+            "configuration files, or build artifacts "
+            "(like compile_commands.json). "
+            "Paths must be RELATIVE to project root. "
+            "Use 'build/' prefix to access build directory. "
+            "If errors reference specific line numbers, "
+            "use start_line to jump to that section."
         ),
         "input_schema": {
             "type": "object",
             "properties": {
                 "file_path": {
                     "type": "string",
-                    "description": "Relative path from project root. Use 'build/' prefix for build artifacts. Examples: 'configure.ac', 'src/main.c', 'build/compile_commands.json'. Absolute paths are NOT allowed.",
+                    "description": (
+                        "Relative path from project root. Use 'build/' "
+                        "prefix for build artifacts. Examples: "
+                        "'configure.ac', 'src/main.c', "
+                        "'build/compile_commands.json'. "
+                        "Absolute paths are NOT allowed."
+                    ),
                 },
                 "max_lines": {
                     "type": "integer",
@@ -266,7 +283,12 @@ TOOL_DEFINITIONS = [
                 },
                 "start_line": {
                     "type": "integer",
-                    "description": "Line number to start reading from (1-indexed, default: 1). Use this to jump to specific sections when errors mention line numbers.",
+                    "description": (
+                        "Line number to start reading from "
+                        "(1-indexed, default: 1). Use this to jump to "
+                        "specific sections when errors mention "
+                        "line numbers."
+                    ),
                     "default": 1,
                 },
             },
@@ -276,21 +298,32 @@ TOOL_DEFINITIONS = [
     {
         "name": "list_dir",
         "description": (
-            "List files and directories in the project or build directory. Use this to explore the "
-            "project structure, discover source files, inspect build artifacts, or understand the "
-            "layout of the codebase. Paths must be RELATIVE. Use 'build/' prefix for build directory."
+            "List files and directories in the project or "
+            "build directory. Use this to explore the "
+            "project structure, discover source files, "
+            "inspect build artifacts, or understand the "
+            "layout of the codebase. Paths must be RELATIVE. "
+            "Use 'build/' prefix for build directory."
         ),
         "input_schema": {
             "type": "object",
             "properties": {
                 "dir_path": {
                     "type": "string",
-                    "description": "Relative path from project root. Use 'build/' prefix for build directory. Examples: '.', 'src', 'build', 'build/src'. Absolute paths are NOT allowed.",
+                    "description": (
+                        "Relative path from project root. Use 'build/' "
+                        "prefix for build directory. Examples: '.', "
+                        "'src', 'build', 'build/src'. "
+                        "Absolute paths are NOT allowed."
+                    ),
                     "default": ".",
                 },
                 "pattern": {
                     "type": "string",
-                    "description": "Optional glob pattern to filter results (e.g., '*.cmake', 'CMake*')",
+                    "description": (
+                        "Optional glob pattern to filter results "
+                        "(e.g., '*.cmake', 'CMake*')"
+                    ),
                 },
             },
         },

@@ -121,9 +121,9 @@ class LlamaCppBackend(LLMBackend):
             body = e.read().decode("utf-8", errors="replace")[:500]
             raise RuntimeError(
                 f"llama.cpp at {self.base_url} returned HTTP {e.code}: {body}"
-            )
+            ) from e
         except urllib.error.URLError as e:
-            raise RuntimeError(f"Failed to connect to llama.cpp at {self.base_url}: {e}")
+            raise RuntimeError(f"Failed to connect to llama.cpp at {self.base_url}: {e}") from e
 
         # Extract content from OpenAI-compatible response format
         if "choices" in result and len(result["choices"]) > 0:
@@ -312,9 +312,9 @@ class LlamaCppBackend(LLMBackend):
             body = e.read().decode("utf-8", errors="replace")[:500]
             raise RuntimeError(
                 f"llama.cpp at {self.base_url} returned HTTP {e.code}: {body}"
-            )
+            ) from e
         except urllib.error.URLError as e:
-            raise RuntimeError(f"Failed to connect to llama.cpp at {self.base_url}: {e}")
+            raise RuntimeError(f"Failed to connect to llama.cpp at {self.base_url}: {e}") from e
 
         # Return a simple object that mimics the response structure
         class ToolResponse:
@@ -363,4 +363,8 @@ class LlamaCppBackend(LLMBackend):
             return False
 
     def __repr__(self) -> str:
-        return f"{self.__class__.__name__}(model={self.model!r}, host={self.host!r}, port={self.port})"
+        return (
+            f"{self.__class__.__name__}"
+            f"(model={self.model!r}, "
+            f"host={self.host!r}, port={self.port})"
+        )

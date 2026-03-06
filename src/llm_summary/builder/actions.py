@@ -195,7 +195,10 @@ class CMakeActions:
             else:
                 # Parallel build failed - retry with -j1 for clearer error output
                 if self.verbose:
-                    print("[cmake_build] Parallel build failed, retrying with ninja -j1 for clearer errors")
+                    print(
+                        "[cmake_build] Parallel build failed,"
+                        " retrying with ninja -j1 for clearer errors"
+                    )
 
                 docker_cmd_j1 = [
                     "docker", "run", "--rm",
@@ -618,7 +621,10 @@ class AutotoolsActions:
             else:
                 # Parallel build failed - retry with -j1 for clearer error output
                 if self.verbose:
-                    print("[make_build] Parallel build failed, retrying with make -j1 for clearer errors")
+                    print(
+                        "[make_build] Parallel build failed,"
+                        " retrying with make -j1 for clearer errors"
+                    )
 
                 docker_cmd_j1 = docker_cmd[:-1]  # Remove the old command
                 make_cmd_j1 = f"bear -- make -j1 {target_str}".strip()
@@ -924,10 +930,19 @@ CMAKE_TOOL_DEFINITIONS = [
                     "type": "array",
                     "items": {"type": "string"},
                     "description": (
-                        "CMake flags like ['-DCMAKE_BUILD_TYPE=Release', '-DBUILD_SHARED_LIBS=OFF']. "
-                        "Always include: -DCMAKE_EXPORT_COMPILE_COMMANDS=ON, -DCMAKE_INTERPROCEDURAL_OPTIMIZATION=ON, "
-                        "-DCMAKE_C_COMPILER=clang-18, -DCMAKE_CXX_COMPILER=clang++-18, -DBUILD_SHARED_LIBS=OFF, "
-                        "-DCMAKE_C_FLAGS='-g -flto=full -save-temps=obj', -DCMAKE_CXX_FLAGS='-g -flto=full -save-temps=obj'"
+                        "CMake flags like "
+                        "['-DCMAKE_BUILD_TYPE=Release', "
+                        "'-DBUILD_SHARED_LIBS=OFF']. "
+                        "Always include: "
+                        "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON, "
+                        "-DCMAKE_INTERPROCEDURAL_OPTIMIZATION=ON, "
+                        "-DCMAKE_C_COMPILER=clang-18, "
+                        "-DCMAKE_CXX_COMPILER=clang++-18, "
+                        "-DBUILD_SHARED_LIBS=OFF, "
+                        "-DCMAKE_C_FLAGS="
+                        "'-g -flto=full -save-temps=obj', "
+                        "-DCMAKE_CXX_FLAGS="
+                        "'-g -flto=full -save-temps=obj'"
                     ),
                 }
             },
@@ -937,11 +952,14 @@ CMAKE_TOOL_DEFINITIONS = [
     {
         "name": "cmake_build",
         "description": (
-            "Run the build step (ninja) after cmake configure has succeeded. "
-            "Only call this after a successful cmake_configure. The build runs in a Docker container. "
-            "On success, returns an assembly_check result showing if any assembly code (.s files, "
-            "inline asm) was compiled. If assembly is detected, try different cmake_configure flags "
-            "to avoid it (e.g., -DDISABLE_ASM=ON, -DENABLE_SIMD=OFF)."
+            "Run the build step (ninja) after cmake configure "
+            "has succeeded. Only call this after a successful "
+            "cmake_configure. The build runs in a Docker "
+            "container. On success, returns an assembly_check "
+            "result showing if any assembly code (.s files, "
+            "inline asm) was compiled. If assembly is detected, "
+            "try different cmake_configure flags to avoid it "
+            "(e.g., -DDISABLE_ASM=ON, -DENABLE_SIMD=OFF)."
         ),
         "input_schema": {
             "type": "object",
@@ -958,7 +976,8 @@ CONFIGURE_MAKE_TOOL_DEFINITIONS = [
             "Run a bootstrap script to prepare the build system before configure. "
             "Many autotools projects provide a bootstrap script (bootstrap, autogen.sh, buildconf) "
             "that must be run before ./configure. Use this if the project has such a script. "
-            "The script must be in the PROJECT directory (NOT 'build/'). Absolute paths are NOT allowed."
+            "The script must be in the PROJECT directory "
+            "(NOT 'build/'). Absolute paths are NOT allowed."
         ),
         "input_schema": {
             "type": "object",
@@ -1003,7 +1022,8 @@ CONFIGURE_MAKE_TOOL_DEFINITIONS = [
                     "type": "array",
                     "items": {"type": "string"},
                     "description": (
-                        "Configure flags like ['--disable-shared', '--enable-static', '--prefix=/usr']. "
+                        "Configure flags like ['--disable-shared', "
+                        "'--enable-static', '--prefix=/usr']. "
                         "Common flags for minimizing assembly: --disable-asm, --disable-simd, "
                         "--disable-hardware-acceleration."
                     ),
@@ -1113,7 +1133,10 @@ FINISH_TOOL_DEFINITION = {
             "status": {
                 "type": "string",
                 "enum": ["success", "failure"],
-                "description": "Final status: 'success' if build completed, 'failure' if blocked or impossible",
+                "description": (
+                    "Final status: 'success' if build completed,"
+                    " 'failure' if blocked or impossible"
+                ),
             },
             "summary": {
                 "type": "string",
@@ -1131,8 +1154,11 @@ FINISH_TOOL_DEFINITION = {
             "build_script": {
                 "type": "string",
                 "description": (
-                    "The validated build script content (from a successful test_build_script call). "
-                    "Include this for non-CMake/non-Autotools builds so the script can be reproduced."
+                    "The validated build script content "
+                    "(from a successful test_build_script "
+                    "call). Include this for non-CMake/"
+                    "non-Autotools builds so the script "
+                    "can be reproduced."
                 ),
             },
             "build_system": {
@@ -1162,7 +1188,10 @@ REQUEST_MORE_TURNS_TOOL_DEFINITION = {
         "properties": {
             "reason": {
                 "type": "string",
-                "description": "Brief explanation of why more turns are needed and what remains to be done.",
+                "description": (
+                    "Brief explanation of why more turns "
+                    "are needed and what remains to be done."
+                ),
             },
         },
         "required": ["reason"],

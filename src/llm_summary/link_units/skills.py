@@ -12,7 +12,6 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Any
 
-
 # ---------------------------------------------------------------------------
 # Docker container path translation
 # /workspace/src  -> project source dir
@@ -303,7 +302,7 @@ def prescan_build_dir(build_dir: Path, verbose: bool = False) -> dict:
                     ["file", "--brief", *batch],
                     capture_output=True, text=True, timeout=30,
                 )
-                for path, desc in zip(batch, file_result.stdout.splitlines()):
+                for path, desc in zip(batch, file_result.stdout.splitlines(), strict=False):
                     if "ELF" in desc and ("executable" in desc or "pie executable" in desc):
                         try:
                             rel = str(Path(path).relative_to(build_dir))
@@ -593,7 +592,11 @@ def discover_heuristic(
     # Build basename index for resolving flat ar-t names to real paths
     basename_index = _build_basename_index(compile_commands_path)
     if verbose and basename_index:
-        print(f"[heuristic] Loaded {len(basename_index)} compile_commands outputs for member resolution")
+        n = len(basename_index)
+        print(
+            f"[heuristic] Loaded {n} compile_commands outputs"
+            f" for member resolution"
+        )
 
     link_units = []
 
@@ -616,7 +619,11 @@ def discover_heuristic(
         # Deduplicate: skip if we already processed an archive with the same filename
         if archive_filename in seen_archives:
             if verbose:
-                print(f"[heuristic]   {name}: skipped (duplicate of {seen_archives[archive_filename]})")
+                dup = seen_archives[archive_filename]
+                print(
+                    f"[heuristic]   {name}: "
+                    f"skipped (duplicate of {dup})"
+                )
             continue
         seen_archives[archive_filename] = archive_rel
 
@@ -643,7 +650,12 @@ def discover_heuristic(
 
         if verbose:
             if resolved_count:
-                print(f"[heuristic]   {name}: {len(members)} objects ({resolved_count} resolved via compile_commands)")
+                print(
+                    f"[heuristic]   {name}: "
+                    f"{len(members)} objects "
+                    f"({resolved_count} resolved via "
+                    f"compile_commands)"
+                )
             else:
                 print(f"[heuristic]   {name}: {len(members)} objects")
 

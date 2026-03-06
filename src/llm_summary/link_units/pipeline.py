@@ -45,8 +45,6 @@ def topo_sort_link_units(link_units: list[dict]) -> list[dict]:
     Raises ValueError on cycles.
     """
     by_output = build_output_index(link_units)
-    by_name = {lu["name"]: lu for lu in link_units}
-
     visited: set[str] = set()
     in_stack: set[str] = set()
     order: list[dict] = []

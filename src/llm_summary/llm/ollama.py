@@ -56,7 +56,7 @@ class OllamaBackend(LLMBackend):
             with urllib.request.urlopen(request, timeout=300) as response:
                 result = json.loads(response.read().decode("utf-8"))
         except urllib.error.URLError as e:
-            raise RuntimeError(f"Failed to connect to Ollama at {self.base_url}: {e}")
+            raise RuntimeError(f"Failed to connect to Ollama at {self.base_url}: {e}") from e
 
         content = result.get("response", "")
 
@@ -80,7 +80,7 @@ class OllamaBackend(LLMBackend):
             with urllib.request.urlopen(url, timeout=10) as response:
                 result = json.loads(response.read().decode("utf-8"))
         except urllib.error.URLError as e:
-            raise RuntimeError(f"Failed to connect to Ollama at {self.base_url}: {e}")
+            raise RuntimeError(f"Failed to connect to Ollama at {self.base_url}: {e}") from e
 
         models = result.get("models", [])
         return [m.get("name", "") for m in models]

@@ -16,7 +16,6 @@ from pathlib import Path
 
 from ..builder.llm_utils import (
     compress_stale_results,
-    estimate_messages_tokens,
     track_tool_result,
     truncate_messages,
 )
@@ -123,15 +122,18 @@ class LinkUnitDiscoverer:
         # Build initial context message
         context_parts = [
             f"Project: {project_name}",
-            f"Source: /workspace/src",
-            f"Build: /workspace/build",
+            "Source: /workspace/src",
+            "Build: /workspace/build",
         ]
         if build_system:
             context_parts.append(f"Build system: {build_system}")
 
         if heuristic_result and unresolved_objects:
             # Focused mode: only resolve the unresolved executables
-            already = [f"  - {u['type']} {u['name']}" for u in heuristic_result.get("link_units", [])]
+            already = [
+                f"  - {u['type']} {u['name']}"
+                for u in heuristic_result.get("link_units", [])
+            ]
             initial_msg = (
                 "\n".join(context_parts)
                 + "\n\nAlready discovered:\n" + "\n".join(already)
@@ -184,7 +186,10 @@ class LinkUnitDiscoverer:
                 if nudge_count < 2:
                     nudge_count += 1
                     if self.verbose:
-                        print(f"[link-units] LLM stopped without finish — nudging (attempt {nudge_count})")
+                        print(
+                            f"[link-units] LLM stopped without finish"
+                            f" — nudging (attempt {nudge_count})"
+                        )
 
                     # Capture any text the model produced
                     text_content = ""
@@ -274,7 +279,8 @@ class LinkUnitDiscoverer:
                             )
 
                             if self.verbose:
-                                print(f"[Tool] {block.name}({json.dumps(block.input, default=str)})")
+                                input_str = json.dumps(block.input, default=str)
+                                print(f"[Tool] {block.name}({input_str})")
                                 if "error" in result:
                                     print(f"  Error: {str(result['error'])[:200]}")
 
@@ -290,11 +296,18 @@ class LinkUnitDiscoverer:
                                     "granted": TURNS_EXTENSION,
                                     "total_remaining": self.max_turns - turn - 1,
                                     "extensions_used": turn_extensions_used,
-                                    "extensions_remaining": MAX_TURN_EXTENSIONS - turn_extensions_used,
+                                    "extensions_remaining": (
+                                        MAX_TURN_EXTENSIONS - turn_extensions_used
+                                    ),
                                 }
                                 if self.verbose:
-                                    print(f"[link-units] Granted {TURNS_EXTENSION} extra turns "
-                                          f"({turn_extensions_used}/{MAX_TURN_EXTENSIONS}): {reason[:100]}")
+                                    print(
+                                        f"[link-units] Granted "
+                                        f"{TURNS_EXTENSION} extra turns "
+                                        f"({turn_extensions_used}/"
+                                        f"{MAX_TURN_EXTENSIONS}): "
+                                        f"{reason[:100]}"
+                                    )
                             else:
                                 result = {
                                     "error": "Maximum extensions reached. Call finish() now.",
@@ -321,8 +334,14 @@ class LinkUnitDiscoverer:
 
                 if finished:
                     if self.verbose:
-                        status = finish_result.get("status", "unknown") if finish_result else "unknown"
-                        print(f"[link-units] Finished after {turn + 1} turns (status={status})")
+                        status = (
+                            finish_result.get("status", "unknown")
+                            if finish_result else "unknown"
+                        )
+                        print(
+                            f"[link-units] Finished after "
+                            f"{turn + 1} turns (status={status})"
+                        )
                     return self._build_output(finish_result, project_name, self.build_dir)
 
                 # Get next response

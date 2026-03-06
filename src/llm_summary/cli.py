@@ -64,29 +64,79 @@ def main():
 
 
 @main.command()
-@click.option("--db", "db_path", required=True, help="Database file path (must have functions + call_edges)")
-@click.option("--backend", type=click.Choice(["claude", "openai", "ollama", "llamacpp", "gemini"]), default="claude")
+@click.option(
+    "--db", "db_path", required=True,
+    help="Database file path (must have functions + call_edges)",
+)
+@click.option(
+    "--backend",
+    type=click.Choice(
+        ["claude", "openai", "ollama", "llamacpp", "gemini"]
+    ),
+    default="claude",
+)
 @click.option("--model", default=None, help="Model name to use")
-@click.option("--llm-host", default="localhost", help="Hostname for local LLM backends (llamacpp, ollama)")
-@click.option("--llm-port", default=None, type=int, help="Port for local LLM backends (llamacpp: 8080, ollama: 11434)")
-@click.option("--disable-thinking", is_flag=True, help="Disable thinking/reasoning mode for llamacpp (useful for structured output)")
+@click.option(
+    "--llm-host", default="localhost",
+    help="Hostname for local LLM backends (llamacpp, ollama)",
+)
+@click.option(
+    "--llm-port", default=None, type=int,
+    help="Port for local LLM backends "
+         "(llamacpp: 8080, ollama: 11434)",
+)
+@click.option(
+    "--disable-thinking", is_flag=True,
+    help="Disable thinking/reasoning mode for llamacpp "
+         "(useful for structured output)",
+)
 @click.option("--verbose", "-v", is_flag=True, help="Verbose output")
-@click.option("--force", "-f", is_flag=True, help="Force re-summarize even if summary exists")
-@click.option("--log-llm", type=click.Path(), default=None, help="Log all LLM prompts and responses to file")
-@click.option("--init-stdlib", is_flag=True, help="Auto-populate stdlib summaries before starting")
-@click.option("--allocator-file", type=click.Path(exists=True), default=None,
-              help="JSON file with custom allocator names (e.g. from find-allocator-candidates)")
-@click.option("--type", "summary_types", multiple=True, type=click.Choice(["allocation", "free", "init", "memsafe", "verify"]),
-              help="Summary pass(es) to run (default: allocation). Can be specified multiple times.")
+@click.option(
+    "--force", "-f", is_flag=True,
+    help="Force re-summarize even if summary exists",
+)
+@click.option(
+    "--log-llm", type=click.Path(), default=None,
+    help="Log all LLM prompts and responses to file",
+)
+@click.option(
+    "--init-stdlib", is_flag=True,
+    help="Auto-populate stdlib summaries before starting",
+)
+@click.option(
+    "--allocator-file", type=click.Path(exists=True), default=None,
+    help="JSON file with custom allocator names "
+         "(e.g. from find-allocator-candidates)",
+)
+@click.option(
+    "--type", "summary_types", multiple=True,
+    type=click.Choice(
+        ["allocation", "free", "init", "memsafe", "verify"]
+    ),
+    help="Summary pass(es) to run (default: allocation). "
+         "Can be specified multiple times.",
+)
 @click.option("--deallocator-file", type=click.Path(exists=True), default=None,
               help="JSON file with custom deallocator names (for free pass)")
 @click.option("--vsnap", type=click.Path(exists=True), default=None,
               help="V-snapshot (.vsnap) file for alias context in memsafe/verify passes")
 @click.option("-j", "jobs", default=1, type=int, help="Parallel LLM queries (default: 1)")
-@click.option("--cache-mode", type=click.Choice(["none", "instructions", "source"]), default="none",
-              help="Prompt caching mode: none (default), instructions (cache task instructions), source (cache function source)")
-def summarize(db_path, backend, model, llm_host, llm_port, disable_thinking, verbose, force, log_llm, init_stdlib, allocator_file, summary_types, deallocator_file, vsnap, jobs, cache_mode):
-    """Generate allocation, free, init, memsafe, and/or verify summaries on a pre-populated database.
+@click.option(
+    "--cache-mode",
+    type=click.Choice(["none", "instructions", "source"]),
+    default="none",
+    help="Prompt caching mode: none (default), "
+         "instructions (cache task instructions), "
+         "source (cache function source)",
+)
+def summarize(
+    db_path, backend, model, llm_host, llm_port,
+    disable_thinking, verbose, force, log_llm, init_stdlib,
+    allocator_file, summary_types, deallocator_file, vsnap,
+    jobs, cache_mode,
+):
+    """Generate allocation, free, init, memsafe, and/or verify
+    summaries on a pre-populated database.
 
     Requires a database that already has functions and call_edges
     (populated via 'extract', 'scan', and/or 'import-callgraph').
@@ -120,19 +170,31 @@ def summarize(db_path, backend, model, llm_host, llm_port, disable_thinking, ver
             return
 
         if edge_count == 0:
-            console.print("[red]Error: No call edges in database. Run call graph import first.[/red]")
+            console.print(
+                "[red]Error: No call edges in database."
+                " Run call graph import first.[/red]"
+            )
             sys.exit(1)
 
         # Prerequisite check for verify pass
         if "verify" in summary_types:
             missing = []
-            for req_table in ["allocation_summaries", "free_summaries", "init_summaries", "memsafe_summaries"]:
+            req_tables = [
+                "allocation_summaries", "free_summaries",
+                "init_summaries", "memsafe_summaries",
+            ]
+            for req_table in req_tables:
                 if stats.get(req_table, 0) == 0:
                     missing.append(req_table.replace("_summaries", "").replace("_", " "))
             if missing:
-                console.print(f"[red]Error: --type verify requires all four prior passes. "
-                              f"Missing: {', '.join(missing)}. "
-                              f"Run --type allocation --type free --type init --type memsafe first.[/red]")
+                console.print(
+                    f"[red]Error: --type verify requires "
+                    f"all four prior passes. "
+                    f"Missing: {', '.join(missing)}. "
+                    f"Run --type allocation --type free "
+                    f"--type init --type memsafe "
+                    f"first.[/red]"
+                )
                 return
 
         console.print(f"Database: {db_path}")
@@ -150,7 +212,11 @@ def summarize(db_path, backend, model, llm_host, llm_port, disable_thinking, ver
 
             orderer = ProcessingOrderer(graph)
             cg_stats = orderer.get_stats()
-            console.print(f"  SCCs: {cg_stats['sccs']} ({cg_stats['recursive_sccs']} recursive, largest: {cg_stats['largest_scc']})")
+            console.print(
+                f"  SCCs: {cg_stats['sccs']} "
+                f"({cg_stats['recursive_sccs']} recursive, "
+                f"largest: {cg_stats['largest_scc']})"
+            )
 
         # Init stdlib if requested
         if init_stdlib:
@@ -247,17 +313,28 @@ def summarize(db_path, backend, model, llm_host, llm_port, disable_thinking, ver
                 if not allocators:
                     allocators = alloc_data.get("candidates", [])
                 if allocators:
-                    console.print(f"Custom allocators: {len(allocators)} loaded from {allocator_file}")
+                    console.print(
+                        f"Custom allocators: "
+                        f"{len(allocators)} loaded "
+                        f"from {allocator_file}"
+                    )
 
                 # Confirm candidates via vsnapshot alias analysis
                 if allocators and alias_builder:
                     from .allocator import vsnapshot_confirm_allocators
-                    confirmed, remaining = vsnapshot_confirm_allocators(alias_builder.snap, allocators)
+                    confirmed, remaining = (
+                        vsnapshot_confirm_allocators(
+                            alias_builder.snap, allocators
+                        )
+                    )
                     console.print(f"  Vsnapshot alloc confirmation: {len(confirmed)} confirmed, "
                                   f"{len(remaining)} unconfirmed (dropped)")
                     allocators = confirmed
 
-            alloc_summarizer = AllocationSummarizer(db, llm, verbose=verbose, log_file=log_llm, allocators=allocators, cache_mode=cache_mode)
+            alloc_summarizer = AllocationSummarizer(
+                db, llm, verbose=verbose, log_file=log_llm,
+                allocators=allocators, cache_mode=cache_mode,
+            )
             passes.append(AllocationPass(alloc_summarizer, db, llm.model))
 
         if "free" in summary_types:
@@ -272,39 +349,66 @@ def summarize(db_path, backend, model, llm_host, llm_port, disable_thinking, ver
                 if not deallocators:
                     deallocators = dealloc_data.get("candidates", [])
                 if deallocators:
-                    console.print(f"Custom deallocators: {len(deallocators)} loaded from {deallocator_file}")
+                    console.print(
+                        f"Custom deallocators: "
+                        f"{len(deallocators)} loaded "
+                        f"from {deallocator_file}"
+                    )
 
                 # Confirm candidates via vsnapshot alias analysis
                 if deallocators and alias_builder:
                     from .allocator import vsnapshot_confirm_deallocators
-                    dconfirmed, dremaining = vsnapshot_confirm_deallocators(alias_builder.snap, deallocators)
+                    dconfirmed, dremaining = (
+                        vsnapshot_confirm_deallocators(
+                            alias_builder.snap, deallocators
+                        )
+                    )
                     console.print(f"  Vsnapshot dealloc confirmation: {len(dconfirmed)} confirmed, "
                                   f"{len(dremaining)} unconfirmed (dropped)")
                     deallocators = dconfirmed
 
-            free_summarizer = FreeSummarizer(db, llm, verbose=verbose, log_file=log_llm, deallocators=deallocators, cache_mode=cache_mode)
+            free_summarizer = FreeSummarizer(
+                db, llm, verbose=verbose, log_file=log_llm,
+                deallocators=deallocators,
+                cache_mode=cache_mode,
+            )
             passes.append(FreePass(free_summarizer, db, llm.model))
 
         init_summarizer = None
         if "init" in summary_types:
             from .init_summarizer import InitSummarizer
 
-            init_summarizer = InitSummarizer(db, llm, verbose=verbose, log_file=log_llm, cache_mode=cache_mode)
+            init_summarizer = InitSummarizer(
+                db, llm, verbose=verbose, log_file=log_llm,
+                cache_mode=cache_mode,
+            )
             passes.append(InitPass(init_summarizer, db, llm.model))
 
         memsafe_summarizer = None
         if "memsafe" in summary_types:
             from .memsafe_summarizer import MemsafeSummarizer
 
-            memsafe_summarizer = MemsafeSummarizer(db, llm, verbose=verbose, log_file=log_llm, cache_mode=cache_mode)
-            passes.append(MemsafePass(memsafe_summarizer, db, llm.model, alias_builder=alias_builder))
+            memsafe_summarizer = MemsafeSummarizer(
+                db, llm, verbose=verbose, log_file=log_llm,
+                cache_mode=cache_mode,
+            )
+            passes.append(MemsafePass(
+                memsafe_summarizer, db, llm.model,
+                alias_builder=alias_builder,
+            ))
 
         verification_summarizer = None
         if "verify" in summary_types:
             from .verification_summarizer import VerificationSummarizer
 
-            verification_summarizer = VerificationSummarizer(db, llm, verbose=verbose, log_file=log_llm, cache_mode=cache_mode)
-            passes.append(VerificationPass(verification_summarizer, db, llm.model, alias_builder=alias_builder))
+            verification_summarizer = VerificationSummarizer(
+                db, llm, verbose=verbose, log_file=log_llm,
+                cache_mode=cache_mode,
+            )
+            passes.append(VerificationPass(
+                verification_summarizer, db, llm.model,
+                alias_builder=alias_builder,
+            ))
 
         pass_names = " + ".join(p.name for p in passes)
         console.print(f"\n[bold]Running passes: {pass_names}[/bold]")
@@ -331,7 +435,11 @@ def summarize(db_path, backend, model, llm_host, llm_port, disable_thinking, ver
             console.print(f"  Functions processed: {s['functions_processed']}")
             console.print(f"  LLM calls: {s['llm_calls']}")
             console.print(f"  Cache hits: {s['cache_hits']}")
-            if cache_mode != "none" and (s.get("cache_read_tokens") or s.get("cache_creation_tokens")):
+            has_cache_tok = (
+                s.get("cache_read_tokens")
+                or s.get("cache_creation_tokens")
+            )
+            if cache_mode != "none" and has_cache_tok:
                 console.print(f"  Cache read tokens: {s['cache_read_tokens']:,}")
                 console.print(f"  Cache creation tokens: {s['cache_creation_tokens']:,}")
             if s["errors"] > 0:
@@ -347,7 +455,11 @@ def summarize(db_path, backend, model, llm_host, llm_port, disable_thinking, ver
             console.print(f"  Functions processed: {s['functions_processed']}")
             console.print(f"  LLM calls: {s['llm_calls']}")
             console.print(f"  Cache hits: {s['cache_hits']}")
-            if cache_mode != "none" and (s.get("cache_read_tokens") or s.get("cache_creation_tokens")):
+            has_cache_tok = (
+                s.get("cache_read_tokens")
+                or s.get("cache_creation_tokens")
+            )
+            if cache_mode != "none" and has_cache_tok:
                 console.print(f"  Cache read tokens: {s['cache_read_tokens']:,}")
                 console.print(f"  Cache creation tokens: {s['cache_creation_tokens']:,}")
             if s["errors"] > 0:
@@ -363,7 +475,11 @@ def summarize(db_path, backend, model, llm_host, llm_port, disable_thinking, ver
             console.print(f"  Functions processed: {s['functions_processed']}")
             console.print(f"  LLM calls: {s['llm_calls']}")
             console.print(f"  Cache hits: {s['cache_hits']}")
-            if cache_mode != "none" and (s.get("cache_read_tokens") or s.get("cache_creation_tokens")):
+            has_cache_tok = (
+                s.get("cache_read_tokens")
+                or s.get("cache_creation_tokens")
+            )
+            if cache_mode != "none" and has_cache_tok:
                 console.print(f"  Cache read tokens: {s['cache_read_tokens']:,}")
                 console.print(f"  Cache creation tokens: {s['cache_creation_tokens']:,}")
             if s["errors"] > 0:
@@ -379,7 +495,11 @@ def summarize(db_path, backend, model, llm_host, llm_port, disable_thinking, ver
             console.print(f"  Functions processed: {s['functions_processed']}")
             console.print(f"  LLM calls: {s['llm_calls']}")
             console.print(f"  Cache hits: {s['cache_hits']}")
-            if cache_mode != "none" and (s.get("cache_read_tokens") or s.get("cache_creation_tokens")):
+            has_cache_tok = (
+                s.get("cache_read_tokens")
+                or s.get("cache_creation_tokens")
+            )
+            if cache_mode != "none" and has_cache_tok:
                 console.print(f"  Cache read tokens: {s['cache_read_tokens']:,}")
                 console.print(f"  Cache creation tokens: {s['cache_creation_tokens']:,}")
             if s["errors"] > 0:
@@ -395,7 +515,11 @@ def summarize(db_path, backend, model, llm_host, llm_port, disable_thinking, ver
             console.print(f"  Functions processed: {s['functions_processed']}")
             console.print(f"  LLM calls: {s['llm_calls']}")
             console.print(f"  Cache hits: {s['cache_hits']}")
-            if cache_mode != "none" and (s.get("cache_read_tokens") or s.get("cache_creation_tokens")):
+            has_cache_tok = (
+                s.get("cache_read_tokens")
+                or s.get("cache_creation_tokens")
+            )
+            if cache_mode != "none" and has_cache_tok:
                 console.print(f"  Cache read tokens: {s['cache_read_tokens']:,}")
                 console.print(f"  Cache creation tokens: {s['cache_creation_tokens']:,}")
             console.print(f"  Contracts simplified: {s['contracts_simplified']}")
@@ -420,16 +544,38 @@ def summarize(db_path, backend, model, llm_host, llm_port, disable_thinking, ver
 
 @main.command()
 @click.argument("path_arg", type=click.Path(exists=True), required=False, default=None)
-@click.option("--path", "path_opt", type=click.Path(exists=True), default=None, help="Path to extract from")
-@click.option("--db", "db_path", default="summaries.db", help="Database file path")
-@click.option("--compile-commands", "compile_commands_path", type=click.Path(exists=True), default=None,
-              help="Path to compile_commands.json for proper macro/include handling")
-@click.option("--project-path", "project_path", type=click.Path(), default=None,
-              help="Host path to project source root. Required when compile_commands.json uses Docker "
-                   "container paths (/workspace/src/...).")
+@click.option(
+    "--path", "path_opt", type=click.Path(exists=True),
+    default=None, help="Path to extract from",
+)
+@click.option(
+    "--db", "db_path", default="summaries.db",
+    help="Database file path",
+)
+@click.option(
+    "--compile-commands", "compile_commands_path",
+    type=click.Path(exists=True), default=None,
+    help="Path to compile_commands.json for proper "
+         "macro/include handling",
+)
+@click.option(
+    "--project-path", "project_path",
+    type=click.Path(), default=None,
+    help="Host path to project source root. Required when "
+         "compile_commands.json uses Docker "
+         "container paths (/workspace/src/...).",
+)
 @click.option("--recursive/--no-recursive", default=True)
-@click.option("--preprocess", is_flag=True, help="Run clang -E to expand macros and store preprocessed source")
-def extract(path_arg, path_opt, db_path, compile_commands_path, project_path, recursive, preprocess):
+@click.option(
+    "--preprocess", is_flag=True,
+    help="Run clang -E to expand macros and store "
+         "preprocessed source",
+)
+def extract(
+    path_arg, path_opt, db_path,
+    compile_commands_path, project_path,
+    recursive, preprocess,
+):
     """Extract functions and build call graph (no LLM)."""
     # Accept path as either positional argument or --path option
     path = path_opt or path_arg
@@ -489,7 +635,7 @@ def extract(path_arg, path_opt, db_path, compile_commands_path, project_path, re
             except Exception as e:
                 console.print(f"  [yellow]Warning: {f.name}: {e}[/yellow]")
 
-        func_ids = db.insert_functions_batch(all_functions)
+        db.insert_functions_batch(all_functions)
         console.print(f"\nExtracted {len(all_functions)} functions")
 
         # Build call graph
@@ -561,7 +707,9 @@ def show(db_path, name, file_path, allocating_only, fmt):
                         func.name,
                         Path(func.file_path).name,
                         alloc_str,
-                        summary.description[:50] + "..." if len(summary.description) > 50 else summary.description,
+                        (summary.description[:50] + "..."
+                         if len(summary.description) > 50
+                         else summary.description),
                     )
 
             console.print(table)
@@ -676,9 +824,15 @@ def clear(db_path):
 @click.option("--model", default=None, help="Model name override for --backend")
 @click.option("--llm-host", default="localhost", help="Hostname for local LLM backends")
 @click.option("--llm-port", default=None, type=int, help="Port for local LLM backends")
-@click.option("--log-llm", type=click.Path(), default=None, help="Log LLM prompts/responses to file")
+@click.option(
+    "--log-llm", type=click.Path(), default=None,
+    help="Log LLM prompts/responses to file",
+)
 @click.option("--verbose", "-v", is_flag=True, help="Verbose output")
-def init_stdlib(db_path, extra_abilists, cache_db, backend, model, llm_host, llm_port, log_llm, verbose):
+def init_stdlib(
+    db_path, extra_abilists, cache_db, backend, model,
+    llm_host, llm_port, log_llm, verbose,
+):
     """Populate external-function summaries using a persistent global cache.
 
     For each function in the project DB that has no source body:
@@ -816,7 +970,11 @@ def init_stdlib(db_path, extra_abilists, cache_db, backend, model, llm_host, llm
                 f"\nGenerating summaries for {len(cache_misses)} uncached functions "
                 f"via {backend} ({llm.model})..."
             )
-            with Progress(SpinnerColumn(), TextColumn("{task.description}"), console=console) as prog:
+            with Progress(
+                SpinnerColumn(),
+                TextColumn("{task.description}"),
+                console=console,
+            ) as prog:
                 task = prog.add_task("", total=len(cache_misses))
                 for f in cache_misses:
                     prog.update(task, description=f.name)
@@ -964,27 +1122,78 @@ def callgraph(db_path, output, fmt, no_header):
 
 @main.command("indirect-analyze")
 @click.argument("path_arg", type=click.Path(exists=True), required=False, default=None)
-@click.option("--path", "path_opt", type=click.Path(exists=True), default=None, help="Path to analyze")
-@click.option("--db", "db_path", default="summaries.db", help="Database file path")
-@click.option("--compile-commands", "compile_commands_path", type=click.Path(exists=True), default=None,
-              help="Path to compile_commands.json for proper macro/include handling")
-@click.option("--project-path", "project_path", type=click.Path(), default=None,
-              help="Host path to project source root. Required when compile_commands.json uses Docker "
-                   "container paths (/workspace/src/...).")
-@click.option("--backend", type=click.Choice(["claude", "openai", "ollama", "llamacpp", "gemini"]), default="claude")
+@click.option(
+    "--path", "path_opt", type=click.Path(exists=True),
+    default=None, help="Path to analyze",
+)
+@click.option(
+    "--db", "db_path", default="summaries.db",
+    help="Database file path",
+)
+@click.option(
+    "--compile-commands", "compile_commands_path",
+    type=click.Path(exists=True), default=None,
+    help="Path to compile_commands.json for proper "
+         "macro/include handling",
+)
+@click.option(
+    "--project-path", "project_path",
+    type=click.Path(), default=None,
+    help="Host path to project source root. Required "
+         "when compile_commands.json uses Docker "
+         "container paths (/workspace/src/...).",
+)
+@click.option(
+    "--backend",
+    type=click.Choice(
+        ["claude", "openai", "ollama", "llamacpp", "gemini"]
+    ),
+    default="claude",
+)
 @click.option("--model", default=None, help="Model name to use")
-@click.option("--llm-host", default="localhost", help="Hostname for local LLM backends (llamacpp, ollama)")
-@click.option("--llm-port", default=None, type=int, help="Port for local LLM backends (llamacpp: 8080, ollama: 11434)")
-@click.option("--disable-thinking", is_flag=True, help="Disable thinking/reasoning mode for llamacpp (useful for structured output)")
-@click.option("--recursive/--no-recursive", default=True, help="Scan directories recursively")
+@click.option(
+    "--llm-host", default="localhost",
+    help="Hostname for local LLM backends "
+         "(llamacpp, ollama)",
+)
+@click.option(
+    "--llm-port", default=None, type=int,
+    help="Port for local LLM backends "
+         "(llamacpp: 8080, ollama: 11434)",
+)
+@click.option(
+    "--disable-thinking", is_flag=True,
+    help="Disable thinking/reasoning mode for llamacpp "
+         "(useful for structured output)",
+)
+@click.option(
+    "--recursive/--no-recursive", default=True,
+    help="Scan directories recursively",
+)
 @click.option("--verbose", "-v", is_flag=True, help="Verbose output")
-@click.option("--force", "-f", is_flag=True, help="Force re-analysis (ignore cache)")
-@click.option("--log-llm", type=click.Path(), default=None, help="Log all LLM prompts and responses to file")
-@click.option("--pass1-only", is_flag=True, help="Only run Pass 1 (flow summarization)")
-@click.option("--pass2-only", is_flag=True, help="Only run Pass 2 (resolution), requires Pass 1 already done")
+@click.option(
+    "--force", "-f", is_flag=True,
+    help="Force re-analysis (ignore cache)",
+)
+@click.option(
+    "--log-llm", type=click.Path(), default=None,
+    help="Log all LLM prompts and responses to file",
+)
+@click.option(
+    "--pass1-only", is_flag=True,
+    help="Only run Pass 1 (flow summarization)",
+)
+@click.option(
+    "--pass2-only", is_flag=True,
+    help="Only run Pass 2 (resolution), "
+         "requires Pass 1 already done",
+)
 def indirect_analyze(
-    path_arg, path_opt, db_path, compile_commands_path, project_path, backend, model, llm_host, llm_port,
-    disable_thinking, recursive, verbose, force, log_llm, pass1_only, pass2_only
+    path_arg, path_opt, db_path,
+    compile_commands_path, project_path, backend,
+    model, llm_host, llm_port, disable_thinking,
+    recursive, verbose, force, log_llm,
+    pass1_only, pass2_only,
 ):
     """
     Analyze indirect calls using LLM-based two-pass approach.
@@ -993,7 +1202,8 @@ def indirect_analyze(
     Pass 2: Resolve indirect callsites using flow summaries.
 
     Example:
-        llm-summary indirect-analyze --path src/ --db out.db --compile-commands compile_commands.json
+        llm-summary indirect-analyze --path src/ --db out.db \\
+            --compile-commands compile_commands.json
     """
     # Accept path as either positional argument or --path option
     path = path_opt or path_arg
@@ -1075,14 +1285,25 @@ def indirect_analyze(
         if pass2_only:
             atf_count = len(db.get_address_taken_functions())
             callsite_count = len(db.get_indirect_callsites())
-            console.print(f"Using existing data: {atf_count} address-taken functions, {callsite_count} indirect callsites")
+            console.print(
+                f"Using existing data: "
+                f"{atf_count} address-taken functions, "
+                f"{callsite_count} indirect callsites"
+            )
 
             if atf_count == 0:
-                console.print("[red]No address-taken functions in database. Run without --pass2-only first.[/red]")
+                console.print(
+                    "[red]No address-taken functions in "
+                    "database. Run without --pass2-only "
+                    "first.[/red]"
+                )
                 return
 
             if callsite_count == 0:
-                console.print("[red]No indirect callsites in database. Run without --pass2-only first.[/red]")
+                console.print(
+                    "[red]No indirect callsites in database."
+                    " Run without --pass2-only first.[/red]"
+                )
                 return
         else:
             with Progress(
@@ -1115,7 +1336,10 @@ def indirect_analyze(
             console.print(f"Found {len(callsites)} indirect call sites")
 
             if atf_count == 0:
-                console.print("[yellow]No address-taken functions found. Nothing to analyze.[/yellow]")
+                console.print(
+                    "[yellow]No address-taken functions "
+                    "found. Nothing to analyze.[/yellow]"
+                )
                 return
 
             if len(callsites) == 0:
@@ -1140,7 +1364,7 @@ def indirect_analyze(
             ) as progress:
                 task = progress.add_task("Summarizing function pointer flows...", total=None)
 
-                flow_summaries = flow_summarizer.summarize_all(force=force)
+                flow_summarizer.summarize_all(force=force)
 
                 progress.update(task, completed=True)
 
@@ -1225,7 +1449,11 @@ def show_indirect(db_path, fmt):
                 for t in targets:
                     target_func = functions.get(t.target_function_id)
                     target_list.append({
-                        "function": target_func.name if target_func else f"ID:{t.target_function_id}",
+                        "function": (
+                            target_func.name
+                            if target_func
+                            else f"ID:{t.target_function_id}"
+                        ),
                         "confidence": t.confidence,
                         "reasoning": t.llm_reasoning,
                     })
@@ -1282,15 +1510,36 @@ def show_indirect(db_path, fmt):
 
 @main.command("container-analyze")
 @click.option("--db", "db_path", default="summaries.db", help="Database file path")
-@click.option("--backend", type=click.Choice(["claude", "openai", "ollama", "llamacpp", "gemini"]), default="ollama")
+@click.option(
+    "--backend",
+    type=click.Choice(
+        ["claude", "openai", "ollama", "llamacpp", "gemini"]
+    ),
+    default="ollama",
+)
 @click.option("--model", default=None, help="Model name to use")
-@click.option("--llm-host", default="localhost", help="Hostname for local LLM backends (llamacpp, ollama)")
-@click.option("--llm-port", default=None, type=int, help="Port for local LLM backends (llamacpp: 8080, ollama: 11434)")
+@click.option(
+    "--llm-host", default="localhost",
+    help="Hostname for local LLM backends "
+         "(llamacpp, ollama)",
+)
+@click.option(
+    "--llm-port", default=None, type=int,
+    help="Port for local LLM backends "
+         "(llamacpp: 8080, ollama: 11434)",
+)
 @click.option("--disable-thinking", is_flag=True, help="Disable thinking/reasoning mode")
 @click.option("--verbose", "-v", is_flag=True, help="Verbose output")
 @click.option("--force", "-f", is_flag=True, help="Force re-analysis (ignore cache)")
-@click.option("--min-score", default=5, type=int, help="Minimum heuristic score for LLM confirmation (default: 5)")
-@click.option("--log-llm", type=click.Path(), default=None, help="Log all LLM prompts and responses to file")
+@click.option(
+    "--min-score", default=5, type=int,
+    help="Minimum heuristic score for LLM confirmation "
+         "(default: 5)",
+)
+@click.option(
+    "--log-llm", type=click.Path(), default=None,
+    help="Log all LLM prompts and responses to file",
+)
 @click.option("--heuristic-only", is_flag=True, help="Only run heuristic scoring, skip LLM")
 @click.option("--project-name", default=None, help="Project name (default: inferred from DB path)")
 def container_analyze(
@@ -1381,7 +1630,7 @@ def container_analyze(
             console=console,
         ) as progress:
             task = progress.add_task("Detecting container functions...", total=None)
-            results = detector.detect_all(force=force)
+            detector.detect_all(force=force)
             progress.update(task, completed=True)
 
         stats = detector.stats
@@ -1393,7 +1642,11 @@ def container_analyze(
         console.print(f"  Containers found: {stats['containers_found']}")
         if stats["input_tokens"] > 0 or stats["output_tokens"] > 0:
             total_tok = stats['input_tokens'] + stats['output_tokens']
-            console.print(f"  Tokens: {total_tok:,} ({stats['input_tokens']:,} in + {stats['output_tokens']:,} out)")
+            console.print(
+                f"  Tokens: {total_tok:,} "
+                f"({stats['input_tokens']:,} in + "
+                f"{stats['output_tokens']:,} out)"
+            )
         if stats["errors"] > 0:
             console.print(f"  [yellow]Errors: {stats['errors']}[/yellow]")
 
@@ -1413,7 +1666,10 @@ def show_containers(db_path, fmt):
         functions = {f.id: f for f in db.get_all_functions()}
 
         if not summaries:
-            console.print("[yellow]No container summaries found. Run 'container-analyze' first.[/yellow]")
+            console.print(
+                "[yellow]No container summaries found. "
+                "Run 'container-analyze' first.[/yellow]"
+            )
             return
 
         if fmt == "json":
@@ -1461,17 +1717,44 @@ def show_containers(db_path, fmt):
 
 @main.command("find-allocator-candidates")
 @click.option("--db", "db_path", default="summaries.db", help="Database file path")
-@click.option("--output", "-o", "output_path", required=True, type=click.Path(), help="Output JSON path")
-@click.option("--backend", type=click.Choice(["claude", "openai", "ollama", "llamacpp", "gemini"]), default="ollama")
+@click.option(
+    "--output", "-o", "output_path", required=True,
+    type=click.Path(), help="Output JSON path",
+)
+@click.option(
+    "--backend",
+    type=click.Choice(
+        ["claude", "openai", "ollama", "llamacpp", "gemini"]
+    ),
+    default="ollama",
+)
 @click.option("--model", default=None, help="Model name to use")
-@click.option("--llm-host", default="localhost", help="Hostname for local LLM backends (llamacpp, ollama)")
-@click.option("--llm-port", default=None, type=int, help="Port for local LLM backends (llamacpp: 8080, ollama: 11434)")
+@click.option(
+    "--llm-host", default="localhost",
+    help="Hostname for local LLM backends "
+         "(llamacpp, ollama)",
+)
+@click.option(
+    "--llm-port", default=None, type=int,
+    help="Port for local LLM backends "
+         "(llamacpp: 8080, ollama: 11434)",
+)
 @click.option("--disable-thinking", is_flag=True, help="Disable thinking/reasoning mode")
 @click.option("--min-score", default=5, type=int, help="Minimum heuristic score (default: 5)")
-@click.option("--heuristic-only", is_flag=True, help="Skip LLM, output all candidates above threshold")
-@click.option("--include-stdlib", is_flag=True, help="Include well-known stdlib allocators in confirmed list")
+@click.option(
+    "--heuristic-only", is_flag=True,
+    help="Skip LLM, output all candidates above threshold",
+)
+@click.option(
+    "--include-stdlib", is_flag=True,
+    help="Include well-known stdlib allocators in "
+         "confirmed list",
+)
 @click.option("--verbose", "-v", is_flag=True, help="Verbose output")
-@click.option("--log-llm", type=click.Path(), default=None, help="Log all LLM prompts and responses to file")
+@click.option(
+    "--log-llm", type=click.Path(), default=None,
+    help="Log all LLM prompts and responses to file",
+)
 def find_allocator_candidates(
     db_path, output_path, backend, model, llm_host, llm_port, disable_thinking,
     min_score, heuristic_only, include_stdlib, verbose, log_llm
@@ -1482,8 +1765,12 @@ def find_allocator_candidates(
     Outputs JSON with {candidates: [...], confirmed: [...]}.
 
     Example:
-        llm-summary find-allocator-candidates --db functions.db -o alloc.json --heuristic-only -v
-        llm-summary find-allocator-candidates --db functions.db -o alloc.json --backend ollama --model qwen3
+        llm-summary find-allocator-candidates \\
+            --db functions.db -o alloc.json \\
+            --heuristic-only -v
+        llm-summary find-allocator-candidates \\
+            --db functions.db -o alloc.json \\
+            --backend ollama --model qwen3
     """
     from .allocator import STDLIB_ALLOCATORS, STDLIB_DEALLOCATORS, AllocatorDetector
 
@@ -1606,7 +1893,8 @@ def find_allocator_candidates(
             )
             progress.update(task, completed=True)
 
-        # All go into candidates for KAMain to verify; confirmed is left empty for KAMain to populate
+        # All go into candidates for KAMain to verify;
+        # confirmed is left empty for KAMain to populate
         all_candidates = confirmed + candidates
         all_dealloc = dealloc_confirmed + dealloc_candidates
         output = {
@@ -1628,7 +1916,11 @@ def find_allocator_candidates(
         console.print(f"  LLM calls: {stats['llm_calls']}")
         if stats["input_tokens"] > 0 or stats["output_tokens"] > 0:
             total_tok = stats['input_tokens'] + stats['output_tokens']
-            console.print(f"  Tokens: {total_tok:,} ({stats['input_tokens']:,} in + {stats['output_tokens']:,} out)")
+            console.print(
+                f"  Tokens: {total_tok:,} "
+                f"({stats['input_tokens']:,} in + "
+                f"{stats['output_tokens']:,} out)"
+            )
         if stats["errors"] > 0:
             console.print(f"  [yellow]Errors: {stats['errors']}[/yellow]")
         console.print(f"  Wrote {output_path}")
@@ -1700,7 +1992,10 @@ def _load_compile_commands(
             if "output" in e and _is_docker_path(e["output"]):
                 e["output"] = str(_resolve_host_path(e["output"], proj_dir, build_dir_path))
             if "arguments" in e:
-                e["arguments"] = [_translate_arg(a, proj_dir, build_dir_path) for a in e["arguments"]]
+                e["arguments"] = [
+                    _translate_arg(a, proj_dir, build_dir_path)
+                    for a in e["arguments"]
+                ]
             resolved.append(e)
 
         tmp = tempfile.NamedTemporaryFile(suffix=".json", delete=False, mode="w")
@@ -1789,20 +2084,46 @@ def _source_files_for_target(
 
 
 @main.command()
-@click.option("--compile-commands", "compile_commands_path", type=click.Path(exists=True), required=True,
-              help="Path to compile_commands.json")
-@click.option("--link-units", "link_units_path", type=click.Path(exists=True), default=None,
-              help="Path to link_units.json (from discover-link-units). Restricts scan to the named target.")
-@click.option("--target", "target_name", default=None,
-              help="Link-unit target name to scan (required when --link-units is given).")
-@click.option("--project-path", "project_path", type=click.Path(), default=None,
-              help="Host path to project source root. Required when compile_commands.json uses Docker "
-                   "container paths (/workspace/src/...). Maps /workspace/src -> project_path and "
-                   "/workspace/build -> build_dir.")
-@click.option("--db", "db_path", default="summaries.db", help="Database file path")
+@click.option(
+    "--compile-commands", "compile_commands_path",
+    type=click.Path(exists=True), required=True,
+    help="Path to compile_commands.json",
+)
+@click.option(
+    "--link-units", "link_units_path",
+    type=click.Path(exists=True), default=None,
+    help="Path to link_units.json "
+         "(from discover-link-units). "
+         "Restricts scan to the named target.",
+)
+@click.option(
+    "--target", "target_name", default=None,
+    help="Link-unit target name to scan "
+         "(required when --link-units is given).",
+)
+@click.option(
+    "--project-path", "project_path",
+    type=click.Path(), default=None,
+    help="Host path to project source root. Required "
+         "when compile_commands.json uses Docker "
+         "container paths (/workspace/src/...). "
+         "Maps /workspace/src -> project_path and "
+         "/workspace/build -> build_dir.",
+)
+@click.option(
+    "--db", "db_path", default="summaries.db",
+    help="Database file path",
+)
 @click.option("--verbose", "-v", is_flag=True, help="Verbose output")
-@click.option("--preprocess", is_flag=True, help="Run clang -E to expand macros and store preprocessed source")
-def scan(compile_commands_path, link_units_path, target_name, project_path, db_path, verbose, preprocess):
+@click.option(
+    "--preprocess", is_flag=True,
+    help="Run clang -E to expand macros and "
+         "store preprocessed source",
+)
+def scan(
+    compile_commands_path, link_units_path, target_name,
+    project_path, db_path, verbose, preprocess,
+):
     """Extract functions, scan indirect call targets, and find callsites (no LLM).
 
     This command runs the pre-LLM scanner phases:
@@ -1877,8 +2198,16 @@ def scan(compile_commands_path, link_units_path, target_name, project_path, db_p
     if bc_files_filter is not None:
         # Use the resolved compile_commands path so source file paths match
         scoped = _source_files_for_target(resolved_cc_path, bc_files_filter, build_dir=lu_build_dir)
-        source_files = [f for f in all_files if f in scoped and Path(f).suffix.lower() in c_extensions]
-        asm_files = [f for f in all_files if f in scoped and Path(f).suffix in asm_extensions]
+        source_files = [
+            f for f in all_files
+            if f in scoped
+            and Path(f).suffix.lower() in c_extensions
+        ]
+        asm_files = [
+            f for f in all_files
+            if f in scoped
+            and Path(f).suffix in asm_extensions
+        ]
     else:
         source_files = [f for f in all_files if Path(f).suffix.lower() in c_extensions]
         asm_files = [f for f in all_files if Path(f).suffix in asm_extensions]
@@ -1929,7 +2258,11 @@ def scan(compile_commands_path, link_units_path, target_name, project_path, db_p
                     typedefs = extractor.extract_typedefs_from_file(f)
                     all_typedefs.extend(typedefs)
                     if verbose:
-                        progress.console.print(f"  {Path(f).name}: {len(functions)} functions, {len(typedefs)} typedefs")
+                        progress.console.print(
+                            f"  {Path(f).name}: "
+                            f"{len(functions)} functions, "
+                            f"{len(typedefs)} typedefs"
+                        )
                 except Exception as e:
                     extract_errors += 1
                     if verbose:
@@ -1947,7 +2280,7 @@ def scan(compile_commands_path, link_units_path, target_name, project_path, db_p
         if asm_files:
             from .asm_extractor import extract_asm_functions
 
-            console.print(f"\n[bold]Phase 1b: Extracting assembly functions[/bold]")
+            console.print("\n[bold]Phase 1b: Extracting assembly functions[/bold]")
 
             # Build source -> output mapping from raw compile_commands JSON
             asm_output_map: dict[str, str] = {}
@@ -1960,7 +2293,11 @@ def scan(compile_commands_path, link_units_path, target_name, project_path, db_p
                         src = entry.get("file", "")
                         out = entry.get("output", "")
                         if src and out:
-                            src_resolved = str(Path(src).resolve()) if Path(src).is_absolute() else src
+                            src_resolved = (
+                                str(Path(src).resolve())
+                                if Path(src).is_absolute()
+                                else src
+                            )
                             asm_output_map[src_resolved] = out
                 except (json.JSONDecodeError, OSError):
                     pass
@@ -2066,20 +2403,49 @@ def scan(compile_commands_path, link_units_path, target_name, project_path, db_p
 
 
 @main.command("build-learn")
-@click.option("--project-path", type=click.Path(exists=True), required=True, help="Path to the project to build")
-@click.option("--build-dir", type=click.Path(), default=None, help="Custom build directory (default: <project-path>/build)")
-@click.option("--backend", type=click.Choice(["claude", "openai", "ollama", "llamacpp", "gemini"]), default="claude", help="LLM backend for incremental learning")
+@click.option(
+    "--project-path", type=click.Path(exists=True),
+    required=True, help="Path to the project to build",
+)
+@click.option(
+    "--build-dir", type=click.Path(), default=None,
+    help="Custom build directory "
+         "(default: <project-path>/build)",
+)
+@click.option(
+    "--backend",
+    type=click.Choice(
+        ["claude", "openai", "ollama", "llamacpp", "gemini"]
+    ),
+    default="claude",
+    help="LLM backend for incremental learning",
+)
 @click.option("--model", default=None, help="Model name (default depends on backend)")
-@click.option("--llm-host", default="localhost", help="Hostname for local LLM backends (llamacpp, ollama)")
-@click.option("--llm-port", default=None, type=int, help="Port for local LLM backends (llamacpp: 8080, ollama: 11434)")
-@click.option("--disable-thinking", is_flag=True, help="Disable thinking/reasoning mode for llamacpp (useful for structured output)")
+@click.option(
+    "--llm-host", default="localhost",
+    help="Hostname for local LLM backends "
+         "(llamacpp, ollama)",
+)
+@click.option(
+    "--llm-port", default=None, type=int,
+    help="Port for local LLM backends "
+         "(llamacpp: 8080, ollama: 11434)",
+)
+@click.option(
+    "--disable-thinking", is_flag=True,
+    help="Disable thinking/reasoning mode for llamacpp "
+         "(useful for structured output)",
+)
 @click.option("--max-retries", default=3, help="Maximum build attempts")
 @click.option("--container-image", default="llm-summary-builder:latest", help="Docker image to use")
 @click.option("--enable-lto/--no-lto", default=True, help="Enable LLVM LTO")
 @click.option("--prefer-static/--no-static", default=True, help="Prefer static linking")
 @click.option("--generate-ir/--no-ir", default=True, help="Generate and save LLVM IR artifacts")
 @click.option("--db", "db_path", default="summaries.db", help="Database file path")
-@click.option("--log-llm", type=click.Path(), default=None, help="Log all LLM prompts and responses to file")
+@click.option(
+    "--log-llm", type=click.Path(), default=None,
+    help="Log all LLM prompts and responses to file",
+)
 @click.option("--ccache-dir", type=click.Path(), default="~/.cache/llm-summary-ccache",
               help="Host ccache directory (default: ~/.cache/llm-summary-ccache)")
 @click.option("--no-ccache", is_flag=True, help="Disable ccache")
@@ -2264,15 +2630,42 @@ def build_learn(
 
 @main.command("generate-kanalyzer-script")
 @click.option("--project", required=True, help="Project name (looks up build-scripts/<project>/)")
-@click.option("--artifacts-dir", default=None, help="Artifacts directory (default: build-scripts/<project>/artifacts)")
-@click.option("--output-json", required=True, help="Output path for KAMain JSON call graph")
-@click.option("--kamain-bin", default="/home/csong/project/kanalyzer/release/lib/KAMain",
-              help="Path to KAMain binary")
-@click.option("--allocator-file", default=None, help="Path to allocator candidates JSON")
-@click.option("--container-file", default=None, help="Path to container functions JSON")
-@click.option("--verbose-level", default=1, type=int, help="KAMain verbose level (default: 1)")
-@click.option("--output", "-o", default=None, help="Output script path (default: stdout)")
-def generate_kanalyzer_script(project, artifacts_dir, output_json, kamain_bin, allocator_file, container_file, verbose_level, output):
+@click.option(
+    "--artifacts-dir", default=None,
+    help="Artifacts directory "
+         "(default: build-scripts/<project>/artifacts)",
+)
+@click.option(
+    "--output-json", required=True,
+    help="Output path for KAMain JSON call graph",
+)
+@click.option(
+    "--kamain-bin",
+    default="/home/csong/project/kanalyzer/release"
+            "/lib/KAMain",
+    help="Path to KAMain binary",
+)
+@click.option(
+    "--allocator-file", default=None,
+    help="Path to allocator candidates JSON",
+)
+@click.option(
+    "--container-file", default=None,
+    help="Path to container functions JSON",
+)
+@click.option(
+    "--verbose-level", default=1, type=int,
+    help="KAMain verbose level (default: 1)",
+)
+@click.option(
+    "--output", "-o", default=None,
+    help="Output script path (default: stdout)",
+)
+def generate_kanalyzer_script(
+    project, artifacts_dir, output_json, kamain_bin,
+    allocator_file, container_file, verbose_level,
+    output,
+):
     """Generate a shell script to run KAMain on a project's .bc files."""
     scripts_dir = Path("build-scripts") / project
 
@@ -2381,23 +2774,52 @@ def import_callgraph(json_path, db_path, clear_edges, verbose):
 
 
 @main.command("discover-link-units")
-@click.option("--project-name", default=None, help="Project name (default: inferred from project path)")
-@click.option("--project-path", type=click.Path(exists=True), required=True, help="Path to the project source")
-@click.option("--build-dir", type=click.Path(exists=True), required=True, help="Path to the build directory")
-@click.option("--compile-commands", "compile_commands_path", type=click.Path(exists=True), default=None,
-              help="Path to compile_commands.json (auto-detected if not given)")
-@click.option("--build-system", default=None, help="Build system hint (cmake, autotools, make)")
-@click.option("--output", "-o", type=click.Path(), default=None,
-              help="Output path (default: func-scans/<project>/link_units.json)")
-@click.option("--backend", type=click.Choice(["claude", "openai", "ollama", "llamacpp", "gemini"]), default="claude",
-              help="LLM backend (only needed for non-Ninja builds)")
+@click.option(
+    "--project-name", default=None,
+    help="Project name "
+         "(default: inferred from project path)",
+)
+@click.option(
+    "--project-path", type=click.Path(exists=True),
+    required=True, help="Path to the project source",
+)
+@click.option(
+    "--build-dir", type=click.Path(exists=True),
+    required=True, help="Path to the build directory",
+)
+@click.option(
+    "--compile-commands", "compile_commands_path",
+    type=click.Path(exists=True), default=None,
+    help="Path to compile_commands.json "
+         "(auto-detected if not given)",
+)
+@click.option(
+    "--build-system", default=None,
+    help="Build system hint (cmake, autotools, make)",
+)
+@click.option(
+    "--output", "-o", type=click.Path(), default=None,
+    help="Output path "
+         "(default: func-scans/<project>/link_units.json)",
+)
+@click.option(
+    "--backend",
+    type=click.Choice(
+        ["claude", "openai", "ollama", "llamacpp", "gemini"]
+    ),
+    default="claude",
+    help="LLM backend (only needed for non-Ninja builds)",
+)
 @click.option("--model", default=None, help="Model name")
 @click.option("--llm-host", default="localhost", help="Hostname for local LLM backends")
 @click.option("--llm-port", default=None, type=int, help="Port for local LLM backends")
 @click.option("--disable-thinking", is_flag=True, help="Disable thinking mode")
 @click.option("--container-image", default="llm-summary-builder:latest",
               help="Docker image for sandboxed commands (agent mode only)")
-@click.option("--log-llm", type=click.Path(), default=None, help="Log LLM prompts/responses to file")
+@click.option(
+    "--log-llm", type=click.Path(), default=None,
+    help="Log LLM prompts/responses to file",
+)
 @click.option("--verbose", "-v", is_flag=True, help="Verbose output")
 def discover_link_units(
     project_name, project_path, build_dir, compile_commands_path,
@@ -2464,7 +2886,7 @@ def discover_link_units(
     if not use_build_dir:
         build_dir = project_path
         if verbose:
-            console.print(f"[yellow]In-tree build detected — using source dir as build dir[/yellow]")
+            console.print("[yellow]In-tree build detected — using source dir as build dir[/yellow]")
 
     # Determine output path
     if output is None:
@@ -2472,7 +2894,7 @@ def discover_link_units(
         output_dir.mkdir(parents=True, exist_ok=True)
         output = str(output_dir / "link_units.json")
 
-    console.print(f"[bold]Link Unit Discovery[/bold]")
+    console.print("[bold]Link Unit Discovery[/bold]")
     console.print(f"  Project: {project_name}")
     console.print(f"  Source:  {project_path}")
     console.print(f"  Build:   {build_dir}")
@@ -2493,7 +2915,7 @@ def discover_link_units(
     )
 
     if result is not None:
-        console.print(f"[green]Deterministic discovery succeeded (no LLM needed)[/green]")
+        console.print("[green]Deterministic discovery succeeded (no LLM needed)[/green]")
     else:
         # Try heuristic path (prescan + Makefile parsing)
         console.print("[yellow]No build.ninja — trying heuristic discovery...[/yellow]")
@@ -2506,7 +2928,7 @@ def discover_link_units(
         heuristic_result["project"] = project_name
 
         if not unresolved:
-            console.print(f"[green]Heuristic discovery fully resolved (no LLM needed)[/green]")
+            console.print("[green]Heuristic discovery fully resolved (no LLM needed)[/green]")
             result = heuristic_result
         else:
             console.print(
@@ -2578,8 +3000,12 @@ def discover_link_units(
     total_obj = sum(len(u.get("objects", [])) for u in link_units)
     total_bc = sum(len(u.get("bc_files", [])) for u in link_units)
 
-    console.print(f"\n[bold]Results[/bold]")
-    console.print(f"  Link units: {len(link_units)} ({len(libs)} libraries, {len(exes)} executables)")
+    console.print("\n[bold]Results[/bold]")
+    console.print(
+        f"  Link units: {len(link_units)} "
+        f"({len(libs)} libraries, "
+        f"{len(exes)} executables)"
+    )
     console.print(f"  Total objects: {total_obj}")
     if total_bc:
         console.print(f"  Total .bc files: {total_bc}")
@@ -2754,7 +3180,11 @@ def review_issue(function_name, issue_index, db_path, review_status, reason, sig
         if signature:
             functions = [f for f in functions if f.signature == signature]
             if not functions:
-                console.print(f"[red]No function '{function_name}' with signature '{signature}'.[/red]")
+                console.print(
+                    f"[red]No function '{function_name}' "
+                    f"with signature "
+                    f"'{signature}'.[/red]"
+                )
                 sys.exit(1)
 
         if len(functions) > 1:
@@ -2769,7 +3199,11 @@ def review_issue(function_name, issue_index, db_path, review_status, reason, sig
         # Load verification summary
         vsummary = db.get_verification_summary_by_function_id(func.id)
         if not vsummary:
-            console.print(f"[red]No verification summary for '{function_name}'. Run verify pass first.[/red]")
+            console.print(
+                f"[red]No verification summary for "
+                f"'{function_name}'. "
+                f"Run verify pass first.[/red]"
+            )
             sys.exit(1)
 
         if not vsummary.issues:
@@ -2779,7 +3213,9 @@ def review_issue(function_name, issue_index, db_path, review_status, reason, sig
         if issue_index < 0 or issue_index >= len(vsummary.issues):
             console.print(
                 f"[red]Invalid issue_index {issue_index}. "
-                f"'{function_name}' has {len(vsummary.issues)} issue(s) (0-{len(vsummary.issues) - 1}).[/red]"
+                f"'{function_name}' has "
+                f"{len(vsummary.issues)} issue(s) "
+                f"(0-{len(vsummary.issues) - 1}).[/red]"
             )
             sys.exit(1)
 
@@ -2817,7 +3253,11 @@ def review_issue(function_name, issue_index, db_path, review_status, reason, sig
     type=click.Choice(["pending", "confirmed", "false_positive", "wontfix"]),
     help="Filter by review status",
 )
-@click.option("--severity", default=None, type=click.Choice(["high", "medium", "low"]), help="Filter by severity")
+@click.option(
+    "--severity", default=None,
+    type=click.Choice(["high", "medium", "low"]),
+    help="Filter by severity",
+)
 @click.option("--format", "fmt", type=click.Choice(["table", "json"]), default="table")
 def show_issues(db_path, name, filter_status, severity, fmt):
     """List all verification issues with their review status.
@@ -2890,7 +3330,12 @@ def show_issues(db_path, name, filter_status, severity, fmt):
             }
 
             for r in rows:
-                sev_style = "red" if r["severity"] == "high" else ("yellow" if r["severity"] == "medium" else "dim")
+                sev = r["severity"]
+                sev_style = (
+                    "red" if sev == "high"
+                    else ("yellow" if sev == "medium"
+                          else "dim")
+                )
                 status_style = status_styles.get(r["status"], "")
                 desc = r["description"]
                 if len(desc) > 60:
@@ -2901,7 +3346,10 @@ def show_issues(db_path, name, filter_status, severity, fmt):
                     str(r["index"]),
                     f"[{sev_style}]{r['severity']}[/{sev_style}]",
                     r["kind"],
-                    f"[{status_style}]{r['status']}[/{status_style}]" if status_style else r["status"],
+                    (f"[{status_style}]{r['status']}"
+                     f"[/{status_style}]"
+                     if status_style
+                     else r["status"]),
                     desc,
                 )
 

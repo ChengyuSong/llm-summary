@@ -34,7 +34,9 @@ _RE_VOID_DSTAR_PARAM = re.compile(r'void\s*\*\*\s*\w*')
 _RE_STRUCT_ASSIGN = re.compile(r'(\w+(?:->|\.)(?:\w+(?:->|\.))*\w+)\s*=\s*(.+?)\s*;')
 _RE_CAST_STRIP = re.compile(r'\([^)]*\)\s*')
 _RE_RETURN_FIELD = re.compile(r'return\s+(\w+(?:->|\.)(?:\w+(?:->|\.))*\w+)\s*;')
-_RE_LINKED_PTR = re.compile(r'\b\w+(?:->|\.)(?:next|prev|left|right|child|parent|sibling|flink|blink)\b')
+_RE_LINKED_PTR = re.compile(
+    r'\b\w+(?:->|\.)(?:next|prev|left|right|child|parent|sibling|flink|blink)\b'
+)
 _RE_HASH_MOD = re.compile(r'%\s*\w*(?:size|cap|len|count|num|buckets|slots)\b')
 _RE_HASH_CALL = re.compile(r'\b(?:hash|bucket)\s*[=(]', re.IGNORECASE)
 _RE_VOID_CAST = re.compile(r'\(\s*void\s*\*\s*\)')
@@ -119,9 +121,10 @@ def _normalize_container_type(raw: str) -> str:
     return "other"
 
 
-CONTAINER_PROMPT = """You are analyzing a C/C++ function to determine if it is a container/collection \
-operation (hash table, linked list, tree, map, cache, queue, etc.) that stores \
-or retrieves pointer values.
+CONTAINER_PROMPT = """You are analyzing a C/C++ function to \
+determine if it is a container/collection operation (hash table, \
+linked list, tree, map, cache, queue, etc.) that stores or \
+retrieves pointer values.
 
 ## Function Source
 
@@ -410,7 +413,11 @@ class ContainerDetector:
                     for pname, ppat in param_pats:
                         if ppat.search(rhs_clean):
                             score += 4
-                            signals.append(f"param_stored_to_field: Line {i}: `{stripped}` stores param '{pname}' into struct field")
+                            signals.append(
+                                f"param_stored_to_field: Line {i}: "
+                                f"`{stripped}` stores param "
+                                f"'{pname}' into struct field"
+                            )
                             found_store = True
                             break
 
@@ -419,7 +426,10 @@ class ContainerDetector:
                 m = _RE_RETURN_FIELD.match(stripped)
                 if m:
                     score += 1
-                    signals.append(f"return_struct_field: Line {i}: `{stripped}` returns struct field")
+                    signals.append(
+                        f"return_struct_field: Line {i}: "
+                        f"`{stripped}` returns struct field"
+                    )
                     found_return = True
 
             # next/prev pointer manipulation
@@ -488,7 +498,6 @@ class ContainerDetector:
         source_with_lines = '\n'.join(numbered)
 
         # Build parameter list
-        param_names = self._extract_param_names(func.signature or "")
         sig = func.signature or ""
         m = re.search(r'\(([^)]*)\)', sig)
         param_list_str = ""
@@ -498,7 +507,6 @@ class ContainerDetector:
                 parts = [p.strip() for p in params_raw.split(',')]
                 param_entries = []
                 for idx, part in enumerate(parts):
-                    pname = param_names[idx] if idx < len(param_names) else "?"
                     param_entries.append(f"  [{idx}] {part}")
                 param_list_str = '\n'.join(param_entries)
 
