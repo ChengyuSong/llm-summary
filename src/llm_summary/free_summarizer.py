@@ -14,27 +14,9 @@ from .models import (
     build_skeleton,
 )
 
-FREE_SUMMARY_PROMPT = """You are analyzing C/C++ code to generate deallocation (free) summaries.
+# --- Shared free/deallocation task instructions (single source of truth) ---
 
-## Function to Analyze
-
-```c
-{source}
-```
-
-Function: `{name}`
-Signature: `{signature}`
-File: {file_path}
-
-## Callee Free Summaries
-
-{callee_summaries}
-
-## Task
-
-Generate a deallocation summary for this function. Identify every buffer or resource
-that this function frees (directly or via callees).
-
+_FREE_INSTRUCTIONS = """\
 For each free operation, identify:
 
 1. **target**: What gets freed — the expression (e.g., "ptr", "info_ptr->palette", "row_buf")
@@ -64,148 +46,73 @@ Example: if callee `cleanup(p, int do_free)` has `free(p->data) [when do_free !=
 and this function calls `cleanup(x, 0)`, then do_free=0 so the condition \
 `do_free != 0` is ALWAYS FALSE — **do NOT include** that free in the output. \
 Conversely, if this function calls `cleanup(x, 1)`, the condition is ALWAYS TRUE — \
-include the free with `conditional: false`.
+include the free with `conditional: false`.\
+"""
 
+
+def _free_json_schema(func_name: str, *, brace: str = "{{") -> str:
+    """Build the JSON response schema section for free summaries."""
+    ob = brace
+    cb = "}}" if brace == "{{" else "}}}}"
+
+    return f"""\
 Respond in JSON format:
 ```json
-{{
-  "function": "{name}",
+{ob}
+  "function": "{func_name}",
   "frees": [
-    {{
+    {ob}
       "target": "expression being freed",
       "target_kind": "parameter|field|local|return_value",
       "deallocator": "free function name",
       "conditional": true|false,
       "condition": "guard expression (omit if unconditional)",
       "nulled_after": true|false
-    }}
+    {cb}
   ],
   "description": "One-sentence description of what this function frees"
-}}
+{cb}
 ```
 
 If the function does not free any memory (directly or via callees), return:
 ```json
-{{
-  "function": "{name}",
+{ob}
+  "function": "{func_name}",
   "frees": [],
   "description": "Does not free memory"
-}}
-```
-"""
+{cb}
+```"""
 
 
-BLOCK_FREE_PROMPT = """You are analyzing a code block from a large C/C++ function.
+# --- Single-message prompt (no caching) ---
 
-## Context
-
-Function: `{name}`
-Signature: `{signature}`
-File: {file_path}
-
-## Code Block
-
-```c
-{block_source}
-```
-
-## Task
-
-Analyze this code block for free/deallocation operations. Also suggest a descriptive
-pseudo-function name and signature for this block.
-
-Respond in JSON:
-```json
-{{{{
-  "suggested_name": "descriptive_name_for_this_case",
-  "suggested_signature": "void descriptive_name(args)",
-  "frees": [
-    {{{{
-      "target": "expression being freed",
-      "target_kind": "parameter|field|local|return_value",
-      "deallocator": "free function name",
-      "conditional": true|false,
-      "condition": "guard expression (omit if unconditional)",
-      "nulled_after": true|false
-    }}}}
-  ],
-  "summary": "One-sentence description of what this case block does regarding deallocation"
-}}}}
-```
-
-If no frees, return empty frees list with a summary of what the block does.
-"""
-
+FREE_SUMMARY_PROMPT = (
+    "You are analyzing C/C++ code to generate deallocation (free) summaries.\n\n"
+    "## Function to Analyze\n\n"
+    "```c\n{source}\n```\n\n"
+    "Function: `{name}`\n"
+    "Signature: `{signature}`\n"
+    "File: {file_path}\n\n"
+    "## Callee Free Summaries\n\n"
+    "{callee_summaries}\n\n"
+    "## Task\n\n"
+    "Generate a deallocation summary for this function. Identify every buffer or resource\n"
+    "that this function frees (directly or via callees).\n\n"
+    + _FREE_INSTRUCTIONS + "\n\n"
+    + _free_json_schema("{name}") + "\n"
+)
 
 # --- Approach A templates (cache_mode="instructions") ---
 
-FREE_SYSTEM_PROMPT = """\
-You are analyzing C/C++ code to generate deallocation (free) summaries.
-
-## Task
-
-Generate a deallocation summary for the function provided in the \
-user message. Identify every buffer or resource that this function \
-frees (directly or via callees).
-
-For each free operation, identify:
-
-1. **target**: What gets freed — the expression (e.g., "ptr", "info_ptr->palette", "row_buf")
-2. **target_kind**: One of:
-   - "parameter" — a function parameter is freed
-   - "field" — a struct field (accessed via parameter or global) is freed
-   - "local" — a local variable is freed
-   - "return_value" — the freed pointer is also returned (rare)
-3. **deallocator**: The function that performs the free (e.g., "free", "fclose", "closedir")
-4. **conditional**: true if the free is inside an if-block, error path, or conditional
-5. **condition**: If conditional is true, the C expression that guards the free \
-(e.g., "do_close != 0", "ptr != NULL", "error path"). \
-If a callee's free is conditional on one of this function's parameters, \
-record the condition in terms of this function's parameters. Omit if conditional is false.
-6. **nulled_after**: true if the pointer is set to NULL after the free
-
-Consider:
-- Direct calls to free/deallocator functions
-- Wrapper functions that free (use callee summaries)
-- Conditional frees (inside if-blocks, error paths)
-- Whether the pointer is NULLed after free (defensive pattern)
-- If a callee has a conditional free, check whether this function always \
-satisfies or never satisfies that condition, and adjust accordingly: \
-if the condition is always false at the call site, omit the free entirely; \
-if always true, mark it as unconditional. \
-Example: if callee `cleanup(p, int do_free)` has `free(p->data) [when do_free != 0]`, \
-and this function calls `cleanup(x, 0)`, then do_free=0 so the condition \
-`do_free != 0` is ALWAYS FALSE — **do NOT include** that free in the output. \
-Conversely, if this function calls `cleanup(x, 1)`, the condition is ALWAYS TRUE — \
-include the free with `conditional: false`.
-
-Respond in JSON format:
-```json
-{{
-  "function": "<function_name>",
-  "frees": [
-    {{
-      "target": "expression being freed",
-      "target_kind": "parameter|field|local|return_value",
-      "deallocator": "free function name",
-      "conditional": true|false,
-      "condition": "guard expression (omit if unconditional)",
-      "nulled_after": true|false
-    }}
-  ],
-  "description": "One-sentence description of what this function frees"
-}}
-```
-
-If the function does not free any memory (directly or via callees), return:
-```json
-{{
-  "function": "<function_name>",
-  "frees": [],
-  "description": "Does not free memory"
-}}
-```\
-"""
+FREE_SYSTEM_PROMPT = (
+    "You are analyzing C/C++ code to generate deallocation (free) summaries.\n\n"
+    "## Task\n\n"
+    "Generate a deallocation summary for the function provided in the "
+    "user message. Identify every buffer or resource that this function "
+    "frees (directly or via callees).\n\n"
+    + _FREE_INSTRUCTIONS + "\n\n"
+    + _free_json_schema("<function_name>")
+)
 
 FREE_USER_PROMPT = """\
 ## Function to Analyze
@@ -225,70 +132,52 @@ File: {file_path}
 
 # --- Approach B template (cache_mode="source") ---
 
-FREE_TASK_PROMPT = """\
-## Task
+FREE_TASK_PROMPT = (
+    "## Task\n\n"
+    "Generate a deallocation summary for the function in the system "
+    "message. Identify every buffer or resource that this function "
+    "frees (directly or via callees).\n\n"
+    + _FREE_INSTRUCTIONS + "\n\n"
+    "## Callee Free Summaries\n\n"
+    "{callee_summaries}\n\n"
+    + _free_json_schema("{name}", brace="{{{{")
+)
 
-Generate a deallocation summary for the function in the system \
-message. Identify every buffer or resource that this function \
-frees (directly or via callees).
 
-For each free operation, identify:
+# --- Block prompt for chunked summarization of large functions ---
 
-1. **target**: What gets freed — the expression
-2. **target_kind**: One of: "parameter", "field", "local", "return_value"
-3. **deallocator**: The function that performs the free
-4. **conditional**: true if the free is conditional
-5. **condition**: If conditional is true, the C expression that guards the free. \
-If a callee's free is conditional on a parameter, record it in terms of \
-this function's parameters. Omit if unconditional.
-6. **nulled_after**: true if the pointer is set to NULL after the free
-
-Consider:
-- Direct calls to free/deallocator functions
-- Wrapper functions that free (use callee summaries)
-- Conditional frees (inside if-blocks, error paths)
-- Whether the pointer is NULLed after free (defensive pattern)
-- If a callee has a conditional free, check whether this function always \
-satisfies or never satisfies that condition, and adjust accordingly: \
-if the condition is always false at the call site, omit the free entirely; \
-if always true, mark it as unconditional. \
-Example: if callee `cleanup(p, int do_free)` has `free(p->data) [when do_free != 0]`, \
-and this function calls `cleanup(x, 0)`, then do_free=0 so the condition \
-`do_free != 0` is ALWAYS FALSE — **do NOT include** that free in the output. \
-Conversely, if this function calls `cleanup(x, 1)`, the condition is ALWAYS TRUE — \
-include the free with `conditional: false`.
-
-## Callee Free Summaries
-
-{callee_summaries}
-
-Respond in JSON format:
-```json
-{{{{
-  "function": "{name}",
-  "frees": [
-    {{{{
-      "target": "expression being freed",
-      "target_kind": "parameter|field|local|return_value",
-      "deallocator": "free function name",
-      "conditional": true|false,
-      "condition": "guard expression (omit if unconditional)",
-      "nulled_after": true|false
-    }}}}
-  ],
-  "description": "One-sentence description of what this function frees"
-}}}}
-```
-
-If the function does not free any memory (directly or via callees), return:
-```json
-{{{{
-  "function": "{name}",
-  "frees": [],
-  "description": "Does not free memory"
-}}}}
-```\
-"""
+BLOCK_FREE_PROMPT = (
+    "You are analyzing a code block from a large C/C++ function.\n\n"
+    "## Context\n\n"
+    "Function: `{name}`\n"
+    "Signature: `{signature}`\n"
+    "File: {file_path}\n\n"
+    "## Code Block\n\n"
+    "```c\n{block_source}\n```\n\n"
+    "## Task\n\n"
+    "Analyze this code block for free/deallocation operations. Also suggest a descriptive\n"
+    "pseudo-function name and signature for this block.\n\n"
+    "Respond in JSON:\n"
+    "```json\n"
+    "{{{{\n"
+    '  "suggested_name": "descriptive_name_for_this_case",\n'
+    '  "suggested_signature": "void descriptive_name(args)",\n'
+    '  "frees": [\n'
+    "    {{{{\n"
+    '      "target": "expression being freed",\n'
+    '      "target_kind": "parameter|field|local|return_value",\n'
+    '      "deallocator": "free function name",\n'
+    '      "conditional": true|false,\n'
+    '      "condition": "guard expression (omit if unconditional)",\n'
+    '      "nulled_after": true|false\n'
+    "    }}}}\n"
+    "  ],\n"
+    '  "summary": "One-sentence description of what this case block does '
+    'regarding deallocation"\n'
+    "}}}}\n"
+    "```\n\n"
+    "If no frees, return empty frees list with a summary of what the block does.\n"
+)
 
 
 class FreeSummarizer:

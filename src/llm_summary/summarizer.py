@@ -17,26 +17,12 @@ from .models import (
     build_skeleton,
 )
 
-ALLOCATION_SUMMARY_PROMPT = """You are analyzing C/C++ code to generate memory allocation summaries.
+# --- Shared allocation task instructions (single source of truth) ---
+# Use _ALLOC_INSTRUCTIONS in all prompt templates. The JSON schema uses
+# {func_placeholder} so callers can substitute the actual function name
+# or a generic "<function_name>" marker.
 
-## Function to Analyze
-
-```c
-{source}
-```
-
-Function: `{name}`
-Signature: `{signature}`
-File: {file_path}
-
-## Callee Summaries
-
-{callee_summaries}
-
-## Task
-
-Generate a memory allocation summary for this function. Identify:
-
+_ALLOC_INSTRUCTIONS = """\
 1. **Allocations**: Any **heap** memory allocations (malloc, calloc, realloc, \
 mmap, new, etc.) or allocations via wrapper/helper functions that ultimately \
 call heap allocators.
@@ -82,14 +68,27 @@ Consider:
 - Wrapper functions that call allocators
 - Size calculations (n + 1, n * sizeof(T), etc.)
 - Conditional allocations
-- Allocations stored to struct fields or output parameters
+- Allocations stored to struct fields or output parameters\
+"""
 
+
+def _alloc_json_schema(func_name: str, *, brace: str = "{{") -> str:
+    """Build the JSON response schema section.
+
+    *brace* controls escaping depth: ``"{{"`` for single-format templates,
+    ``"{{{{"```` for double-format templates (Approach B).
+    """
+    ob = brace          # opening brace  e.g. {{ or {{{{
+    cb = "}}" if brace == "{{" else "}}}}"  # closing brace
+    empty = "{{}}" if brace == "{{" else "{{{{}}}}"
+
+    return f"""\
 Respond in JSON format:
 ```json
-{{
-  "function": "{name}",
+{ob}
+  "function": "{func_name}",
   "allocations": [
-    {{
+    {ob}
       "type": "heap",
       "source": "allocator function name",
       "size_expr": "size expression or null",
@@ -97,141 +96,67 @@ Respond in JSON format:
       "returned": true|false,
       "stored_to": "field/variable name or null",
       "may_be_null": true|false
-    }}
+    {cb}
   ],
-  "parameters": {{
-    "param_name": {{
+  "parameters": {ob}
+    "param_name": {ob}
       "role": "role description",
       "used_in_allocation": true|false
-    }}
-  }},
+    {cb}
+  {cb},
   "buffer_size_pairs": [
-    {{
+    {ob}
       "buffer": "buffer variable/field",
       "size": "size variable/field",
       "kind": "param_pair|struct_field|flexible_array",
       "relationship": "byte count|element count|max capacity"
-    }}
+    {cb}
   ],
   "description": "One-sentence description"
-}}
+{cb}
 ```
 
 If the function does not allocate memory (directly or via callees), return:
 ```json
-{{
-  "function": "{name}",
+{ob}
+  "function": "{func_name}",
   "allocations": [],
-  "parameters": {{}},
+  "parameters": {empty},
   "buffer_size_pairs": [],
   "description": "Does not allocate memory"
-}}
-```
-"""
+{cb}
+```"""
+
+
+# --- Single-message prompt (no caching) ---
+
+ALLOCATION_SUMMARY_PROMPT = (
+    "You are analyzing C/C++ code to generate memory allocation summaries.\n\n"
+    "## Function to Analyze\n\n"
+    "```c\n{source}\n```\n\n"
+    "Function: `{name}`\n"
+    "Signature: `{signature}`\n"
+    "File: {file_path}\n\n"
+    "## Callee Summaries\n\n"
+    "{callee_summaries}\n\n"
+    "## Task\n\n"
+    "Generate a memory allocation summary for this function. Identify:\n\n"
+    + _ALLOC_INSTRUCTIONS + "\n\n"
+    + _alloc_json_schema("{name}") + "\n"
+)
 
 # --- Approach A templates (cache_mode="instructions") ---
 # System: static task instructions (cached across all functions in a pass)
 # User: function source + callee summaries (varies per function)
 
-ALLOCATION_SYSTEM_PROMPT = """\
-You are analyzing C/C++ code to generate memory allocation summaries.
-
-## Task
-
-Generate a memory allocation summary for the function provided \
-in the user message. Identify:
-
-1. **Allocations**: Any **heap** memory allocations (malloc, calloc, realloc, \
-mmap, new, etc.) or allocations via wrapper/helper functions that ultimately \
-call heap allocators.
-   - Type: "heap" for normal heap allocations. Use "escaped_stack" ONLY if a \
-stack-allocated buffer (local variable, VLA, alloca) escapes the function \
-(returned or stored to a caller-visible location) — this is a bug worth flagging.
-   - Source: The allocating function/operator
-   - Size expression: How size is computed
-   - Size parameters: Which function parameters affect size
-   - Returned: Is the allocation returned?
-   - Stored to: Is it stored to a field/global?
-   - May be null: Can allocation fail?
-
-   **Do NOT report**: ordinary local variables, fixed-size stack arrays, \
-compound literals, static const tables, struct declarations on the stack, \
-or assembly push instructions. These are normal stack/static usage, not \
-allocations of interest.
-
-2. **Parameters**: Role of each parameter
-   - Role: size_indicator, buffer, count, pointer_out, etc.
-   - Used in allocation: Does it affect allocation size?
-
-3. **Buffer-size pairs** (post-condition only): Identify (buffer, size) \
-pairs that this function **creates or establishes**. Only include pairs \
-where this function is the one that sets up the relationship (e.g., \
-allocates the buffer with the given size, or assigns both fields of a \
-struct). Do NOT include pairs that the function merely reads, accesses, \
-or requires as input — those are pre-conditions and belong to a \
-separate analysis.
-   - "param_pair": function allocates a buffer and stores it alongside \
-its size (e.g., `buf = malloc(n); *out_buf = buf; *out_len = n;`)
-   - "struct_field": function sets both buffer and size fields on a \
-struct (e.g., `s->data = malloc(n); s->len = n;`)
-   - "flexible_array": function allocates a struct with a trailing \
-flexible array and sets the length field
-   - Kind must be exactly one of: "param_pair", "struct_field", "flexible_array"
-   - Both buffer and size must be non-null — omit entries where the size is unknown
-   - Relationship: how the size relates to the buffer (e.g., "byte count", "element count")
-
-4. **Description**: One-sentence summary of what this function allocates
-
-Consider:
-- Wrapper functions that call allocators
-- Size calculations (n + 1, n * sizeof(T), etc.)
-- Conditional allocations
-- Allocations stored to struct fields or output parameters
-
-Respond in JSON format:
-```json
-{{
-  "function": "<function_name>",
-  "allocations": [
-    {{
-      "type": "heap",
-      "source": "allocator function name",
-      "size_expr": "size expression or null",
-      "size_params": ["parameter names affecting size"],
-      "returned": true|false,
-      "stored_to": "field/variable name or null",
-      "may_be_null": true|false
-    }}
-  ],
-  "parameters": {{
-    "param_name": {{
-      "role": "role description",
-      "used_in_allocation": true|false
-    }}
-  }},
-  "buffer_size_pairs": [
-    {{
-      "buffer": "buffer variable/field",
-      "size": "size variable/field",
-      "kind": "param_pair|struct_field|flexible_array",
-      "relationship": "byte count|element count|max capacity"
-    }}
-  ],
-  "description": "One-sentence description"
-}}
-```
-
-If the function does not allocate memory (directly or via callees), return:
-```json
-{{
-  "function": "<function_name>",
-  "allocations": [],
-  "parameters": {{}},
-  "buffer_size_pairs": [],
-  "description": "Does not allocate memory"
-}}
-```\
-"""
+ALLOCATION_SYSTEM_PROMPT = (
+    "You are analyzing C/C++ code to generate memory allocation summaries.\n\n"
+    "## Task\n\n"
+    "Generate a memory allocation summary for the function provided "
+    "in the user message. Identify:\n\n"
+    + _ALLOC_INSTRUCTIONS + "\n\n"
+    + _alloc_json_schema("<function_name>")
+)
 
 ALLOCATION_USER_PROMPT = """\
 ## Function to Analyze
@@ -253,151 +178,58 @@ File: {file_path}
 # System: function source (cached across passes for same function, via prompts.py)
 # User: task instructions + callee summaries
 
-ALLOC_TASK_PROMPT = """\
-## Task
-
-Generate a memory allocation summary for the function in the system message. Identify:
-
-1. **Allocations**: Any **heap** memory allocations (malloc, calloc, realloc, \
-mmap, new, etc.) or allocations via wrapper/helper functions that ultimately \
-call heap allocators.
-   - Type: "heap" for normal heap allocations. Use "escaped_stack" ONLY if a \
-stack-allocated buffer (local variable, VLA, alloca) escapes the function \
-(returned or stored to a caller-visible location) — this is a bug worth flagging.
-   - Source: The allocating function/operator
-   - Size expression: How size is computed
-   - Size parameters: Which function parameters affect size
-   - Returned: Is the allocation returned?
-   - Stored to: Is it stored to a field/global?
-   - May be null: Can allocation fail?
-
-   **Do NOT report**: ordinary local variables, fixed-size stack arrays, \
-compound literals, static const tables, struct declarations on the stack, \
-or assembly push instructions. These are normal stack/static usage, not \
-allocations of interest.
-
-2. **Parameters**: Role of each parameter
-   - Role: size_indicator, buffer, count, pointer_out, etc.
-   - Used in allocation: Does it affect allocation size?
-
-3. **Buffer-size pairs** (post-condition only): Identify (buffer, size) \
-pairs that this function **creates or establishes**. Only include pairs \
-where this function is the one that sets up the relationship. Do NOT \
-include pairs that the function merely reads, accesses, or requires \
-as input.
-   - "param_pair": function allocates a buffer and stores it alongside its size
-   - "struct_field": function sets both buffer and size fields on a struct
-   - "flexible_array": function allocates a struct with a trailing \
-flexible array and sets the length field
-   - Kind must be exactly one of: "param_pair", "struct_field", "flexible_array"
-   - Both buffer and size must be non-null — omit entries where the size is unknown
-   - Relationship: how the size relates to the buffer (e.g., "byte count", "element count")
-
-4. **Description**: One-sentence summary of what this function allocates
-
-Consider:
-- Wrapper functions that call allocators
-- Size calculations (n + 1, n * sizeof(T), etc.)
-- Conditional allocations
-- Allocations stored to struct fields or output parameters
-
-## Callee Summaries
-
-{callee_summaries}
-
-Respond in JSON format:
-```json
-{{{{
-  "function": "{name}",
-  "allocations": [
-    {{{{
-      "type": "heap",
-      "source": "allocator function name",
-      "size_expr": "size expression or null",
-      "size_params": ["parameter names affecting size"],
-      "returned": true|false,
-      "stored_to": "field/variable name or null",
-      "may_be_null": true|false
-    }}}}
-  ],
-  "parameters": {{{{
-    "param_name": {{{{
-      "role": "role description",
-      "used_in_allocation": true|false
-    }}}}
-  }}}},
-  "buffer_size_pairs": [
-    {{{{
-      "buffer": "buffer variable/field",
-      "size": "size variable/field",
-      "kind": "param_pair|struct_field|flexible_array",
-      "relationship": "byte count|element count|max capacity"
-    }}}}
-  ],
-  "description": "One-sentence description"
-}}}}
-```
-
-If the function does not allocate memory (directly or via callees), return:
-```json
-{{{{
-  "function": "{name}",
-  "allocations": [],
-  "parameters": {{{{}}}},
-  "buffer_size_pairs": [],
-  "description": "Does not allocate memory"
-}}}}
-```\
-"""
+ALLOC_TASK_PROMPT = (
+    "## Task\n\n"
+    "Generate a memory allocation summary for the function "
+    "in the system message. Identify:\n\n"
+    + _ALLOC_INSTRUCTIONS + "\n\n"
+    "## Callee Summaries\n\n"
+    "{callee_summaries}\n\n"
+    + _alloc_json_schema("{name}", brace="{{{{")
+)
 
 
-BLOCK_ALLOCATION_PROMPT = """You are analyzing a code block from a large C/C++ function.
+# --- Block prompt for chunked summarization of large functions ---
 
-## Context
-
-Function: `{name}`
-Signature: `{signature}`
-File: {file_path}
-
-## Code Block
-
-```c
-{block_source}
-```
-
-## Task
-
-Analyze this code block for **heap** memory allocations (malloc, calloc, \
-realloc, mmap, new, etc.). Also suggest a descriptive pseudo-function name \
-and signature for this block (as if it were extracted into its own function).
-
-Do NOT report ordinary local variables, fixed-size stack arrays, compound \
-literals, static const tables, or struct declarations on the stack. Only \
-report "escaped_stack" if a stack buffer escapes (returned or stored to a \
-caller-visible location) — this is a bug.
-
-Respond in JSON:
-```json
-{{{{
-  "suggested_name": "descriptive_name_for_this_case",
-  "suggested_signature": "void descriptive_name(args)",
-  "allocations": [
-    {{{{
-      "type": "heap",
-      "source": "allocator function name",
-      "size_expr": "size expression or null",
-      "size_params": [],
-      "returned": false,
-      "stored_to": "field or null",
-      "may_be_null": true
-    }}}}
-  ],
-  "summary": "One-sentence description of what this case block does regarding allocation"
-}}}}
-```
-
-If no allocations, return empty allocations list with a summary of what the block does.
-"""
+BLOCK_ALLOCATION_PROMPT = (
+    "You are analyzing a code block from a large C/C++ function.\n\n"
+    "## Context\n\n"
+    "Function: `{name}`\n"
+    "Signature: `{signature}`\n"
+    "File: {file_path}\n\n"
+    "## Code Block\n\n"
+    "```c\n{block_source}\n```\n\n"
+    "## Task\n\n"
+    "Analyze this code block for **heap** memory allocations (malloc, calloc, "
+    "realloc, mmap, new, etc.). Also suggest a descriptive pseudo-function name "
+    "and signature for this block (as if it were extracted into its own function).\n\n"
+    "Do NOT report ordinary local variables, fixed-size stack arrays, compound "
+    "literals, static const tables, or struct declarations on the stack. Only "
+    'report "escaped_stack" if a stack buffer escapes (returned or stored to a '
+    "caller-visible location) — this is a bug.\n\n"
+    "Respond in JSON:\n"
+    "```json\n"
+    "{{{{\n"
+    '  "suggested_name": "descriptive_name_for_this_case",\n'
+    '  "suggested_signature": "void descriptive_name(args)",\n'
+    '  "allocations": [\n'
+    "    {{{{\n"
+    '      "type": "heap",\n'
+    '      "source": "allocator function name",\n'
+    '      "size_expr": "size expression or null",\n'
+    '      "size_params": [],\n'
+    '      "returned": false,\n'
+    '      "stored_to": "field or null",\n'
+    '      "may_be_null": true\n'
+    "    }}}}\n"
+    "  ],\n"
+    '  "summary": "One-sentence description of what this case block does '
+    'regarding allocation"\n'
+    "}}}}\n"
+    "```\n\n"
+    "If no allocations, return empty allocations list with a summary of "
+    "what the block does.\n"
+)
 
 
 class AllocationSummarizer:

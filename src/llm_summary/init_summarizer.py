@@ -14,30 +14,9 @@ from .models import (
     build_skeleton,
 )
 
-INIT_SUMMARY_PROMPT = """\
-You are analyzing C/C++ code to generate initialization \
-summaries (post-conditions).
+# --- Shared init task instructions (single source of truth) ---
 
-## Function to Analyze
-
-```c
-{source}
-```
-
-Function: `{name}`
-Signature: `{signature}`
-File: {file_path}
-
-## Callee Initialization Summaries
-
-{callee_summaries}
-
-## Task
-
-Generate an initialization summary for this function. Identify what this function
-**always** initializes on ALL exit paths — only guaranteed, unconditional
-initializations. This is a post-condition: only things visible to the CALLER matter.
-
+_INIT_INSTRUCTIONS = """\
 Only include caller-visible initializations:
 - **Output parameters**: memory written via pointer parameters (e.g., `*out = value`)
 - **Struct fields**: fields written via a parameter (e.g., `ctx->data = ...`)
@@ -64,140 +43,74 @@ Consider:
 - Direct assignments to output parameters and struct fields
 - Calls to memset, memcpy, calloc, etc. (use callee summaries)
 - Only include initializations that happen on ALL exit paths
-- If a field is only initialized on some paths, do NOT include it
+- If a field is only initialized on some paths, do NOT include it\
+"""
 
+
+def _init_json_schema(func_name: str, *, brace: str = "{{") -> str:
+    """Build the JSON response schema section for init summaries."""
+    ob = brace
+    cb = "}}" if brace == "{{" else "}}}}"
+
+    return f"""\
 Respond in JSON format:
 ```json
-{{
-  "function": "{name}",
+{ob}
+  "function": "{func_name}",
   "inits": [
-    {{
+    {ob}
       "target": "expression being initialized",
       "target_kind": "parameter|field|return_value",
       "initializer": "how it is initialized",
       "byte_count": "n|sizeof(T)|full|null"
-    }}
+    {cb}
   ],
   "description": "One-sentence description of what this function always initializes"
-}}
+{cb}
 ```
 
 If the function does not unconditionally initialize any caller-visible state, return:
 ```json
-{{
-  "function": "{name}",
+{ob}
+  "function": "{func_name}",
   "inits": [],
   "description": "Does not unconditionally initialize caller-visible state"
-}}
-```
-"""
+{cb}
+```"""
 
 
-BLOCK_INIT_PROMPT = """You are analyzing a code block from a large C/C++ function.
+# --- Single-message prompt (no caching) ---
 
-## Context
-
-Function: `{name}`
-Signature: `{signature}`
-File: {file_path}
-
-## Code Block
-
-```c
-{block_source}
-```
-
-## Task
-
-Analyze this code block for initialization operations (caller-visible only).
-Also suggest a descriptive pseudo-function name and signature.
-
-Respond in JSON:
-```json
-{{{{
-  "suggested_name": "descriptive_name_for_this_case",
-  "suggested_signature": "void descriptive_name(args)",
-  "inits": [
-    {{{{
-      "target": "expression being initialized",
-      "target_kind": "parameter|field|return_value",
-      "initializer": "how it is initialized",
-      "byte_count": "n|sizeof(T)|full|null"
-    }}}}
-  ],
-  "summary": "One-sentence description of what this case block does regarding initialization"
-}}}}
-```
-
-If no caller-visible initializations, return empty inits list with a summary.
-"""
-
+INIT_SUMMARY_PROMPT = (
+    "You are analyzing C/C++ code to generate initialization "
+    "summaries (post-conditions).\n\n"
+    "## Function to Analyze\n\n"
+    "```c\n{source}\n```\n\n"
+    "Function: `{name}`\n"
+    "Signature: `{signature}`\n"
+    "File: {file_path}\n\n"
+    "## Callee Initialization Summaries\n\n"
+    "{callee_summaries}\n\n"
+    "## Task\n\n"
+    "Generate an initialization summary for this function. Identify what this function\n"
+    "**always** initializes on ALL exit paths — only guaranteed, unconditional\n"
+    "initializations. This is a post-condition: only things visible to the CALLER matter.\n\n"
+    + _INIT_INSTRUCTIONS + "\n\n"
+    + _init_json_schema("{name}") + "\n"
+)
 
 # --- Approach A templates (cache_mode="instructions") ---
 
-INIT_SYSTEM_PROMPT = """\
-You are analyzing C/C++ code to generate initialization summaries (post-conditions).
-
-## Task
-
-Generate an initialization summary for the function provided in the \
-user message. Identify what this function
-**always** initializes on ALL exit paths — only guaranteed, unconditional
-initializations. This is a post-condition: only things visible to the CALLER matter.
-
-Only include caller-visible initializations:
-- **Output parameters**: memory written via pointer parameters (e.g., `*out = value`)
-- **Struct fields**: fields written via a parameter (e.g., `ctx->data = ...`)
-- **Return values**: the function's return value itself
-
-Do NOT include local variables — they are not visible to the caller after return.
-
-**Return value rule**: If every exit path returns a value (including NULL, 0, or error codes),
-the return value IS unconditionally initialized. A function that returns NULL on error and a
-pointer on success still always initializes its return value.
-
-For each initialization, identify:
-
-1. **target**: What gets initialized — the expression (e.g., "*out", "ctx->data", "return value")
-2. **target_kind**: One of:
-   - "parameter" — an output parameter is written via pointer dereference
-   - "field" — a struct field is written via a parameter
-   - "return_value" — the return value is always set (including NULL/error returns)
-3. **initializer**: How it's initialized \
-(e.g., "memset", "assignment", "calloc", "callee:func_name")
-4. **byte_count**: How many bytes are initialized — "n", "sizeof(T)", "full", or null if unknown
-
-Consider:
-- Direct assignments to output parameters and struct fields
-- Calls to memset, memcpy, calloc, etc. (use callee summaries)
-- Only include initializations that happen on ALL exit paths
-- If a field is only initialized on some paths, do NOT include it
-
-Respond in JSON format:
-```json
-{{
-  "function": "<function_name>",
-  "inits": [
-    {{
-      "target": "expression being initialized",
-      "target_kind": "parameter|field|return_value",
-      "initializer": "how it is initialized",
-      "byte_count": "n|sizeof(T)|full|null"
-    }}
-  ],
-  "description": "One-sentence description of what this function always initializes"
-}}
-```
-
-If the function does not unconditionally initialize any caller-visible state, return:
-```json
-{{
-  "function": "<function_name>",
-  "inits": [],
-  "description": "Does not unconditionally initialize caller-visible state"
-}}
-```\
-"""
+INIT_SYSTEM_PROMPT = (
+    "You are analyzing C/C++ code to generate initialization summaries (post-conditions).\n\n"
+    "## Task\n\n"
+    "Generate an initialization summary for the function provided in the "
+    "user message. Identify what this function "
+    "**always** initializes on ALL exit paths — only guaranteed, unconditional "
+    "initializations. This is a post-condition: only things visible to the CALLER matter.\n\n"
+    + _INIT_INSTRUCTIONS + "\n\n"
+    + _init_json_schema("<function_name>")
+)
 
 INIT_USER_PROMPT = """\
 ## Function to Analyze
@@ -217,60 +130,51 @@ File: {file_path}
 
 # --- Approach B template (cache_mode="source") ---
 
-INIT_TASK_PROMPT = """\
-## Task
+INIT_TASK_PROMPT = (
+    "## Task\n\n"
+    "Generate an initialization summary for the function in the system "
+    "message. Identify what this function "
+    "**always** initializes on ALL exit paths — only guaranteed, unconditional "
+    "initializations. This is a post-condition: only things visible to the CALLER matter.\n\n"
+    + _INIT_INSTRUCTIONS + "\n\n"
+    "## Callee Initialization Summaries\n\n"
+    "{callee_summaries}\n\n"
+    + _init_json_schema("{name}", brace="{{{{")
+)
 
-Generate an initialization summary for the function in the system \
-message. Identify what this function
-**always** initializes on ALL exit paths — only guaranteed, unconditional
-initializations. This is a post-condition: only things visible to the CALLER matter.
 
-Only include caller-visible initializations:
-- **Output parameters**: memory written via pointer parameters
-- **Struct fields**: fields written via a parameter
-- **Return values**: the function's return value itself
+# --- Block prompt for chunked summarization of large functions ---
 
-Do NOT include local variables.
-
-**Return value rule**: If every exit path returns a value (including NULL, 0, or error codes),
-the return value IS unconditionally initialized.
-
-For each initialization, identify:
-
-1. **target**: What gets initialized
-2. **target_kind**: One of: "parameter", "field", "return_value"
-3. **initializer**: How it's initialized
-4. **byte_count**: How many bytes — "n", "sizeof(T)", "full", or null
-
-## Callee Initialization Summaries
-
-{callee_summaries}
-
-Respond in JSON format:
-```json
-{{{{
-  "function": "{name}",
-  "inits": [
-    {{{{
-      "target": "expression being initialized",
-      "target_kind": "parameter|field|return_value",
-      "initializer": "how it is initialized",
-      "byte_count": "n|sizeof(T)|full|null"
-    }}}}
-  ],
-  "description": "One-sentence description of what this function always initializes"
-}}}}
-```
-
-If the function does not unconditionally initialize any caller-visible state, return:
-```json
-{{{{
-  "function": "{name}",
-  "inits": [],
-  "description": "Does not unconditionally initialize caller-visible state"
-}}}}
-```\
-"""
+BLOCK_INIT_PROMPT = (
+    "You are analyzing a code block from a large C/C++ function.\n\n"
+    "## Context\n\n"
+    "Function: `{name}`\n"
+    "Signature: `{signature}`\n"
+    "File: {file_path}\n\n"
+    "## Code Block\n\n"
+    "```c\n{block_source}\n```\n\n"
+    "## Task\n\n"
+    "Analyze this code block for initialization operations (caller-visible only).\n"
+    "Also suggest a descriptive pseudo-function name and signature.\n\n"
+    "Respond in JSON:\n"
+    "```json\n"
+    "{{{{\n"
+    '  "suggested_name": "descriptive_name_for_this_case",\n'
+    '  "suggested_signature": "void descriptive_name(args)",\n'
+    '  "inits": [\n'
+    "    {{{{\n"
+    '      "target": "expression being initialized",\n'
+    '      "target_kind": "parameter|field|return_value",\n'
+    '      "initializer": "how it is initialized",\n'
+    '      "byte_count": "n|sizeof(T)|full|null"\n'
+    "    }}}}\n"
+    "  ],\n"
+    '  "summary": "One-sentence description of what this case block does '
+    'regarding initialization"\n'
+    "}}}}\n"
+    "```\n\n"
+    "If no caller-visible initializations, return empty inits list with a summary.\n"
+)
 
 
 class InitSummarizer:
