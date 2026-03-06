@@ -293,7 +293,7 @@ class InitOp:
     target: str  # "*out", "ctx->data", "return value"
     target_kind: str  # "parameter", "field", "return_value"
     initializer: str  # "memset", "assignment", "calloc", "callee:init_struct"
-    byte_count: str | None = None  # "n", "sizeof(T)", "full", or None if unknown
+    byte_count: str | None = None  # "n", "sizeof(T)", or None if unknown
 
     def to_dict(self) -> dict[str, Any]:
         result: dict[str, Any] = {

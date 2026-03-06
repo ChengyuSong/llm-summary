@@ -463,7 +463,7 @@ STDLIB_INIT_SUMMARIES: dict[str, InitSummary] = {
                 target="return value",
                 target_kind="return_value",
                 initializer="strdup",
-                byte_count="full",
+                byte_count="strlen(s) + 1",
             )
         ],
         description="Always initializes returned buffer with copy of input string.",
@@ -475,7 +475,7 @@ STDLIB_INIT_SUMMARIES: dict[str, InitSummary] = {
                 target="return value",
                 target_kind="return_value",
                 initializer="strndup",
-                byte_count="full",
+                byte_count="min(n, strlen(s)) + 1",
             )
         ],
         description=(

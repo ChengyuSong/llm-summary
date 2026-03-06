@@ -37,7 +37,9 @@ For each initialization, identify:
    - "return_value" — the return value is always set (including NULL/error returns)
 3. **initializer**: How it's initialized \
 (e.g., "memset", "assignment", "calloc", "callee:func_name")
-4. **byte_count**: How many bytes are initialized — "n", "sizeof(T)", "full", or null if unknown
+4. **byte_count**: How many bytes are initialized — use a concrete expression from the code \
+(e.g., "n", "len", "sizeof(int)", "count * sizeof(T)"), or null if truly unknown. \
+Do NOT use "full"; always prefer the actual size expression or sizeof(return_type) for return values
 
 Consider:
 - Direct assignments to output parameters and struct fields
@@ -62,7 +64,7 @@ Respond in JSON format:
       "target": "expression being initialized",
       "target_kind": "parameter|field|return_value",
       "initializer": "how it is initialized",
-      "byte_count": "n|sizeof(T)|full|null"
+      "byte_count": "concrete_expr|sizeof(T)|null"
     {cb}
   ],
   "description": "One-sentence description of what this function always initializes"
@@ -166,7 +168,7 @@ BLOCK_INIT_PROMPT = (
     '      "target": "expression being initialized",\n'
     '      "target_kind": "parameter|field|return_value",\n'
     '      "initializer": "how it is initialized",\n'
-    '      "byte_count": "n|sizeof(T)|full|null"\n'
+    '      "byte_count": "concrete_expr|sizeof(T)|null"\n'
     "    }}}}\n"
     "  ],\n"
     '  "summary": "One-sentence description of what this case block does '
@@ -296,11 +298,14 @@ class InitSummarizer:
                     data = json.loads(block.summary_json)
                     block_summaries[block.id] = data.get("summary", "")
                     for init in data.get("inits", []):
+                        bc = init.get("byte_count")
+                        if bc in ("full", "N/A", "n/a", "unknown", "varies", ""):
+                            bc = None
                         all_block_inits.append(InitOp(
                             target=init.get("target", ""),
                             target_kind=init.get("target_kind", "parameter"),
                             initializer=init.get("initializer", "assignment"),
-                            byte_count=init.get("byte_count"),
+                            byte_count=bc,
                         ))
                 except (json.JSONDecodeError, TypeError):
                     pass
@@ -333,11 +338,14 @@ class InitSummarizer:
                 )
 
                 for init in data.get("inits", []):
+                    bc = init.get("byte_count")
+                    if bc in ("full", "N/A", "n/a", "unknown", "varies", ""):
+                        bc = None
                     all_block_inits.append(InitOp(
                         target=init.get("target", ""),
                         target_kind=init.get("target_kind", "parameter"),
                         initializer=init.get("initializer", "assignment"),
-                        byte_count=init.get("byte_count"),
+                        byte_count=bc,
                     ))
             except Exception as e:
                 if self.verbose:
@@ -491,12 +499,15 @@ class InitSummarizer:
             target_kind = i.get("target_kind", "parameter")
             if target_kind not in valid_kinds:
                 target_kind = "parameter"
+            byte_count = i.get("byte_count")
+            if byte_count in ("full", "N/A", "n/a", "unknown", "varies", ""):
+                byte_count = None
             inits.append(
                 InitOp(
                     target=i.get("target", ""),
                     target_kind=target_kind,
                     initializer=i.get("initializer", "assignment"),
-                    byte_count=i.get("byte_count"),
+                    byte_count=byte_count,
                 )
             )
 

@@ -884,15 +884,18 @@ class SummaryDB:
     def _json_to_init_summary(self, json_str: str) -> InitSummary:
         """Convert JSON string to InitSummary."""
         data = json.loads(json_str)
-        inits = [
-            InitOp(
+        _VAGUE_BYTE_COUNTS = ("full", "N/A", "n/a", "unknown", "varies", "")
+        inits = []
+        for i in data.get("inits", []):
+            bc = i.get("byte_count")
+            if bc in _VAGUE_BYTE_COUNTS:
+                bc = None
+            inits.append(InitOp(
                 target=i.get("target", ""),
                 target_kind=i.get("target_kind", "parameter"),
                 initializer=i.get("initializer", "assignment"),
-                byte_count=i.get("byte_count"),
-            )
-            for i in data.get("inits", [])
-        ]
+                byte_count=bc,
+            ))
         return InitSummary(
             function_name=data.get("function", ""),
             inits=inits,
