@@ -754,36 +754,59 @@ class FunctionExtractor:
         return results
 
     def _extract_type_decls_recursive(
-        self, cursor: Cursor, main_file: str, results: list[dict]
+        self, cursor: Cursor, main_file: str, results: list[dict],
+        seen_locations: set[tuple[str, int]] | None = None,
     ) -> None:
-        """Recursively extract type declarations from AST."""
+        """Recursively extract type declarations from AST.
+
+        Captures types from main_file and all included headers (including system
+        headers) so that struct definitions are available for verification prompts.
+        Deduplication across TUs is handled by the DB UNIQUE(name, kind, file_path)
+        constraint.
+        """
+        if seen_locations is None:
+            seen_locations = set()
+
         for child in cursor.get_children():
-            if child.location.file and str(child.location.file) != main_file:
+            if not child.location.file:
                 continue
+            child_file = str(child.location.file)
 
             if child.kind == CursorKind.TYPEDEF_DECL:
+                loc_key = (child_file, child.location.line)
+                if loc_key in seen_locations:
+                    continue
+                seen_locations.add(loc_key)
                 underlying = child.underlying_typedef_type.spelling
                 canonical = child.underlying_typedef_type.get_canonical().spelling
+                definition = self._get_full_source(child) or None
                 results.append({
                     "name": child.spelling,
                     "kind": "typedef",
                     "underlying_type": underlying,
                     "canonical_type": canonical,
-                    "file_path": main_file,
+                    "file_path": child_file,
                     "line_number": child.location.line,
+                    "definition": definition,
                 })
 
             elif child.kind == CursorKind.TYPE_ALIAS_DECL:
                 # C++ using X = Y;
+                loc_key = (child_file, child.location.line)
+                if loc_key in seen_locations:
+                    continue
+                seen_locations.add(loc_key)
                 underlying = child.underlying_typedef_type.spelling
                 canonical = child.underlying_typedef_type.get_canonical().spelling
+                definition = self._get_full_source(child) or None
                 results.append({
                     "name": child.spelling,
                     "kind": "using",
                     "underlying_type": underlying,
                     "canonical_type": canonical,
-                    "file_path": main_file,
+                    "file_path": child_file,
                     "line_number": child.location.line,
+                    "definition": definition,
                 })
 
             elif child.kind in (
@@ -795,6 +818,10 @@ class FunctionExtractor:
                 if (child.is_definition() and child.spelling
                         and "(unnamed" not in child.spelling
                         and "(anonymous" not in child.spelling):
+                    loc_key = (child_file, child.location.line)
+                    if loc_key in seen_locations:
+                        continue
+                    seen_locations.add(loc_key)
                     kind_map = {
                         CursorKind.STRUCT_DECL: "struct",
                         CursorKind.CLASS_DECL: "class",
@@ -802,23 +829,26 @@ class FunctionExtractor:
                     }
                     type_spelling = child.type.spelling
                     canonical = child.type.get_canonical().spelling
+                    definition = self._get_full_source(child) or None
                     results.append({
                         "name": child.spelling,
                         "kind": kind_map[child.kind],
                         "underlying_type": type_spelling,
                         "canonical_type": canonical,
-                        "file_path": main_file,
+                        "file_path": child_file,
                         "line_number": child.location.line,
+                        "definition": definition,
                     })
 
-            # Recurse into namespaces and class/struct bodies for nested types
+            # Recurse into namespaces and class/struct bodies for nested types,
+            # but only if in main_file (avoid deep recursion into system headers)
             if child.kind in (
                 CursorKind.NAMESPACE,
                 CursorKind.CLASS_DECL,
                 CursorKind.STRUCT_DECL,
                 CursorKind.UNION_DECL,
-            ):
-                self._extract_type_decls_recursive(child, main_file, results)
+            ) and child_file == main_file:
+                self._extract_type_decls_recursive(child, main_file, results, seen_locations)
 
     def _get_full_source(self, cursor: Cursor) -> str:
         """Get the full source code of a function including body."""

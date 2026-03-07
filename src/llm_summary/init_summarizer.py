@@ -40,12 +40,15 @@ For each initialization, identify:
 4. **byte_count**: How many bytes are initialized — use a concrete expression from the code \
 (e.g., "n", "len", "sizeof(int)", "count * sizeof(T)"), or null if truly unknown. \
 Do NOT use "full"; always prefer the actual size expression or sizeof(return_type) for return values
+5. **conditional** (optional): true if the initialization only happens on some exit paths
+6. **condition** (optional): the condition under which the initialization occurs \
+(e.g., "return value == 0", "n > 0 && s != NULL"); only present when conditional is true
 
 Consider:
 - Direct assignments to output parameters and struct fields
 - Calls to memset, memcpy, calloc, etc. (use callee summaries)
-- Only include initializations that happen on ALL exit paths
-- If a field is only initialized on some paths, do NOT include it\
+- Prefer unconditional inits; use conditional+condition for output params initialized only on success paths
+- If a field is only initialized on some paths, mark it conditional rather than omitting it\
 """
 
 
@@ -64,10 +67,12 @@ Respond in JSON format:
       "target": "expression being initialized",
       "target_kind": "parameter|field|return_value",
       "initializer": "how it is initialized",
-      "byte_count": "concrete_expr|sizeof(T)|null"
+      "byte_count": "concrete_expr|sizeof(T)|null",
+      "conditional": true,
+      "condition": "condition expression (omit if unconditional)"
     {cb}
   ],
-  "description": "One-sentence description of what this function always initializes"
+  "description": "One-sentence description of what this function initializes"
 {cb}
 ```
 

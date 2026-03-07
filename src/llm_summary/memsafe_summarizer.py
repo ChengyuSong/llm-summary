@@ -73,20 +73,26 @@ that must have sufficient capacity
 4. **size_expr**: (buffer_size only) The size expression required, \
 e.g., "n", "sizeof(T)", "strlen(src)+1"
 5. **relationship**: (buffer_size only) One of "byte_count" or "element_count"
+6. **condition** (optional): A C expression under which this contract applies, \
+e.g., "n > 0" for a buffer_size that only applies when n is nonzero, \
+or "n == 0" for a nullable that is only safe when n is zero
 
 Rules:
 - Pointer params that are **dereferenced** (read/write through \
 `*p`, `p->field`, `p[i]`) without a NULL check → `not_null`
 - Pointer params that are **checked for NULL** before any \
 dereference (e.g., `if (p == NULL) return`) → `nullable`
+- Pointer params nullable only under a specific condition (e.g., when n==0) → \
+`nullable` with `condition`
 - Params passed to `free()` or deallocators → `not_freed`
 - Params used in memcpy/memset/array indexing with a size → \
-`buffer_size` (include size_expr + relationship)
+`buffer_size` (include size_expr + relationship); add `condition` if only applies conditionally
 - Params/fields used in dereference, branch, or index before \
 being set → `initialized`
 - If a callee PRE annotation lists a requirement this function \
 does NOT satisfy internally, propagate it
 - Only include size_expr and relationship for buffer_size contracts
+- Only include condition when the contract is not unconditional
 
 Respond in JSON format:
 ```json
@@ -98,7 +104,8 @@ Respond in JSON format:
       "contract_kind": "not_null|nullable|not_freed|initialized|buffer_size",
       "description": "brief description of the requirement",
       "size_expr": "n (buffer_size only, omit otherwise)",
-      "relationship": "byte_count (buffer_size only, omit otherwise)"
+      "relationship": "byte_count (buffer_size only, omit otherwise)",
+      "condition": "C expression (omit if unconditional)"
     }}
   ],
   "description": "One-sentence summary of this function's safety requirements"
@@ -146,7 +153,8 @@ Respond in JSON:
       "contract_kind": "not_null|nullable|not_freed|initialized|buffer_size",
       "description": "brief description",
       "size_expr": "n (buffer_size only)",
-      "relationship": "byte_count (buffer_size only)"
+      "relationship": "byte_count (buffer_size only)",
+      "condition": "C expression (omit if unconditional)"
     }}}}
   ],
   "summary": "One-sentence description of this block's safety requirements"
@@ -316,6 +324,7 @@ class MemsafeSummarizer:
                             description=c.get("description", ""),
                             size_expr=c.get("size_expr"),
                             relationship=c.get("relationship"),
+                            condition=c.get("condition"),
                         ))
                 except (json.JSONDecodeError, TypeError):
                     pass
@@ -354,6 +363,7 @@ class MemsafeSummarizer:
                         description=c.get("description", ""),
                         size_expr=c.get("size_expr"),
                         relationship=c.get("relationship"),
+                        condition=c.get("condition"),
                     ))
             except Exception as e:
                 if self.verbose:
@@ -614,6 +624,7 @@ class MemsafeSummarizer:
                     description=c.get("description", ""),
                     size_expr=size_expr,
                     relationship=relationship,
+                    condition=c.get("condition"),
                 )
             )
 

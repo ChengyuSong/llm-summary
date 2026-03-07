@@ -158,12 +158,15 @@ def _scan_files(
         enable_preprocessing=preprocess,
     )
     all_functions = []
+    all_typedefs = []
     for f in source_files:
         try:
             all_functions.extend(extractor.extract_from_file(f))
+            all_typedefs.extend(extractor.extract_typedefs_from_file(f))
         except Exception:
             pass
     db.insert_functions_batch(all_functions)
+    db.insert_typedefs_batch(all_typedefs)
 
     scanner = AddressTakenScanner(db, compile_commands=cc)
     for f in source_files:

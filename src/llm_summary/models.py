@@ -298,6 +298,8 @@ class InitOp:
     target_kind: str  # "parameter", "field", "return_value"
     initializer: str  # "memset", "assignment", "calloc", "callee:init_struct"
     byte_count: str | None = None  # "n", "sizeof(T)", or None if unknown
+    conditional: bool = False  # True if init only happens on some paths
+    condition: str | None = None  # e.g. "return value == 0", "n > 0 && s != NULL"
 
     def to_dict(self) -> dict[str, Any]:
         result: dict[str, Any] = {
@@ -307,6 +309,10 @@ class InitOp:
         }
         if self.byte_count is not None:
             result["byte_count"] = self.byte_count
+        if self.conditional:
+            result["conditional"] = self.conditional
+        if self.condition is not None:
+            result["condition"] = self.condition
         return result
 
 
@@ -331,10 +337,11 @@ class MemsafeContract:
     """A single safety pre-condition required for memory-safe execution."""
 
     target: str  # "ptr", "buf", "ctx->data", "s"
-    contract_kind: str  # "not_null", "not_freed", "initialized", "buffer_size"
+    contract_kind: str  # "not_null", "nullable", "not_freed", "initialized", "buffer_size"
     description: str  # "buf must point to at least n bytes"
     size_expr: str | None = None  # buffer_size only: "n", "sizeof(T)", "strlen(src)+1"
     relationship: str | None = None  # buffer_size only: "byte_count", "element_count"
+    condition: str | None = None  # when contract applies conditionally, e.g. "n > 0"
 
     def to_dict(self) -> dict[str, Any]:
         result: dict[str, Any] = {
@@ -346,6 +353,8 @@ class MemsafeContract:
             result["size_expr"] = self.size_expr
         if self.relationship is not None:
             result["relationship"] = self.relationship
+        if self.condition is not None:
+            result["condition"] = self.condition
         return result
 
 

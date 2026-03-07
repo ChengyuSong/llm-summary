@@ -212,6 +212,7 @@ CREATE TABLE IF NOT EXISTS typedefs (
     canonical_type TEXT NOT NULL,
     file_path TEXT NOT NULL,
     line_number INTEGER,
+    definition TEXT,
     UNIQUE(name, kind, file_path)
 );
 
@@ -321,6 +322,9 @@ class SummaryDB:
             self.conn.execute(
                 "ALTER TABLE typedefs ADD COLUMN kind TEXT NOT NULL DEFAULT 'typedef'"
             )
+            self.conn.commit()
+        if columns and "definition" not in columns:
+            self.conn.execute("ALTER TABLE typedefs ADD COLUMN definition TEXT")
             self.conn.commit()
 
         # Add canonical_signature, params_json, callsites_json columns to functions if missing
@@ -1559,15 +1563,16 @@ class SummaryDB:
         file_path: str,
         line_number: int | None = None,
         kind: str = "typedef",
+        definition: str | None = None,
     ) -> int | None:
         """Insert a type declaration. Ignores duplicates (same name+kind+file)."""
         cursor = self.conn.execute(
             """
             INSERT OR IGNORE INTO typedefs
-            (name, kind, underlying_type, canonical_type, file_path, line_number)
-            VALUES (?, ?, ?, ?, ?, ?)
+            (name, kind, underlying_type, canonical_type, file_path, line_number, definition)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
             """,
-            (name, kind, underlying_type, canonical_type, file_path, line_number),
+            (name, kind, underlying_type, canonical_type, file_path, line_number, definition),
         )
         self.conn.commit()
         return cursor.lastrowid
@@ -1575,14 +1580,14 @@ class SummaryDB:
     def insert_typedefs_batch(self, typedefs: list[dict]) -> None:
         """Batch insert type declarations.
 
-        Each dict has name, kind, underlying_type,
-        canonical_type, file_path, line_number.
+        Each dict has name, kind, underlying_type, canonical_type, file_path,
+        line_number, and optionally definition.
         """
         self.conn.executemany(
             """
             INSERT OR IGNORE INTO typedefs
-            (name, kind, underlying_type, canonical_type, file_path, line_number)
-            VALUES (?, ?, ?, ?, ?, ?)
+            (name, kind, underlying_type, canonical_type, file_path, line_number, definition)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
             """,
             [
                 (
@@ -1592,6 +1597,7 @@ class SummaryDB:
                     td["canonical_type"],
                     td["file_path"],
                     td.get("line_number"),
+                    td.get("definition"),
                 )
                 for td in typedefs
             ],
@@ -1610,6 +1616,17 @@ class SummaryDB:
     def get_all_typedefs(self) -> list[dict]:
         """Get all typedefs."""
         rows = self.conn.execute("SELECT * FROM typedefs").fetchall()
+        return [dict(row) for row in rows]
+
+    def get_typedefs_by_names(self, names: list[str]) -> list[dict]:
+        """Look up type declarations by name. Returns all matches (may be multiple per name)."""
+        if not names:
+            return []
+        placeholders = ",".join("?" * len(names))
+        rows = self.conn.execute(
+            f"SELECT * FROM typedefs WHERE name IN ({placeholders}) AND definition IS NOT NULL",
+            names,
+        ).fetchall()
         return [dict(row) for row in rows]
 
     # ========== Call Graph Import Helpers ==========
