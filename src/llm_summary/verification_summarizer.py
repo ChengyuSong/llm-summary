@@ -54,7 +54,7 @@ Function: `{name}`
 Signature: `{signature}`
 File: {file_path}
 
-## This Function's Pre-conditions (from Pass 4) — assume these hold
+{type_defs_section}## This Function's Pre-conditions (from Pass 4) — assume these hold
 
 {own_contracts}
 
@@ -75,6 +75,10 @@ Assuming all pre-conditions hold, does the function perform any unsafe operation
 - The condition is already covered by one of this function's own pre-conditions listed above
 - The value is guaranteed safe by a callee's post-condition \
 (e.g., successful malloc returns non-null)
+- The variable has static storage duration (file-scope `static`, `static const`, or global) \
+— the C standard guarantees these are initialized before program startup \
+(zero-initialized, then set to their declared initializer). \
+Never flag file-scope or global variables as `uninitialized_use`.
 
 ### Check 2: Callee Pre-condition Satisfaction
 For EACH call to a callee that has pre-conditions, determine whether this function
@@ -466,6 +470,44 @@ class VerificationSummarizer:
             self._stats["issues_found"] += len(skeleton_summary.issues)
         return skeleton_summary
 
+    def _build_type_defs_section(self, source: str) -> str:
+        """Build a section with struct/union/typedef definitions referenced in source.
+
+        Extracts type names from the source text, looks them up in the DB, and
+        returns a formatted section string (empty string if no definitions found).
+        """
+        import re
+
+        # Find referenced type names: struct X, union X, typedef names in casts/params
+        names: set[str] = set()
+        for m in re.finditer(r'\b(?:struct|union|enum)\s+(\w+)', source):
+            names.add(m.group(1))
+
+        if not names:
+            return ""
+
+        rows = self.db.get_typedefs_by_names(list(names))
+        if not rows:
+            return ""
+
+        # Deduplicate by name (prefer shortest definition if multiple)
+        seen: dict[str, str] = {}
+        for row in rows:
+            name = row["name"]
+            defn = row.get("definition") or ""
+            if defn and (name not in seen or len(defn) < len(seen[name])):
+                seen[name] = defn
+
+        if not seen:
+            return ""
+
+        lines = ["## Referenced Type Definitions\n", "```c"]
+        for defn in seen.values():
+            lines.append(defn)
+            lines.append("")
+        lines.append("```\n\n")
+        return "\n".join(lines)
+
     def _build_prompt_and_system(
         self, source: str, func: Function, own_contracts: str,
         callee_section: str, alias_context: str | None,
@@ -476,11 +518,13 @@ class VerificationSummarizer:
         The complex Hoare-logic reasoning requires source, contracts, and callee
         context tightly coupled in a single prompt.
         """
+        type_defs_section = self._build_type_defs_section(source)
         prompt = VERIFICATION_PROMPT.format(
             source=source,
             name=func.name,
             signature=func.signature,
             file_path=func.file_path,
+            type_defs_section=type_defs_section,
             own_contracts=own_contracts,
             callee_section=callee_section,
             alias_context=alias_context or "",
