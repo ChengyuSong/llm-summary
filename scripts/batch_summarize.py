@@ -56,6 +56,7 @@ def run_summarize(
     backend: str,
     model: str | None,
     force: bool,
+    incremental: bool,
     allocator_file: Path | None,
     deallocator_file: Path | None,
     llm_host: str,
@@ -76,6 +77,8 @@ def run_summarize(
         cmd += ["--model", model]
     if force:
         cmd.append("--force")
+    if incremental:
+        cmd.append("--incremental")
     if allocator_file and allocator_file.exists():
         cmd += ["--allocator-file", str(allocator_file)]
     if deallocator_file and deallocator_file.exists():
@@ -159,6 +162,7 @@ def _summarize_target(
     backend: str,
     model: str | None,
     force: bool,
+    incremental: bool,
     allocator_file: Path | None,
     deallocator_file: Path | None,
     llm_host: str,
@@ -186,6 +190,7 @@ def _summarize_target(
             backend=backend,
             model=model,
             force=force,
+            incremental=incremental,
             allocator_file=allocator_file,
             deallocator_file=deallocator_file,
             llm_host=llm_host,
@@ -209,6 +214,7 @@ def _summarize_target(
             backend=backend,
             model=model,
             force=force,
+            incremental=incremental,
             allocator_file=None,
             deallocator_file=None,
             llm_host=llm_host,
@@ -234,6 +240,7 @@ def process_project_link_units(
     backend: str,
     model: str | None,
     force: bool,
+    incremental: bool,
     allocator_file: Path | None,
     deallocator_file: Path | None,
     llm_host: str,
@@ -344,6 +351,7 @@ def process_project_link_units(
             backend=backend,
             model=model,
             force=force,
+            incremental=incremental,
             allocator_file=effective_allocator,
             deallocator_file=deallocator_file,
             llm_host=llm_host,
@@ -377,6 +385,7 @@ def process_project(
     backend: str,
     model: str | None,
     force: bool,
+    incremental: bool,
     allocator_file: Path | None,
     deallocator_file: Path | None,
     llm_host: str,
@@ -410,6 +419,7 @@ def process_project(
             backend=backend,
             model=model,
             force=force,
+            incremental=incremental,
             allocator_file=allocator_file,
             deallocator_file=deallocator_file,
             llm_host=llm_host,
@@ -486,6 +496,7 @@ def process_project(
         backend=backend,
         model=model,
         force=force,
+        incremental=incremental,
         allocator_file=effective_allocator,
         deallocator_file=deallocator_file,
         llm_host=llm_host,
@@ -535,6 +546,10 @@ def main():
     parser.add_argument(
         "--force", "-f", action="store_true",
         help="Force re-summarize even if cached",
+    )
+    parser.add_argument(
+        "--incremental", action="store_true",
+        help="Only re-summarize functions with stale callee summaries",
     )
     parser.add_argument(
         "--allocator-file", type=Path, default=None,
@@ -677,6 +692,7 @@ def main():
             backend=args.backend,
             model=args.model,
             force=args.force,
+            incremental=args.incremental,
             allocator_file=args.allocator_file,
             deallocator_file=args.deallocator_file,
             llm_host=args.llm_host,

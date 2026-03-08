@@ -45,6 +45,7 @@ def run_verify(
     backend: str,
     model: str | None,
     force: bool,
+    incremental: bool,
     llm_host: str,
     llm_port: int | None,
     log_llm: Path | None,
@@ -57,6 +58,8 @@ def run_verify(
         cmd += ["--model", model]
     if force:
         cmd.append("--force")
+    if incremental:
+        cmd.append("--incremental")
     if llm_port is not None:
         cmd += ["--llm-port", str(llm_port)]
     if llm_host != "localhost":
@@ -90,6 +93,7 @@ def process_project(
     backend: str,
     model: str | None,
     force: bool,
+    incremental: bool,
     llm_host: str,
     llm_port: int | None,
     log_llm: Path | None,
@@ -145,6 +149,7 @@ def process_project(
                 backend=backend,
                 model=model,
                 force=force,
+                incremental=incremental,
                 llm_host=llm_host,
                 llm_port=llm_port,
                 log_llm=log_llm,
@@ -211,6 +216,8 @@ def main():
     )
     parser.add_argument("--model", type=str, default=None, help="Override model name")
     parser.add_argument("-f", "--force", action="store_true", help="Re-verify even if cached")
+    parser.add_argument("--incremental", action="store_true",
+                        help="Only re-verify functions with stale callee summaries")
     parser.add_argument("--llm-host", type=str, default="localhost")
     parser.add_argument("--llm-port", type=int, default=None)
     parser.add_argument("--log-llm", type=Path, default=None, help="Log LLM calls to file")
@@ -286,6 +293,7 @@ def main():
             backend=args.backend,
             model=args.model,
             force=args.force,
+            incremental=args.incremental,
             llm_host=args.llm_host,
             llm_port=args.llm_port,
             log_llm=args.log_llm,

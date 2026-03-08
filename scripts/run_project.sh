@@ -19,6 +19,7 @@ SKIP_VERIFY=0
 WITH_CONTAINERS=0
 PREPROCESS=0
 FORCE=""
+INCREMENTAL=""
 VERBOSE=""
 PASSTHROUGH=()
 
@@ -45,6 +46,7 @@ Optional:
   --with-containers    Run container detection phase (phase 6)
   --preprocess         Run clang -E to expand macros (pp_source) during scan
   --force              Force re-summarize even if cached
+  --incremental        Only re-summarize functions with stale callee summaries
   -v, --verbose        Verbose output
   --                   Pass remaining args through to batch scripts
 
@@ -90,6 +92,8 @@ while [[ $# -gt 0 ]]; do
             PREPROCESS=1; shift ;;
         --force|-f)
             FORCE="--force"; shift ;;
+        --incremental)
+            INCREMENTAL="--incremental"; shift ;;
         --verbose|-v)
             VERBOSE="--verbose"; shift ;;
         --)
@@ -151,7 +155,8 @@ echo "Backend:  $BACKEND"
 echo "From:     phase $FROM_PHASE"
 [[ $SKIP_VERIFY -eq 1 ]] && echo "Verify:   skipped"
 [[ $PREPROCESS -eq 1 ]]  && echo "Preproc:  yes"
-[[ -n "$FORCE" ]]        && echo "Force:    yes"
+[[ -n "$FORCE" ]]        && echo "Force:       yes"
+[[ -n "$INCREMENTAL" ]] && echo "Incremental: yes"
 [[ -n "$VERBOSE" ]]      && echo "Verbose:  yes"
 echo ""
 
@@ -185,14 +190,14 @@ run_phase 3 "call graph" \
 # ── Phase 4: summarize ───────────────────────────────────────────────────────
 run_phase 4 "summarize" \
     python3 scripts/batch_summarize.py \
-        $FILTER_ARGS $LLM_ARGS --init-stdlib $FORCE $VERBOSE \
+        $FILTER_ARGS $LLM_ARGS --init-stdlib $FORCE $INCREMENTAL $VERBOSE \
         "${PASSTHROUGH[@]+"${PASSTHROUGH[@]}"}"
 
 # ── Phase 5: verify ──────────────────────────────────────────────────────────
 if [[ $SKIP_VERIFY -eq 0 ]]; then
     run_phase 5 "verify" \
         python3 scripts/batch_verify.py \
-            $FILTER_ARGS $LLM_ARGS $FORCE $VERBOSE \
+            $FILTER_ARGS $LLM_ARGS $FORCE $INCREMENTAL $VERBOSE \
             "${PASSTHROUGH[@]+"${PASSTHROUGH[@]}"}"
 else
     echo ""
