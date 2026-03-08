@@ -269,6 +269,7 @@ class BottomUpDriver:
         affected: set[int] | None,
         current: int,
         total: int,
+        dirty_ids: set[int] | None = None,
     ) -> None:
         """Process a single function through all passes. Thread-safe."""
         # Skip sourceless stubs (e.g. stdlib) — nothing to summarize
@@ -291,9 +292,13 @@ class BottomUpDriver:
                         p.summarizer._stats["cache_hits"] += 1
             return
 
+        # Functions in dirty_ids are genuinely stale (callee summary changed):
+        # force a re-run so their updated_at advances and the staleness propagates.
+        local_force = force or (dirty_ids is not None and func_id in dirty_ids)
+
         for p in passes:
             # Check cache
-            if not force:
+            if not local_force:
                 cached = p.get_cached(func_id, func)
                 if cached is not None:
                     with results_lock:
@@ -414,12 +419,15 @@ class BottomUpDriver:
 
         # Compute affected set if incremental
         affected: set[int] | None = None
+        force_dirty: set[int] | None = None  # subset of affected that must be re-run
         if dirty_ids is not None:
             affected = self.compute_affected(dirty_ids, graph)
+            force_dirty = dirty_ids  # only the origin dirty set; transitive callers use cache
 
         # target_ids takes precedence over affected
         if target_ids is not None:
             affected = target_ids
+            force_dirty = None  # targeted mode: honour global force flag only
 
         if self.verbose:
             stats = orderer.get_stats()
@@ -430,6 +438,8 @@ class BottomUpDriver:
                 msg += f", {len(target_ids)} targeted"
             elif affected is not None:
                 msg += f", {len(affected)} affected"
+                if force_dirty:
+                    msg += f" ({len(force_dirty)} force-rerun)"
             if self.pool is not None:
                 msg += f", {self.pool.max_workers} workers"
             print(msg)
@@ -460,6 +470,7 @@ class BottomUpDriver:
                             self._process_func,
                             func_id, func, passes, graph, results,
                             results_lock, force, affected, current, total,
+                            force_dirty,
                         )
                         futures.append(fut)
 
@@ -482,6 +493,7 @@ class BottomUpDriver:
                     self._process_func(
                         func_id, func, passes, graph, results,
                         results_lock, force, affected, current, total,
+                        force_dirty,
                     )
 
         return results
