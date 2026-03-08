@@ -36,7 +36,7 @@ using Hoare-logic-style reasoning.
 
 ## Reasoning Model
 
-Assume this function's own pre-conditions (contracts from Pass 4) \
+Assume this function's own pre-conditions (contracts from the memory safety pass) \
 are ALREADY SATISFIED by its callers.
 Your job is to check what the function does *given* those \
 pre-conditions hold — not to re-flag them as bugs.
@@ -54,7 +54,7 @@ Function: `{name}`
 Signature: `{signature}`
 File: {file_path}
 
-{type_defs_section}## This Function's Pre-conditions (from Pass 4) — assume these hold
+{type_defs_section}## This Function's Pre-conditions (from memory safety analysis) — assume these hold
 
 {own_contracts}
 
@@ -495,13 +495,22 @@ class VerificationSummarizer:
             if r["name"] in all_identifiers
         ]
 
-        # Deduplicate by name (prefer shortest definition if multiple)
+        # Deduplicate by name: same-file definition wins; among cross-file,
+        # prefer shortest (least likely to be the wrong variant).
         seen: dict[str, str] = {}
+        seen_from_same_file: set[str] = set()
         for row in rows + static_rows:
             name = row["name"]
             defn = row.get("definition") or ""
-            if defn and (name not in seen or len(defn) < len(seen[name])):
+            if not defn:
+                continue
+            same_file = row.get("file_path") == file_path
+            if same_file:
                 seen[name] = defn
+                seen_from_same_file.add(name)
+            elif name not in seen_from_same_file:
+                if name not in seen or len(defn) < len(seen[name]):
+                    seen[name] = defn
 
         if not seen:
             return ""
@@ -662,15 +671,17 @@ class VerificationSummarizer:
         return "\n\n".join(lines)
 
     def _build_own_contracts_section(self, func: Function) -> str:
-        """Format this function's raw Pass 4 contracts."""
+        """Format this function's raw memory safety contracts."""
         if func.id is None:
             return "No raw contracts available."
 
         raw_memsafe = self.db.get_memsafe_summary_by_function_id(func.id)
         if not raw_memsafe or not raw_memsafe.contracts:
-            return "No raw safety contracts (Pass 4 found no pre-conditions)."
+            return "No raw safety contracts (memory safety analysis found no pre-conditions)."
 
         lines = []
+        if raw_memsafe.description:
+            lines.append(f"Memory safety assessment: {raw_memsafe.description}")
         for c in raw_memsafe.contracts:
             if c.contract_kind == "buffer_size" and c.size_expr:
                 lines.append(
