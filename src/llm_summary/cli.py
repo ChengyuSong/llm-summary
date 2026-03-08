@@ -231,56 +231,58 @@ def summarize(
         if init_stdlib:
             from .models import Function
 
-            def _ensure_stdlib_func(name: str) -> Function:
-                """Find or create a stdlib function stub."""
+            def _find_stdlib_func(name: str) -> Function | None:
+                """Find an existing stdlib stub in the DB (created by callgraph import).
+
+                Never creates new stubs — only functions already referenced in the
+                call graph (and thus already present as stubs) should receive summaries.
+                """
                 existing = db.get_function_by_name(name)
-                if existing:
-                    func: Function = existing[0]
-                    # Update attributes if not already set
-                    attrs = STDLIB_ATTRIBUTES.get(name, "")
-                    if attrs and not func.attributes:
-                        func.attributes = attrs
-                        func.id = db.insert_function(func)
-                    return func
-                func = Function(
-                    name=name,
-                    file_path="<stdlib>",
-                    line_start=0,
-                    line_end=0,
-                    source="",
-                    signature=f"{name}(...)",
-                    attributes=STDLIB_ATTRIBUTES.get(name, ""),
-                )
-                func.id = db.insert_function(func)
+                if not existing:
+                    return None
+                func: Function = existing[0]
+                # Update attributes if not already set (callgraph import may have missed them)
+                attrs = STDLIB_ATTRIBUTES.get(name, "")
+                if attrs and not func.attributes:
+                    func.attributes = attrs
+                    db.conn.execute(
+                        "UPDATE functions SET attributes = ? WHERE id = ?",
+                        (attrs, func.id),
+                    )
+                    db.conn.commit()
                 return func
 
             # Allocation summaries
             alloc_summaries = get_all_stdlib_summaries()
             for name, summary in alloc_summaries.items():
-                func = _ensure_stdlib_func(name)
-                db.upsert_summary(func, summary, model_used="builtin")
+                func = _find_stdlib_func(name)
+                if func is not None:
+                    db.upsert_summary(func, summary, model_used="builtin")
 
             # Free summaries
             free_summaries = get_all_stdlib_free_summaries()
             for name, summary in free_summaries.items():
-                func = _ensure_stdlib_func(name)
-                db.upsert_free_summary(func, summary, model_used="builtin")
+                func = _find_stdlib_func(name)
+                if func is not None:
+                    db.upsert_free_summary(func, summary, model_used="builtin")
 
             # Init summaries
             init_summaries = get_all_stdlib_init_summaries()
             for name, summary in init_summaries.items():
-                func = _ensure_stdlib_func(name)
-                db.upsert_init_summary(func, summary, model_used="builtin")
+                func = _find_stdlib_func(name)
+                if func is not None:
+                    db.upsert_init_summary(func, summary, model_used="builtin")
 
             # Memsafe summaries
             memsafe_summaries = get_all_stdlib_memsafe_summaries()
             for name, summary in memsafe_summaries.items():
-                func = _ensure_stdlib_func(name)
-                db.upsert_memsafe_summary(func, summary, model_used="builtin")
+                func = _find_stdlib_func(name)
+                if func is not None:
+                    db.upsert_memsafe_summary(func, summary, model_used="builtin")
 
-            # Create stubs for attribute-only functions (e.g., exit, abort)
+            # Update attributes for attribute-only functions (e.g., exit, abort) if they exist
             for name in STDLIB_ATTRIBUTES:
-                _ensure_stdlib_func(name)
+                _find_stdlib_func(name)
 
             total = len(set(
                 list(alloc_summaries) + list(free_summaries) +
@@ -2992,6 +2994,13 @@ def import_callgraph(json_path, db_path, clear_edges, verbose):
 
         console.print("\n[bold]Import complete[/bold]")
         console.print(stats.summary())
+
+        # When edges were cleared and reimported, bump updated_at on all callee
+        # stub summaries so that --incremental detects their callers as stale.
+        if clear_edges:
+            touched = db.touch_stub_summaries()
+            if touched and verbose:
+                console.print(f"  Touched {touched} stub summary timestamps (incremental staleness)")
 
         # Show after stats
         after_stats = db.get_stats()

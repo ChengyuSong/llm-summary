@@ -737,6 +737,37 @@ class SummaryDB:
         ).fetchone()
         return row["source_hash"] if row else None
 
+    def touch_stub_summaries(self) -> int:
+        """Bump updated_at to now for all summary rows of callee stubs.
+
+        Called after --clear-edges callgraph reimport so that the next
+        --incremental run detects callers of newly-linked stubs as stale.
+        Returns the number of rows touched across all summary tables.
+        """
+        touched = 0
+        stub_ids_sql = """
+            SELECT DISTINCT ce.callee_id FROM call_edges ce
+            JOIN functions f ON f.id = ce.callee_id
+            WHERE f.source IS NULL OR f.source = ''
+        """
+        for table in (
+            "allocation_summaries",
+            "free_summaries",
+            "init_summaries",
+            "memsafe_summaries",
+            "verification_summaries",
+        ):
+            try:
+                cur = self.conn.execute(
+                    f"UPDATE {table} SET updated_at = datetime('now') "
+                    f"WHERE function_id IN ({stub_ids_sql})"
+                )
+                touched += cur.rowcount
+            except Exception:
+                pass
+        self.conn.commit()
+        return touched
+
     def find_dirty_function_ids(self, pass_table: str) -> set[int]:
         """Find function IDs that need re-summarization for a given pass.
 
@@ -755,24 +786,29 @@ class SummaryDB:
 
         dirty: set[int] = set()
 
-        # 1. No summary exists for this pass
+        # 1. No summary exists for this pass (skip sourceless stubs)
         rows = self.conn.execute(
             f"""
             SELECT f.id FROM functions f
             LEFT JOIN {pass_table} s ON s.function_id = f.id
-            WHERE s.id IS NULL AND f.source IS NOT NULL
+            WHERE s.id IS NULL AND f.source IS NOT NULL AND f.source != ''
             """,
         ).fetchall()
         dirty.update(row["id"] for row in rows)
 
-        # 2. Any callee's summary is newer than this function's summary
+        # 2. Any callee's summary is newer than this function's summary.
+        #    Only consider callers that have source — sourceless stubs cannot
+        #    be re-summarized, so flagging them as dirty is pointless and
+        #    would mask the real source functions that need updating.
         rows = self.conn.execute(
             f"""
             SELECT DISTINCT ce.caller_id
             FROM call_edges ce
+            JOIN functions f ON f.id = ce.caller_id
             JOIN {pass_table} callee_s ON callee_s.function_id = ce.callee_id
             JOIN {pass_table} caller_s ON caller_s.function_id = ce.caller_id
             WHERE callee_s.updated_at > caller_s.updated_at
+              AND f.source IS NOT NULL AND f.source != ''
             """,
         ).fetchall()
         dirty.update(row["caller_id"] for row in rows)

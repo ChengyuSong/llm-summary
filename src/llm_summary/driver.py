@@ -269,7 +269,7 @@ class BottomUpDriver:
         affected: set[int] | None,
         current: int,
         total: int,
-        dirty_ids: set[int] | None = None,
+        force_dirty: set[int] | None = None,
     ) -> None:
         """Process a single function through all passes. Thread-safe."""
         # Skip sourceless stubs (e.g. stdlib) — nothing to summarize
@@ -292,9 +292,16 @@ class BottomUpDriver:
                         p.summarizer._stats["cache_hits"] += 1
             return
 
-        # Functions in dirty_ids are genuinely stale (callee summary changed):
-        # force a re-run so their updated_at advances and the staleness propagates.
-        local_force = force or (dirty_ids is not None and func_id in dirty_ids)
+        # Determine whether to force-rerun this function:
+        #  - Directly in the dirty set (callee summary changed), OR
+        #  - Dynamic propagation: any direct callee was force-rerun this pass
+        #    (ensures convergence in one pass rather than one hop per run).
+        local_force = force or (force_dirty is not None and func_id in force_dirty)
+        if not local_force and force_dirty is not None:
+            callee_ids = graph.get(func_id, [])
+            with results_lock:
+                if any(cid in force_dirty for cid in callee_ids):
+                    local_force = True
 
         for p in passes:
             # Check cache
@@ -394,6 +401,11 @@ class BottomUpDriver:
                 desc.startswith("Error during verification:")
             if not is_error:
                 p.store(func, summary)
+                # Propagate: callers of this function should also be force-rerun
+                # so that incremental mode converges in one pass.
+                if force_dirty is not None:
+                    with results_lock:
+                        force_dirty.add(func_id)
 
     def run(
         self,
@@ -417,12 +429,15 @@ class BottomUpDriver:
         """
         graph, orderer = self.build_graph()
 
-        # Compute affected set if incremental
+        # Compute affected set if incremental.
+        # force_dirty is a mutable set that grows during traversal: when a function
+        # is actually re-run, it is added so that its callers are also force-rerun
+        # in the same pass (convergence in one pass instead of one hop per run).
         affected: set[int] | None = None
-        force_dirty: set[int] | None = None  # subset of affected that must be re-run
+        force_dirty: set[int] | None = None
         if dirty_ids is not None:
             affected = self.compute_affected(dirty_ids, graph)
-            force_dirty = dirty_ids  # only the origin dirty set; transitive callers use cache
+            force_dirty = set(dirty_ids)  # mutable copy; grows as re-runs propagate up
 
         # target_ids takes precedence over affected
         if target_ids is not None:
@@ -439,7 +454,7 @@ class BottomUpDriver:
             elif affected is not None:
                 msg += f", {len(affected)} affected"
                 if force_dirty:
-                    msg += f" ({len(force_dirty)} force-rerun)"
+                    msg += f" ({len(dirty_ids)} initially dirty)"
             if self.pool is not None:
                 msg += f", {self.pool.max_workers} workers"
             print(msg)
