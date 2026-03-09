@@ -49,6 +49,7 @@ CREATE TABLE IF NOT EXISTS functions (
     params_json TEXT,
     callsites_json TEXT,
     attributes TEXT DEFAULT '',
+    decl_header TEXT,
     UNIQUE(name, signature, file_path)
 );
 
@@ -351,6 +352,9 @@ class SummaryDB:
             self.conn.commit()
         if "attributes" not in columns:
             self.conn.execute("ALTER TABLE functions ADD COLUMN attributes TEXT DEFAULT ''")
+            self.conn.commit()
+        if "decl_header" not in columns:
+            self.conn.execute("ALTER TABLE functions ADD COLUMN decl_header TEXT")
             self.conn.commit()
 
     def close(self) -> None:
@@ -1730,6 +1734,27 @@ class SummaryDB:
             attributes=attributes,
         )
         return self.insert_function(func)
+
+    def update_decl_headers(self, header_map: dict[str, str]) -> int:
+        """Update decl_header for external functions (sourceless stubs).
+
+        Args:
+            header_map: mapping of function name -> header file path
+
+        Returns:
+            Number of rows updated.
+        """
+        updated = 0
+        for name, header in header_map.items():
+            cursor = self.conn.execute(
+                "UPDATE functions SET decl_header = ? "
+                "WHERE name = ? AND (source IS NULL OR source = '')",
+                (header, name),
+            )
+            updated += cursor.rowcount
+        self.conn.commit()
+        return updated
+
 
     # ========== Utility Operations ==========
 

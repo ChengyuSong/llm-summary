@@ -2620,12 +2620,37 @@ def scan(
 
         console.print(f"  Indirect callsites: {len(all_callsites)}")
 
+        # Phase 4: Extract extern declaration headers
+        console.print("\n[bold]Phase 4: Extracting extern declaration headers[/bold]")
+
+        from .extern_headers import extract_extern_headers
+
+        extern_header_map = extract_extern_headers(
+            compile_commands_path=resolved_cc_path or compile_commands_path,
+            project_root=project_root,
+            source_files=source_files,
+            verbose=verbose,
+        )
+        if extern_header_map:
+            updated = db.update_decl_headers(extern_header_map)
+            # Group by header for display
+            from collections import Counter as _Counter
+            header_counts = _Counter(extern_header_map.values())
+            console.print(f"  Mapped {len(extern_header_map)} extern functions to {len(header_counts)} headers")
+            if verbose:
+                for hdr, cnt in header_counts.most_common(10):
+                    console.print(f"    {hdr}: {cnt} functions")
+            console.print(f"  Updated {updated} function rows in DB")
+        else:
+            console.print("  No extern declarations found")
+
         # Summary
         console.print("\n[bold]Summary[/bold]")
         console.print(f"  Source files: {len(source_files)}")
         console.print(f"  Functions: {len(all_functions)}")
         console.print(f"  Indirect call targets: {len(atfs)}")
         console.print(f"  Indirect callsites: {len(all_callsites)}")
+        console.print(f"  Extern headers mapped: {len(extern_header_map)}")
         console.print(f"  Database: {db_path}")
 
     finally:
