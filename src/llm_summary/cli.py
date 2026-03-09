@@ -3147,7 +3147,12 @@ def discover_link_units(
             pass
 
     # For in-tree builds (use_build_dir=false), scan the source tree for artifacts
-    if not use_build_dir:
+    # Also auto-detect: if build_dir has no compile_commands.json but project_path does
+    if not use_build_dir or (
+        not (build_dir / "compile_commands.json").exists()
+        and (project_path / "compile_commands.json").exists()
+    ):
+        use_build_dir = False
         build_dir = project_path
         if verbose:
             console.print("[yellow]In-tree build detected — using source dir as build dir[/yellow]")

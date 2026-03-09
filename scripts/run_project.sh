@@ -169,7 +169,7 @@ run_phase 0 "build-learn" \
 # ── Phase 1: discover-link-units ─────────────────────────────────────────────
 run_phase 1 "discover-link-units" \
     python3 scripts/batch_discover_link_units.py \
-        $FILTER_ARGS $LLM_ARGS $VERBOSE \
+        $FILTER_ARGS $LLM_ARGS $FORCE $VERBOSE \
         "${PASSTHROUGH[@]+"${PASSTHROUGH[@]}"}"
 
 # ── Phase 2: scan targets ────────────────────────────────────────────────────

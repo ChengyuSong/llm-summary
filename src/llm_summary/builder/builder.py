@@ -860,8 +860,12 @@ class Builder:
                                     )
                         elif block.name == "test_build_script" and result.get("success"):
                             build_succeeded = True
+                            if result.get("in_tree_build"):
+                                use_build_dir = False
                             if self.verbose:
                                 print("[ReAct] test_build_script succeeded — build validated")
+                                if result.get("in_tree_build"):
+                                    print("[ReAct] Detected in-tree build (use_build_dir=false)")
                         elif block.name == "install_packages" and result.get("success"):
                             new_image = result.get("new_image")
                             if new_image:

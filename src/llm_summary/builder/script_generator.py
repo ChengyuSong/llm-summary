@@ -145,6 +145,7 @@ class ScriptGenerator:
         # Add flags/script with appropriate key based on build system
         if build_script is not None:
             config["build_script"] = build_script
+            config["use_build_dir"] = use_build_dir
         elif build_system in ("autotools", "configure_make", "make"):
             config["configure_flags"] = flags
             config["use_build_dir"] = use_build_dir

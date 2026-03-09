@@ -1420,8 +1420,13 @@ def test_build_script(
                 "compile_commands_found": False,
             }
 
+        # Detect in-tree build (compile_commands.json in source, not build dir)
+        in_tree_build = compile_commands_path.is_relative_to(project_path)
+
         if verbose:
             print(f"[test_build_script] Found compile_commands.json at {compile_commands_path}")
+            if in_tree_build:
+                print("[test_build_script] Detected in-tree build (compile_commands.json in source dir)")
 
         # Run assembly check
         asm_result = check_assembly(
@@ -1458,6 +1463,7 @@ def test_build_script(
             "output": output,
             "error": "",
             "compile_commands_found": True,
+            "in_tree_build": in_tree_build,
             "assembly_check": asm_result.to_dict() if asm_result else None,
         }
 
