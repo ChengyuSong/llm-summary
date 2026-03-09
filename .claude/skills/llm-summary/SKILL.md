@@ -76,16 +76,43 @@ llm-summary import-callgraph --json func-scans/<project>/callgraph.json \
 llm-summary init-stdlib --db func-scans/<project>/functions.db
 ```
 
-### import-dep-summaries — copy summaries from dep DBs
+### import-dep — cross-project dependency summary import
+```bash
+# Auto-resolve deps from headers recorded during scan
+llm-summary import-dep \
+  --db func-scans/<project>/<target>/functions.db \
+  --scan-dir func-scans/ -v
+
+# Explicit dep DB
+llm-summary import-dep \
+  --db func-scans/<project>/<target>/functions.db \
+  --from func-scans/<dep_project>/<dep_target>/functions.db -v
+
+# With link-units (records resolved dep_dbs in link_units.json)
+llm-summary import-dep \
+  --db func-scans/<project>/<target>/functions.db \
+  --scan-dir func-scans/ \
+  --link-units func-scans/<project>/link_units.json \
+  --target <target_name> -v
+```
+- Uses `decl_header` (recorded during scan via `clang -E`) to identify which library each extern belongs to
+- Stdlib/libc headers are classified automatically (prebuilt mapping) and skipped
+- Third-party headers resolved via: global cache → basename heuristic → LLM fallback
+- Resolved mappings cached in `~/.llm-summary/stdlib_cache.db` (`dep_headers` table)
+- `--dry-run`: show what would be imported without writing
+- `-f / --force`: overwrite existing summaries
+
+### import-dep-summaries — copy summaries from intra-project dep DBs
 ```bash
 llm-summary import-dep-summaries \
   --db func-scans/<project>/<target>/functions.db \
-  --dep-db func-scans/<dep_project>/<dep_target>/functions.db
+  --dep-db func-scans/<project>/<dep_target>/functions.db
 ```
 - `--dep-db`: repeat for multiple deps
 - `-f / --force`: overwrite existing summaries
 - Imported summaries tagged with `model_used=dep:<dep_db_stem>`
 - Idempotent without `--force`
+- **Intra-project only** (same project, different link units); use `import-dep` for cross-project
 
 ### export — export summaries to JSON
 ```bash
@@ -114,10 +141,17 @@ llm-summary scan \
   --link-units func-scans/<project>/link_units.json \
   --target <target_name> \
   --db func-scans/<project>/<target_name>/functions.db
+
+# With preprocessing (extracts extern declaration headers)
+llm-summary scan \
+  --compile-commands build-scripts/<project>/compile_commands.json \
+  --db func-scans/<project>/functions.db \
+  --preprocess -v
 ```
 - `--compile-commands PATH`: path to compile_commands.json (required)
 - `--link-units PATH`: path to link_units.json (from `discover-link-units`); restricts scan to named target
 - `--target TEXT`: link-unit target name (required with `--link-units`)
+- `--preprocess`: run `clang -E` to extract extern declaration headers (`decl_header` column); needed for `import-dep`
 - `--project-path PATH`: host source root — **required** when compile_commands.json has Docker container paths (`/workspace/src/`); use the raw build-artifacts copy in that case. The `build-scripts/<project>/compile_commands.json` produced by `build-learn` already has host paths and does not need this flag.
 
 **Prefer `build-scripts/<project>/compile_commands.json`** (host paths, produced by `build-learn`).
@@ -219,13 +253,15 @@ All batch scripts support: `--filter <name>`, `--tier <1|2|3>`, `--skip-list`, `
 3. **batch_scan_targets** — auto-detects `link_units.json`; scans each target into `func-scans/<project>/<target>/functions.db`
 4. **batch_call_graph_gen** `--compositional` — per-target two-phase CFL; writes `db_path`, `callgraph_json`, `cflcg`, `vsnapshot` back into `link_units.json`
 5. **batch_summarize** `--init-stdlib` — per target in topo order:
+   - `import-dep` from cross-project dep DBs (resolved via `decl_header`)
    - `import-dep-summaries` from intra-project dep DBs
    - `init-stdlib`
    - Pass 1: `allocation+free+init`, Pass 2: `memsafe`
 6. **batch_verify** — per target in topo order
 
-**Key files per link unit** (recorded in `link_units.json` after step 4):
+**Key files per link unit** (recorded in `link_units.json` after steps 4-5):
 - `db_path` — functions DB
 - `callgraph_json` — KAMain call graph
 - `cflcg` — compressed CFL constraint graph
 - `vsnapshot` — serialized V-relation (value aliasing)
+- `dep_dbs` — list of resolved cross-project dependency DB paths (from `import-dep`)
