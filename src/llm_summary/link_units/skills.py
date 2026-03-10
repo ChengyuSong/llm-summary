@@ -418,6 +418,67 @@ def _resolve_makefile_var(
     return re.sub(r"\$\(([A-Za-z_][A-Za-z0-9_]*)\)", _replace, value)
 
 
+def _parse_makefile_dep_rules(
+    makefile: Path,
+    executables: set[str],
+) -> dict[str, tuple[list[str], list[str]]]:
+    """Parse Make dependency rules to find objects for each executable.
+
+    Looks for patterns like:
+        target: dep1.o dep2.o lib.a \\
+                dep3.o
+
+    Args:
+        makefile: Path to Makefile
+        executables: Set of executable paths (relative to build_dir) to look for
+
+    Returns:
+        Dict of exe_rel -> (objects, link_deps) for matched executables
+    """
+    results: dict[str, tuple[list[str], list[str]]] = {}
+    if not makefile.exists():
+        return results
+
+    # Read and join continuation lines
+    lines: list[str] = []
+    with open(makefile, encoding="utf-8", errors="replace") as f:
+        current = ""
+        for raw in f:
+            raw = raw.rstrip("\n")
+            if raw.endswith("\\"):
+                current += raw[:-1] + " "
+            else:
+                current += raw
+                lines.append(current)
+                current = ""
+        if current:
+            lines.append(current)
+
+    for line in lines:
+        if ":" not in line or line.startswith("\t"):
+            continue
+        target_part, _, deps_part = line.partition(":")
+        target = target_part.strip()
+        if target not in executables:
+            continue
+
+        objects = []
+        link_deps = []
+        for token in deps_part.split():
+            if token.endswith(".o"):
+                objects.append(token)
+            elif token.endswith(".a"):
+                dep_name = Path(token).stem
+                if dep_name.startswith("lib"):
+                    dep_name = dep_name[3:]
+                link_deps.append(dep_name)
+
+        if objects:
+            results[target] = (objects, link_deps)
+
+    return results
+
+
 def _parse_autotools_link_units(
     build_dir: Path,
     executables: list[str],
@@ -674,13 +735,77 @@ def discover_heuristic(
             else:
                 print(f"[heuristic]   {name}: {len(members)} objects")
 
-    # Step 2: Executables from ELF binaries + Makefile parsing
+    # Step 2: Executables — parse Makefile dependency rules, then
+    # fall back to autotools variable parsing for the rest.
+    all_exes = prescan["executables"]
     if verbose:
-        print(f"[heuristic] Processing {len(prescan['executables'])} executable candidates...")
-    exe_units, unresolved = _parse_autotools_link_units(
-        build_dir, prescan["executables"], verbose=verbose,
-    )
-    link_units.extend(exe_units)
+        print(f"[heuristic] Processing {len(all_exes)} executable candidates...")
+
+    # 2a. Try top-level Makefile dependency rules (works for OpenSSL, etc.)
+    top_makefile = build_dir / "Makefile"
+    dep_rules = _parse_makefile_dep_rules(top_makefile, set(all_exes))
+    dep_resolved = []
+    dep_remaining = []
+    for exe_rel in all_exes:
+        if exe_rel in dep_rules:
+            objects, link_deps = dep_rules[exe_rel]
+            # Resolve objects to absolute paths via compile_commands
+            resolved_objects = []
+            for obj in objects:
+                real_path = basename_index.get(Path(obj).name)
+                if real_path:
+                    resolved_objects.append(real_path)
+                else:
+                    resolved_objects.append(str(build_dir / obj))
+            link_units.append({
+                "name": Path(exe_rel).stem,
+                "type": "executable",
+                "output": exe_rel,
+                "objects": resolved_objects,
+                "link_deps": link_deps,
+            })
+            dep_resolved.append(exe_rel)
+        else:
+            dep_remaining.append(exe_rel)
+
+    if verbose and dep_resolved:
+        print(
+            f"[heuristic] Resolved {len(dep_resolved)} executables"
+            f" via Makefile dependency rules"
+        )
+
+    # 2b. Try autotools variable parsing for the rest
+    if dep_remaining:
+        exe_units, unresolved = _parse_autotools_link_units(
+            build_dir, dep_remaining, verbose=verbose,
+        )
+        link_units.extend(exe_units)
+    else:
+        unresolved = []
+
+    # Filter out stale executables: if not in any Makefile and no
+    # matching objects in compile_commands, it's from a previous build.
+    if unresolved and basename_index:
+        cc_basenames = set(basename_index.values())
+        live = []
+        stale_count = 0
+        for exe_rel in unresolved:
+            exe_stem = Path(exe_rel).stem
+            # Check if any compile_commands output matches this exe's stem
+            has_obj = any(
+                Path(p).stem == exe_stem or Path(p).stem.startswith(exe_stem + "-")
+                for p in cc_basenames
+            )
+            if has_obj:
+                live.append(exe_rel)
+            else:
+                stale_count += 1
+        if verbose and stale_count:
+            print(
+                f"[heuristic] Dropped {stale_count} stale executables"
+                f" (no objects in compile_commands or Makefile)"
+            )
+        unresolved = live
 
     result = {
         "build_system": "autotools",
