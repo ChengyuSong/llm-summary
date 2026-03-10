@@ -145,6 +145,66 @@ def _source_files_for_bc(
     return sources
 
 
+def _source_files_for_objects(
+    cc_entries: list[dict],
+    objects: list[str],
+    build_dir: Path,
+) -> list[str]:
+    """Return source files whose compiled output matches an object file path.
+
+    Used as fallback when no .bc files exist (non-LTO builds).
+    Matching strategy (in order):
+    1. Exact absolute output path match
+    2. Resolve relative object against build_dir
+    3. Stem-based fallback: strip mangled prefixes from object name
+       (e.g. libtestutil-lib-opt.o -> opt) and match against source stems
+    """
+    # Build index: absolute output path -> source file
+    idx: dict[str, str] = {}
+    # Stem index for fallback: (parent_dir, bare_stem) -> source file
+    # Use parent dir to disambiguate same-stem files in different directories
+    stem_idx: dict[str, list[str]] = {}  # bare_stem -> [source_files]
+    for entry in cc_entries:
+        output = entry.get("output", "")
+        src = entry.get("file", "")
+        if not (src and Path(src).suffix.lower() in C_EXTENSIONS):
+            continue
+        if output:
+            out_path = Path(output)
+            if not out_path.is_absolute():
+                directory = entry.get("directory", "")
+                if directory:
+                    out_path = Path(directory) / out_path
+                else:
+                    out_path = build_dir / out_path
+            idx[str(out_path)] = src
+        # Build stem index from source file
+        src_stem = Path(src).stem
+        stem_idx.setdefault(src_stem, []).append(src)
+
+    sources: list[str] = []
+    seen: set[str] = set()
+    for obj in objects:
+        # Try as-is first (absolute), then resolve relative against build_dir
+        src = idx.get(obj)
+        if not src and not Path(obj).is_absolute():
+            src = idx.get(str(build_dir / obj))
+        # Stem-based fallback: strip mangled prefixes
+        # e.g. libtestutil-lib-opt.o -> opt, libapps-lib-app_rand.o -> app_rand
+        if not src:
+            obj_stem = _bare_stem(Path(obj))
+            # Strip lib<name>-lib- prefix pattern (common in OpenSSL, autotools)
+            if "-lib-" in obj_stem:
+                obj_stem = obj_stem.split("-lib-", 1)[1]
+            candidates = stem_idx.get(obj_stem, [])
+            if len(candidates) == 1:
+                src = candidates[0]
+        if src and src not in seen:
+            sources.append(src)
+            seen.add(src)
+    return sources
+
+
 def _scan_files(
     source_files: list[str],
     cc: CompileCommandsDB,
@@ -154,37 +214,59 @@ def _scan_files(
     preprocess: bool = False,
     cc_path: str | Path | None = None,
 ) -> tuple[int, int, int]:
-    """Extract functions, scan address-taken, find callsites. Returns (funcs, targets, callsites)."""
+    """Extract functions, scan address-taken, find callsites. Returns (funcs, targets, callsites).
+
+    Parses each source file once with libclang and runs all passes on the
+    same translation unit.
+    """
     extractor = FunctionExtractor(
         compile_commands=cc, project_root=project_root,
         enable_preprocessing=preprocess,
     )
+
+    # Phase 1: parse each file once, extract functions + typedefs
     all_functions = []
     all_typedefs = []
+    parsed_tus: list[tuple] = []  # (tu, file_path) for reuse
+
     for f in source_files:
         try:
-            all_functions.extend(extractor.extract_from_file(f))
-            all_typedefs.extend(extractor.extract_typedefs_from_file(f))
+            tu = extractor.parse_file(f)
+            funcs = extractor.extract_from_tu(tu, f)
+            all_functions.extend(funcs)
+            all_typedefs.extend(extractor.extract_typedefs_from_tu(tu, f))
+            parsed_tus.append((tu, f))
         except Exception:
             pass
+
     db.insert_functions_batch(all_functions)
     db.insert_typedefs_batch(all_typedefs)
 
+    # Phase 2: reuse parsed TUs for address-taken scan + callsite finding
     scanner = AddressTakenScanner(db, compile_commands=cc)
-    for f in source_files:
-        try:
-            scanner.scan_files([f])
-        except Exception:
-            pass
-    atfs = db.get_address_taken_functions()
+    # Build function map once (normally done per scan_files call)
+    for func in db.get_all_functions():
+        if func.id is not None:
+            scanner._function_map[func.name] = func.id
 
     finder = IndirectCallsiteFinder(db, compile_commands=cc)
+    for func in db.get_all_functions():
+        if func.id is not None:
+            key = (func.file_path, func.name, func.line_start)
+            finder._function_map[key] = func.id
+
     callsites = []
-    for f in source_files:
+    for tu, f in parsed_tus:
         try:
-            callsites.extend(finder.find_in_files([f]))
+            scanner.scan_tu(tu, f)
         except Exception:
             pass
+        try:
+            callsites.extend(finder.find_in_tu(tu, f))
+        except Exception:
+            pass
+
+    atfs = db.get_address_taken_functions()
 
     # Extract extern declaration headers (for import-dep)
     if cc_path:
@@ -206,6 +288,45 @@ def _scan_files(
     return len(all_functions), len(atfs), len(callsites)
 
 
+def _scan_one_target(args: tuple) -> dict:
+    """Scan a single link-unit target. Designed for ProcessPoolExecutor."""
+    (target, source_files, match_desc, cc_entries_json_path,
+     db_path_str, project_root, verbose, preprocess) = args
+
+    target_start = time.monotonic()
+    target_result: dict = {
+        "target": target,
+        "source_files": len(source_files),
+        "functions": 0,
+        "total_targets": 0,
+        "callsites": 0,
+        "error": None,
+        "timing_seconds": 0.0,
+    }
+
+    if not source_files:
+        target_result["error"] = "no_source_files_matched"
+        target_result["timing_seconds"] = round(time.monotonic() - target_start, 2)
+        return target_result
+
+    cc = CompileCommandsDB(Path(cc_entries_json_path))
+    db = SummaryDB(db_path_str)
+    try:
+        n_funcs, n_targets, n_callsites = _scan_files(
+            source_files, cc, db, project_root, verbose,
+            preprocess=preprocess,
+            cc_path=cc_entries_json_path,
+        )
+    finally:
+        db.close()
+
+    target_result["functions"] = n_funcs
+    target_result["total_targets"] = n_targets
+    target_result["callsites"] = n_callsites
+    target_result["timing_seconds"] = round(time.monotonic() - target_start, 2)
+    return target_result
+
+
 def scan_project_link_units(
     project_dir: Path,
     func_scans_dir: Path,
@@ -215,8 +336,13 @@ def scan_project_link_units(
     dry_run: bool = False,
     verbose: bool = False,
     preprocess: bool = False,
+    jobs: int = 0,
 ) -> dict:
-    """Scan a project with link_units.json — one DB per target in topo order."""
+    """Scan a project with link_units.json — one DB per target.
+
+    Args:
+        jobs: Number of parallel target workers. 0 = cpu_count, 1 = sequential.
+    """
     project_name = project_dir.name
     result = {
         "project": project_name,
@@ -241,7 +367,7 @@ def scan_project_link_units(
     project_scan_dir = func_scans_dir / project_name
     build_dir = Path(lu_data.get("build_dir", f"/data/csong/build-artifacts/{project_name}"))
 
-    # Build a resolved CompileCommandsDB from already-resolved entries
+    # Write resolved compile_commands to a temp file (shared across workers)
     import tempfile as _tempfile
     tmp = _tempfile.NamedTemporaryFile(suffix=".json", delete=False, mode="w")
     import json as _json
@@ -251,34 +377,18 @@ def scan_project_link_units(
     tmp.close()
 
     try:
-        cc = CompileCommandsDB(tmp_path)
-
+        # Prepare work items for each target
+        work_items = []
         for lu in link_units:
             target = lu["name"]
-            target_start = time.monotonic()
             bc_files = [Path(p) for p in lu.get("bc_files", []) if Path(p).exists()]
-            source_files = _source_files_for_bc(cc_entries, bc_files, build_dir)
-
-            target_result: dict = {
-                "target": target,
-                "source_files": len(source_files),
-                "functions": 0,
-                "total_targets": 0,
-                "callsites": 0,
-                "error": None,
-                "timing_seconds": 0.0,
-            }
-
-            if not source_files:
-                target_result["error"] = "no_source_files_matched"
-                target_result["timing_seconds"] = round(time.monotonic() - target_start, 2)
-                result["targets"].append(target_result)
-                if verbose:
-                    print(f"    [{target}] SKIP: no source files matched {len(bc_files)} bc_files")
-                continue
-
-            if verbose:
-                print(f"    [{target}] {len(source_files)} source files from {len(bc_files)} bc files")
+            if bc_files:
+                source_files = _source_files_for_bc(cc_entries, bc_files, build_dir)
+                match_desc = f"{len(bc_files)} bc files"
+            else:
+                objects = lu.get("objects", [])
+                source_files = _source_files_for_objects(cc_entries, objects, build_dir)
+                match_desc = f"{len(objects)} objects (no bc)"
 
             if dry_run:
                 db_path_str = ":memory:"
@@ -287,26 +397,72 @@ def scan_project_link_units(
                 target_dir.mkdir(parents=True, exist_ok=True)
                 db_path_str = str(target_dir / "functions.db")
 
-            db = SummaryDB(db_path_str)
-            try:
-                n_funcs, n_targets, n_callsites = _scan_files(
-                    source_files, cc, db, project_root, verbose,
-                    preprocess=preprocess,
-                    cc_path=tmp_path,
-                )
-            finally:
-                db.close()
+            work_items.append((
+                target, source_files, match_desc, str(tmp_path),
+                db_path_str, project_root, verbose, preprocess,
+            ))
 
-            target_result["functions"] = n_funcs
-            target_result["total_targets"] = n_targets
-            target_result["callsites"] = n_callsites
-            target_result["timing_seconds"] = round(time.monotonic() - target_start, 2)
-            result["targets"].append(target_result)
+        num_workers = jobs if jobs > 0 else (os.cpu_count() or 1)
+        # Only parallelise when there are multiple targets worth scanning
+        scannable = [w for w in work_items if w[1]]  # w[1] = source_files
+        use_parallel = num_workers > 1 and len(scannable) > 1
 
-            result["source_files"] += len(source_files)
-            result["functions"] += n_funcs
-            result["total_targets"] += n_targets
-            result["callsites"] += n_callsites
+        if use_parallel:
+            if verbose:
+                print(f"    Scanning {len(scannable)} targets with {num_workers} workers")
+            with ProcessPoolExecutor(max_workers=num_workers) as executor:
+                futures = {
+                    executor.submit(_scan_one_target, item): item[0]
+                    for item in work_items
+                }
+                for future in as_completed(futures):
+                    target_name = futures[future]
+                    target_result = future.result()
+                    result["targets"].append(target_result)
+                    if verbose:
+                        tr = target_result
+                        if tr["error"]:
+                            # Find match_desc from work_items
+                            desc = next(
+                                (w[2] for w in work_items if w[0] == target_name),
+                                "",
+                            )
+                            print(f"    [{target_name}] SKIP: no source files matched {desc}")
+                        else:
+                            print(
+                                f"    [{target_name}] {tr['functions']} funcs, "
+                                f"{tr['callsites']} callsites ({tr['timing_seconds']}s)"
+                            )
+        else:
+            for item in work_items:
+                target_name = item[0]
+                source_files = item[1]
+                match_desc = item[2]
+                if not source_files:
+                    target_result = {
+                        "target": target_name,
+                        "source_files": 0,
+                        "functions": 0,
+                        "total_targets": 0,
+                        "callsites": 0,
+                        "error": "no_source_files_matched",
+                        "timing_seconds": 0.0,
+                    }
+                    result["targets"].append(target_result)
+                    if verbose:
+                        print(f"    [{target_name}] SKIP: no source files matched {match_desc}")
+                    continue
+
+                if verbose:
+                    print(f"    [{target_name}] {len(source_files)} source files from {match_desc}")
+                target_result = _scan_one_target(item)
+                result["targets"].append(target_result)
+
+        for tr in result["targets"]:
+            result["source_files"] += tr["source_files"]
+            result["functions"] += tr["functions"]
+            result["total_targets"] += tr["total_targets"]
+            result["callsites"] += tr["callsites"]
 
     finally:
         tmp_path.unlink(missing_ok=True)
@@ -321,6 +477,7 @@ def scan_project(
     dry_run: bool = False,
     verbose: bool = False,
     preprocess: bool = False,
+    jobs: int = 0,
 ) -> dict:
     """Scan a single project and return statistics.
 
@@ -369,6 +526,7 @@ def scan_project(
                 dry_run=dry_run,
                 verbose=verbose,
                 preprocess=preprocess,
+                jobs=jobs,
             )
 
         # --- Legacy single-DB mode ---
@@ -441,7 +599,8 @@ def _scan_worker(args: tuple) -> dict:
     """Worker wrapper for ProcessPoolExecutor (needs top-level picklable callable)."""
     project_dir, func_scans_dir, dry_run, verbose = args[:4]
     preprocess = args[4] if len(args) > 4 else False
-    return scan_project(Path(project_dir), Path(func_scans_dir), dry_run=dry_run, verbose=verbose, preprocess=preprocess)
+    jobs = args[5] if len(args) > 5 else 0
+    return scan_project(Path(project_dir), Path(func_scans_dir), dry_run=dry_run, verbose=verbose, preprocess=preprocess, jobs=jobs)
 
 
 def _format_result(result: dict) -> str:
@@ -557,9 +716,9 @@ def main():
         print(f"Parallel workers: {num_workers}")
     print()
 
-    # Build work items: (project_dir, func_scans_dir, dry_run, verbose, preprocess)
+    # Build work items: (project_dir, func_scans_dir, dry_run, verbose, preprocess, jobs)
     work_items = [
-        (str(project_dir), str(FUNC_SCANS_DIR), args.dry_run, args.verbose, args.preprocess)
+        (str(project_dir), str(FUNC_SCANS_DIR), args.dry_run, args.verbose, args.preprocess, args.jobs)
         for project_dir in projects
     ]
 

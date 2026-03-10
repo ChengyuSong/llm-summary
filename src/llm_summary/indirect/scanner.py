@@ -69,6 +69,11 @@ class AddressTakenScanner:
         """Scan a single file for address-taken functions."""
         file_path = Path(file_path).resolve()
         tu = self.extractor.get_translation_unit(file_path)
+        self.scan_tu(tu, file_path)
+
+    def scan_tu(self, tu, file_path: str | Path) -> None:
+        """Scan a pre-parsed translation unit for address-taken functions."""
+        file_path = Path(file_path).resolve()
 
         # Load file contents for context extraction
         try:

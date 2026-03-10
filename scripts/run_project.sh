@@ -17,7 +17,7 @@ LLM_PORT=""
 FROM_PHASE=0
 SKIP_VERIFY=0
 WITH_CONTAINERS=0
-PREPROCESS=0
+PREPROCESS=1
 FORCE=""
 INCREMENTAL=""
 VERBOSE=""
@@ -44,7 +44,7 @@ Optional:
   --skip-build         Shorthand for --from-phase 2 (skip build-learn and discover-link-units)
   --skip-verify        Skip verification phase (phase 5)
   --with-containers    Run container detection phase (phase 6)
-  --preprocess         Run clang -E to expand macros (pp_source) during scan
+  --no-preprocess      Disable clang -E macro expansion during scan (on by default)
   --force              Force re-summarize even if cached
   --incremental        Only re-summarize functions with stale callee summaries
   -v, --verbose        Verbose output
@@ -90,6 +90,8 @@ while [[ $# -gt 0 ]]; do
             WITH_CONTAINERS=1; shift ;;
         --preprocess)
             PREPROCESS=1; shift ;;
+        --no-preprocess)
+            PREPROCESS=0; shift ;;
         --force|-f)
             FORCE="--force"; shift ;;
         --incremental)
@@ -132,6 +134,7 @@ run_phase() {
 
     echo ""
     echo "=== Phase $phase_num: $label ==="
+    echo "  > $*"
     local start=$(date +%s)
 
     "$@"
@@ -154,7 +157,7 @@ echo "Backend:  $BACKEND"
 [[ -n "$LLM_PORT" ]] && echo "LLM port: $LLM_PORT"
 echo "From:     phase $FROM_PHASE"
 [[ $SKIP_VERIFY -eq 1 ]] && echo "Verify:   skipped"
-[[ $PREPROCESS -eq 1 ]]  && echo "Preproc:  yes"
+[[ $PREPROCESS -eq 0 ]]  && echo "Preproc:  no"
 [[ -n "$FORCE" ]]        && echo "Force:       yes"
 [[ -n "$INCREMENTAL" ]] && echo "Incremental: yes"
 [[ -n "$VERBOSE" ]]      && echo "Verbose:  yes"

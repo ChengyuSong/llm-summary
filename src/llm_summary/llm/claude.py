@@ -37,7 +37,7 @@ class ClaudeBackend(LLMBackend):
 
     @property
     def default_model(self) -> str:
-        return "claude-sonnet-4-20250514"
+        return "claude-sonnet-4-6@default"
 
     @property
     def client(self):

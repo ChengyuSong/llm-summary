@@ -74,6 +74,11 @@ class IndirectCallsiteFinder:
         """Find indirect call sites in a single file."""
         file_path = Path(file_path).resolve()
         tu = self.extractor.get_translation_unit(file_path)
+        return self.find_in_tu(tu, file_path)
+
+    def find_in_tu(self, tu, file_path: str | Path) -> list[IndirectCallsite]:
+        """Find indirect call sites in a pre-parsed translation unit."""
+        file_path = Path(file_path).resolve()
 
         # Load file contents
         try:

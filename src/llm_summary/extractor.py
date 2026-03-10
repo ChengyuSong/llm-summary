@@ -161,6 +161,20 @@ class FunctionExtractor:
                 extra_args=compile_args,
             )
 
+    def parse_file(self, file_path: str | Path):
+        """Parse a file and return the translation unit.
+
+        Use this to parse once and pass the TU to extract_from_tu /
+        extract_typedefs_from_tu for single-parse workflows.
+        """
+        file_path = Path(file_path).resolve()
+        args = self._get_compile_args(file_path)
+        return self.index.parse(
+            str(file_path),
+            args=args,
+            options=TranslationUnit.PARSE_DETAILED_PROCESSING_RECORD,
+        )
+
     def extract_from_file(self, file_path: str | Path) -> list[Function]:
         """
         Extract all function definitions from a source file.
@@ -173,6 +187,17 @@ class FunctionExtractor:
         """
         file_path = Path(file_path).resolve()
 
+        try:
+            tu = self.parse_file(file_path)
+        except Exception as e:
+            raise RuntimeError(f"Failed to parse {file_path}: {e}") from e
+
+        return self.extract_from_tu(tu, file_path)
+
+    def extract_from_tu(self, tu, file_path: str | Path) -> list[Function]:
+        """Extract functions from a pre-parsed translation unit."""
+        file_path = Path(file_path).resolve()
+
         # Preprocess file once if enabled (cache across calls)
         pp_file: PreprocessedFile | None = None
         if self._preprocessor is not None:
@@ -180,18 +205,6 @@ class FunctionExtractor:
             if key not in self._pp_cache:
                 self._pp_cache[key] = self._preprocessor.preprocess(file_path)
             pp_file = self._pp_cache[key]
-
-        # Get compile flags for this file
-        args = self._get_compile_args(file_path)
-
-        try:
-            tu = self.index.parse(
-                str(file_path),
-                args=args,
-                options=TranslationUnit.PARSE_DETAILED_PROCESSING_RECORD,
-            )
-        except Exception as e:
-            raise RuntimeError(f"Failed to parse {file_path}: {e}") from e
 
         functions: list[Function] = []
         self._extract_functions_recursive(
@@ -752,20 +765,17 @@ class FunctionExtractor:
         canonical_type, file_path, line_number
         """
         file_path = Path(file_path).resolve()
-        args = self._get_compile_args(file_path)
-
         try:
-            tu = self.index.parse(
-                str(file_path),
-                args=args,
-                options=TranslationUnit.PARSE_DETAILED_PROCESSING_RECORD,
-            )
+            tu = self.parse_file(file_path)
         except Exception:
             return []
+        return self.extract_typedefs_from_tu(tu, file_path)
 
+    def extract_typedefs_from_tu(self, tu, file_path: str | Path) -> list[dict]:
+        """Extract type declarations from a pre-parsed translation unit."""
+        file_path = Path(file_path).resolve()
         results: list[dict] = []
-        main_file = str(file_path)
-        self._extract_type_decls_recursive(tu.cursor, main_file, results)
+        self._extract_type_decls_recursive(tu.cursor, str(file_path), results)
         return results
 
     def _extract_type_decls_recursive(

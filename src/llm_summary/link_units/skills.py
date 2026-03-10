@@ -645,15 +645,15 @@ def discover_heuristic(
         # Resolve member names to real output paths via compile_commands
         objects = []
         resolved_count = 0
+        archive_dir = Path(archive_rel).parent
         for m in members:
             real_path = basename_index.get(m)
             if real_path:
                 objects.append(real_path)
                 resolved_count += 1
             else:
-                # Fallback: path relative to archive directory
-                archive_dir = str(Path(archive_rel).parent)
-                objects.append(str(Path(archive_dir) / m))
+                # Fallback: make absolute via build_dir / archive_dir / member
+                objects.append(str(build_dir / archive_dir / m))
 
         link_units.append({
             "name": name,
