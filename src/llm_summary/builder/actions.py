@@ -610,6 +610,23 @@ class AutotoolsActions:
             output = result.stdout + result.stderr
 
             if result.returncode == 0:
+                # Try 'bear --append -- make all' to capture any additional
+                # targets (tests, tools) not built by the default make target.
+                # This is a no-op if 'all' == default target.
+                if not target_str or target_str != "all":
+                    append_cmd = docker_cmd[:-1]  # Remove the original command
+                    append_cmd.append("bear --append -- make -j$(nproc) all")
+                    try:
+                        subprocess.run(
+                            append_cmd,
+                            capture_output=True,
+                            text=True,
+                            timeout=TIMEOUT_LONG_BUILD,
+                        )
+                        # Ignore failure — 'make all' may not exist
+                    except (subprocess.TimeoutExpired, Exception):
+                        pass
+
                 # Build succeeded - run assembly check
                 asm_result = self._check_assembly(use_build_dir)
                 return {

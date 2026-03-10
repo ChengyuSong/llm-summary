@@ -430,7 +430,8 @@ echo "Building {project_name}..."
   {container_image} \\
   bash -c "{deps_install}{env_vars} \\
            {configure_path} {formatted_flags} && \\
-           bear -- make -j\\$(nproc)'''
+           bear -- make -j\\$(nproc) && \\
+           (bear --append -- make -j\\$(nproc) all 2>/dev/null || true)'''
         else:
             script_content += f'''docker run --rm \\
   {user_flag} \\
@@ -441,7 +442,8 @@ echo "Building {project_name}..."
   {container_image} \\
   bash -c "{deps_install}{env_vars} \\
            {configure_path} {formatted_flags} && \\
-           bear -- make -j\\$(nproc)'''
+           bear -- make -j\\$(nproc) && \\
+           (bear --append -- make -j\\$(nproc) all 2>/dev/null || true)'''
 
         # Add IR artifact collection if enabled
         if enable_ir:
