@@ -35,6 +35,21 @@ class PreprocessedFile:
     source_file: str
     mappings: list[_LineMapping] = field(default_factory=list)
     error: str | None = None
+    # Lazy index: norm_file -> sorted list of (orig_line, pp_line)
+    _index: dict[str, list[tuple[int, str]]] | None = field(
+        default=None, repr=False
+    )
+
+    def _build_index(self) -> dict[str, list[tuple[int, str]]]:
+        """Build a per-file index sorted by orig_line for fast extraction."""
+        idx: dict[str, list[tuple[int, str]]] = {}
+        for m in self.mappings:
+            norm = str(Path(m.orig_file).resolve())
+            idx.setdefault(norm, []).append((m.orig_line, m.pp_line))
+        # Sort each file's entries by line number
+        for v in idx.values():
+            v.sort(key=lambda x: x[0])
+        return idx
 
     def extract_pp_source(
         self, file_path: str, start_line: int, end_line: int
@@ -50,14 +65,21 @@ class PreprocessedFile:
             The concatenated preprocessed lines that map back to the given range,
             or None if no lines matched.
         """
-        # Normalise path for comparison
-        norm = str(Path(file_path).resolve())
+        if self._index is None:
+            self._index = self._build_index()
 
-        lines: list[str] = []
-        for m in self.mappings:
-            m_norm = str(Path(m.orig_file).resolve())
-            if m_norm == norm and start_line <= m.orig_line <= end_line:
-                lines.append(m.pp_line)
+        norm = str(Path(file_path).resolve())
+        file_entries = self._index.get(norm)
+        if not file_entries:
+            return None
+
+        # Binary search for start_line
+        import bisect
+        lo = bisect.bisect_left(file_entries, (start_line,))
+        hi = bisect.bisect_right(file_entries, (end_line + 1,))
+
+        lines = [entry[1] for entry in file_entries[lo:hi]
+                 if start_line <= entry[0] <= end_line]
 
         if not lines:
             return None

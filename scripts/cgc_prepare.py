@@ -34,61 +34,6 @@ from batch_call_graph_gen import collect_bc_files, run_kamain, import_callgraph
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
 
-def _strip_patched_blocks(source: str, keep_patched: bool = False) -> str:
-    """Strip #ifdef/#ifndef PATCHED blocks from source.
-
-    Args:
-        keep_patched: If False (default), keep vulnerable code (unpatched).
-                      If True, keep patched code.
-    """
-    lines = source.splitlines()
-    result = []
-    i = 0
-    while i < len(lines):
-        stripped = lines[i].strip()
-        m = re.match(r"#\s*(ifdef|ifndef)\s+(PATCHED(?:_\d+)?)\s*$", stripped)
-        if not m:
-            result.append(lines[i])
-            i += 1
-            continue
-
-        directive = m.group(1)
-        ifdef_line = i
-        else_line = None
-        endif_line = None
-        depth = 1
-        j = i + 1
-        while j < len(lines) and depth > 0:
-            s = lines[j].strip()
-            if re.match(r"#\s*(ifdef|ifndef|if)\b", s):
-                depth += 1
-            elif re.match(r"#\s*else\b", s) and depth == 1:
-                else_line = j
-            elif re.match(r"#\s*endif\b", s):
-                depth -= 1
-                if depth == 0:
-                    endif_line = j
-            j += 1
-
-        if endif_line is None:
-            result.append(lines[i])
-            i += 1
-            continue
-
-        # Determine which block is "patched" vs "vulnerable"
-        if directive == "ifdef":
-            # ifdef body = patched, else body = vulnerable
-            patched_lines = lines[ifdef_line + 1 : else_line or endif_line]
-            vuln_lines = lines[else_line + 1 : endif_line] if else_line else []
-        else:
-            # ifndef body = vulnerable, else body = patched
-            vuln_lines = lines[ifdef_line + 1 : else_line or endif_line]
-            patched_lines = lines[else_line + 1 : endif_line] if else_line else []
-
-        result.extend(patched_lines if keep_patched else vuln_lines)
-        i = endif_line + 1
-
-    return "\n".join(result)
 FUNC_SCANS_DIR = REPO_ROOT / "func-scans" / "cgc"
 C_EXTENSIONS = {".c", ".cpp", ".cc", ".cxx", ".c++"}
 
@@ -219,13 +164,6 @@ def scan_challenge(
                 try:
                     tu = extractor.parse_file(f)
                     funcs = extractor.extract_from_tu(tu, f)
-                    # Strip #ifdef/#ifndef PATCHED blocks from raw source.
-                    # keep_patched matches the patched flag.
-                    for func in funcs:
-                        if func.source:
-                            func.source = _strip_patched_blocks(
-                                func.source, keep_patched=patched,
-                            )
                     all_functions.extend(funcs)
                     all_typedefs.extend(
                         extractor.extract_typedefs_from_tu(tu, f)
@@ -362,11 +300,6 @@ def patch_rescan(
             try:
                 tu = extractor.parse_file(f)
                 funcs = extractor.extract_from_tu(tu, f)
-                for func in funcs:
-                    if func.source:
-                        func.source = _strip_patched_blocks(
-                            func.source, keep_patched=True,
-                        )
                 all_functions.extend(funcs)
             except Exception:
                 pass

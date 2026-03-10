@@ -147,6 +147,7 @@ class FunctionExtractor:
         self.compile_commands = compile_commands
         self.project_root = Path(project_root).resolve() if project_root else None
         self._file_contents: dict[str, str] = {}
+        self._file_lines_cache: dict[str, list[str]] = {}
         # USR-based dedup: tracks libclang Unified Symbol Resolution strings so that
         # inline/template functions defined in headers are not extracted more than once
         # when multiple translation units include the same header.
@@ -440,14 +441,10 @@ class FunctionExtractor:
         file_path = str(func_cursor.location.file)
         func_start_line = func_cursor.extent.start.line  # 1-based
 
-        if file_path not in self._file_contents:
-            try:
-                with open(file_path, encoding="utf-8", errors="replace") as f:
-                    self._file_contents[file_path] = f.read()
-            except OSError:
-                return []
+        raw_lines = self._get_file_lines(file_path)
+        if not raw_lines:
+            return []
 
-        raw_lines = self._file_contents[file_path].splitlines()
         callsites: list[dict] = []
         seen: set[tuple[str, int]] = set()
 
@@ -554,14 +551,9 @@ class FunctionExtractor:
           4. Infer kind/label from source text.
         """
         file_path = str(func_cursor.location.file)
-        if file_path not in self._file_contents:
-            try:
-                with open(file_path, encoding="utf-8", errors="replace") as f:
-                    self._file_contents[file_path] = f.read()
-            except OSError:
-                return []
-
-        raw_lines = self._file_contents[file_path].splitlines()
+        raw_lines = self._get_file_lines(file_path)
+        if not raw_lines:
+            return []
 
         # 1. Find function body COMPOUND_STMT
         body = self._find_compound_child(func_cursor)
@@ -899,23 +891,27 @@ class FunctionExtractor:
             ) and child_file == main_file:
                 self._extract_type_decls_recursive(child, main_file, results, seen_locations)
 
+    def _get_file_lines(self, file_path: str) -> list[str]:
+        """Return cached splitlines(keepends=True) for a file."""
+        if file_path not in self._file_lines_cache:
+            if file_path not in self._file_contents:
+                try:
+                    with open(file_path, encoding="utf-8", errors="replace") as f:
+                        self._file_contents[file_path] = f.read()
+                except OSError:
+                    return []
+            self._file_lines_cache[file_path] = self._file_contents[file_path].splitlines(keepends=True)
+        return self._file_lines_cache[file_path]
+
     def _get_full_source(self, cursor: Cursor) -> str:
         """Get the full source code of a function including body."""
         if not cursor.location.file:
             return ""
 
         file_path = str(cursor.location.file)
-
-        # Load file contents if not cached
-        if file_path not in self._file_contents:
-            try:
-                with open(file_path, encoding="utf-8", errors="replace") as f:
-                    self._file_contents[file_path] = f.read()
-            except OSError:
-                return ""
-
-        content = self._file_contents[file_path]
-        lines = content.splitlines(keepends=True)
+        lines = self._get_file_lines(file_path)
+        if not lines:
+            return ""
 
         start_line = cursor.extent.start.line - 1
         end_line = cursor.extent.end.line

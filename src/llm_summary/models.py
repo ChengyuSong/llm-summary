@@ -6,6 +6,63 @@ from enum import Enum
 from typing import Any
 
 
+import re as _re
+
+_PATCHED_START_RE = _re.compile(r"#\s*(ifdef|ifndef)\s+PATCHED(?:_\d+)?\s*$")
+_PATCHED_END_RE = _re.compile(r"#\s*endif\b")
+_PATCHED_NESTED_RE = _re.compile(r"#\s*(ifdef|ifndef|if)\b")
+
+
+def _strip_patched_blocks(lines: list[str]) -> list[str]:
+    """Remove #ifdef/#ifndef PATCHED blocks, keeping the unpatched code path.
+
+    Only operates on per-function source (small), not whole files.
+    """
+    result = []
+    i = 0
+    while i < len(lines):
+        s = lines[i].strip()
+        m = _PATCHED_START_RE.match(s)
+        if not m:
+            result.append(lines[i])
+            i += 1
+            continue
+
+        directive = m.group(1)  # "ifdef" or "ifndef"
+        start = i
+        else_idx = None
+        end_idx = None
+        depth = 1
+        j = i + 1
+        while j < len(lines) and depth > 0:
+            sj = lines[j].strip()
+            if _PATCHED_NESTED_RE.match(sj):
+                depth += 1
+            elif _re.match(r"#\s*else\b", sj) and depth == 1:
+                else_idx = j
+            elif _PATCHED_END_RE.match(sj):
+                depth -= 1
+                if depth == 0:
+                    end_idx = j
+            j += 1
+
+        if end_idx is None:
+            result.append(lines[i])
+            i += 1
+            continue
+
+        # ifdef PATCHED: body=patched, else=vulnerable → keep else
+        # ifndef PATCHED: body=vulnerable, else=patched → keep body
+        if directive == "ifdef":
+            if else_idx is not None:
+                result.extend(lines[else_idx + 1 : end_idx])
+        else:
+            result.extend(lines[start + 1 : else_idx or end_idx])
+        i = end_idx + 1
+
+    return result
+
+
 def _annotate_macro_diff(source: str, pp_source: str) -> str:
     """Produce a line-by-line annotated diff of original vs expanded source.
 
@@ -14,7 +71,9 @@ def _annotate_macro_diff(source: str, pp_source: str) -> str:
     immediately above the expanded line so the LLM can see both the semantic
     macro name and the expanded value.
     """
-    src_lines = source.splitlines()
+    # Strip PATCHED blocks from source before diffing so the LLM never
+    # sees hints about which code path is patched vs vulnerable.
+    src_lines = _strip_patched_blocks(source.splitlines())
     pp_lines = pp_source.splitlines()
     result: list[str] = []
 
