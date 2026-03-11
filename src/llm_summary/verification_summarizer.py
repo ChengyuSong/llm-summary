@@ -69,6 +69,24 @@ File: {file_path}
 ### Check 1: Internal Safety
 Assuming all pre-conditions hold, does the function perform any unsafe operations
 (null dereference, buffer overflow, use-after-free, double-free, use of uninitialized memory)?
+Report ALL issues you find — do not omit or consolidate similar issues.
+Note: calling through a NULL function pointer (indirect call via a null pointer) is a `null_deref`.
+
+Pay special attention to these commonly missed patterns:
+- **Integer overflow in size calculations**: Can a size variable overflow its type \
+(e.g., narrow integer used in multiplication for allocation or VLA sizing)?
+- **Off-by-one in bounds checks**: Are loop bounds, size comparisons, or fence-post \
+conditions off by one?
+- **Struct field overflow**: Check struct/union type definitions to determine actual \
+field sizes. When a write targets a struct field, verify the write length does not \
+exceed the field's declared size — adjacent fields can be silently corrupted.
+- **Wrong size/length variable**: Is the correct variable used for buffer size — \
+e.g., total vs remaining length, container size vs payload size?
+- **Type confusion**: Are pointers cast to incompatible types, causing access at \
+wrong offsets or sizes?
+- **Format string misuse**: Is a non-literal string passed as the format argument \
+to printf/sprintf/fprintf-family functions? This can cause OOB reads/writes. \
+Classify as `buffer_overflow`, not `null_deref`.
 
 **Do NOT report an issue if:**
 - The unsafe operation is guarded by a runtime check (e.g., `if (ptr)` before deref)
@@ -570,7 +588,8 @@ class VerificationSummarizer:
 
             callee_name = callee_func.name
             attr_text = f" {callee_func.attributes}" if callee_func.attributes else ""
-            section_lines = [f"### `{callee_name}`{attr_text}"]
+            sig_text = f" — `{callee_func.signature}`" if callee_func.signature else ""
+            section_lines = [f"### `{callee_name}`{attr_text}{sig_text}"]
 
             # Pre-conditions: from verified summary (simplified_contracts)
             if callee_name in callee_summaries:
