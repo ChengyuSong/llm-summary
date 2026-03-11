@@ -27,21 +27,25 @@ CWE_TO_ISSUE_KIND = {
     125: "buffer_overflow",   # Out-of-bounds Read
     126: "buffer_overflow",   # Buffer Over-read
     127: "buffer_overflow",   # Buffer Under-read
+    129: "buffer_overflow",   # Improper Validation of Array Index → OOB
     131: "buffer_overflow",   # Incorrect Calculation of Buffer Size
-    190: "buffer_overflow",   # Integer Overflow or Wraparound (often leads to buffer overflow)
+    134: "buffer_overflow",   # Format String (can cause OOB read/write)
+    190: "buffer_overflow",   # Integer Overflow or Wraparound → OOB
     193: "buffer_overflow",   # Off-by-one Error
+    201: "buffer_overflow",   # Exposure of Sensitive Information (OOB read)
     680: "buffer_overflow",   # Integer Overflow to Buffer Overflow
     787: "buffer_overflow",   # Out-of-bounds Write
     788: "buffer_overflow",   # Access of Memory Location After End of Buffer
+    843: "buffer_overflow",   # Type Confusion → OOB access
     415: "double_free",
     416: "use_after_free",
     476: "null_deref",
     457: "uninitialized_use",
+    763: "double_free",       # Release of Invalid Pointer
     824: "use_after_free",    # Access of Uninitialized Pointer
     # CWEs that don't map to our issue_kinds get None:
-    # 134 (format string), 191 (integer underflow),
-    # 194 (unexpected sign extension),
-    # 195 (signed to unsigned conversion), 200/201 (info exposure),
+    # 191 (integer underflow), 194 (unexpected sign extension),
+    # 195 (signed to unsigned conversion),
     # 285/287 (improper auth), 468 (incorrect pointer scaling), etc.
 }
 
