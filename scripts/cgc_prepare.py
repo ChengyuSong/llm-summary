@@ -273,8 +273,9 @@ def patch_rescan(
         result["error"] = "no compile_commands_patched.json"
         return result
 
-    # Step 1: Copy DB
-    shutil.copy2(str(unpatched_db), str(patched_db))
+    # Step 1: Copy DB (only if patched DB doesn't exist yet)
+    if not patched_db.exists():
+        shutil.copy2(str(unpatched_db), str(patched_db))
 
     # Step 2: Load existing source hashes
     db = SummaryDB(str(patched_db))

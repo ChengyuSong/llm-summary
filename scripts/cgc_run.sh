@@ -16,6 +16,7 @@ LLM_HOST=""
 LLM_PORT=""
 FROM_PHASE=0
 FILTER=""
+EXCLUDE=""
 LIMIT=""
 FORCE=""
 INCREMENTAL=""
@@ -41,6 +42,7 @@ Optional:
   --llm-port PORT      Port for local backends
   --from-phase N       Start from phase N (0-6), skip earlier phases (default: 0)
   --filter NAME        Only process challenges matching this substring
+  --exclude NAME       Skip challenges matching this substring
   --limit N            Limit to at most N challenges
   --cgc-dir PATH       Path to cb-multios directory (default: $CGC_DIR)
   --kamain-bin PATH    Path to KAMain/kanalyzer binary (default: $KAMAIN_BIN)
@@ -75,6 +77,8 @@ while [[ $# -gt 0 ]]; do
             FROM_PHASE="$2"; shift 2 ;;
         --filter)
             FILTER="$2"; shift 2 ;;
+        --exclude)
+            EXCLUDE="$2"; shift 2 ;;
         --limit)
             LIMIT="$2"; shift 2 ;;
         --cgc-dir)
@@ -142,6 +146,7 @@ echo "Pipeline: CGC benchmark"
 echo "Backend:  $BACKEND"
 [[ -n "$MODEL" ]]    && echo "Model:    $MODEL"
 [[ -n "$FILTER" ]]   && echo "Filter:   $FILTER"
+[[ -n "$EXCLUDE" ]]  && echo "Exclude:  $EXCLUDE"
 [[ -n "$LIMIT" ]]    && echo "Limit:    $LIMIT"
 echo "CGC dir:  $CGC_DIR"
 echo "From:     phase $FROM_PHASE"
@@ -175,6 +180,12 @@ if [[ 3 -le $FROM_PHASE ]] && [[ $FROM_PHASE -le 7 ]] || [[ $FROM_PHASE -le 3 ]]
 
         if [[ -n "$FILTER" ]]; then
             if ! echo "$challenge_name" | grep -qi "$FILTER"; then
+                continue
+            fi
+        fi
+
+        if [[ -n "$EXCLUDE" ]]; then
+            if echo "$challenge_name" | grep -qi "$EXCLUDE"; then
                 continue
             fi
         fi
