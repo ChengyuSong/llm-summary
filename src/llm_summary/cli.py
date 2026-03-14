@@ -2643,7 +2643,7 @@ def scan(
 
         from .extern_headers import extract_extern_headers
 
-        extern_header_map = extract_extern_headers(
+        extern_header_map, _preprocess_failed = extract_extern_headers(
             compile_commands_path=resolved_cc_path or compile_commands_path,
             project_root=project_root,
             source_files=source_files,

@@ -11,9 +11,7 @@ import json
 import re
 import shlex
 import subprocess
-from collections import defaultdict
 from pathlib import Path
-
 
 # Regex for preprocessor line markers:  # 123 "/usr/include/zlib.h" 3 4
 _LINE_MARKER_RE = re.compile(r'^#\s+\d+\s+"([^"]+)"')
@@ -127,7 +125,7 @@ def extract_extern_headers(
     project_root: str | Path | None = None,
     source_files: list[str] | None = None,
     verbose: bool = False,
-) -> dict[str, str]:
+) -> tuple[dict[str, str], list[str]]:
     """Run clang -E on source files and map external function names to headers.
 
     Args:
@@ -138,8 +136,10 @@ def extract_extern_headers(
         verbose: Print progress.
 
     Returns:
-        Dict mapping function name -> header path for functions declared in
-        non-project headers (e.g. system/library headers).
+        Tuple of (header_map, failed_sources) where header_map maps function
+        name -> header path for functions declared in non-project headers, and
+        failed_sources is a list of source files where preprocessing failed
+        (e.g. missing build directory or generated headers).
     """
     cc_path = Path(compile_commands_path)
     with open(cc_path, encoding="utf-8") as f:
@@ -177,23 +177,30 @@ def extract_extern_headers(
         print(f"[extern-headers] Preprocessing {len(targets)} source files")
 
     # Deduplicate by include flags — many files share the same -I/-D set
-    seen_flag_sets: dict[tuple, dict[str, str]] = {}
+    seen_flag_sets: dict[tuple, dict[str, str] | None] = {}
     header_map: dict[str, str] = {}
+    failed_sources: list[str] = []
 
     for src in targets:
         compiler, flags, directory = file_cmds[src]
         flag_key = tuple(sorted(f for f in flags if f.startswith(("-I", "-isystem", "-D"))))
 
         if flag_key in seen_flag_sets:
-            # Same include paths — merge results
-            header_map.update(seen_flag_sets[flag_key])
+            cached = seen_flag_sets[flag_key]
+            if cached is not None:
+                header_map.update(cached)
+            else:
+                failed_sources.append(src)
             continue
 
-        result = _run_preprocessor(compiler, flags, src, directory, project_prefixes, verbose)
-        seen_flag_sets[flag_key] = result
-        header_map.update(result)
+        pp_result = _run_preprocessor(compiler, flags, src, directory, project_prefixes, verbose)
+        seen_flag_sets[flag_key] = pp_result
+        if pp_result is None:
+            failed_sources.append(src)
+        else:
+            header_map.update(pp_result)
 
-    return header_map
+    return header_map, failed_sources
 
 
 def _build_project_prefixes(project_root: str | Path | None) -> list[str]:
@@ -265,11 +272,17 @@ def _run_preprocessor(
     directory: str,
     project_prefixes: list[str],
     verbose: bool,
-) -> dict[str, str]:
-    """Run the preprocessor on a single file and parse extern declarations."""
+) -> dict[str, str] | None:
+    """Run the preprocessor on a single file and parse extern declarations.
+
+    Returns None on failure (missing build dir, non-zero exit, timeout).
+    Returns an empty dict when preprocessing succeeded but found no externs.
+    """
     cmd = [compiler] + flags + [source_file]
 
     try:
+        if directory:
+            Path(directory).mkdir(parents=True, exist_ok=True)
         result = subprocess.run(
             cmd,
             cwd=directory or None,
@@ -280,13 +293,13 @@ def _run_preprocessor(
     except (subprocess.TimeoutExpired, FileNotFoundError) as e:
         if verbose:
             print(f"[extern-headers]   {Path(source_file).name}: preprocessor failed: {e}")
-        return {}
+        return None
 
     if result.returncode != 0:
         if verbose:
             stderr_line = result.stderr.strip().split("\n")[0] if result.stderr else ""
             print(f"[extern-headers]   {Path(source_file).name}: preprocessor error: {stderr_line}")
-        return {}
+        return None
 
     return _parse_preprocessor_output(result.stdout, project_prefixes)
 

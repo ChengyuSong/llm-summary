@@ -10,7 +10,7 @@ Use --dry-run to skip DB storage (in-memory only).
 Produces a JSON report with per-project and aggregate statistics.
 
 Usage:
-    python scripts/batch_scan_targets.py [--verbose] [--dry-run] [-j4] [--tier 1] [--skip-list skip.txt]
+    python scripts/batch_scan_targets.py [--verbose] [--dry-run] [-j4] [--tier 1]
 """
 
 import json
@@ -21,9 +21,12 @@ import time
 from collections import Counter
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
+from typing import Any
 
 # Add src to path so we can import llm_summary
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
+
+from gpr_utils import resolve_compile_commands
 
 from llm_summary.compile_commands import CompileCommandsDB
 from llm_summary.db import SummaryDB
@@ -31,10 +34,12 @@ from llm_summary.extern_headers import extract_extern_headers
 from llm_summary.extractor import FunctionExtractor
 from llm_summary.indirect.callsites import IndirectCallsiteFinder
 from llm_summary.indirect.scanner import AddressTakenScanner
-from llm_summary.link_units.pipeline import load_link_units, topo_sort_link_units
+from llm_summary.link_units.pipeline import (
+    detect_bc_alias_relations,
+    load_link_units,
+    topo_sort_link_units,
+)
 from llm_summary.models import TargetType
-from gpr_utils import resolve_compile_commands
-
 
 C_EXTENSIONS = {".c", ".cpp", ".cc", ".cxx", ".c++"}
 
@@ -150,7 +155,7 @@ def _scan_files(
     verbose: bool,
     preprocess: bool = False,
     cc_path: str | Path | None = None,
-) -> tuple[int, int, int]:
+) -> tuple[int, int, int, list[str]]:
     """Extract functions, scan address-taken, find callsites. Returns (funcs, targets, callsites).
 
     Parses each source file once with libclang and runs all passes on the
@@ -206,37 +211,43 @@ def _scan_files(
     atfs = db.get_address_taken_functions()
 
     # Extract extern declaration headers (for import-dep)
+    preprocess_failed: list[str] = []
     if cc_path:
         try:
-            header_map = extract_extern_headers(
+            header_map, failed = extract_extern_headers(
                 compile_commands_path=cc_path,
                 project_root=project_root,
                 source_files=source_files,
                 verbose=verbose,
             )
+            preprocess_failed = failed
             if header_map:
                 updated = db.update_decl_headers(header_map)
                 if verbose:
-                    print(f"      Extern headers: {len(header_map)} mapped, {updated} DB rows updated")
+                    print(
+                        f"      Extern headers: {len(header_map)} mapped, "
+                        f"{updated} DB rows updated"
+                    )
         except Exception as e:
             if verbose:
                 print(f"      Extern headers: failed ({e})")
 
-    return len(all_functions), len(atfs), len(callsites)
+    return len(all_functions), len(atfs), len(callsites), preprocess_failed
 
 
-def _scan_one_target(args: tuple) -> dict:
+def _scan_one_target(args: tuple) -> dict[str, Any]:
     """Scan a single link-unit target. Designed for ProcessPoolExecutor."""
     (target, source_files, match_desc, cc_entries_json_path,
      db_path_str, project_root, verbose, preprocess) = args
 
     target_start = time.monotonic()
-    target_result: dict = {
+    target_result: dict[str, Any] = {
         "target": target,
         "source_files": len(source_files),
         "functions": 0,
         "total_targets": 0,
         "callsites": 0,
+        "preprocess_failed": [],
         "error": None,
         "timing_seconds": 0.0,
     }
@@ -249,7 +260,7 @@ def _scan_one_target(args: tuple) -> dict:
     cc = CompileCommandsDB(Path(cc_entries_json_path))
     db = SummaryDB(db_path_str)
     try:
-        n_funcs, n_targets, n_callsites = _scan_files(
+        n_funcs, n_targets, n_callsites, preprocess_failed = _scan_files(
             source_files, cc, db, project_root, verbose,
             preprocess=preprocess,
             cc_path=cc_entries_json_path,
@@ -260,6 +271,7 @@ def _scan_one_target(args: tuple) -> dict:
     target_result["functions"] = n_funcs
     target_result["total_targets"] = n_targets
     target_result["callsites"] = n_callsites
+    target_result["preprocess_failed"] = preprocess_failed
     target_result["timing_seconds"] = round(time.monotonic() - target_start, 2)
     return target_result
 
@@ -274,14 +286,14 @@ def scan_project_link_units(
     verbose: bool = False,
     preprocess: bool = False,
     jobs: int = 0,
-) -> dict:
+) -> dict[str, Any]:
     """Scan a project with link_units.json — one DB per target.
 
     Args:
         jobs: Number of parallel target workers. 0 = cpu_count, 1 = sequential.
     """
     project_name = project_dir.name
-    result = {
+    result: dict[str, Any] = {
         "project": project_name,
         "link_unit_mode": True,
         "targets": [],
@@ -300,6 +312,7 @@ def scan_project_link_units(
         result["timing_seconds"] = round(time.monotonic() - start, 2)
         return result
 
+    detect_bc_alias_relations(raw_units)
     link_units = topo_sort_link_units(raw_units)
     project_scan_dir = func_scans_dir / project_name
     build_dir = Path(lu_data.get("build_dir", f"/data/csong/build-artifacts/{project_name}"))
@@ -314,17 +327,22 @@ def scan_project_link_units(
     tmp.close()
 
     try:
-        # Prepare work items for each target
+        # Prepare work items for each target (skip alias units)
         work_items = []
         for lu in link_units:
             target = lu["name"]
+            if lu.get("alias_of"):
+                if verbose:
+                    print(f"    [{target}] Skipped: alias of {lu['alias_of']}")
+                continue
             objects = lu.get("objects", [])
-            # Always resolve source files from objects (which come from the
-            # linker command and match compile_commands output paths directly).
-            # bc_files are recompiled derivatives with different stems/paths,
-            # so they're unreliable for source resolution.
-            source_files = _source_files_for_objects(cc_entries, objects, build_dir)
-            match_desc = f"{len(objects)} objects"
+            bc_files = lu.get("bc_files", [])
+            # Prefer objects (linker command, exact output path match).
+            # Fall back to bc_files stem matching when no objects recorded
+            # (e.g. pure-LTO builds where only .bc paths are captured).
+            resolve_from = objects if objects else bc_files
+            source_files = _source_files_for_objects(cc_entries, resolve_from, build_dir)
+            match_desc = f"{len(resolve_from)} {'objects' if objects else 'bc_files'}"
 
             if dry_run:
                 db_path_str = ":memory:"
@@ -394,11 +412,14 @@ def scan_project_link_units(
                 target_result = _scan_one_target(item)
                 result["targets"].append(target_result)
 
+        preprocess_failed: list[str] = []
         for tr in result["targets"]:
             result["source_files"] += tr["source_files"]
             result["functions"] += tr["functions"]
             result["total_targets"] += tr["total_targets"]
             result["callsites"] += tr["callsites"]
+            preprocess_failed.extend(tr.get("preprocess_failed", []))
+        result["preprocess_failed"] = preprocess_failed
 
     finally:
         tmp_path.unlink(missing_ok=True)
@@ -414,7 +435,7 @@ def scan_project(
     verbose: bool = False,
     preprocess: bool = False,
     jobs: int = 0,
-) -> dict:
+) -> dict[str, Any]:
     """Scan a single project and return statistics.
 
     Auto-routes to scan_project_link_units when link_units.json is present.
@@ -422,13 +443,14 @@ def scan_project(
     cc_path = project_dir / "compile_commands.json"
     project_name = project_dir.name
 
-    result = {
+    result: dict[str, Any] = {
         "project": project_name,
         "source_files": 0,
         "functions": 0,
         "targets_by_type": {},
         "total_targets": 0,
         "callsites": 0,
+        "preprocess_failed": [],
         "db_path": None,
         "timing_seconds": 0.0,
         "error": None,
@@ -440,8 +462,8 @@ def scan_project(
         project_root = _load_project_root(project_dir)
 
         # Resolve Docker /workspace/ paths if needed
-        DEFAULT_BUILD_ROOT = Path("/data/csong/build-artifacts")
-        build_dir = DEFAULT_BUILD_ROOT / project_dir.name
+        default_build_root = Path("/data/csong/build-artifacts")
+        build_dir = default_build_root / project_dir.name
         entries = resolve_compile_commands(
             cc_path,
             project_source_dir=project_root or (project_dir / "src"),
@@ -452,7 +474,7 @@ def scan_project(
         link_units_path = func_scans_dir / project_name / "link_units.json"
         if link_units_path.exists():
             if verbose:
-                print(f"  link_units.json found — scanning per target")
+                print("  link_units.json found — scanning per target")
             return scan_project_link_units(
                 project_dir=project_dir,
                 func_scans_dir=func_scans_dir,
@@ -505,11 +527,12 @@ def scan_project(
             cc = CompileCommandsDB(tmp_cc2_path)
             db = SummaryDB(db_path_str)
             try:
-                n_funcs, n_targets, n_callsites = _scan_files(
+                n_funcs, n_targets, n_callsites, preprocess_failed = _scan_files(
                     source_files, cc, db, project_root, verbose,
                     preprocess=preprocess,
                     cc_path=tmp_cc2_path,
                 )
+                result["preprocess_failed"] = preprocess_failed
                 atfs = db.get_address_taken_functions()
                 type_counts: Counter[str] = Counter()
                 for atf in atfs:
@@ -531,15 +554,18 @@ def scan_project(
     return result
 
 
-def _scan_worker(args: tuple) -> dict:
+def _scan_worker(args: tuple) -> dict[str, Any]:
     """Worker wrapper for ProcessPoolExecutor (needs top-level picklable callable)."""
     project_dir, func_scans_dir, dry_run, verbose = args[:4]
     preprocess = args[4] if len(args) > 4 else False
     jobs = args[5] if len(args) > 5 else 0
-    return scan_project(Path(project_dir), Path(func_scans_dir), dry_run=dry_run, verbose=verbose, preprocess=preprocess, jobs=jobs)
+    return scan_project(
+        Path(project_dir), Path(func_scans_dir),
+        dry_run=dry_run, verbose=verbose, preprocess=preprocess, jobs=jobs,
+    )
 
 
-def _format_result(result: dict) -> str:
+def _format_result(result: dict[str, Any]) -> str:
     """Format a single result for printing."""
     if result["error"]:
         return f"SKIP ({result['error']})"
@@ -592,6 +618,11 @@ def main():
         "--preprocess", action="store_true",
         help="Run clang -E to expand macros and store preprocessed source (pp_source)",
     )
+    parser.add_argument(
+        "--auto-rebuild", action="store_true",
+        help="When --preprocess fails (missing build artifacts), automatically rebuild "
+             "the project via batch_rebuild.py and re-scan. Requires --preprocess.",
+    )
     args = parser.parse_args()
 
     if not BUILD_SCRIPTS_DIR.exists():
@@ -641,7 +672,7 @@ def main():
     if args.limit is not None:
         projects = projects[: args.limit]
 
-    num_workers = args.jobs if args.jobs > 0 else os.cpu_count()
+    num_workers = args.jobs if args.jobs > 0 else (os.cpu_count() or 1)
 
     print(f"Found {len(projects)} projects with compile_commands.json")
     if args.dry_run:
@@ -654,12 +685,15 @@ def main():
 
     # Build work items: (project_dir, func_scans_dir, dry_run, verbose, preprocess, jobs)
     work_items = [
-        (str(project_dir), str(FUNC_SCANS_DIR), args.dry_run, args.verbose, args.preprocess, args.jobs)
+        (
+            str(project_dir), str(FUNC_SCANS_DIR),
+            args.dry_run, args.verbose, args.preprocess, args.jobs,
+        )
         for project_dir in projects
     ]
 
     # Run scans
-    results_by_name: dict[str, dict] = {}
+    results_by_name: dict[str, dict[str, Any]] = {}
 
     if num_workers <= 1:
         # Sequential
@@ -690,8 +724,8 @@ def main():
                 )
 
     # Collect results in sorted project order
-    results = []
-    totals = {
+    results: list[dict[str, Any]] = []
+    totals: dict[str, Any] = {
         "projects_scanned": 0,
         "projects_skipped": 0,
         "total_source_files": 0,
@@ -715,6 +749,53 @@ def main():
             totals["total_targets"] += result["total_targets"]
             totals["total_callsites"] += result["callsites"]
             totals["targets_by_type"].update(result.get("targets_by_type", {}))
+
+    # Check for preprocessing failures
+    if args.preprocess:
+        failed_projects = [
+            name for name, r in results_by_name.items()
+            if r.get("preprocess_failed")
+        ]
+        if failed_projects:
+            if args.auto_rebuild:
+                n = len(failed_projects)
+                print(f"\nPreprocessing failed for {n} project(s). Auto-rebuilding...")
+                rebuild_script = SCRIPTS_DIR / "batch_rebuild.py"
+                for proj in failed_projects:
+                    print(f"  Rebuilding {proj}...")
+                    import subprocess as _sp
+                    rc = _sp.run(
+                        [sys.executable, str(rebuild_script), "--filter", proj],
+                        check=False,
+                    ).returncode
+                    if rc != 0:
+                        print(f"  ERROR: rebuild failed for {proj}, aborting.")
+                        sys.exit(1)
+                print(f"\nRe-scanning {len(failed_projects)} project(s) with --preprocess...")
+                for proj in failed_projects:
+                    proj_dir = BUILD_SCRIPTS_DIR / proj
+                    re_result = scan_project(
+                        proj_dir, FUNC_SCANS_DIR,
+                        dry_run=args.dry_run, verbose=args.verbose,
+                        preprocess=True, jobs=args.jobs,
+                    )
+                    results_by_name[proj] = re_result
+                    still_failed = re_result.get("preprocess_failed", [])
+                    if still_failed:
+                        print(f"  ERROR: preprocessing still failing for {proj} after rebuild.")
+                        sys.exit(1)
+                    print(f"  {proj}: OK")
+            else:
+                print(f"\nERROR: Preprocessing failed for {len(failed_projects)} project(s):")
+                for proj in failed_projects:
+                    print(f"  - {proj}")
+                print(
+                    "\nBuild artifacts are likely missing or stale. To fix, run:\n"
+                    "  python scripts/batch_rebuild.py --filter <project>\n"
+                    "Then re-run this scan with --preprocess.\n"
+                    "Or use --auto-rebuild to rebuild automatically."
+                )
+                sys.exit(1)
 
     # Print summary
     print()
