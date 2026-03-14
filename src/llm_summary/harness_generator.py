@@ -282,9 +282,22 @@ Signature: `{signature}`
 
 ## Your Task
 
-Analyze the code and contracts. For each contract/post-condition, determine \
-which execution path exercises it by identifying the **edge** (BB transition) \
-that must be taken.
+Your goal is to plan paths that **exercise memory operations** so the concolic \
+executor can check the function's memory safety contracts. Only target paths \
+where pointer dereferences, buffer accesses, or callee calls with pointer args \
+actually happen.
+
+**Key principle**: A path that just returns an error code (e.g., `return -1`) \
+without performing any memory operations is trivially safe — there is nothing \
+to check. Do NOT waste traces on early-return error paths. Instead, focus on \
+paths that reach code like:
+- Array/buffer indexing: `buf[i] = ...`, `memcpy(dst, src, n)`
+- Pointer dereferences: `state->field`, `*ptr`
+- Callee calls that pass pointers: `gz_write(state, buf, len)`
+
+Similarly, a branch that guards a callee call and checks the callee's return \
+value is only interesting for the **continuation** side (where execution proceeds \
+to more memory operations), not the error side (where the function returns early).
 
 Output a JSON trace plan with edges:
 
@@ -293,8 +306,8 @@ Output a JSON trace plan with edges:
   "function": "{name}",
   "traces": [
     {{
-      "goal": "what contract/post-condition this trace assesses",
-      "description": "brief explanation of the path",
+      "goal": "what memory safety property this path exercises",
+      "description": "brief explanation of what memory operations are reached",
       "target_edges": [{{"from": 100000, "to": 100001}}],
       "priority": 1
     }}
@@ -302,7 +315,7 @@ Output a JSON trace plan with edges:
   "deprioritize": [
     {{
       "bb_id": 100004,
-      "reason": "why this branch is not worth exploring for contract assessment"
+      "reason": "why this branch is not worth exploring"
     }}
   ]
 }}
@@ -313,12 +326,12 @@ Guidelines:
 to transition from BB X to BB Y. Use the T:/F: annotations to pick the right \
 successor. A trace may have multiple edges if the path requires multiple branches.
 - `priority`: 1 = must explore, 2 = nice to have, 3 = low priority.
-- `deprioritize`: branches that are redundant for contract assessment \
-(e.g., deeper loop iterations, arithmetic branches unrelated to memory safety).
-- Focus on paths that exercise **different** contract-relevant behaviors \
-(e.g., different buffer access patterns, null vs non-null paths, error vs success).
-- Don't plan traces for unreachable paths or paths that test the exact same \
-contract clause as another trace.
+- `deprioritize`: branches that lead to early-return error paths with no memory \
+operations, deeper loop iterations, and arithmetic branches unrelated to memory.
+- Focus on paths that reach **different memory access patterns** \
+(e.g., different buffer indexing, different callee calls with pointer args).
+- Don't plan traces for paths that just return an error code without doing \
+any memory operations — these are trivially safe.
 - Loops: typically one iteration is enough to test bounds. Mark loop back-edges \
 as deprioritize unless the access pattern changes across iterations.
 
