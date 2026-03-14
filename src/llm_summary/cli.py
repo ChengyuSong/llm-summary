@@ -3187,7 +3187,7 @@ def discover_link_units(
         console.print("[green]Deterministic discovery succeeded (no LLM needed)[/green]")
     else:
         # Try heuristic path (prescan + Makefile parsing)
-        console.print("[yellow]No build.ninja — trying heuristic discovery...[/yellow]")
+        console.print("[yellow]No deterministic path found — trying heuristic discovery...[/yellow]")
 
         from .link_units.skills import discover_heuristic
 

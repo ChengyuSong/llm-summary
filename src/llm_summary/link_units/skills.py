@@ -816,6 +816,121 @@ def discover_heuristic(
     return result, unresolved
 
 
+_CMAKE_TARGET_DIR_RE = re.compile(r"CMakeFiles/([^/]+)\.dir/")
+
+# Objects-per-target threshold: targets with >= this many objects are
+# classified as static libraries; fewer → executable.
+_BC_ARTIFACTS_LIB_THRESHOLD = 20
+
+
+def discover_from_bc_artifacts(
+    build_dir: Path,
+    compile_commands_path: Path | None = None,
+    project_name: str | None = None,
+    verbose: bool = False,
+) -> dict | None:
+    """Discover link units from a bc-artifacts directory.
+
+    Handles builds exported from Docker as a flat directory of .bc files +
+    compile_commands.json, without the original CMake tree (no build.ninja,
+    .a files, or ELF executables).
+
+    Groups compile_commands entries by CMake target (CMakeFiles/<target>.dir/)
+    and maps each source file stem to the corresponding .bc file.
+
+    Returns None if this layout is not detected.
+    """
+    # Detect bc-artifacts layout: .bc files present but no build.ninja
+    bc_files_in_dir = list(build_dir.glob("*.bc"))
+    if not bc_files_in_dir:
+        return None
+    if (build_dir / "build.ninja").exists():
+        return None  # Ninja path handles this
+
+    # Resolve compile_commands path
+    cc_path = compile_commands_path
+    if cc_path is None or not cc_path.exists():
+        cc_path = build_dir / "compile_commands.json"
+    if not cc_path.exists():
+        return None
+
+    try:
+        with open(cc_path) as f:
+            entries = json.load(f)
+    except (json.JSONDecodeError, OSError) as e:
+        if verbose:
+            print(f"[bc-artifacts] Failed to load compile_commands: {e}")
+        return None
+
+    if verbose:
+        print(f"[bc-artifacts] Loaded {len(entries)} compile_commands entries")
+        print(f"[bc-artifacts] Found {len(bc_files_in_dir)} .bc files in build dir")
+
+    # Index .bc files by source stem
+    bc_by_stem: dict[str, str] = {}
+    for bc_file in bc_files_in_dir:
+        bc_by_stem[bc_file.stem] = str(bc_file.resolve())
+
+    # Group compile_commands entries by CMake target
+    targets: dict[str, list[dict]] = defaultdict(list)
+    for entry in entries:
+        output = entry.get("output", "")
+        m = _CMAKE_TARGET_DIR_RE.search(output)
+        if m:
+            targets[m.group(1)].append(entry)
+
+    if not targets:
+        if verbose:
+            print("[bc-artifacts] No CMake targets found in compile_commands")
+        return None
+
+    if verbose:
+        print(f"[bc-artifacts] Found {len(targets)} CMake targets")
+
+    # Build link units
+    link_units = []
+    for target_name, target_entries in sorted(targets.items()):
+        bc_files: list[str] = []
+        seen_bc: set[str] = set()
+        for entry in target_entries:
+            src_file = entry.get("file", "")
+            if not src_file:
+                continue
+            stem = Path(src_file).stem
+            bc_path = bc_by_stem.get(stem)
+            if bc_path and bc_path not in seen_bc:
+                bc_files.append(bc_path)
+                seen_bc.add(bc_path)
+
+        # Heuristic type: large targets (many TUs) are likely libraries
+        n_objs = len(target_entries)
+        unit_type = "static_library" if n_objs >= _BC_ARTIFACTS_LIB_THRESHOLD else "executable"
+
+        link_units.append({
+            "name": target_name,
+            "type": unit_type,
+            "output": target_name,
+            "objects": [],
+            "bc_files": bc_files,
+            "asm_sources": [],
+            "link_deps": [],
+        })
+
+        if verbose:
+            print(
+                f"[bc-artifacts]   {target_name}: "
+                f"{n_objs} objs → {len(bc_files)} bc files "
+                f"(type={unit_type})"
+            )
+
+    return {
+        "project": project_name or build_dir.parent.name,
+        "build_system": "cmake",
+        "build_dir": str(build_dir),
+        "link_units": link_units,
+    }
+
+
 def discover_deterministic(
     build_dir: Path,
     compile_commands_path: Path | None = None,
@@ -823,10 +938,14 @@ def discover_deterministic(
     project_path: Path | None = None,
     verbose: bool = False,
 ) -> dict | None:
-    """Fast-path deterministic link-unit discovery for Ninja builds.
+    """Fast-path deterministic link-unit discovery for Ninja or bc-artifact builds.
 
-    If build.ninja exists, parses it fully without any LLM calls.
-    Returns link_units.json structure or None if not a Ninja build.
+    Tries two paths in order:
+    1. If build.ninja exists, parses it fully (CMake+Ninja, no LLM needed).
+    2. If the build dir contains flat .bc files + compile_commands.json
+       (bc-artifacts layout from Docker export), groups entries by CMake target.
+
+    Returns link_units.json structure, or None if neither path applies.
 
     Args:
         build_dir: Path to the build directory
@@ -836,11 +955,15 @@ def discover_deterministic(
         verbose: Print progress info
 
     Returns:
-        Dict matching link_units.json format, or None if no build.ninja
+        Dict matching link_units.json format, or None
     """
     build_ninja = build_dir / "build.ninja"
     if not build_ninja.exists():
-        return None
+        if verbose:
+            print("[link-units] No build.ninja — trying bc-artifacts layout...")
+        return discover_from_bc_artifacts(
+            build_dir, compile_commands_path, project_name, verbose=verbose
+        )
 
     if project_name is None:
         project_name = build_dir.name
