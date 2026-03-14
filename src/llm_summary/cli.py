@@ -4064,11 +4064,16 @@ def show_issues(db_path, name, filter_status, severity, fmt):
     help="Only generate trace plans (skip harness generation). "
          "Requires existing harness files in the output directory.",
 )
+@click.option(
+    "--assess-issue", "assess_issue_index", default=None, type=int,
+    help="Inject assertion for a specific verification issue (0-based index). "
+         "Reads existing shim, adds targeted assertion, and rebuilds.",
+)
 def gen_harness(
     db_path, backend, model, llm_host, llm_port,
     disable_thinking, verbose, log_llm, output_dir, function_names,
     ko_clang_path, symsan_dir, compile_commands_path, project_path,
-    build_dir, bc_file, plan, plan_only,
+    build_dir, bc_file, plan, plan_only, assess_issue_index,
 ):
     """Generate test harnesses for contract-guided symbolic execution.
 
@@ -4129,6 +4134,25 @@ def gen_harness(
                 "JOIN memsafe_summaries m ON m.function_id = f.id"
             ).fetchall()
             targets = [r[0] for r in rows]
+
+        # Assess a specific verification issue
+        if assess_issue_index is not None:
+            if len(targets) != 1:
+                console.print("[red]--assess-issue requires exactly one -f function[/red]")
+                return
+            func_name = targets[0]
+            console.print(f"Assessing issue #{assess_issue_index} for {func_name}")
+            result = generator.assess_issue(
+                func_name,
+                issue_index=assess_issue_index,
+                output_dir=output_dir,
+                bc_file=bc_file,
+            )
+            if result:
+                console.print(f"Assertion injected for issue #{assess_issue_index}")
+            else:
+                console.print("[red]Failed to inject assertion[/red]")
+            return
 
         # Generate harnesses (unless --plan-only)
         if not plan_only:

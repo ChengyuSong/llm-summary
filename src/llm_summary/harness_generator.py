@@ -339,6 +339,25 @@ Output ONLY the JSON block, no other text.
 """
 
 
+ASSESS_ISSUE_PROMPT = """
+
+## Issue to Assess
+
+A verification pass found the following potential issue in `{name}`. \
+In the test() function you generate above, add code AFTER the call to \
+`{name}(...)` that would trigger a memory access violation detectable \
+by ucsan's runtime bounds checker if this issue is real.
+
+- Kind: {issue_kind}
+- Severity: {severity}
+- Description: {description}
+
+ucsan tracks pointer bounds for every allocation — any out-of-bounds \
+access is caught at runtime. Use `volatile` reads/writes to prevent \
+optimization. Do NOT use assert/abort.
+"""
+
+
 class HarnessGenerator:
     """Generates test harnesses for contract-guided symbolic execution.
 
@@ -376,6 +395,8 @@ class HarnessGenerator:
             "errors": 0,
             "fix_attempts": 0,
         }
+        self._assess_issue = None
+        self._assess_issue_index = None
 
     @property
     def stats(self) -> dict[str, int]:
@@ -450,9 +471,23 @@ class HarnessGenerator:
             postconds_section=postconds_section,
         )
 
+        # Append issue context when assessing a specific verification issue
+        if self._assess_issue is not None:
+            issue = self._assess_issue
+            prompt += ASSESS_ISSUE_PROMPT.format(
+                issue_kind=issue.issue_kind,
+                severity=issue.severity,
+                description=issue.description,
+                name=func.name,
+            )
+
         try:
             if self.verbose:
-                print(f"  Generating shim for: {func_name}")
+                label = (f"  Generating shim for: {func_name} "
+                         f"(assess issue #{self._assess_issue_index})"
+                         if self._assess_issue else
+                         f"  Generating shim for: {func_name}")
+                print(label)
 
             response = self.llm.complete(prompt)
             self._stats["llm_calls"] += 1
@@ -571,6 +606,48 @@ class HarnessGenerator:
                 traceback.print_exc()
             return None
 
+    def assess_issue(
+        self,
+        func_name: str,
+        issue_index: int,
+        output_dir: str | None = None,
+        bc_file: str | None = None,
+    ) -> tuple[str, dict] | None:
+        """Generate a harness that includes a targeted assertion for a verification issue.
+
+        Same as generate() but appends the issue description to the shim prompt
+        so the LLM produces stubs + test() + assertion in a single pass.
+        """
+        # Look up verification issue
+        funcs = self.db.get_function_by_name(func_name)
+        if not funcs:
+            if self.verbose:
+                print(f"  Function not found: {func_name}")
+            return None
+        func = funcs[0]
+
+        vsummary = self.db.get_verification_summary_by_function_id(func.id)
+        if not vsummary or not vsummary.issues:
+            if self.verbose:
+                print(f"  No verification issues for: {func_name}")
+            return None
+        if issue_index >= len(vsummary.issues):
+            if self.verbose:
+                print(f"  Issue index {issue_index} out of range "
+                      f"(0..{len(vsummary.issues) - 1})")
+            return None
+
+        issue = vsummary.issues[issue_index]
+
+        # Stash the issue context — generate() will append it to the prompt
+        self._assess_issue = issue
+        self._assess_issue_index = issue_index
+        try:
+            return self.generate(func_name, output_dir=output_dir, bc_file=bc_file)
+        finally:
+            self._assess_issue = None
+            self._assess_issue_index = None
+
     def generate_plan(
         self,
         func_name: str,
@@ -615,9 +692,13 @@ class HarnessGenerator:
                 print(f"  No source file for: {func_name}")
             return None
 
-        # Compile to BC with -O1 -g for debug info + loop detection
-        if not bc_file and self.compile_commands and source_file:
-            bc_file = self._compile_to_bc_debug(source_file, out)
+        # Always recompile from source with clang-14 -g so the bitcode is
+        # compatible with opt-14 used in _instrument_for_bbids, regardless of
+        # what compiler produced the supplied bc_file.
+        if self.compile_commands and source_file:
+            recompiled = self._compile_to_bc_debug(source_file, out)
+            if recompiled:
+                bc_file = recompiled
         if not bc_file:
             if self.verbose:
                 print(f"  No bitcode available for: {func_name}")
