@@ -459,7 +459,9 @@ class FreeSummarizer:
 
         # Phase C: merge
         skeleton_summary.frees = list(skeleton_summary.frees) + all_block_frees
-        skeleton_summary.resource_releases = list(skeleton_summary.resource_releases) + all_block_releases
+        skeleton_summary.resource_releases = (
+            list(skeleton_summary.resource_releases) + all_block_releases
+        )
         with self._stats_lock:
             self._stats["functions_processed"] += 1
         return skeleton_summary

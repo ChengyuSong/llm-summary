@@ -26,7 +26,9 @@ def _substitute(expr: str, formals: list[str], actuals: list[str]) -> str:
     pairs = sorted(zip(formals, actuals, strict=False), key=lambda p: -len(p[0]))
     for formal, actual in pairs:
         if formal and actual and formal != actual:
-            expr = re.sub(r"\b" + re.escape(formal) + r"\b", lambda _: actual, expr)
+            def _repl(_: re.Match[str], r: str = actual) -> str:
+                return r
+            expr = re.sub(r"\b" + re.escape(formal) + r"\b", _repl, expr)
     return expr
 
 MEMSAFE_SUMMARY_PROMPT = """You are analyzing C/C++ code to generate safety pre-condition contracts.

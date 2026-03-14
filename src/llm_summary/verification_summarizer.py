@@ -110,9 +110,11 @@ Respond with JSON:
       "description": "brief", "size_expr": "buffer_size only", "relationship": "buffer_size only"}}
   ],
   "issues": [
-    {{"location": "line N", "issue_kind": "null_deref|buffer_overflow|use_after_free|double_free|uninitialized_use",
+    {{"location": "line N",
+      "issue_kind": "null_deref|buffer_overflow|use_after_free|double_free|uninitialized_use",
       "description": "the problem", "severity": "high|medium|low",
-      "callee": "if contract violation", "contract_kind": "if contract violation"}}
+      "callee": "if contract violation",
+      "contract_kind": "if contract violation"}}
   ],
   "description": "One-sentence summary"
 }}
@@ -513,7 +515,7 @@ class VerificationSummarizer:
                                "float", "double", "void", "bool",
                                srow["name"]):
                     static_type_names.add(tok)
-        new_names = static_type_names - set(r["name"] for r in rows) - names
+        new_names = static_type_names - {r["name"] for r in rows} - names
         if new_names:
             extra = self.db.get_typedefs_by_names(list(new_names))
             rows.extend(extra)
@@ -669,7 +671,10 @@ class VerificationSummarizer:
                 if free_summary.frees:
                     post_parts.append(f"  Frees: {'; '.join(_fmt_ops(free_summary.frees))}")
                 if free_summary.resource_releases:
-                    post_parts.append(f"  Releases: {'; '.join(_fmt_ops(free_summary.resource_releases))}")
+                    releases = _fmt_ops(free_summary.resource_releases)
+                    post_parts.append(
+                        f"  Releases: {'; '.join(releases)}"
+                    )
 
             # Pass 3: Initializations
             init_summary = self.db.get_init_summary_by_function_id(callee_id)

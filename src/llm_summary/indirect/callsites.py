@@ -1,5 +1,6 @@
 """Finder for indirect call sites (function pointer calls)."""
 
+from collections.abc import Sequence
 from pathlib import Path
 
 from clang.cindex import Cursor, CursorKind, TypeKind
@@ -35,7 +36,7 @@ class IndirectCallsiteFinder:
         self._function_map: dict[tuple[str, str, int], int] = {}  # (file, name, line) -> id
         self._file_contents: dict[str, list[str]] = {}
 
-    def find_in_files(self, file_paths: list[str | Path]) -> list[IndirectCallsite]:
+    def find_in_files(self, file_paths: Sequence[str | Path]) -> list[IndirectCallsite]:
         """Find indirect call sites in files."""
         # Build function map from database
         for func in self.db.get_all_functions():

@@ -923,6 +923,29 @@ def discover_from_bc_artifacts(
                 f"(type={unit_type})"
             )
 
+    # Infer link_deps for executables: executables depend on all static libraries.
+    # When a library's bc_files are a subset of another library's, it is subsumed
+    # and excluded to avoid feeding duplicate bc files into Phase 2.
+    lib_bc_sets: dict[str, set[str]] = {
+        str(lu["name"]): set(lu["bc_files"])
+        for lu in link_units
+        if lu["type"] == "static_library"
+    }
+    maximal_libs: list[str] = [
+        name
+        for name, bc_set in lib_bc_sets.items()
+        if not any(
+            other != name and bc_set.issubset(other_set)
+            for other, other_set in lib_bc_sets.items()
+        )
+    ]
+    if maximal_libs:
+        for lu in link_units:
+            if lu["type"] == "executable":
+                lu["link_deps"] = maximal_libs
+        if verbose:
+            print(f"[bc-artifacts] Inferred executable deps → {maximal_libs}")
+
     return {
         "project": project_name or build_dir.parent.name,
         "build_system": "cmake",

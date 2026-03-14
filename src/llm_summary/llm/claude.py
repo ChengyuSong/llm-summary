@@ -33,7 +33,7 @@ class ClaudeBackend(LLMBackend):
         )
         self.location = location or os.environ.get("VERTEX_AI_LOCATION", "global")
         self.max_tokens = max_tokens
-        self._client = None
+        self._client: Any = None
 
     @property
     def default_model(self) -> str:

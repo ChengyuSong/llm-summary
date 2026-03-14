@@ -7,8 +7,7 @@ Also extracts the comparison predicate for conditional branches (icmp before br)
 """
 
 import re
-import subprocess
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 
 
@@ -79,7 +78,7 @@ def extract_bbids(ir_path: str, source_dir: str | None = None) -> list[BBInfo]:
             md_file[md_id] = fname
 
     # Resolve scope → file: walk DISubprogram/DILexicalBlock to find file
-    scope_file = {}
+    scope_file: dict[int, int | None] = {}
     # !N = distinct !DISubprogram(... file: !F, ...)
     for m in re.finditer(
         r'^!(\d+) = distinct !DISubprogram\([^)]*file: !(\d+)',
@@ -107,7 +106,7 @@ def extract_bbids(ir_path: str, source_dir: str | None = None) -> list[BBInfo]:
     ):
         scope_file[int(m.group(1))] = int(m.group(3))
 
-    def resolve_file(scope_id):
+    def resolve_file(scope_id: int | None) -> str:
         """Walk scope chain to find the file."""
         visited = set()
         while scope_id is not None and scope_id not in visited:
@@ -120,7 +119,7 @@ def extract_bbids(ir_path: str, source_dir: str | None = None) -> list[BBInfo]:
                     # file_id might be a scope, keep walking
                     scope_id = file_id
                 else:
-                    return file_id
+                    return "<unknown>"
             else:
                 break
         return "<unknown>"
@@ -148,7 +147,7 @@ def extract_bbids(ir_path: str, source_dir: str | None = None) -> list[BBInfo]:
     results = []
     prev_icmp = None
 
-    for i, line in enumerate(lines):
+    for _i, line in enumerate(lines):
         # Track icmp instructions (they precede conditional branches)
         icmp_match = re.match(
             r'\s+%\S+ = icmp (\w+) (.+?)(?:,\s*!|$)', line
@@ -349,4 +348,5 @@ if __name__ == "__main__":
                 flags.append(f"{info.cmp_op}")
             flag_str = f" [{', '.join(flags)}]" if flags else ""
             src = f"  // {info.source_line}" if info.source_line else ""
-            print(f"BB {info.bb_id:6d} → {Path(info.file).name}:{info.line}:{info.col}{flag_str}{src}")
+            loc = f"{Path(info.file).name}:{info.line}:{info.col}"
+            print(f"BB {info.bb_id:6d} → {loc}{flag_str}{src}")

@@ -453,7 +453,7 @@ class BottomUpDriver:
                 msg += f", {len(target_ids)} targeted"
             elif affected is not None:
                 msg += f", {len(affected)} affected"
-                if force_dirty:
+                if force_dirty and dirty_ids is not None:
                     msg += f" ({len(dirty_ids)} initially dirty)"
             if self.pool is not None:
                 msg += f", {self.pool.max_workers} workers"

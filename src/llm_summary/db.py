@@ -410,7 +410,7 @@ class SummaryDB:
             ),
         ).fetchone()
         self.conn.commit()
-        return row["id"]
+        return int(row["id"])
 
     def insert_functions_batch(self, functions: list[Function]) -> dict[Function, int]:
         """Batch insert functions and return mapping to IDs.
@@ -934,11 +934,11 @@ class SummaryDB:
     def _json_to_init_summary(self, json_str: str) -> InitSummary:
         """Convert JSON string to InitSummary."""
         data = json.loads(json_str)
-        _VAGUE_BYTE_COUNTS = ("full", "N/A", "n/a", "unknown", "varies", "")
+        vague_byte_counts = ("full", "N/A", "n/a", "unknown", "varies", "")
         inits = []
         for i in data.get("inits", []):
             bc = i.get("byte_count")
-            if bc in _VAGUE_BYTE_COUNTS:
+            if bc in vague_byte_counts:
                 bc = None
             inits.append(InitOp(
                 target=i.get("target", ""),
@@ -1673,7 +1673,8 @@ class SummaryDB:
     def get_static_vars_by_file(self, file_path: str) -> list[dict]:
         """Get all file-scope static variable declarations for a given source file."""
         rows = self.conn.execute(
-            "SELECT * FROM typedefs WHERE file_path = ? AND kind = 'static_var' AND definition IS NOT NULL",
+            "SELECT * FROM typedefs WHERE file_path = ?"
+            " AND kind = 'static_var' AND definition IS NOT NULL",
             (file_path,),
         ).fetchall()
         return [dict(row) for row in rows]

@@ -1,5 +1,6 @@
 """Call graph construction from C/C++ source files."""
 
+from collections.abc import Sequence
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -32,7 +33,7 @@ class CallGraphBuilder:
         )
         self._function_map: dict[str, list[int]] = {}  # name -> [function_ids]
 
-    def build_from_files(self, file_paths: list[str | Path]) -> list[CallEdge]:
+    def build_from_files(self, file_paths: Sequence[str | Path]) -> list[CallEdge]:
         """
         Build call graph from source files.
 

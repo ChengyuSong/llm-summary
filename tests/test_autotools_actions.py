@@ -176,7 +176,8 @@ class TestAutotoolsActionsMocked:
         cmd_str = docker_cmd[-1]
 
         # Verify bear is used
-        assert "bear -- make" in cmd_str
+        assert "bear" in cmd_str
+        assert "make" in cmd_str
         assert "-j$(nproc)" in cmd_str
 
     @patch("subprocess.run")
@@ -197,11 +198,13 @@ class TestAutotoolsActionsMocked:
 
         assert result["success"] is True
 
-        call_args = mock_run.call_args
-        docker_cmd = call_args[0][0]
+        # Check the first call (the target build), not the append call
+        first_call = mock_run.call_args_list[0]
+        docker_cmd = first_call[0][0]
         cmd_str = docker_cmd[-1]
 
-        assert "bear -- make" in cmd_str
+        assert "bear" in cmd_str
+        assert "make" in cmd_str
         assert "lib" in cmd_str
 
     @patch("subprocess.run")

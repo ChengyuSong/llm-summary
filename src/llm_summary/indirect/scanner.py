@@ -1,5 +1,6 @@
 """Scanner for address-taken functions."""
 
+from collections.abc import Sequence
 from pathlib import Path
 
 from clang.cindex import Cursor, CursorKind
@@ -34,7 +35,7 @@ class AddressTakenScanner:
         self._function_map: dict[str, int] = {}  # name -> function_id
         self._file_contents: dict[str, list[str]] = {}
 
-    def scan_files(self, file_paths: list[str | Path]) -> None:
+    def scan_files(self, file_paths: Sequence[str | Path]) -> None:
         """Scan files for address-taken functions."""
         # Build function map from database
         for func in self.db.get_all_functions():

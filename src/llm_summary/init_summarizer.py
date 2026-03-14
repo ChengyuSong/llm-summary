@@ -47,7 +47,8 @@ Do NOT use "full"; always prefer the actual size expression or sizeof(return_typ
 Consider:
 - Direct assignments to output parameters and struct fields
 - Calls to memset, memcpy, calloc, etc. (use callee summaries)
-- Prefer unconditional inits; use conditional+condition for output params initialized only on success paths
+- Prefer unconditional inits; use conditional+condition for output params \
+initialized only on success paths
 - If a field is only initialized on some paths, mark it conditional rather than omitting it\
 """
 

@@ -44,7 +44,7 @@ class GeminiBackend(LLMBackend):
         )
         self.location = location or os.environ.get("VERTEX_AI_LOCATION", "global")
         self.max_tokens = max_tokens
-        self._client = None
+        self._client: Any = None
 
     @property
     def default_model(self) -> str:
@@ -287,7 +287,7 @@ class _GeminiToolResponse:
 
     def __init__(self, response):
         self._response = response
-        self.content = []
+        self.content: list[Any] = []
         self.stop_reason = "end_turn"
 
         if not response.candidates:

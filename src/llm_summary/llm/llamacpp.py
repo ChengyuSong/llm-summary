@@ -330,7 +330,7 @@ class LlamaCppBackend(LLMBackend):
                 if "choices" in data and len(data["choices"]) > 0:
                     choice = data["choices"][0]
                     self.stop_reason = choice.get("finish_reason", "end_turn")
-                    self.content = []
+                    self.content: list[Any] = []
 
                     message = choice.get("message", {})
 

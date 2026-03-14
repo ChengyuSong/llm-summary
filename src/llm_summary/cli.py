@@ -3,6 +3,7 @@
 import json
 import sys
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import click
 from rich.console import Console
@@ -18,6 +19,7 @@ from .driver import (
     FreePass,
     InitPass,
     MemsafePass,
+    SummaryPass,
     VerificationPass,
 )
 from .extractor import FunctionExtractor
@@ -37,6 +39,11 @@ from .stdlib import (
     get_all_stdlib_summaries,
 )
 from .summarizer import AllocationSummarizer
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable
+
+    from .stdlib_cache import StdlibCache
 
 console = Console()
 
@@ -213,7 +220,7 @@ def summarize(
         # Show call graph stats
         edges = db.get_all_call_edges()
         if edges:
-            graph = {}
+            graph: dict[int, list[int]] = {}
             for edge in edges:
                 if edge.caller_id not in graph:
                     graph[edge.caller_id] = []
@@ -261,24 +268,24 @@ def summarize(
 
             # Free summaries
             free_summaries = get_all_stdlib_free_summaries()
-            for name, summary in free_summaries.items():
+            for name, fsummary in free_summaries.items():
                 func = _find_stdlib_func(name)
                 if func is not None:
-                    db.upsert_free_summary(func, summary, model_used="builtin")
+                    db.upsert_free_summary(func, fsummary, model_used="builtin")
 
             # Init summaries
             init_summaries = get_all_stdlib_init_summaries()
-            for name, summary in init_summaries.items():
+            for name, isummary in init_summaries.items():
                 func = _find_stdlib_func(name)
                 if func is not None:
-                    db.upsert_init_summary(func, summary, model_used="builtin")
+                    db.upsert_init_summary(func, isummary, model_used="builtin")
 
             # Memsafe summaries
             memsafe_summaries = get_all_stdlib_memsafe_summaries()
-            for name, summary in memsafe_summaries.items():
+            for name, msummary in memsafe_summaries.items():
                 func = _find_stdlib_func(name)
                 if func is not None:
-                    db.upsert_memsafe_summary(func, summary, model_used="builtin")
+                    db.upsert_memsafe_summary(func, msummary, model_used="builtin")
 
             # Update attributes for attribute-only functions (e.g., exit, abort) if they exist
             for name in STDLIB_ATTRIBUTES:
@@ -310,7 +317,7 @@ def summarize(
                               f"named={len(alias_builder.snap.named_entries)})")
 
         # Build passes list
-        passes = []
+        passes: list[SummaryPass] = []
         alloc_summarizer = None
         free_summarizer = None
 
@@ -431,8 +438,9 @@ def summarize(
             for fname in function_names:
                 found = db.get_function_by_name(fname)
                 if found:
-                    for f in found:
-                        target_ids.add(f.id)
+                    for fn in found:
+                        assert fn.id is not None
+                        target_ids.add(fn.id)
                 else:
                     console.print(f"[yellow]Warning: function '{fname}' not found in DB[/yellow]")
             if not target_ids:
@@ -491,7 +499,7 @@ def summarize(
             console.print(f"\nFunctions with allocations: {allocating}")
 
         if free_summarizer is not None:
-            free_summaries = results["free"]
+            free_results = results["free"]
             s = free_summarizer.stats
             console.print("\nFree summary generation complete:")
             console.print(f"  Functions processed: {s['functions_processed']}")
@@ -507,14 +515,14 @@ def summarize(
             if s["errors"] > 0:
                 console.print(f"  [yellow]Errors: {s['errors']}[/yellow]")
 
-            freeing = sum(1 for sm in free_summaries.values() if sm.frees)
-            releasing = sum(1 for sm in free_summaries.values() if sm.resource_releases)
+            freeing = sum(1 for sm in free_results.values() if sm.frees)
+            releasing = sum(1 for sm in free_results.values() if sm.resource_releases)
             console.print(f"\nFunctions with frees: {freeing}")
             if releasing:
                 console.print(f"Functions with resource releases: {releasing}")
 
         if init_summarizer is not None:
-            init_summaries = results["init"]
+            init_results = results["init"]
             s = init_summarizer.stats
             console.print("\nInit summary generation complete:")
             console.print(f"  Functions processed: {s['functions_processed']}")
@@ -530,11 +538,11 @@ def summarize(
             if s["errors"] > 0:
                 console.print(f"  [yellow]Errors: {s['errors']}[/yellow]")
 
-            initializing = sum(1 for sm in init_summaries.values() if sm.inits)
+            initializing = sum(1 for sm in init_results.values() if sm.inits)
             console.print(f"\nFunctions with inits: {initializing}")
 
         if memsafe_summarizer is not None:
-            memsafe_summaries = results["memsafe"]
+            memsafe_results = results["memsafe"]
             s = memsafe_summarizer.stats
             console.print("\nMemsafe summary generation complete:")
             console.print(f"  Functions processed: {s['functions_processed']}")
@@ -550,7 +558,7 @@ def summarize(
             if s["errors"] > 0:
                 console.print(f"  [yellow]Errors: {s['errors']}[/yellow]")
 
-            with_contracts = sum(1 for sm in memsafe_summaries.values() if sm.contracts)
+            with_contracts = sum(1 for sm in memsafe_results.values() if sm.contracts)
             console.print(f"\nFunctions with safety contracts: {with_contracts}")
 
         if verification_summarizer is not None:
@@ -727,8 +735,9 @@ def show(db_path, name, file_path, allocating_only, fmt, limit, offset):
             functions = functions[:limit]
 
         if fmt == "json":
-            output = []
+            output: list[dict] = []
             for func in functions:
+                assert func.id is not None
                 summary = db.get_summary_by_function_id(func.id)
                 if summary:
                     if allocating_only and not summary.allocations:
@@ -749,6 +758,7 @@ def show(db_path, name, file_path, allocating_only, fmt, limit, offset):
             table.add_column("Description")
 
             for func in functions:
+                assert func.id is not None
                 summary = db.get_summary_by_function_id(func.id)
                 if summary:
                     if allocating_only and not summary.allocations:
@@ -791,7 +801,7 @@ def stats(db_path):
         # Call graph stats
         edges = db.get_all_call_edges()
         if edges:
-            graph = {}
+            graph: dict[int, list[int]] = {}
             for edge in edges:
                 if edge.caller_id not in graph:
                     graph[edge.caller_id] = []
@@ -950,12 +960,13 @@ def init_stdlib(
         all_src_funcs = src_db.get_all_functions()
         name_to_ids: dict[str, list[int]] = {}
         for sf in all_src_funcs:
+            assert sf.id is not None
             name_to_ids.setdefault(sf.name, []).append(sf.id)
 
-        def _fetch_blobs(func_id: int) -> dict[str, str | None]:
+        def _fetch_blobs(func_id: int, _db: SummaryDB = src_db) -> dict[str, str | None]:
             blobs: dict[str, str | None] = {col: None for _, col in summary_tables}
             for table, col in summary_tables:
-                row = src_db.conn.execute(
+                row = _db.conn.execute(
                     f"SELECT summary_json FROM {table} WHERE function_id = ?",
                     (func_id,),
                 ).fetchone()
@@ -971,6 +982,7 @@ def init_stdlib(
                 if not force and cache.has(src_func.name):
                     skipped_cached += 1
                     continue
+                assert src_func.id is not None
                 blobs = _fetch_blobs(src_func.id)
                 if not any(blobs.values()):
                     # weak_alias fallback: try __<name> (e.g. pthread_exit -> __pthread_exit)
@@ -1023,6 +1035,7 @@ def init_stdlib(
         sourceless = [f for f in all_funcs if not f.source]
 
         def _needs_summary(f: Function) -> bool:
+            assert f.id is not None
             return (
                 db.get_summary_by_function_id(f.id) is None
                 or db.get_free_summary_by_function_id(f.id) is None
@@ -1185,6 +1198,7 @@ def export(db_path, output):
         output_data = []
 
         for func in functions:
+            assert func.id is not None
             summary = db.get_summary_by_function_id(func.id)
             if summary:
                 output_data.append({
@@ -1597,6 +1611,7 @@ def show_indirect(db_path, fmt):
         if fmt == "json":
             output = []
             for cs in callsites:
+                assert cs.id is not None
                 targets = db.get_indirect_call_targets(cs.id)
                 caller = functions.get(cs.caller_function_id)
 
@@ -1635,6 +1650,7 @@ def show_indirect(db_path, fmt):
             table.add_column("Confidence", style="magenta")
 
             for cs in callsites:
+                assert cs.id is not None
                 targets = db.get_indirect_call_targets(cs.id)
                 caller = functions.get(cs.caller_function_id)
 
@@ -1952,8 +1968,10 @@ def find_allocator_candidates(
 
             if not alloc_scored and not dealloc_scored:
                 console.print("[yellow]No candidates found above threshold.[/yellow]")
-                output = {"candidates": [], "confirmed": [],
-                          "dealloc_candidates": [], "dealloc_confirmed": []}
+                output: dict[str, list] = {
+                    "candidates": [], "confirmed": [],
+                    "dealloc_candidates": [], "dealloc_confirmed": [],
+                }
                 with open(output_path, "w") as f:
                     json.dump(output, f, indent=2)
                 console.print(f"Wrote empty result to {output_path}")
@@ -2329,9 +2347,9 @@ def _source_files_for_target(
          "store preprocessed source",
 )
 def scan(
-    compile_commands_path, link_units_path, target_name,
-    project_path, db_path, verbose, preprocess,
-):
+    compile_commands_path: str, link_units_path: str | None, target_name: str | None,
+    project_path: str | None, db_path: str, verbose: bool, preprocess: bool,
+) -> None:
     """Extract functions, scan indirect call targets, and find callsites (no LLM).
 
     This command runs the pre-LLM scanner phases:
@@ -2483,22 +2501,22 @@ def scan(
         ) as progress:
             task = progress.add_task("Extracting...", total=len(source_files))
 
-            for f in source_files:
+            for src_file in source_files:
                 try:
-                    functions = extractor.extract_from_file(f)
+                    functions = extractor.extract_from_file(src_file)
                     all_functions.extend(functions)
-                    typedefs = extractor.extract_typedefs_from_file(f)
+                    typedefs = extractor.extract_typedefs_from_file(src_file)
                     all_typedefs.extend(typedefs)
                     if verbose:
                         progress.console.print(
-                            f"  {Path(f).name}: "
+                            f"  {Path(src_file).name}: "
                             f"{len(functions)} functions, "
                             f"{len(typedefs)} typedefs"
                         )
                 except Exception as e:
                     extract_errors += 1
                     if verbose:
-                        progress.console.print(f"  [yellow]{Path(f).name}: {e}[/yellow]")
+                        progress.console.print(f"  [yellow]{Path(src_file).name}: {e}[/yellow]")
                 progress.advance(task)
 
         db.insert_functions_batch(all_functions)
@@ -2536,20 +2554,20 @@ def scan(
 
             asm_functions = []
             asm_errors = 0
-            for f in asm_files:
+            for asm_file in asm_files:
                 try:
-                    obj_path = asm_output_map.get(f)
+                    obj_path = asm_output_map.get(asm_file)
                     funcs = extract_asm_functions(
-                        Path(f),
+                        Path(asm_file),
                         Path(obj_path) if obj_path else None,
                     )
                     asm_functions.extend(funcs)
                     if verbose:
-                        console.print(f"  {Path(f).name}: {len(funcs)} functions")
+                        console.print(f"  {Path(asm_file).name}: {len(funcs)} functions")
                 except Exception as e:
                     asm_errors += 1
                     if verbose:
-                        console.print(f"  [yellow]{Path(f).name}: {e}[/yellow]")
+                        console.print(f"  [yellow]{Path(asm_file).name}: {e}[/yellow]")
 
             if asm_functions:
                 db.insert_functions_batch(asm_functions)
@@ -2573,12 +2591,12 @@ def scan(
         ) as progress:
             task = progress.add_task("Scanning...", total=len(source_files))
 
-            for f in source_files:
+            for src_file in source_files:
                 try:
-                    scanner.scan_files([f])
+                    scanner.scan_files([src_file])
                 except Exception as e:
                     if verbose:
-                        progress.console.print(f"  [yellow]{Path(f).name}: {e}[/yellow]")
+                        progress.console.print(f"  [yellow]{Path(src_file).name}: {e}[/yellow]")
                 progress.advance(task)
 
         # Count targets by type
@@ -2609,13 +2627,13 @@ def scan(
             task = progress.add_task("Finding callsites...", total=len(source_files))
 
             all_callsites = []
-            for f in source_files:
+            for src_file in source_files:
                 try:
-                    callsites = finder.find_in_files([f])
+                    callsites = finder.find_in_files([src_file])
                     all_callsites.extend(callsites)
                 except Exception as e:
                     if verbose:
-                        progress.console.print(f"  [yellow]{Path(f).name}: {e}[/yellow]")
+                        progress.console.print(f"  [yellow]{Path(src_file).name}: {e}[/yellow]")
                 progress.advance(task)
 
         console.print(f"  Indirect callsites: {len(all_callsites)}")
@@ -2636,7 +2654,9 @@ def scan(
             # Group by header for display
             from collections import Counter as _Counter
             header_counts = _Counter(extern_header_map.values())
-            console.print(f"  Mapped {len(extern_header_map)} extern functions to {len(header_counts)} headers")
+            n_funcs = len(extern_header_map)
+            n_hdrs = len(header_counts)
+            console.print(f"  Mapped {n_funcs} extern functions to {n_hdrs} headers")
             if verbose:
                 for hdr, cnt in header_counts.most_common(10):
                     console.print(f"    {hdr}: {cnt} functions")
@@ -3025,7 +3045,10 @@ def import_callgraph(json_path, db_path, clear_edges, verbose):
         if clear_edges:
             touched = db.touch_stub_summaries()
             if touched and verbose:
-                console.print(f"  Touched {touched} stub summary timestamps (incremental staleness)")
+                console.print(
+                    f"  Touched {touched} stub summary timestamps"
+                    " (incremental staleness)"
+                )
 
         # Show after stats
         after_stats = db.get_stats()
@@ -3243,6 +3266,9 @@ def discover_link_units(
                     result = heuristic_result
 
     # Populate bc_files for any link unit that only has objects (heuristic/agent path)
+    if result is None:
+        console.print("[red]No result from any discovery path[/red]")
+        return
     from .link_units.skills import map_objects_to_bc
     result_build_dir = Path(result.get("build_dir", str(build_dir)))
     for lu in result.get("link_units", []):
@@ -3541,7 +3567,7 @@ def import_dep(db_path, from_db_path, scan_dir, link_units_path, target_name,
         # 3. Resolve headers to dependency DBs
         if from_db_path:
             # Explicit: all third-party functions come from this DB
-            dep_mapping: dict[str, str] = {hdr: from_db_path for hdr in by_header}
+            dep_mapping: dict[str, str] = dict.fromkeys(by_header, from_db_path)
             # Cache the explicit mapping
             for hdr in by_header:
                 basename = Path(hdr).stem
@@ -3804,7 +3830,10 @@ def _record_dep_dbs_in_link_units(
 )
 @click.option("--reason", default=None, help="Reviewer explanation")
 @click.option("--signature", default=None, help="Function signature for disambiguation")
-def review_issue(function_name, issue_index, db_path, review_status, reason, signature):
+def review_issue(
+    function_name: str, issue_index: int, db_path: str,
+    review_status: str, reason: str | None, signature: str | None,
+) -> None:
     """Mark a verification issue as confirmed, false_positive, or wontfix.
 
     Example:
@@ -3840,6 +3869,7 @@ def review_issue(function_name, issue_index, db_path, review_status, reason, sig
             sys.exit(1)
 
         func = functions[0]
+        assert func.id is not None
 
         # Load verification summary
         vsummary = db.get_verification_summary_by_function_id(func.id)
@@ -3904,7 +3934,10 @@ def review_issue(function_name, issue_index, db_path, review_status, reason, sig
     help="Filter by severity",
 )
 @click.option("--format", "fmt", type=click.Choice(["table", "json"]), default="table")
-def show_issues(db_path, name, filter_status, severity, fmt):
+def show_issues(
+    db_path: str, name: str | None, filter_status: str | None,
+    severity: str | None, fmt: str,
+) -> None:
     """List all verification issues with their review status.
 
     Example:
@@ -3923,6 +3956,7 @@ def show_issues(db_path, name, filter_status, severity, fmt):
 
         rows = []
         for func in functions:
+            assert func.id is not None
             vsummary = db.get_verification_summary_by_function_id(func.id)
             if not vsummary or not vsummary.issues:
                 continue
@@ -3975,26 +4009,27 @@ def show_issues(db_path, name, filter_status, severity, fmt):
             }
 
             for r in rows:
-                sev = r["severity"]
+                sev = str(r["severity"])
                 sev_style = (
                     "red" if sev == "high"
                     else ("yellow" if sev == "medium"
                           else "dim")
                 )
-                status_style = status_styles.get(r["status"], "")
-                desc = r["description"]
+                status = str(r["status"])
+                status_style = status_styles.get(status, "")
+                desc = str(r["description"])
                 if len(desc) > 60:
                     desc = desc[:57] + "..."
                 table.add_row(
-                    r["function"],
-                    r["file"],
+                    str(r["function"]),
+                    str(r["file"]),
                     str(r["index"]),
-                    f"[{sev_style}]{r['severity']}[/{sev_style}]",
-                    r["kind"],
-                    (f"[{status_style}]{r['status']}"
+                    f"[{sev_style}]{sev}[/{sev_style}]",
+                    str(r["kind"]),
+                    (f"[{status_style}]{status}"
                      f"[/{status_style}]"
                      if status_style
-                     else r["status"]),
+                     else status),
                     desc,
                 )
 
@@ -4093,6 +4128,7 @@ def gen_harness(
             --project-path /data/csong/opensource/zlib -v
     """
     from pathlib import Path
+
     from .harness_generator import HarnessGenerator
 
     db = SummaryDB(db_path)
@@ -4161,9 +4197,9 @@ def gen_harness(
 
             successes = 0
             for func_name in targets:
-                result = generator.generate(func_name, output_dir=output_dir,
-                                            bc_file=bc_file)
-                if result:
+                gen_result = generator.generate(func_name, output_dir=output_dir,
+                                                bc_file=bc_file)
+                if gen_result:
                     successes += 1
 
             stats = generator.stats
@@ -4180,10 +4216,10 @@ def gen_harness(
             console.print("\nGenerating trace plans...")
             plan_ok = 0
             for func_name in targets:
-                result = generator.generate_plan(
+                plan_result = generator.generate_plan(
                     func_name, output_dir=output_dir, bc_file=bc_file,
                 )
-                if result:
+                if plan_result:
                     plan_ok += 1
                     plan_file = Path(output_dir) / f"plan_{func_name}.json"
                     console.print(f"  Plan: {plan_file}")

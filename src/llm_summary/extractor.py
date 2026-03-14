@@ -3,6 +3,7 @@
 import os
 import re
 from pathlib import Path
+from typing import Any
 
 from clang.cindex import (
     Config,
@@ -162,7 +163,7 @@ class FunctionExtractor:
                 extra_args=compile_args,
             )
 
-    def parse_file(self, file_path: str | Path):
+    def parse_file(self, file_path: str | Path) -> Any:
         """Parse a file and return the translation unit.
 
         Use this to parse once and pass the TU to extract_from_tu /
@@ -900,7 +901,9 @@ class FunctionExtractor:
                         self._file_contents[file_path] = f.read()
                 except OSError:
                     return []
-            self._file_lines_cache[file_path] = self._file_contents[file_path].splitlines(keepends=True)
+            self._file_lines_cache[file_path] = (
+                self._file_contents[file_path].splitlines(keepends=True)
+            )
         return self._file_lines_cache[file_path]
 
     def _get_full_source(self, cursor: Cursor) -> str:

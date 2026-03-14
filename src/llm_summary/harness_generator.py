@@ -10,13 +10,12 @@ import os
 import re
 import subprocess
 import tempfile
-
 from pathlib import Path
 
 from .compile_commands import CompileCommandsDB
 from .db import SummaryDB
 from .llm.base import LLMBackend
-
+from .models import SafetyIssue
 
 # ---- Shim template: thin C file linked against project bitcode ----
 
@@ -383,6 +382,7 @@ class HarnessGenerator:
         self.max_fix_attempts = max_fix_attempts
         self.compile_commands = compile_commands
         # symsan install dir (parent of bin/ko-clang)
+        self.symsan_dir: Path | None
         if symsan_dir:
             self.symsan_dir = Path(symsan_dir)
         elif ko_clang_path:
@@ -395,8 +395,8 @@ class HarnessGenerator:
             "errors": 0,
             "fix_attempts": 0,
         }
-        self._assess_issue = None
-        self._assess_issue_index = None
+        self._assess_issue: SafetyIssue | None = None
+        self._assess_issue_index: int | None = None
 
     @property
     def stats(self) -> dict[str, int]:
@@ -424,6 +424,7 @@ class HarnessGenerator:
                 print(f"  Function not found: {func_name}")
             return None
         func = funcs[0]
+        assert func.id is not None
 
         # Get memsafe contracts
         row = self.db.conn.execute(
@@ -518,7 +519,7 @@ class HarnessGenerator:
                     ok, errors = self._compile_shim(c_code, ucsan_config)
                     if ok:
                         if self.verbose:
-                            print(f"    Shim compiled successfully"
+                            print("    Shim compiled successfully"
                                   + (f" (after {attempt} fix(es))" if attempt else ""))
                         break
 
@@ -625,6 +626,7 @@ class HarnessGenerator:
                 print(f"  Function not found: {func_name}")
             return None
         func = funcs[0]
+        assert func.id is not None
 
         vsummary = self.db.get_verification_summary_by_function_id(func.id)
         if not vsummary or not vsummary.issues:
@@ -671,7 +673,9 @@ class HarnessGenerator:
             Plan dict or None on error.
         """
         from .bbid_extractor import (
-            extract_bbids, format_annotated_source, parse_cfg_dump,
+            extract_bbids,
+            format_annotated_source,
+            parse_cfg_dump,
         )
 
         out = Path(output_dir)
@@ -683,6 +687,7 @@ class HarnessGenerator:
                 print(f"  Function not found: {func_name}")
             return None
         func = funcs[0]
+        assert func.id is not None
 
         # Resolve source file
         if not source_file and func.file_path:
@@ -770,7 +775,7 @@ class HarnessGenerator:
             # Parse JSON from response
             json_match = re.search(r"```json\s*(.*?)\s*```", response, re.DOTALL)
             if json_match:
-                plan = json.loads(json_match.group(1))
+                plan: dict = json.loads(json_match.group(1))
             else:
                 # Try parsing entire response as JSON
                 plan = json.loads(response.strip())
@@ -1371,7 +1376,7 @@ echo "Built: $OUT"
 
     def _gather_postconditions(self, func_id: int) -> dict:
         """Gather post-conditions from allocation, init, and free summaries."""
-        result = {"allocations": [], "inits": [], "frees": []}
+        result: dict = {"allocations": [], "inits": [], "frees": []}
 
         for table, key in [
             ("allocation_summaries", "allocations"),
@@ -1396,7 +1401,8 @@ echo "Built: $OUT"
             target = "return value" if alloc.get("returned") else alloc.get("stored_to", "?")
             size = alloc.get("size_expr", "?")
             cond = alloc.get("condition", "")
-            line = f"- ALLOCATES: `{target}` (size: {size}, may_be_null: {alloc.get('may_be_null', True)})"
+            may_null = alloc.get("may_be_null", True)
+            line = f"- ALLOCATES: `{target}` (size: {size}, may_be_null: {may_null})"
             if cond:
                 line += f" [when {cond}]"
             lines.append(line)

@@ -10,6 +10,7 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
+from ..models import AssemblyCheckResult
 from .assembly_utils import check_assembly
 from .constants import (
     DOCKER_CCACHE_DIR,
@@ -240,7 +241,7 @@ class CMakeActions:
                 "error": f"Build failed: {str(e)}",
             }
 
-    def _check_assembly(self):
+    def _check_assembly(self) -> "AssemblyCheckResult | None":
         """Run assembly verification after successful build."""
         return check_assembly(
             compile_commands_path=self.build_dir / "compile_commands.json",
@@ -805,7 +806,7 @@ class AutotoolsActions:
                 "error": f"make {target} failed: {str(e)}",
             }
 
-    def _check_assembly(self, use_build_dir: bool = True):
+    def _check_assembly(self, use_build_dir: bool = True) -> "AssemblyCheckResult | None":
         """Run assembly verification after successful build."""
         if use_build_dir:
             compile_commands_path = self.build_dir / "compile_commands.json"
@@ -1443,7 +1444,8 @@ def test_build_script(
         if verbose:
             print(f"[test_build_script] Found compile_commands.json at {compile_commands_path}")
             if in_tree_build:
-                print("[test_build_script] Detected in-tree build (compile_commands.json in source dir)")
+                print("[test_build_script] Detected in-tree build "
+                      "(compile_commands.json in source dir)")
 
         # Run assembly check
         asm_result = check_assembly(

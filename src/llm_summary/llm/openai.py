@@ -1,6 +1,7 @@
 """OpenAI GPT backend."""
 
 import os
+from typing import Any
 
 from .base import LLMBackend, LLMResponse
 
@@ -19,7 +20,7 @@ class OpenAIBackend(LLMBackend):
         self.api_key = api_key or os.environ.get("OPENAI_API_KEY")
         self.max_tokens = max_tokens
         self.base_url = base_url
-        self._client = None
+        self._client: Any = None
 
     @property
     def default_model(self) -> str:
@@ -40,7 +41,7 @@ class OpenAIBackend(LLMBackend):
                     "OpenAI API key required. Set OPENAI_API_KEY or pass api_key."
                 )
 
-            kwargs = {"api_key": self.api_key}
+            kwargs: dict[str, Any] = {"api_key": self.api_key}
             if self.base_url:
                 kwargs["base_url"] = self.base_url
 
