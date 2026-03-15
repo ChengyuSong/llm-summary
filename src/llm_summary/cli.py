@@ -2729,6 +2729,8 @@ def scan(
 @click.option("--ccache-dir", type=click.Path(), default="~/.cache/llm-summary-ccache",
               help="Host ccache directory (default: ~/.cache/llm-summary-ccache)")
 @click.option("--no-ccache", is_flag=True, help="Disable ccache")
+@click.option("--source-subdir", default=None,
+              help="Subdirectory containing CMakeLists.txt (for monorepos like llvm-project)")
 @click.option("--verbose", "-v", is_flag=True, help="Show detailed output")
 def build_learn(
     project_path,
@@ -2747,6 +2749,7 @@ def build_learn(
     log_llm,
     ccache_dir,
     no_ccache,
+    source_subdir,
     verbose,
 ):
     """Learn how to build a project and generate reusable build script."""
@@ -2792,7 +2795,17 @@ def build_learn(
         verbose=verbose,
         log_file=log_llm,
         ccache_dir=ccache_path,
+        source_subdir=source_subdir,
     )
+
+    # Set artifact name for monorepo sub-projects
+    if source_subdir:
+        # For monorepo sub-projects, use the directory leaf of project_path
+        # combined with source_subdir isn't useful; instead use build_dir name
+        # or let user set it explicitly. Default: build_dir basename if set.
+        if build_dir:
+            builder.artifact_name = Path(build_dir).name
+        # Otherwise falls back to project_path.name in Builder
 
     # Learn and build
     console.print("\n[bold]Learning build configuration...[/bold]")
@@ -2817,7 +2830,7 @@ def build_learn(
 
     # Generate build script
     console.print("\n[bold]Generating reusable build script...[/bold]")
-    project_name = project_path.name
+    project_name = builder.artifact_name or project_path.name
     generator = ScriptGenerator()
 
     flags = result.get("flags", [])

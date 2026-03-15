@@ -45,6 +45,7 @@ class CMakeActions:
         unavoidable_asm_path: Path | str | None = None,
         verbose: bool = False,
         ccache_dir: Path | None = None,
+        source_subdir: str | None = None,
     ):
         self.project_path = Path(project_path).resolve()
         self.build_dir = Path(build_dir) if build_dir else self.project_path / "build"
@@ -52,6 +53,7 @@ class CMakeActions:
         self.unavoidable_asm_path = Path(unavoidable_asm_path) if unavoidable_asm_path else None
         self.verbose = verbose
         self.ccache_dir = ccache_dir
+        self.source_subdir = source_subdir
 
     def cmake_configure(self, cmake_flags: list[str]) -> dict[str, Any]:
         """
@@ -90,7 +92,12 @@ class CMakeActions:
                 else:
                     quoted_flags.append(flag)
 
-            cmake_cmd = f"cmake -G Ninja {' '.join(quoted_flags)} {DOCKER_WORKSPACE_SRC}"
+            source_dir = (
+                f"{DOCKER_WORKSPACE_SRC}/{self.source_subdir}"
+                if self.source_subdir
+                else DOCKER_WORKSPACE_SRC
+            )
+            cmake_cmd = f"cmake -G Ninja {' '.join(quoted_flags)} {source_dir}"
 
             if self.verbose:
                 print(f"[cmake_configure] Running: {cmake_cmd}")
@@ -960,7 +967,7 @@ CMAKE_TOOL_DEFINITIONS = [
                         "-DCMAKE_C_FLAGS="
                         "'-g -flto=full -save-temps=obj', "
                         "-DCMAKE_CXX_FLAGS="
-                        "'-g -flto=full -save-temps=obj'"
+                        "'-g -flto=full -save-temps=obj -stdlib=libc++'"
                     ),
                 }
             },

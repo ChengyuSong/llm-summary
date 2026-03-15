@@ -51,16 +51,18 @@ GPR_PROJECTS_PATH = SCRIPTS_DIR / "gpr_projects.json"
 
 
 def _load_tier_map() -> dict[str, int]:
-    """Load project_dir -> tier mapping from gpr_projects.json."""
+    """Load project name/dir -> tier mapping from gpr_projects.json."""
     if not GPR_PROJECTS_PATH.exists():
         return {}
     with open(GPR_PROJECTS_PATH) as f:
         projects = json.load(f)
-    return {
-        p["project_dir"]: p["tier"]
-        for p in projects
-        if "project_dir" in p
-    }
+    result: dict[str, int] = {}
+    for p in projects:
+        if "project_dir" in p:
+            result[p["project_dir"]] = p["tier"]
+        # Also map by name (for monorepo sub-projects where artifact name != project_dir)
+        result[p["name"]] = p["tier"]
+    return result
 
 
 def _load_project_root(project_dir: Path) -> Path | None:

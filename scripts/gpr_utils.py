@@ -231,6 +231,18 @@ def find_project_dir(project: dict, base_dir: str | Path) -> Path | None:
     return None
 
 
+def get_artifact_name(project: dict, project_path: Path) -> str:
+    """Get the name for artifact directories (build-scripts, func-scans, build-dir).
+
+    For monorepo sub-projects (with source_subdir), uses project name so each
+    sub-project gets separate artifacts.  Otherwise uses project directory name
+    for backwards compatibility.
+    """
+    if project.get("source_subdir"):
+        return project["name"]
+    return project_path.name
+
+
 def store_project_dir(project_dir: Path, base_dir: Path) -> str:
     """
     Convert project_dir to a storable path.

@@ -7,7 +7,7 @@ import subprocess
 import sys
 from pathlib import Path
 from datetime import datetime
-from gpr_utils import find_project_dir
+from gpr_utils import find_project_dir, get_artifact_name
 
 
 def run_build_learn(
@@ -19,6 +19,7 @@ def run_build_learn(
     log_file: Path | None,
     llm_host: str | None = None,
     llm_port: int | None = None,
+    source_subdir: str | None = None,
 ) -> tuple[bool, str, float, bool]:
     """
     Run build-learn for a single project.
@@ -48,6 +49,9 @@ def run_build_learn(
         cmd.extend(["--llm-host", llm_host])
     if llm_port:
         cmd.extend(["--llm-port", str(llm_port)])
+
+    if source_subdir:
+        cmd.extend(["--source-subdir", source_subdir])
 
     print(f"\n{'='*80}")
     print(f"Running: {' '.join(cmd)}")
@@ -315,8 +319,9 @@ def main():
             })
             continue
 
-        # Setup build directory (use directory name, not project name from JSON)
-        build_dir = args.build_root / project_path.name
+        # Setup build directory (use artifact name for monorepo sub-projects)
+        artifact_name = get_artifact_name(project, project_path)
+        build_dir = args.build_root / artifact_name
         build_dir.mkdir(parents=True, exist_ok=True)
 
         # Setup log file if requested
@@ -334,10 +339,11 @@ def main():
             log_file=log_file,
             llm_host=args.llm_host,
             llm_port=args.llm_port,
+            source_subdir=project.get("source_subdir"),
         )
 
         # Read build_system from generated config.json if available
-        config_path = Path("build-scripts") / project_path.name / "config.json"
+        config_path = Path("build-scripts") / artifact_name / "config.json"
         build_system = "unknown"
         if config_path.exists():
             try:

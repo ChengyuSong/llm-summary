@@ -637,12 +637,74 @@
     "language": "C/C++"
   },
   {
-    "name": "llvm-project",
+    "name": "libcxx",
+    "url": "https://github.com/llvm/llvm-project",
+    "tier": 2,
+    "area": "C++ standard library",
+    "project_dir": "llvm-project",
+    "source_subdir": "runtimes",
+    "language": "C++",
+    "cmake_extra": ["-DLLVM_ENABLE_RUNTIMES=libcxx;libcxxabi;libunwind"]
+  },
+  {
+    "name": "libcxxabi",
+    "url": "https://github.com/llvm/llvm-project",
+    "tier": 2,
+    "area": "C++ standard library",
+    "project_dir": "llvm-project",
+    "source_subdir": "runtimes",
+    "language": "C++",
+    "cmake_extra": ["-DLLVM_ENABLE_RUNTIMES=libcxxabi;libunwind"]
+  },
+  {
+    "name": "libunwind",
+    "url": "https://github.com/llvm/llvm-project",
+    "tier": 2,
+    "area": "C++ standard library",
+    "project_dir": "llvm-project",
+    "source_subdir": "runtimes",
+    "language": "C++",
+    "cmake_extra": ["-DLLVM_ENABLE_RUNTIMES=libunwind"]
+  },
+  {
+    "name": "compiler-rt",
     "url": "https://github.com/llvm/llvm-project",
     "tier": 2,
     "area": "Toolchain security improvements",
     "project_dir": "llvm-project",
-    "language": "C/C++"
+    "source_subdir": "llvm",
+    "language": "C/C++",
+    "cmake_extra": ["-DLLVM_ENABLE_RUNTIMES=compiler-rt", "-DLLVM_ENABLE_PROJECTS="]
+  },
+  {
+    "name": "clang",
+    "url": "https://github.com/llvm/llvm-project",
+    "tier": 3,
+    "area": "Toolchain security improvements",
+    "project_dir": "llvm-project",
+    "source_subdir": "llvm",
+    "language": "C++",
+    "cmake_extra": ["-DLLVM_ENABLE_PROJECTS=clang"]
+  },
+  {
+    "name": "lld",
+    "url": "https://github.com/llvm/llvm-project",
+    "tier": 3,
+    "area": "Toolchain security improvements",
+    "project_dir": "llvm-project",
+    "source_subdir": "llvm",
+    "language": "C++",
+    "cmake_extra": ["-DLLVM_ENABLE_PROJECTS=lld"]
+  },
+  {
+    "name": "llvm",
+    "url": "https://github.com/llvm/llvm-project",
+    "tier": 3,
+    "area": "Toolchain security improvements",
+    "project_dir": "llvm-project",
+    "source_subdir": "llvm",
+    "language": "C++",
+    "cmake_extra": ["-DLLVM_ENABLE_PROJECTS="]
   },
   {
     "name": "bzip2",

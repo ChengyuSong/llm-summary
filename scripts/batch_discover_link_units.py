@@ -17,7 +17,7 @@ from datetime import datetime
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from gpr_utils import find_project_dir
+from gpr_utils import find_project_dir, get_artifact_name
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 FUNC_SCANS_DIR = REPO_ROOT / "func-scans"
@@ -32,6 +32,7 @@ def run_discover_link_units(
     llm_host: str | None,
     llm_port: int | None,
     verbose: bool,
+    artifact_name: str | None = None,
 ) -> tuple[bool, str, float]:
     """Run discover-link-units for a single project.
 
@@ -44,6 +45,10 @@ def run_discover_link_units(
         "--build-dir", str(build_dir),
         "--backend", backend,
     ]
+
+    # For monorepo sub-projects, pass explicit project name
+    if artifact_name and artifact_name != project_path.name:
+        cmd.extend(["--project-name", artifact_name])
 
     if model:
         cmd.extend(["--model", model])
@@ -244,7 +249,8 @@ def main() -> None:
             })
             continue
 
-        build_dir = args.build_root / project_path.name
+        artifact_name = get_artifact_name(project, project_path)
+        build_dir = args.build_root / artifact_name
         if not build_dir.exists():
             print(f"  ⚠️  Build dir not found ({build_dir}) — skipping (run build-learn first)")
             results["skipped"] += 1
@@ -257,7 +263,7 @@ def main() -> None:
             continue
 
         # Skip if already discovered
-        link_units_path = FUNC_SCANS_DIR / project_path.name / "link_units.json"
+        link_units_path = FUNC_SCANS_DIR / artifact_name / "link_units.json"
         if link_units_path.exists() and not args.force:
             print(f"  ✅ Already discovered ({link_units_path}) — skipping")
             results["skipped"] += 1
@@ -279,6 +285,7 @@ def main() -> None:
             llm_host=args.llm_host,
             llm_port=args.llm_port,
             verbose=args.verbose,
+            artifact_name=artifact_name,
         )
 
         if success:

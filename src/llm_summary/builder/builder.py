@@ -55,6 +55,7 @@ class Builder:
         verbose: bool = False,
         log_file: str | None = None,
         ccache_dir: Path | None = None,
+        source_subdir: str | None = None,
     ):
         self.llm = llm
         self.container_image = container_image
@@ -68,6 +69,8 @@ class Builder:
         self.log_file = log_file
         self.error_analyzer = ErrorAnalyzer(llm, verbose, log_file=log_file)
         self.ccache_dir = ccache_dir
+        self.source_subdir = source_subdir
+        self.artifact_name: str | None = None
 
     def _get_unavoidable_asm_path(self, project_name: str) -> Path | None:
         """Get path to unavoidable_asm.json for a project."""
@@ -334,7 +337,7 @@ class Builder:
             - list[str]: flags (simple mode)
             - dict: Full result including flags and build status (ReAct mode)
         """
-        project_name = project_path.name
+        project_name = self.artifact_name or project_path.name
         build_dir = Path(self.build_dir) if self.build_dir else project_path / "build"
 
         # Ensure ccache host directory exists
@@ -348,6 +351,7 @@ class Builder:
             project_path, self.build_dir, self.container_image,
             unavoidable_asm_path=unavoidable_asm_path, verbose=self.verbose,
             ccache_dir=self.ccache_dir,
+            source_subdir=self.source_subdir,
         )
         autotools_actions = AutotoolsActions(
             project_path, self.build_dir, self.container_image,
@@ -472,7 +476,12 @@ class Builder:
             " configure/make: auto-injected). Only "
             "applicable when using clang with LTO. The -g "
             "flag is required so .bc files retain debug info"
-            " for downstream analysis.\n\n"
+            " for downstream analysis.\n"
+            "- For C++ projects, ALWAYS use libc++ as the "
+            "standard library (cmake: add '-stdlib=libc++' "
+            "to CMAKE_CXX_FLAGS). This is required so C++ "
+            "stdlib symbols match our summarized libc++ "
+            "database.\n\n"
             "**Assembly Verification:**\n"
             "After each successful build (cmake_build or "
             "make_build), an assembly check runs "
@@ -547,6 +556,16 @@ class Builder:
             "If you recognize this project, leverage your "
             "knowledge of its typical build requirements."
         )
+
+        if self.source_subdir:
+            system += (
+                f"\n\n**IMPORTANT - Monorepo sub-project:** "
+                f"The CMakeLists.txt is in the '{self.source_subdir}/' "
+                f"subdirectory, NOT at the project root. "
+                f"cmake_configure will automatically point CMake "
+                f"to this subdirectory — you do NOT need to "
+                f"handle this yourself."
+            )
 
         # Build the initial user message, incorporating prior config if available
         prior_config = self._load_prior_config(project_name)
@@ -1267,13 +1286,13 @@ class Builder:
                 flags.extend([
                     "-DCMAKE_INTERPROCEDURAL_OPTIMIZATION=ON",
                     "-DCMAKE_C_FLAGS=-g -flto=full -save-temps=obj",
-                    "-DCMAKE_CXX_FLAGS=-g -flto=full -save-temps=obj",
+                    "-DCMAKE_CXX_FLAGS=-g -flto=full -save-temps=obj -stdlib=libc++",
                 ])
             else:
                 flags.extend([
                     "-DCMAKE_INTERPROCEDURAL_OPTIMIZATION=ON",
                     "-DCMAKE_C_FLAGS=-g -flto=full",
-                    "-DCMAKE_CXX_FLAGS=-g -flto=full",
+                    "-DCMAKE_CXX_FLAGS=-g -flto=full -stdlib=libc++",
                 ])
 
         if self.prefer_static:
@@ -1294,11 +1313,13 @@ class Builder:
         else:
             build_dir = project_path / "build"
 
-        unavoidable_asm_path = self._get_unavoidable_asm_path(project_path.name)
+        artifact_name = self.artifact_name or project_path.name
+        unavoidable_asm_path = self._get_unavoidable_asm_path(artifact_name)
         actions = CMakeActions(
             project_path, build_dir, self.container_image,
             unavoidable_asm_path=unavoidable_asm_path, verbose=self.verbose,
             ccache_dir=self.ccache_dir,
+            source_subdir=self.source_subdir,
         )
 
         if self.verbose:
@@ -1391,7 +1412,8 @@ class Builder:
             compile_commands_src = project_path / "compile_commands.json"
 
         if output_dir is None:
-            output_dir = Path("build-scripts") / project_path.name
+            artifact_name = self.artifact_name or project_path.name
+            output_dir = Path("build-scripts") / artifact_name
             output_dir.mkdir(parents=True, exist_ok=True)
 
         compile_commands_dst = output_dir / "compile_commands.json"
