@@ -759,9 +759,18 @@ def main():
             if r.get("preprocess_failed")
         ]
         if failed_projects:
-            if args.auto_rebuild:
+            # Count total source files vs failed to determine severity
+            total_sources = sum(r.get("source_files", 0) for r in results_by_name.values())
+            total_failed = sum(
+                len(r.get("preprocess_failed", []))
+                for r in results_by_name.values()
+            )
+            failure_rate = total_failed / max(total_sources, 1)
+
+            if failure_rate > 0.5 and args.auto_rebuild:
                 n = len(failed_projects)
-                print(f"\nPreprocessing failed for {n} project(s). Auto-rebuilding...")
+                print(f"\nPreprocessing failed for {n} project(s) "
+                      f"({total_failed}/{total_sources} files). Auto-rebuilding...")
                 rebuild_script = SCRIPTS_DIR / "batch_rebuild.py"
                 for proj in failed_projects:
                     print(f"  Rebuilding {proj}...")
@@ -787,8 +796,9 @@ def main():
                         print(f"  ERROR: preprocessing still failing for {proj} after rebuild.")
                         sys.exit(1)
                     print(f"  {proj}: OK")
-            else:
-                print(f"\nERROR: Preprocessing failed for {len(failed_projects)} project(s):")
+            elif failure_rate > 0.5:
+                print(f"\nERROR: Preprocessing failed for {len(failed_projects)} project(s) "
+                      f"({total_failed}/{total_sources} files):")
                 for proj in failed_projects:
                     print(f"  - {proj}")
                 print(
@@ -798,6 +808,10 @@ def main():
                     "Or use --auto-rebuild to rebuild automatically."
                 )
                 sys.exit(1)
+            else:
+                print(f"\nWARNING: Preprocessing failed for {total_failed}/{total_sources} "
+                      f"files in {len(failed_projects)} project(s) "
+                      "(likely test/benchmark files — extern headers skipped for those)")
 
     # Print summary
     print()

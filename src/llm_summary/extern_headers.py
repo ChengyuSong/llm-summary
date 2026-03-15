@@ -262,6 +262,10 @@ def _make_preprocess_cmd(
 
         flags.append(arg)
 
+    # Append at end so it overrides any earlier -Werror: flags like
+    # -stdlib=libc++ are valid for compilation but unused by -E.
+    flags.append("-Wno-unused-command-line-argument")
+
     return compiler, flags
 
 
