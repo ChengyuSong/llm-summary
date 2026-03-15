@@ -1,12 +1,10 @@
 """Data models for the LLM summary system."""
 
 import difflib
+import re as _re
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any
-
-
-import re as _re
 
 _PATCHED_START_RE = _re.compile(r"#\s*(ifdef|ifndef)\s+PATCHED(?:_\d+)?\s*$")
 _PATCHED_END_RE = _re.compile(r"#\s*endif\b")

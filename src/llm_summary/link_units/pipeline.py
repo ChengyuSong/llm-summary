@@ -8,6 +8,8 @@ Provides:
                                   -- get dep DB Paths for a target
   update_link_units_file(path, units)
                                   -- write updated link_units.json back to disk
+  detect_bc_alias_relations(units)
+                                  -- mark bc_files-subset units as alias_of superset
 """
 
 from __future__ import annotations
@@ -96,3 +98,71 @@ def update_link_units_file(link_units_path: Path, data: dict) -> None:
     """Write the (possibly mutated) link_units.json data back to disk."""
     with open(link_units_path, "w") as f:
         json.dump(data, f, indent=2)
+
+
+def detect_bc_alias_relations(link_units: list[dict]) -> int:
+    """Detect alias relationships from bc_files subset overlap.
+
+    When unit A's bc_files are a strict subset of unit B's bc_files, and
+    neither has objects or link_deps recorded, A is redundant: its functions
+    and call graph are fully covered by B. A is marked ``alias_of: B``
+    (choosing the smallest-extra-files superset as the target).
+
+    Only considers units not already marked alias_of. Idempotent.
+
+    Returns the number of new aliases detected.
+
+    Typical trigger: libjpeg-turbo pattern where libjpeg.a (101 bc files)
+    is a strict subset of libturbojpeg.a (113 bc files).
+    """
+    # Eligible: bc_files populated, no objects, no link_deps, not yet aliased
+    eligible: dict[str, set[str]] = {
+        u["name"]: set(u["bc_files"])
+        for u in link_units
+        if u.get("bc_files")
+        and not u.get("objects")
+        and not u.get("link_deps")
+        and not u.get("alias_of")
+    }
+
+    new_aliases = 0
+    for u in link_units:
+        name = u["name"]
+        if name not in eligible:
+            continue
+        bc_a = eligible[name]
+        if not bc_a:
+            continue
+
+        best_target: str | None = None
+        best_extra: int | None = None
+        for name_b, bc_b in eligible.items():
+            if name_b == name:
+                continue
+            if bc_a < bc_b:  # strict subset
+                extra = len(bc_b) - len(bc_a)
+                if best_target is None or extra < best_extra:  # type: ignore[operator]
+                    best_target = name_b
+                    best_extra = extra
+
+        if best_target:
+            u["alias_of"] = best_target
+            new_aliases += 1
+
+    return new_aliases
+
+
+def propagate_alias_db_paths(link_units: list[dict]) -> None:
+    """Copy db_path from each superset unit to its alias units.
+
+    Call after the main processing loop once superset db_paths are known,
+    so that downstream consumers (import-dep-summaries, gen-harness) resolve
+    alias units to the correct DB without special-casing.
+    """
+    by_name = {u["name"]: u for u in link_units}
+    for u in link_units:
+        alias_target = u.get("alias_of")
+        if alias_target and not u.get("db_path"):
+            target_lu = by_name.get(alias_target)
+            if target_lu and target_lu.get("db_path"):
+                u["db_path"] = target_lu["db_path"]

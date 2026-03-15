@@ -32,11 +32,14 @@ from datetime import datetime
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+from gpr_utils import find_project_dir, get_artifact_name
 from llm_summary.callgraph_import import CallGraphImporter
 from llm_summary.db import SummaryDB
 from llm_summary.link_units.pipeline import (
     build_output_index,
+    detect_bc_alias_relations,
     load_link_units,
     resolve_dep_db_paths,
     topo_sort_link_units,
@@ -305,6 +308,10 @@ def process_project_link_units(
         result["timing_seconds"] = round(time.monotonic() - start, 2)
         return result
 
+    # Detect alias relations (idempotent — re-uses alias_of if already set by
+    # batch_call_graph_gen; handles the case where summarize runs standalone)
+    detect_bc_alias_relations(raw_units)
+
     link_units = topo_sort_link_units(raw_units)
     by_output = build_output_index(link_units)
     project_scan_dir = func_scans_dir / project_name
@@ -323,6 +330,19 @@ def process_project_link_units(
     for lu in link_units:
         target = lu["name"]
         target_start = time.monotonic()
+
+        # Skip alias units: their functions are fully covered by the superset's DB
+        if lu.get("alias_of"):
+            if verbose:
+                print(f"    [{target}] Skipped: alias of {lu['alias_of']}")
+            result["targets"].append({
+                "target": target,
+                "success": True,
+                "alias_of": lu["alias_of"],
+                "error": None,
+                "timing_seconds": 0.0,
+            })
+            continue
 
         # Resolve DB path
         db_str = lu.get("db_path")
@@ -569,6 +589,12 @@ def main():
         help="Directory containing func-scans/<project>/functions.db",
     )
     parser.add_argument(
+        "--source-dir",
+        type=Path,
+        default=Path("/data/csong/opensource"),
+        help="Root directory where projects are cloned (for monorepo resolution)",
+    )
+    parser.add_argument(
         "--backend",
         type=str,
         choices=["claude", "openai", "ollama", "llamacpp", "gemini"],
@@ -682,7 +708,11 @@ def main():
     if args.filter:
         filter_str = args.filter.lower()
         before = len(projects)
-        projects = [p for p in projects if filter_str in p["project_dir"].lower()]
+        projects = [
+            p for p in projects
+            if filter_str in p["project_dir"].lower()
+            or filter_str in p.get("name", "").lower()
+        ]
         print(f"Filter '{args.filter}': {len(projects)}/{before} projects")
 
     skip_set: set[str] = set()
@@ -704,11 +734,18 @@ def main():
         projects = projects[:args.limit]
         print(f"Limited to {args.limit} projects")
 
-    # Only keep projects that have a functions.db
-    eligible = [
-        p for p in projects
-        if (args.func_scans_dir / p["project_dir"] / "functions.db").exists()
-    ]
+    # Resolve artifact names and filter to projects with scan data
+    def _has_scan_data(p: dict) -> bool:
+        """Check if a project has functions.db or link_units.json."""
+        project_path = find_project_dir(p, args.source_dir)
+        name = get_artifact_name(p, project_path) if project_path else p["project_dir"]
+        scan_dir = args.func_scans_dir / name
+        return (
+            (scan_dir / "functions.db").exists()
+            or (scan_dir / "link_units.json").exists()
+        )
+
+    eligible = [p for p in projects if _has_scan_data(p)]
     skipped_no_db = len(projects) - len(eligible)
     if skipped_no_db:
         print(f"Skipped {skipped_no_db} projects with no functions.db")
@@ -725,11 +762,16 @@ def main():
     failed = 0
 
     for i, project in enumerate(projects, 1):
-        project_dir = project["project_dir"]
-        print(f"[{i}/{len(projects)}] {project_dir}...", end=" ", flush=True)
+        project_path = find_project_dir(project, args.source_dir)
+        artifact_name = (
+            get_artifact_name(project, project_path)
+            if project_path
+            else project["project_dir"]
+        )
+        print(f"[{i}/{len(projects)}] {artifact_name}...", end=" ", flush=True)
 
         result = process_project(
-            project_name=project_dir,
+            project_name=artifact_name,
             func_scans_dir=args.func_scans_dir,
             summary_types=args.types,
             backend=args.backend,
@@ -753,7 +795,7 @@ def main():
             succeeded += 1
             if args.success_list:
                 with open(args.success_list, "a") as f:
-                    f.write(f"{project_dir}\n")
+                    f.write(f"{artifact_name}\n")
         else:
             error_preview = (result["error"] or "")[:80]
             print(f"FAIL ({error_preview})")
