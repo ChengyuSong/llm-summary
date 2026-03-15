@@ -157,6 +157,7 @@ def _scan_files(
     verbose: bool,
     preprocess: bool = False,
     cc_path: str | Path | None = None,
+    build_root: Path | None = None,
 ) -> tuple[int, int, int, list[str]]:
     """Extract functions, scan address-taken, find callsites. Returns (funcs, targets, callsites).
 
@@ -165,6 +166,7 @@ def _scan_files(
     """
     extractor = FunctionExtractor(
         compile_commands=cc, project_root=project_root,
+        build_root=build_root,
         enable_preprocessing=preprocess,
     )
 
@@ -240,7 +242,7 @@ def _scan_files(
 def _scan_one_target(args: tuple) -> dict[str, Any]:
     """Scan a single link-unit target. Designed for ProcessPoolExecutor."""
     (target, source_files, match_desc, cc_entries_json_path,
-     db_path_str, project_root, verbose, preprocess) = args
+     db_path_str, project_root, verbose, preprocess, build_root) = args
 
     target_start = time.monotonic()
     target_result: dict[str, Any] = {
@@ -266,6 +268,7 @@ def _scan_one_target(args: tuple) -> dict[str, Any]:
             source_files, cc, db, project_root, verbose,
             preprocess=preprocess,
             cc_path=cc_entries_json_path,
+            build_root=build_root,
         )
     finally:
         db.close()
@@ -355,7 +358,7 @@ def scan_project_link_units(
 
             work_items.append((
                 target, source_files, match_desc, str(tmp_path),
-                db_path_str, project_root, verbose, preprocess,
+                db_path_str, project_root, verbose, preprocess, build_dir,
             ))
 
         num_workers = jobs if jobs > 0 else (os.cpu_count() or 1)
@@ -533,6 +536,7 @@ def scan_project(
                     source_files, cc, db, project_root, verbose,
                     preprocess=preprocess,
                     cc_path=tmp_cc2_path,
+                    build_root=build_dir,
                 )
                 result["preprocess_failed"] = preprocess_failed
                 atfs = db.get_address_taken_functions()

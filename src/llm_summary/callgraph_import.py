@@ -1,9 +1,11 @@
 """Import KAMain call graph JSON into the summary database."""
 
 import json
+import re
 import subprocess
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Any
 
 from .db import SummaryDB
 from .models import CallEdge
@@ -67,22 +69,149 @@ def _normalize_callee_name(name: str) -> str:
     return name
 
 
-def _demangle(name: str) -> str | None:
-    """Demangle a C++ symbol name using c++filt."""
-    if not name.startswith("_Z"):
+def _node_to_name_part(node: Any) -> str | None:
+    """Convert a single AST node to a name string, or None to skip."""
+    kind: str = node.kind
+    if kind == "name":
+        val: str = node.value
+        return None if val == "_GLOBAL__N_1" else val
+    if kind == "oper":
+        return f"operator{node.value}"
+    if kind == "oper_cast":
+        return "operator cast"
+    if kind == "abi":
+        # abi wraps a name or oper — unwrap, skip the tag itself
+        return _node_to_name_part(node.value)
+    return None
+
+
+def _extract_name_parts(name_node: Any) -> list[str]:
+    """Walk an itanium_demangler name AST node and collect qualified name parts.
+
+    Skips _GLOBAL__N_1 (anonymous namespace), template args, and ABI tags.
+    Unwraps cv_qual (const/volatile methods).
+    """
+    node = name_node
+    # Unwrap cv_qual
+    while node.kind == "cv_qual":
+        node = node.value
+    parts: list[str] = []
+    if node.kind == "qual_name":
+        prev_name = ""
+        for part in node.value:
+            if part.kind == "ctor":
+                parts.append(prev_name)
+            elif part.kind == "dtor":
+                parts.append(f"~{prev_name}")
+            elif part.kind == "tpl_args":
+                pass
+            else:
+                name = _node_to_name_part(part)
+                if name is not None:
+                    prev_name = name
+                    parts.append(name)
+    else:
+        name = _node_to_name_part(node)
+        if name is not None:
+            parts.append(name)
+    return parts
+
+
+def _demangle_structured(name: str) -> str | None:
+    """Demangle using itanium_demangler AST — returns qualified name without
+    template args, ABI tags, anonymous namespace prefixes, or return types."""
+    try:
+        from itanium_demangler import parse  # type: ignore[import-untyped]
+    except ImportError:
         return None
     try:
-        result = subprocess.run(
-            ["c++filt", name],
-            capture_output=True, text=True, timeout=5,
-        )
-        if result.returncode == 0:
-            demangled = result.stdout.strip()
-            if demangled != name:
-                return demangled
-    except (FileNotFoundError, subprocess.TimeoutExpired):
-        pass
+        node = parse(name)
+    except Exception:
+        return None
+    if node is None:
+        return None
+    # Extract the name node from function or top-level
+    name_node = node.name if node.kind == "func" else node
+    # Unwrap cv_qual (const/volatile methods)
+    if name_node.kind == "cv_qual":
+        name_node = name_node.value
+    parts: list[str] = _extract_name_parts(name_node)
+    if not parts:
+        return None
+    return "::".join(parts)
+
+
+def _demangle(name: str) -> str | None:
+    """Demangle a C++ symbol name via llvm-cxxfilt or c++filt subprocess."""
+    if not name.startswith("_Z"):
+        return None
+    for tool in ("llvm-cxxfilt", "c++filt"):
+        try:
+            result = subprocess.run(
+                [tool, name],
+                capture_output=True, text=True, timeout=5,
+            )
+            if result.returncode == 0:
+                demangled = result.stdout.strip()
+                if demangled != name:
+                    return demangled
+        except FileNotFoundError:
+            continue
+        except subprocess.TimeoutExpired:
+            pass
     return None
+
+
+def _strip_return_type(qualified: str) -> str:
+    """Strip leading return type from a demangled C++ qualified name.
+
+    c++filt/llvm-cxxfilt sometimes includes the return type:
+    'unsigned long libunwind::getSparcWCookie' -> 'libunwind::getSparcWCookie'
+    'std::__1::pair<char*, char*> std::__1::__copy_trivial::operator()' ->
+        'std::__1::__copy_trivial::operator()'
+
+    Finds the last space at template depth 0 where the text after it
+    contains '::' (i.e. looks like a qualified name, not a parameter).
+    """
+    # Find last space at depth 0 where remainder contains '::'
+    depth = 0
+    last_space = -1
+    for i, ch in enumerate(qualified):
+        if ch == "<":
+            depth += 1
+        elif ch == ">":
+            depth -= 1
+        elif ch == " " and depth == 0:
+            # Check if remainder looks like a qualified name
+            rest = qualified[i + 1:]
+            if "::" in rest:
+                last_space = i
+    if last_space == -1:
+        return qualified
+    return qualified[last_space + 1:]
+
+
+_ANON_NS_PREFIX = "(anonymous namespace)::"
+_ABI_TAG_RE = re.compile(r"\[abi:[^\]]*\]")
+
+
+def _strip_anon_ns(name: str) -> str:
+    """Strip '(anonymous namespace)::' prefixes from a demangled name.
+
+    libclang omits anonymous namespace qualifiers, but c++filt includes them.
+    """
+    while name.startswith(_ANON_NS_PREFIX):
+        name = name[len(_ANON_NS_PREFIX):]
+    return name
+
+
+def _strip_abi_tags(name: str) -> str:
+    """Strip [abi:...] tags from a demangled name.
+
+    c++filt emits e.g. 'std::__1::all_of[abi:ne180100]' but libclang
+    stores just 'std::__1::all_of'.
+    """
+    return _ABI_TAG_RE.sub("", name)
 
 
 def _extract_base_name(demangled: str) -> str:
@@ -97,6 +226,24 @@ def _extract_base_name(demangled: str) -> str:
     # Take the last component after '::'
     parts = demangled.split("::")
     return parts[-1]
+
+
+def _strip_template_params(name: str) -> str:
+    """Strip template parameters from a demangled C++ name.
+
+    E.g., 'ns::Cls<A, B>::method(int)' -> 'ns::Cls::method(int)'
+    Handles nested templates like 'A<B<C>>::foo' -> 'A::foo'.
+    """
+    result: list[str] = []
+    depth = 0
+    for ch in name:
+        if ch == "<":
+            depth += 1
+        elif ch == ">":
+            depth -= 1
+        elif depth == 0:
+            result.append(ch)
+    return "".join(result)
 
 
 _DOCKER_PATH_PREFIXES = ("/workspace/src/", "/workspace/build/")
@@ -146,6 +293,8 @@ class CallGraphImporter:
         # Pre-build DB lookup caches
         self._db_funcs_by_name: dict[str, list[int]] = {}
         self._db_funcs_by_name_file: dict[tuple[str, str], int] = {}
+        # id -> (file_path, line_start, line_end) for line-based disambiguation
+        self._db_func_loc: dict[int, tuple[str, int, int]] = {}
         self._build_db_caches()
 
     def _build_db_caches(self) -> None:
@@ -156,6 +305,60 @@ class CallGraphImporter:
                 continue
             self._db_funcs_by_name.setdefault(f.name, []).append(f.id)
             self._db_funcs_by_name_file[(f.name, f.file_path)] = f.id
+            self._db_func_loc[f.id] = (f.file_path, f.line_start, f.line_end)
+
+    def _match_demangled(
+        self, qualified: str, ka_file: str,
+        ka_line_start: int, ka_line_end: int = 0,
+    ) -> int | None:
+        """Try to match a demangled qualified name against DB functions."""
+        ids = self._db_funcs_by_name.get(qualified, [])
+        if len(ids) == 1:
+            return ids[0]
+        if len(ids) > 1:
+            return self._pick_by_location(ids, ka_file, ka_line_start, ka_line_end)
+        return None
+
+    def _pick_by_location(
+        self, ids: list[int], ka_file: str, ka_line_start: int,
+        ka_line_end: int = 0,
+    ) -> int | None:
+        """Disambiguate multiple name-matched candidates using file + line.
+
+        Returns the DB function ID whose file suffix matches and whose
+        line range overlaps with (or is closest to) the KAMain range,
+        or None if no candidate matches by file.
+        """
+        if not ka_file or not ka_line_start:
+            return None
+        if not ka_line_end:
+            ka_line_end = ka_line_start
+        ka_suffix = _file_suffix(ka_file, components=2)
+        candidates: list[tuple[int, int]] = []  # (id, distance)
+        for fid in ids:
+            loc = self._db_func_loc.get(fid)
+            if loc is None:
+                continue
+            db_file, db_start, db_end = loc
+            # Check file suffix match
+            if not db_file.endswith(ka_suffix):
+                continue
+            # Check range overlap: [ka_start, ka_end] ∩ [db_start, db_end]
+            if ka_line_start <= db_end and ka_line_end >= db_start:
+                # Overlapping — compute overlap size (larger = better, use
+                # negative distance so sort picks it first)
+                overlap = min(ka_line_end, db_end) - max(ka_line_start, db_start)
+                candidates.append((fid, -overlap))
+            else:
+                dist = min(
+                    abs(ka_line_start - db_end), abs(ka_line_end - db_start),
+                )
+                candidates.append((fid, dist))
+        if not candidates:
+            return None
+        # Pick the closest (prefer overlapping, i.e. negative distance)
+        candidates.sort(key=lambda x: x[1])
+        return candidates[0][0]
 
     def import_json(
         self, json_path: Path, clear_existing: bool = False
@@ -173,8 +376,15 @@ class CallGraphImporter:
 
         if clear_existing:
             deleted = self.db.clear_call_edges()
+            stubs_deleted = self.db.clear_call_graph_stubs()
             if self.verbose:
-                print(f"Cleared {deleted} existing call edges")
+                print(f"Cleared {deleted} existing call edges, {stubs_deleted} stubs")
+            # Rebuild caches after deleting stubs
+            if stubs_deleted:
+                self._db_funcs_by_name.clear()
+                self._db_funcs_by_name_file.clear()
+                self._db_func_loc.clear()
+                self._build_db_caches()
 
         # Phase 1: Resolve all function keys to DB IDs
         for ka_key, ka_info in functions.items():
@@ -295,15 +505,43 @@ class CallGraphImporter:
             if len(ids) == 1:
                 func_id = ids[0]
                 stats.functions_matched_by_name += 1
-            elif len(ids) == 0 and name.startswith("_Z"):
-                # Try demangling
-                demangled = _demangle(name)
-                if demangled:
-                    base = _extract_base_name(demangled)
-                    ids = self._db_funcs_by_name.get(base, [])
-                    if len(ids) == 1:
-                        func_id = ids[0]
-                        stats.functions_matched_by_demangle += 1
+            elif len(ids) > 1:
+                func_id = self._pick_by_location(ids, ka_file, ka_line_start, ka_line_end)
+                if func_id is not None:
+                    stats.functions_matched_by_name += 1
+            if func_id is None and name.startswith("_Z"):
+                # Try structured demangling first (AST-based, no string hacks)
+                qualified = _demangle_structured(name)
+                if qualified:
+                    func_id = self._match_demangled(
+                        qualified, ka_file, ka_line_start, ka_line_end,
+                    )
+                # Fall back to c++filt string demangling
+                if func_id is None:
+                    demangled = _demangle(name)
+                    if demangled:
+                        paren_idx = demangled.find("(")
+                        q = demangled[:paren_idx] if paren_idx != -1 else demangled
+                        q = _strip_return_type(q)
+                        q = _strip_anon_ns(q)
+                        q = _strip_abi_tags(q)
+                        if q != qualified:  # avoid re-trying same name
+                            func_id = self._match_demangled(
+                                q, ka_file, ka_line_start, ka_line_end,
+                            )
+                        if func_id is None:
+                            stripped = _strip_template_params(q)
+                            if stripped != q and stripped != qualified:
+                                func_id = self._match_demangled(
+                                    stripped, ka_file, ka_line_start, ka_line_end,
+                                )
+                        if func_id is None:
+                            base = _extract_base_name(demangled)
+                            func_id = self._match_demangled(
+                                base, ka_file, ka_line_start, ka_line_end,
+                            )
+                if func_id is not None:
+                    stats.functions_matched_by_demangle += 1
 
         if func_id is not None:
             stats.functions_matched += 1

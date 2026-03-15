@@ -65,41 +65,50 @@ class CompileCommandsDB:
         self._commands[file_path] = flags
         self._directory_map[file_path] = directory
 
+    # Flags to drop: codegen/optimisation/warning flags irrelevant to parsing,
+    # plus flags that confuse libclang.
+    _SKIP_FLAGS = frozenset((
+        "-c", "-g", "-O0", "-O1", "-O2", "-O3", "-Os", "-Oz", "-Og",
+        "-fvisibility-inlines-hidden", "-fdiagnostics-color",
+        "-fsized-deallocation",
+    ))
+    _SKIP_PREFIXES = (
+        "-O",           # optimisation
+        "-W",           # warnings
+        "-f",           # codegen feature flags (-flto, -fPIC, …)
+        "-g",           # debug info variants (-gdwarf-4 etc.)
+        "-march", "-mtune", "-mcpu",  # arch tuning
+        "-save-temps",  # codegen artefact
+    )
+
     def _extract_flags(self, args: list[str], source_file: str, directory: str = "") -> list[str]:
-        """
-        Extract relevant compiler flags from command arguments.
+        """Extract compiler flags relevant to parsing from a compile command.
 
-        Keeps:
-        - Include paths (-I, -isystem, -iquote)
-        - Defines (-D)
-        - Standard selection (-std=)
-        - Other relevant flags
-
-        Removes:
-        - Compiler executable
-        - Output file (-o and its argument)
-        - Source file itself
-        - Dependency generation flags (-M*, -MF, etc.)
+        Uses a denylist: drops compiler executable, source/output files,
+        dependency-generation flags, and codegen/warning/optimisation flags
+        that don't affect how libclang resolves headers or parses the AST.
+        Everything else is kept.
         """
-        flags = []
+        flags: list[str] = []
         skip_next = False
+        source_name = Path(source_file).name
 
         for i, arg in enumerate(args):
             if skip_next:
                 skip_next = False
                 continue
 
-            # Skip compiler executable (first argument usually)
-            if i == 0 and (arg.endswith("cc") or arg.endswith("c++") or
-                          arg.endswith("gcc") or arg.endswith("g++") or
-                          arg.endswith("clang") or arg.endswith("clang++")):
+            # Skip compiler executable (first argument)
+            if i == 0 and ("/" in arg or arg.startswith("cc") or
+                          arg.endswith(("cc", "c++", "gcc", "g++",
+                                        "clang", "clang++", "clang++-18"))):
                 continue
 
-            # Skip the source file itself
-            if arg == source_file or arg.endswith(Path(source_file).name):
+            # Skip source file
+            if arg == source_file or arg == source_name:
                 continue
 
-            # Skip output file arguments
+            # Skip output file
             if arg == "-o":
                 skip_next = True
                 continue
@@ -107,60 +116,27 @@ class CompileCommandsDB:
                 continue
 
             # Skip dependency generation flags
-            if arg.startswith("-M") or arg.startswith("-MF"):
-                if arg == "-MF" or arg == "-MT" or arg == "-MQ":
+            if arg.startswith("-M"):
+                if arg in ("-MF", "-MT", "-MQ"):
                     skip_next = True
                 continue
 
-            # Skip compile-only flag (we just want to parse, not compile)
-            if arg == "-c":
+            # Skip codegen / warning / optimisation flags
+            if arg in self._SKIP_FLAGS:
+                continue
+            if any(arg.startswith(p) for p in self._SKIP_PREFIXES):
                 continue
 
-            # Keep include paths, resolving relative paths against directory
-            if arg.startswith("-I") or arg.startswith("-isystem") or arg.startswith("-iquote"):
-                if directory:
-                    for prefix in ("-I", "-isystem", "-iquote"):
-                        if arg.startswith(prefix):
-                            inc_path = arg[len(prefix):]
-                            if inc_path and not Path(inc_path).is_absolute():
-                                arg = f"{prefix}{Path(directory) / inc_path}"
-                            break
-                flags.append(arg)
-                continue
+            # Resolve relative include paths against directory
+            if directory and arg.startswith(("-I", "-isystem", "-iquote")):
+                for prefix in ("-isystem", "-iquote", "-I"):
+                    if arg.startswith(prefix):
+                        inc_path = arg[len(prefix):]
+                        if inc_path and not Path(inc_path).is_absolute():
+                            arg = f"{prefix}{Path(directory) / inc_path}"
+                        break
 
-            # Keep defines
-            if arg.startswith("-D"):
-                flags.append(arg)
-                continue
-
-            # Keep standard selection
-            if arg.startswith("-std="):
-                flags.append(arg)
-                continue
-
-            # Keep warning flags (might affect parsing in edge cases)
-            if arg.startswith("-W"):
-                continue  # Actually skip these for clang parsing
-
-            # Keep architecture flags
-            if arg.startswith("-m") and not arg.startswith("-march"):
-                continue  # Skip most -m flags
-
-            # Keep target triple
-            if arg == "-target" or arg.startswith("--target"):
-                if arg == "-target":
-                    if i + 1 < len(args):
-                        flags.append(arg)
-                        flags.append(args[i + 1])
-                        skip_next = True
-                else:
-                    flags.append(arg)
-                continue
-
-            # Keep framework paths (macOS)
-            if arg.startswith("-F"):
-                flags.append(arg)
-                continue
+            flags.append(arg)
 
         return flags
 

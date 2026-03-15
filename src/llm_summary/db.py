@@ -1724,6 +1724,18 @@ class SummaryDB:
         self.conn.commit()
         return cursor.rowcount
 
+    def clear_call_graph_stubs(self) -> int:
+        """Delete stub functions (empty source) created by previous imports.
+
+        Should be called together with clear_call_edges when re-importing
+        a call graph, so that stale stubs don't pollute name-based matching.
+        """
+        cursor = self.conn.execute(
+            "DELETE FROM functions WHERE source = '' OR source IS NULL"
+        )
+        self.conn.commit()
+        return cursor.rowcount
+
     def insert_function_stub(
         self,
         name: str,

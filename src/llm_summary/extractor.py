@@ -142,6 +142,7 @@ class FunctionExtractor:
         libclang_path: str | None = None,
         compile_commands: CompileCommandsDB | None = None,
         project_root: Path | str | None = None,
+        build_root: Path | str | None = None,
         enable_preprocessing: bool = False,
     ):
         """
@@ -154,6 +155,9 @@ class FunctionExtractor:
             project_root: If provided, functions defined in headers under this directory
                 are also extracted (not just functions in the main source file).
                 Deduplication across files is handled automatically via USR tracking.
+            build_root: If provided, headers under this directory are also extracted.
+                Covers headers generated/copied during configure (e.g. CMake builds
+                that copy libc++ headers into the build tree).
             enable_preprocessing: If True, run clang -E on each file and store
                 macro-expanded source as pp_source on each Function.
         """
@@ -162,12 +166,23 @@ class FunctionExtractor:
         self.compile_args = compile_args or []
         self.compile_commands = compile_commands
         self.project_root = Path(project_root).resolve() if project_root else None
+        self.build_root = Path(build_root).resolve() if build_root else None
+        # Pre-compute string prefixes for fast _is_extractable_file checks
+        self._root_prefixes: tuple[str, ...] = tuple(
+            str(r) + "/" for r in (self.project_root, self.build_root) if r is not None
+        )
+        # Cache resolved path strings to avoid repeated Path.resolve() calls
+        self._resolved_cache: dict[str, str] = {}
         self._file_contents: dict[str, str] = {}
         self._file_lines_cache: dict[str, list[str]] = {}
         # USR-based dedup: tracks libclang Unified Symbol Resolution strings so that
         # inline/template functions defined in headers are not extracted more than once
         # when multiple translation units include the same header.
         self._seen_usrs: set[str] = set()
+        # File-level dedup: headers already walked in a previous TU are skipped
+        # entirely, avoiding redundant AST traversal of the same template-heavy
+        # headers across translation units.
+        self._seen_files: set[str] = set()
         self.enable_preprocessing = enable_preprocessing
         self._preprocessor: SourcePreprocessor | None = None
         # Cache of preprocessed files: file_path -> PreprocessedFile
@@ -227,6 +242,11 @@ class FunctionExtractor:
         self._extract_functions_recursive(
             tu.cursor, str(file_path), functions
         )
+        # Mark all header files encountered during this walk so that
+        # subsequent TUs skip them (functions already extracted via USR dedup).
+        for func in functions:
+            if func.file_path != str(file_path):
+                self._seen_files.add(func.file_path)
 
         # Populate pp_source from preprocessed output
         if pp_file is not None and pp_file.mappings:
@@ -306,19 +326,19 @@ class FunctionExtractor:
     def _is_extractable_file(self, node_file: str, main_file: str) -> bool:
         """Return True if a node from node_file should be extracted.
 
-        Always accepts the main translation-unit file. When project_root is set,
-        also accepts header files that live inside the project source tree (i.e.
-        not system headers or third-party headers outside the project).
+        Always accepts the main translation-unit file. Also accepts header
+        files that live inside project_root or build_root (i.e. not system
+        headers or third-party headers outside the project).
         """
         if node_file == main_file:
             return True
-        if self.project_root is None:
+        if not self._root_prefixes:
             return False
-        try:
-            Path(node_file).resolve().relative_to(self.project_root)
-            return True
-        except ValueError:
-            return False
+        resolved = self._resolved_cache.get(node_file)
+        if resolved is None:
+            resolved = str(Path(node_file).resolve())
+            self._resolved_cache[node_file] = resolved
+        return resolved.startswith(self._root_prefixes)
 
     def _extract_functions_recursive(
         self,
@@ -331,10 +351,19 @@ class FunctionExtractor:
             node_file = str(child.location.file) if child.location.file else None
             if node_file is None:
                 continue
+            # Skip headers we've already fully walked in a previous TU
+            if node_file != main_file and node_file in self._seen_files:
+                continue
             if not self._is_extractable_file(node_file, main_file):
                 continue
 
-            if child.kind in (CursorKind.FUNCTION_DECL, CursorKind.CXX_METHOD):
+            if child.kind in (
+                CursorKind.FUNCTION_DECL,
+                CursorKind.CXX_METHOD,
+                CursorKind.FUNCTION_TEMPLATE,
+                CursorKind.CONSTRUCTOR,
+                CursorKind.DESTRUCTOR,
+            ):
                 if child.is_definition():
                     usr = child.get_usr()
                     if usr and usr in self._seen_usrs:
@@ -345,12 +374,13 @@ class FunctionExtractor:
                             self._seen_usrs.add(usr)
                         functions.append(func)
 
-            # Recurse into namespaces and classes
+            # Recurse into namespaces, classes, and extern "C" blocks
             elif child.kind in (
                 CursorKind.NAMESPACE,
                 CursorKind.CLASS_DECL,
                 CursorKind.STRUCT_DECL,
                 CursorKind.CLASS_TEMPLATE,
+                CursorKind.LINKAGE_SPEC,
             ):
                 self._extract_functions_recursive(child, main_file, functions)
 
@@ -747,14 +777,23 @@ class FunctionExtractor:
             if c.kind in (
                 CursorKind.FUNCTION_DECL,
                 CursorKind.CXX_METHOD,
+                CursorKind.FUNCTION_TEMPLATE,
                 CursorKind.CONSTRUCTOR,
                 CursorKind.DESTRUCTOR,
                 CursorKind.NAMESPACE,
                 CursorKind.CLASS_DECL,
                 CursorKind.STRUCT_DECL,
+                CursorKind.CLASS_TEMPLATE,
             ):
                 if c.spelling:
-                    parts.append(c.spelling)
+                    name = c.spelling
+                    # Strip template params from spelling so names are
+                    # consistent with demangled output for matching.
+                    # Templates are still visible in source/signature.
+                    idx = name.find("<")
+                    if idx != -1:
+                        name = name[:idx]
+                    parts.append(name)
             c = c.semantic_parent
 
         parts.reverse()
