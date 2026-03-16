@@ -4055,6 +4055,147 @@ def show_issues(
         db.close()
 
 
+@main.command("triage")
+@click.option("--db", "db_path", required=True, help="Database file path")
+@click.option(
+    "--backend",
+    type=click.Choice(["claude", "openai", "ollama", "llamacpp", "gemini"]),
+    default="claude",
+)
+@click.option("--model", default=None, help="Model name to use")
+@click.option("--llm-host", default="localhost", help="Hostname for local LLM backends")
+@click.option("--llm-port", default=None, type=int, help="Port for local LLM backends")
+@click.option("--disable-thinking", is_flag=True, help="Disable extended thinking")
+@click.option("-v", "--verbose", is_flag=True)
+@click.option(
+    "-f", "--function", "function_names", multiple=True,
+    help="Function name(s) to triage. If omitted, triages all functions with issues.",
+)
+@click.option(
+    "--severity", default=None,
+    type=click.Choice(["high", "medium", "low"]),
+    help="Only triage issues of this severity.",
+)
+@click.option(
+    "--issue-index", default=None, type=int,
+    help="Triage a specific issue index (requires -f with a single function).",
+)
+@click.option(
+    "-o", "--output", default=None,
+    help="Write JSON results to file (default: print to stdout).",
+)
+def triage(
+    db_path: str, backend: str, model: str | None,
+    llm_host: str, llm_port: int | None, disable_thinking: bool,
+    verbose: bool, function_names: tuple[str, ...],
+    severity: str | None, issue_index: int | None,
+    output: str | None,
+) -> None:
+    """Triage verification issues: prove safety or feasibility.
+
+    The triage agent analyzes each issue by reading caller/callee context
+    from the DB and produces a proof:
+
+    \b
+    - safe: updated contracts showing the issue cannot manifest
+    - feasible: execution path showing the violation is reachable
+
+    Examples:
+        llm-summary triage --db func-scans/zlib/functions.db -f deflate -v
+        llm-summary triage --db ... --severity high --backend gemini
+        llm-summary triage --db ... -f gz_write --issue-index 0 -v
+    """
+    from .triage import TriageAgent
+
+    if issue_index is not None and len(function_names) != 1:
+        console.print("[red]--issue-index requires exactly one -f function[/red]")
+        sys.exit(1)
+
+    kwargs = _build_backend_kwargs(backend, llm_host, llm_port, disable_thinking)
+    llm = create_backend(backend, model=model, **kwargs)
+    db = SummaryDB(db_path)
+
+    try:
+        agent = TriageAgent(db, llm, verbose=verbose)
+
+        # Resolve functions to triage
+        if function_names:
+            functions = []
+            for fn in function_names:
+                found = db.get_function_by_name(fn)
+                if not found:
+                    console.print(f"[red]Function '{fn}' not found[/red]")
+                    sys.exit(1)
+                functions.append(found[0])
+        else:
+            # All functions with verification issues
+            functions = []
+            for func in db.get_all_functions():
+                assert func.id is not None
+                vs = db.get_verification_summary_by_function_id(func.id)
+                if vs and vs.issues:
+                    functions.append(func)
+
+        severity_filter = {severity} if severity else None
+        all_results = []
+
+        for func in functions:
+            assert func.id is not None
+
+            if issue_index is not None:
+                # Triage a specific issue
+                vs = db.get_verification_summary_by_function_id(func.id)
+                if not vs or not vs.issues:
+                    console.print(f"[yellow]No issues for {func.name}[/yellow]")
+                    continue
+                if issue_index >= len(vs.issues):
+                    console.print(
+                        f"[red]Issue index {issue_index} out of range "
+                        f"(0..{len(vs.issues) - 1})[/red]"
+                    )
+                    sys.exit(1)
+                issue = vs.issues[issue_index]
+                result = agent.triage_issue(func, issue, issue_index, vs)
+                all_results.append(result)
+            else:
+                results = agent.triage_function(
+                    func, severity_filter=severity_filter,
+                )
+                all_results.extend(results)
+
+        # Output
+        results_json = [r.to_dict() for r in all_results]
+
+        if output:
+            with open(output, "w") as f:
+                json.dump(results_json, f, indent=2)
+                f.write("\n")
+            console.print(f"[green]Wrote {len(all_results)} results to {output}[/green]")
+        else:
+            # Print summary table
+            safe_count = sum(1 for r in all_results if r.hypothesis == "safe")
+            feasible_count = sum(1 for r in all_results if r.hypothesis == "feasible")
+            console.print(
+                f"\n[bold]Triage Results[/bold]: {len(all_results)} issues — "
+                f"[green]{safe_count} safe[/green], "
+                f"[red]{feasible_count} feasible[/red]"
+            )
+            for r in all_results:
+                style = "green" if r.hypothesis == "safe" else "red"
+                console.print(
+                    f"  [{style}]{r.hypothesis}[/{style}] "
+                    f"{r.function_name}#{r.issue_index}: "
+                    f"{r.issue.issue_kind} — {r.reasoning[:120]}"
+                )
+
+            if verbose:
+                console.print("\n[dim]Full JSON:[/dim]")
+                console.print(json.dumps(results_json, indent=2))
+
+    finally:
+        db.close()
+
+
 @main.command("gen-harness")
 @click.option("--db", "db_path", required=True, help="Database file path")
 @click.option(
