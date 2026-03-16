@@ -50,9 +50,10 @@ class TriageResult:
     # Feasibility proof: caller chain that can trigger the issue
     feasible_path: list[str] = field(default_factory=list)
 
-    # For future ucsan validation
+    # For ucsan validation
     assumptions: list[str] = field(default_factory=list)
     assertions: list[str] = field(default_factory=list)
+    relevant_functions: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -65,6 +66,7 @@ class TriageResult:
             "feasible_path": self.feasible_path,
             "assumptions": self.assumptions,
             "assertions": self.assertions,
+            "relevant_functions": self.relevant_functions,
         }
 
 
@@ -205,7 +207,8 @@ TRIAGE_TOOL_DEFINITIONS: list[dict[str, Any]] = [
         "name": "transition_phase",
         "description": (
             "Transition to the next workflow phase. "
-            "ANALYZE->HYPOTHESIZE, HYPOTHESIZE->VERDICT."
+            "ANALYZE->HYPOTHESIZE, HYPOTHESIZE->VERDICT. "
+            "VALIDATE phase is auto-entered after submit_verdict."
         ),
         "input_schema": {
             "type": "object",
@@ -297,8 +300,19 @@ TRIAGE_TOOL_DEFINITIONS: list[dict[str, Any]] = [
                         "'buf[offset] is out-of-bounds when offset >= len'."
                     ),
                 },
+                "relevant_functions": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": (
+                        "Functions relevant to this proof. Include the target "
+                        "function, callers that constrain its inputs, and "
+                        "callees whose behavior matters. These will be kept "
+                        "as real code in symbolic validation; everything else "
+                        "gets stubbed."
+                    ),
+                },
             },
-            "required": ["hypothesis", "reasoning"],
+            "required": ["hypothesis", "reasoning", "relevant_functions"],
         },
     },
 ]
@@ -367,6 +381,9 @@ contracts. Your job is to check the CALLER CONTEXT:
 
 ### VERDICT phase
 1. Call submit_verdict with your proof
+2. Include relevant_functions: all functions whose behavior matters for
+   the proof (the target, constraining callers, relevant callees). These
+   will be used to set up symbolic validation scope.
 
 ## Rules
 - Always read the function source and at least its direct callers
@@ -643,7 +660,7 @@ class TriageToolExecutor:
 # Triage controller (ReAct loop)
 # ---------------------------------------------------------------------------
 
-MAX_TURNS = 25
+MAX_TURNS = 50
 
 
 class TriageAgent:
@@ -681,9 +698,13 @@ class TriageAgent:
         verdict_result: dict[str, Any] | None = None
 
         for turn in range(MAX_TURNS):
+            # Filter tools to only those allowed in current phase
+            allowed = PHASE_TOOLS.get(executor.phase, set())
+            tools = [t for t in TRIAGE_TOOL_DEFINITIONS if t["name"] in allowed]
+
             response = self.llm.complete_with_tools(
                 messages=messages,
-                tools=TRIAGE_TOOL_DEFINITIONS,
+                tools=tools,
                 system=TRIAGE_SYSTEM_PROMPT,
             )
 
@@ -847,6 +868,7 @@ class TriageAgent:
                 feasible_path=verdict.get("feasible_path", []),
                 assumptions=verdict.get("assumptions", []),
                 assertions=verdict.get("assertions", []),
+                relevant_functions=verdict.get("relevant_functions", []),
             )
 
         return TriageResult(

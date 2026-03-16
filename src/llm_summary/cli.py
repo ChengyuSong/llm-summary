@@ -2105,6 +2105,31 @@ def find_allocator_candidates(
         db.close()
 
 
+def _find_entry_functions(db: SummaryDB, relevant: list[str]) -> list[str]:
+    """Find entry functions: those with no callers within the relevant set.
+
+    Multiple entries mean multiple call chains to validate separately.
+    """
+    name_to_id: dict[str, int] = {}
+    for name in relevant:
+        funcs = db.get_function_by_name(name)
+        if funcs and funcs[0].id is not None:
+            name_to_id[name] = funcs[0].id
+
+    id_to_name = {v: k for k, v in name_to_id.items()}
+
+    has_relevant_caller: set[str] = set()
+    for name, fid in name_to_id.items():
+        callee_ids = db.get_callees(fid)
+        for cid in callee_ids:
+            callee_name = id_to_name.get(cid)
+            if callee_name and callee_name != name:
+                has_relevant_caller.add(callee_name)
+
+    candidates = [n for n in relevant if n not in has_relevant_caller and n in name_to_id]
+    return candidates if candidates else [relevant[0]]
+
+
 def _load_compile_commands(
     compile_commands_path: str,
     project_path: str | None = None,
@@ -4257,15 +4282,16 @@ def triage(
          "Requires existing harness files in the output directory.",
 )
 @click.option(
-    "--assess-issue", "assess_issue_index", default=None, type=int,
-    help="Inject assertion for a specific verification issue (0-based index). "
-         "Reads existing shim, adds targeted assertion, and rebuilds.",
+    "--validate", default=None, type=click.Path(exists=True),
+    help="Path to triage verdict JSON. Generates a harness to validate "
+         "the triage conclusion using ucsan. Entry function and scope are "
+         "derived from the verdict's relevant_functions list.",
 )
 def gen_harness(
     db_path, backend, model, llm_host, llm_port,
     disable_thinking, verbose, log_llm, output_dir, function_names,
     ko_clang_path, symsan_dir, compile_commands_path, project_path,
-    build_dir, bc_file, plan, plan_only, assess_issue_index,
+    build_dir, bc_file, plan, plan_only, validate,
 ):
     """Generate test harnesses for contract-guided symbolic execution.
 
@@ -4318,6 +4344,54 @@ def gen_harness(
             compile_commands=compile_commands,
         )
 
+        # Validate a triage verdict
+        if validate:
+            with open(validate) as vf:
+                verdict_data = json.load(vf)
+
+            # Support both single verdict and list of verdicts
+            verdicts = verdict_data if isinstance(verdict_data, list) else [verdict_data]
+
+            for v in verdicts:
+                relevant = v.get("relevant_functions", [])
+                func_name = v.get("function_name", "")
+                if not relevant:
+                    relevant = [func_name] if func_name else []
+                if not relevant:
+                    console.print("[red]No relevant_functions in verdict[/red]")
+                    continue
+
+                entries = _find_entry_functions(db, relevant)
+                console.print(
+                    f"Validating {func_name}#{v.get('issue_index', '?')} "
+                    f"({v.get('hypothesis', '?')}): "
+                    f"entries={entries}, scope={relevant}"
+                )
+
+                for entry in entries:
+                    triage_ctx = {
+                        "hypothesis": v.get("hypothesis", ""),
+                        "reasoning": v.get("reasoning", ""),
+                        "severity": v.get("issue", {}).get("severity", ""),
+                        "issue_kind": v.get("issue", {}).get("issue_kind", ""),
+                        "issue_description": v.get("issue", {}).get("description", ""),
+                        "assumptions": v.get("assumptions", []),
+                        "assertions": v.get("assertions", []),
+                        "real_functions": relevant,
+                    }
+
+                    result = generator.validate_triage(
+                        entry,
+                        triage_context=triage_ctx,
+                        output_dir=output_dir,
+                        bc_file=bc_file,
+                    )
+                    if result:
+                        console.print(f"[green]Harness generated: {entry}[/green]")
+                    else:
+                        console.print(f"[red]Failed: {entry}[/red]")
+            return
+
         # Determine which functions to process
         if function_names:
             targets = list(function_names)
@@ -4327,25 +4401,6 @@ def gen_harness(
                 "JOIN memsafe_summaries m ON m.function_id = f.id"
             ).fetchall()
             targets = [r[0] for r in rows]
-
-        # Assess a specific verification issue
-        if assess_issue_index is not None:
-            if len(targets) != 1:
-                console.print("[red]--assess-issue requires exactly one -f function[/red]")
-                return
-            func_name = targets[0]
-            console.print(f"Assessing issue #{assess_issue_index} for {func_name}")
-            result = generator.assess_issue(
-                func_name,
-                issue_index=assess_issue_index,
-                output_dir=output_dir,
-                bc_file=bc_file,
-            )
-            if result:
-                console.print(f"Assertion injected for issue #{assess_issue_index}")
-            else:
-                console.print("[red]Failed to inject assertion[/red]")
-            return
 
         # Generate harnesses (unless --plan-only)
         if not plan_only:

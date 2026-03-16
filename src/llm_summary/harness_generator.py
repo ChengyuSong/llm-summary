@@ -11,11 +11,11 @@ import re
 import subprocess
 import tempfile
 from pathlib import Path
+from typing import Any
 
 from .compile_commands import CompileCommandsDB
 from .db import SummaryDB
 from .llm.base import LLMBackend
-from .models import SafetyIssue
 
 # ---- Shim template: thin C file linked against project bitcode ----
 
@@ -338,22 +338,26 @@ Output ONLY the JSON block, no other text.
 """
 
 
-ASSESS_ISSUE_PROMPT = """
+TRIAGE_VALIDATE_PROMPT = """
 
-## Issue to Assess
+## Triage Validation Task
 
-A verification pass found the following potential issue in `{name}`. \
-In the test() function you generate above, add code AFTER the call to \
-`{name}(...)` that would trigger a memory access violation detectable \
-by ucsan's runtime bounds checker if this issue is real.
+A triage agent analyzed a verification issue in `{name}` and produced the
+following verdict. Generate a harness that symbolically validates it.
 
-- Kind: {issue_kind}
-- Severity: {severity}
-- Description: {description}
+- Hypothesis: {hypothesis}
+- Issue: [{severity}] {issue_kind} — {issue_description}
+- Reasoning: {reasoning}
 
-ucsan tracks pointer bounds for every allocation — any out-of-bounds \
-access is caught at runtime. Use `volatile` reads/writes to prevent \
-optimization. Do NOT use assert/abort.
+{assumptions_section}
+{assertions_section}
+{real_functions_section}
+
+ucsan has integrated checks for integer overflow, null deref, buffer overflow,
+and use-after-free (like ubsan + asan). For safety proofs, add __taint_assume()
+calls modeling caller constraints — ucsan should find NO violations under those
+assumptions. For feasibility proofs, use minimal/no assumptions so ucsan can
+explore freely and trigger built-in checks.
 """
 
 
@@ -395,8 +399,7 @@ class HarnessGenerator:
             "errors": 0,
             "fix_attempts": 0,
         }
-        self._assess_issue: SafetyIssue | None = None
-        self._assess_issue_index: int | None = None
+        self._triage_context: dict[str, Any] | None = None
 
     @property
     def stats(self) -> dict[str, int]:
@@ -472,21 +475,41 @@ class HarnessGenerator:
             postconds_section=postconds_section,
         )
 
-        # Append issue context when assessing a specific verification issue
-        if self._assess_issue is not None:
-            issue = self._assess_issue
-            prompt += ASSESS_ISSUE_PROMPT.format(
-                issue_kind=issue.issue_kind,
-                severity=issue.severity,
-                description=issue.description,
+        # Append triage validation context if set
+        if self._triage_context is not None:
+            ctx = self._triage_context
+            assumptions = ctx.get("assumptions", [])
+            assertions = ctx.get("assertions", [])
+            real_fns = ctx.get("real_functions", [])
+            prompt += TRIAGE_VALIDATE_PROMPT.format(
                 name=func.name,
+                hypothesis=ctx.get("hypothesis", "unknown"),
+                severity=ctx.get("severity", ""),
+                issue_kind=ctx.get("issue_kind", ""),
+                issue_description=ctx.get("issue_description", ""),
+                reasoning=ctx.get("reasoning", ""),
+                assumptions_section=(
+                    "Assumptions (add as __taint_assume calls before the target call):\n"
+                    + "\n".join(f"  __taint_assume({a});" for a in assumptions)
+                    if assumptions else ""
+                ),
+                assertions_section=(
+                    "Explicit assertions (add after the call):\n"
+                    + "\n".join(f"  {a};" for a in assertions)
+                    if assertions else ""
+                ),
+                real_functions_section=(
+                    f"Real functions (do NOT generate stubs for these — they exist "
+                    f"in bitcode): {', '.join(real_fns)}"
+                    if real_fns else ""
+                ),
             )
 
         try:
             if self.verbose:
                 label = (f"  Generating shim for: {func_name} "
-                         f"(assess issue #{self._assess_issue_index})"
-                         if self._assess_issue else
+                         f"(triage validate: {self._triage_context.get('hypothesis')})"
+                         if self._triage_context else
                          f"  Generating shim for: {func_name}")
                 print(label)
 
@@ -607,48 +630,24 @@ class HarnessGenerator:
                 traceback.print_exc()
             return None
 
-    def assess_issue(
+    def validate_triage(
         self,
         func_name: str,
-        issue_index: int,
+        triage_context: dict[str, Any],
         output_dir: str | None = None,
         bc_file: str | None = None,
     ) -> tuple[str, dict] | None:
-        """Generate a harness that includes a targeted assertion for a verification issue.
+        """Generate a harness to symbolically validate a triage verdict.
 
-        Same as generate() but appends the issue description to the shim prompt
-        so the LLM produces stubs + test() + assertion in a single pass.
+        Sets triage context (hypothesis, assumptions, assertions, real_functions)
+        on the generator so generate() appends TRIAGE_VALIDATE_PROMPT to the
+        shim prompt.
         """
-        # Look up verification issue
-        funcs = self.db.get_function_by_name(func_name)
-        if not funcs:
-            if self.verbose:
-                print(f"  Function not found: {func_name}")
-            return None
-        func = funcs[0]
-        assert func.id is not None
-
-        vsummary = self.db.get_verification_summary_by_function_id(func.id)
-        if not vsummary or not vsummary.issues:
-            if self.verbose:
-                print(f"  No verification issues for: {func_name}")
-            return None
-        if issue_index >= len(vsummary.issues):
-            if self.verbose:
-                print(f"  Issue index {issue_index} out of range "
-                      f"(0..{len(vsummary.issues) - 1})")
-            return None
-
-        issue = vsummary.issues[issue_index]
-
-        # Stash the issue context — generate() will append it to the prompt
-        self._assess_issue = issue
-        self._assess_issue_index = issue_index
+        self._triage_context = triage_context
         try:
             return self.generate(func_name, output_dir=output_dir, bc_file=bc_file)
         finally:
-            self._assess_issue = None
-            self._assess_issue_index = None
+            self._triage_context = None
 
     def generate_plan(
         self,
