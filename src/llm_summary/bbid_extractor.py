@@ -281,55 +281,142 @@ def format_annotated_source(infos: list[BBInfo], source_path: str) -> str:
     return "\n".join(out)
 
 
-def parse_cfg_dump(cfg_path: str) -> dict[str, list[dict]]:
-    """Parse UCSanPass --ucsan-dump-cfg output.
+def format_annotated_function(
+    infos: list[BBInfo],
+    source_path: str,
+    line_start: int,
+    line_end: int,
+) -> str:
+    """Format a single function's source with BB ID annotations.
 
-    Format per line: FN:bbid:TYPE[:successors]
-      C (conditional):   FN:bbid:C:T:true_bb:F:false_bb
-      D (unconditional): FN:bbid:D:next_bb
-      S (switch):        FN:bbid:S:case1_bb:case2_bb:...
-      R (return):        FN:bbid:R
-      U (unreachable):   FN:bbid:U
+    Like format_annotated_source but only outputs lines in
+    [line_start, line_end] (1-based, inclusive).
+    """
+    try:
+        source_lines = Path(source_path).read_text().splitlines()
+    except FileNotFoundError:
+        return f"# Source file not found: {source_path}"
+
+    # Group BBInfo by line number (only within our range)
+    line_bbs: dict[int, list[BBInfo]] = {}
+    for info in infos:
+        if Path(info.file).name == Path(source_path).name:
+            if line_start <= info.line <= line_end:
+                line_bbs.setdefault(info.line, []).append(info)
+
+    out = []
+    for lineno in range(line_start, min(line_end + 1, len(source_lines) + 1)):
+        text = source_lines[lineno - 1]
+        if lineno in line_bbs:
+            bbs = line_bbs[lineno]
+            annotations = []
+            for bb in bbs:
+                parts = [f"BB:{bb.bb_id}"]
+                if bb.is_conditional:
+                    parts.append("cond")
+                    if bb.cmp_op:
+                        parts.append(bb.cmp_op)
+                    if bb.true_bb_id is not None and bb.false_bb_id is not None:
+                        parts.append(f"T:{bb.true_bb_id}")
+                        parts.append(f"F:{bb.false_bb_id}")
+                if bb.is_loop_exit:
+                    parts.append("loop")
+                annotations.append(" ".join(parts))
+            tag = " | ".join(annotations)
+            out.append(f"{text}  /* [{tag}] */")
+        else:
+            out.append(text)
+
+    return "\n".join(out)
+
+
+def parse_cfg_dump(cfg_path: str) -> list[BBInfo]:
+    """Parse UCSanPass CFG dump with debug info.
+
+    Format per line: file,line,col:bbid:TYPE[:successors]
+      C (conditional):   file,line,col:bbid:C:T:true_bb:F:false_bb
+      D (unconditional): file,line,col:bbid:D:next_bb
+      S (switch):        file,line,col:bbid:S:case1_bb:case2_bb:...
+      R (return):        file,line,col:bbid:R
+      U (unreachable):   file,line,col:bbid:U
+
+    The file,line,col field uses commas as internal separators.
+    When no debug info is available, falls back to funcname,0,0.
 
     Returns:
-        Dict mapping function name to list of BB dicts.
+        List of BBInfo sorted by bb_id.
     """
-    result: dict[str, list[dict]] = {}
+    results: list[BBInfo] = []
     with open(cfg_path) as f:
-        for line in f:
-            line = line.strip()
-            if not line:
+        for raw_line in f:
+            raw_line = raw_line.strip()
+            if not raw_line:
                 continue
-            parts = line.split(":")
-            func = parts[0]
-            bb_id = int(parts[1])
-            kind = parts[2]
-            entry: dict = {"bb_id": bb_id, "type": kind,
-                           "true_bb": None, "false_bb": None,
-                           "succs": []}
+            # Split on colon — the location field (before first colon that
+            # follows a digit sequence for bb_id) uses commas internally.
+            # Format: LOC:bbid:TYPE:...  where LOC = file,line,col
+            # Strategy: split by ':', find the bb_id (first all-digit field
+            # after position 0), everything before it is the location.
+            parts = raw_line.split(":")
+            # Find the index of the bb_id field: first all-digit part
+            bid_idx = None
+            for idx, p in enumerate(parts):
+                if idx > 0 and p.isdigit():
+                    bid_idx = idx
+                    break
+            if bid_idx is None:
+                continue
+
+            loc_str = ":".join(parts[:bid_idx])
+            bb_id = int(parts[bid_idx])
+            kind = parts[bid_idx + 1] if bid_idx + 1 < len(parts) else "U"
+            rest = parts[bid_idx + 2:]
+
+            # Parse location: file,line,col
+            loc_parts = loc_str.rsplit(",", 2)
+            if len(loc_parts) == 3:
+                file_path = loc_parts[0]
+                line = int(loc_parts[1]) if loc_parts[1].isdigit() else 0
+                col = int(loc_parts[2]) if loc_parts[2].isdigit() else 0
+            else:
+                file_path = loc_str
+                line = 0
+                col = 0
+
+            info = BBInfo(bb_id=bb_id, file=file_path, line=line, col=col)
+
             if kind == "C":
-                entry["true_bb"] = int(parts[4])
-                entry["false_bb"] = int(parts[6])
-                entry["succs"] = [entry["true_bb"], entry["false_bb"]]
-            elif kind == "D":
-                entry["succs"] = [int(parts[3])]
-            elif kind == "S":
-                entry["succs"] = [int(p) for p in parts[3:]]
-            result.setdefault(func, []).append(entry)
-    return result
+                info.is_conditional = True
+                # rest = ["T", true_bb, "F", false_bb]
+                if len(rest) >= 4:
+                    info.true_bb_id = int(rest[1])
+                    info.false_bb_id = int(rest[3])
+            # D, S, R, U — no special fields needed for annotation
+
+            results.append(info)
+
+    results.sort(key=lambda x: x.bb_id)
+    return results
 
 
 if __name__ == "__main__":
     import sys
     if len(sys.argv) < 2:
-        print(f"Usage: {sys.argv[0]} <instrumented.ll> [source_dir] [source_file]")
+        print(f"Usage: {sys.argv[0]} <cfg_dump.txt> [source_file]")
+        print(f"       {sys.argv[0]} --ir <instrumented.ll> [source_dir] [source_file]")
         sys.exit(1)
 
-    ir_path = sys.argv[1]
-    source_dir = sys.argv[2] if len(sys.argv) > 2 else None
-    source_file = sys.argv[3] if len(sys.argv) > 3 else None
-
-    infos = extract_bbids(ir_path, source_dir)
+    if sys.argv[1] == "--ir" and len(sys.argv) > 2:
+        # Legacy: parse from IR
+        ir_path = sys.argv[2]
+        source_dir = sys.argv[3] if len(sys.argv) > 3 else None
+        source_file = sys.argv[4] if len(sys.argv) > 4 else None
+        infos = extract_bbids(ir_path, source_dir)
+    else:
+        # New: parse from CFG dump
+        cfg_path = sys.argv[1]
+        source_file = sys.argv[2] if len(sys.argv) > 2 else None
+        infos = parse_cfg_dump(cfg_path)
 
     if source_file:
         print(format_annotated_source(infos, source_file))

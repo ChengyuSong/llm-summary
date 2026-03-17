@@ -50,19 +50,18 @@ assume_init(ptr, size, id), assume_freed(ptr, id) -> void *
 
 
 PLAN_PROMPT = """\
-You are a concolic execution planner. Given a function's source code annotated \
-with BB IDs and branch successors, its memory safety contracts, and callee \
-contracts, produce a trace plan that tells the concolic executor which \
-edges (transitions between BBs) to target.
+You are a concolic execution planner. Given source code annotated with BB IDs \
+and branch successors, produce a trace plan that tells the concolic executor \
+which edges (transitions between BBs) to target.
 
 ## How concolic execution works
 
-The executor starts with an empty input and runs the function symbolically. \
+The executor starts with an empty input and runs symbolically. \
 At each conditional branch, the SMT solver can generate a new input ("seed") \
 that flips the branch. The scheduler picks which seed to run next.
 
 Each conditional branch is annotated as:
-  `/* [BB:X cond <pred> T:Y F:Z] */`
+  `/* [BB:X cond T:Y F:Z] */`
 where X is the branch's BB ID, Y is the BB entered when the condition is true, \
 and Z is the BB entered when false.
 
@@ -72,57 +71,26 @@ for each direction — do NOT assume source-level if/else maps directly.
 
 A branch marked `loop` is a loop back-edge.
 
-## Target Function
+## Context
 
-Name: `{name}`
-Signature: `{signature}`
+{context}
 
-## Contracts to Assess
+## Annotated Source Code
 
-{contracts_section}
-
-## Callee Contracts
-
-{callee_section}
-
-## Post-conditions
-
-{postconds_section}
-
-## Annotated Source Code (with BB IDs and branch successors)
-
-```c
-{annotated_source}
-```
+{annotated_sources}
 
 ## Your Task
 
-Your goal is to plan paths that **exercise memory operations** so the concolic \
-executor can check the function's memory safety contracts. Only target paths \
-where pointer dereferences, buffer accesses, or callee calls with pointer args \
-actually happen.
+{goal}
 
-**Key principle**: A path that just returns an error code (e.g., `return -1`) \
-without performing any memory operations is trivially safe — there is nothing \
-to check. Do NOT waste traces on early-return error paths. Instead, focus on \
-paths that reach code like:
-- Array/buffer indexing: `buf[i] = ...`, `memcpy(dst, src, n)`
-- Pointer dereferences: `state->field`, `*ptr`
-- Callee calls that pass pointers: `gz_write(state, buf, len)`
-
-Similarly, a branch that guards a callee call and checks the callee's return \
-value is only interesting for the **continuation** side (where execution proceeds \
-to more memory operations), not the error side (where the function returns early).
-
-Output a JSON trace plan with edges:
+Output a JSON trace plan:
 
 ```json
 {{
-  "function": "{name}",
   "traces": [
     {{
-      "goal": "what memory safety property this path exercises",
-      "description": "brief explanation of what memory operations are reached",
+      "goal": "what this path tests or what counter-example it seeks",
+      "description": "which branches to take and why",
       "target_edges": [{{"from": 100000, "to": 100001}}],
       "priority": 1
     }}
@@ -137,18 +105,15 @@ Output a JSON trace plan with edges:
 ```
 
 Guidelines:
-- `target_edges`: Each edge is `{{"from": X, "to": Y}}` meaning we want execution \
-to transition from BB X to BB Y. Use the T:/F: annotations to pick the right \
-successor. A trace may have multiple edges if the path requires multiple branches.
+- `target_edges`: Each edge is `{{"from": X, "to": Y}}` meaning we want \
+execution to go from BB X to BB Y. Use the T:/F: annotations to pick the \
+right successor. A trace may have multiple edges if the path requires \
+multiple branches.
 - `priority`: 1 = must explore, 2 = nice to have, 3 = low priority.
-- `deprioritize`: branches that lead to early-return error paths with no memory \
-operations, deeper loop iterations, and arithmetic branches unrelated to memory.
-- Focus on paths that reach **different memory access patterns** \
-(e.g., different buffer indexing, different callee calls with pointer args).
-- Don't plan traces for paths that just return an error code without doing \
-any memory operations — these are trivially safe.
-- Loops: typically one iteration is enough to test bounds. Mark loop back-edges \
-as deprioritize unless the access pattern changes across iterations.
+- `deprioritize`: branches leading to irrelevant paths (error returns with \
+no memory ops, deep loop iterations, arithmetic unrelated to the goal).
+- Loops: one iteration usually suffices. Mark loop back-edges as deprioritize \
+unless the access pattern changes across iterations.
 
 Output ONLY the JSON block, no other text.
 """
@@ -472,10 +437,30 @@ class HarnessGenerator:
                     print("    Failed to extract C code from response")
                 return None
 
+            # Resolve validation scope (all relevant functions + source files)
+            scope_fns: list[str] | None = None
+            source_files: list[str] | None = None
+            if self._triage_context is not None:
+                real_fns = self._triage_context.get("real_functions", [])
+                if real_fns:
+                    scope_fns = list(real_fns)
+                    if func_name not in scope_fns:
+                        scope_fns.insert(0, func_name)
+                    seen: set[str] = set()
+                    source_files = []
+                    for rn in real_fns:
+                        rfuncs = self.db.get_function_by_name(rn)
+                        if rfuncs and rfuncs[0].file_path:
+                            fp = rfuncs[0].file_path
+                            if fp not in seen:
+                                seen.add(fp)
+                                source_files.append(fp)
+
             # Compile-and-fix loop (ko-clang handles instrumentation)
             if self.ko_clang_path:
                 ucsan_config = self._build_ucsan_config(
                     func_name, shim_callees,
+                    scope_functions=scope_fns,
                 )
 
                 for attempt in range(self.max_fix_attempts):
@@ -572,12 +557,13 @@ class HarnessGenerator:
                 config_path = out / f"config_{func_name}.yaml"
                 ucsan_config = self._build_ucsan_config(
                     func_name, shim_callees,
+                    scope_functions=scope_fns,
                 )
                 config_path.write_text(ucsan_config)
 
-                # Write build script
                 build_script = self._build_script(
                     func_name, out, bc_file, file_path=func.file_path,
+                    source_files=source_files,
                 )
                 script_path = out / f"build_{func_name}.sh"
                 script_path.write_text(build_script)
@@ -641,7 +627,6 @@ class HarnessGenerator:
             Plan dict or None on error.
         """
         from .bbid_extractor import (
-            extract_bbids,
             format_annotated_source,
             parse_cfg_dump,
         )
@@ -665,44 +650,19 @@ class HarnessGenerator:
                 print(f"  No source file for: {func_name}")
             return None
 
-        # Always recompile from source with clang-14 -g so the bitcode is
-        # compatible with opt-14 used in _instrument_for_bbids, regardless of
-        # what compiler produced the supplied bc_file.
-        if self.compile_commands and source_file:
-            recompiled = self._compile_to_bc_debug(source_file, out)
-            if recompiled:
-                bc_file = recompiled
-        if not bc_file:
-            if self.verbose:
-                print(f"  No bitcode available for: {func_name}")
-            return None
-
-        # Run UCSanPass to get BB ID annotations and CFG dump
-        result_path = self._instrument_for_bbids(func_name, bc_file, out)
-        if not result_path:
-            if self.verbose:
-                print(f"  Failed to instrument for BB IDs: {func_name}")
-            return None
-
-        # Extract BB IDs from IR (for source line mapping)
-        ir_path = out / f"bbids_{func_name}.ll"
-        source_dir = str(Path(source_file).parent)
-        infos = extract_bbids(str(ir_path), source_dir)
-
-        # Merge successor info from CFG dump (authoritative T/F mapping)
+        # CFG dump is generated by the build script (ko-clang with
+        # KO_TRACE_BB=1 KO_DUMP_CFG=file).  It must exist before
+        # calling generate_plan().
         cfg_path = out / f"cfg_{func_name}.txt"
-        if cfg_path.exists():
-            cfg = parse_cfg_dump(str(cfg_path))
-            cfg_bbs = {e["bb_id"]: e for e in cfg.get(func_name, [])}
-            for info in infos:
-                if info.bb_id in cfg_bbs:
-                    entry = cfg_bbs[info.bb_id]
-                    if entry["type"] == "C":
-                        info.is_conditional = True
-                        info.true_bb_id = entry["true_bb"]
-                        info.false_bb_id = entry["false_bb"]
+        if not cfg_path.exists():
             if self.verbose:
-                print(f"  Loaded CFG: {len(cfg_bbs)} BBs from {cfg_path.name}")
+                print(f"  No CFG dump found: {cfg_path}")
+                print("  Run the build script first to generate BB IDs.")
+            return None
+
+        infos = parse_cfg_dump(str(cfg_path))
+        if self.verbose:
+            print(f"  Loaded CFG: {len(infos)} BBs from {cfg_path.name}")
 
         annotated = format_annotated_source(infos, source_file)
 
@@ -720,14 +680,38 @@ class HarnessGenerator:
         callee_contracts = self._gather_callee_contracts(func.id)
         postconds = self._gather_postconditions(func.id)
 
-        # Build prompt
+        # Build context (contracts) and goal (exercise memory ops)
+        context = (
+            f"### Target Function\n\n"
+            f"Name: `{func.name}`\n"
+            f"Signature: `{func.signature}`\n\n"
+            f"### Contracts\n\n"
+            f"{self._format_contracts(contracts)}\n\n"
+            f"### Callee Contracts\n\n"
+            f"{self._format_callee_contracts(callee_contracts)}\n\n"
+            f"### Post-conditions\n\n"
+            f"{self._format_postconditions(postconds)}"
+        )
+
+        goal = (
+            "Plan paths that **exercise memory operations** so the concolic "
+            "executor can check the function's memory safety contracts. "
+            "Only target paths where pointer dereferences, buffer accesses, "
+            "or callee calls with pointer args actually happen.\n\n"
+            "**Key principle**: A path that just returns an error code without "
+            "performing any memory operations is trivially safe — skip it. "
+            "Focus on paths that reach:\n"
+            "- Array/buffer indexing: `buf[i] = ...`, `memcpy(dst, src, n)`\n"
+            "- Pointer dereferences: `state->field`, `*ptr`\n"
+            "- Callee calls that pass pointers: `func(state, buf, len)`"
+        )
+
+        annotated_block = f"### `{func.name}`\n\n```c\n{annotated}\n```"
+
         prompt = PLAN_PROMPT.format(
-            name=func.name,
-            signature=func.signature,
-            contracts_section=self._format_contracts(contracts),
-            callee_section=self._format_callee_contracts(callee_contracts),
-            postconds_section=self._format_postconditions(postconds),
-            annotated_source=annotated,
+            context=context,
+            annotated_sources=annotated_block,
+            goal=goal,
         )
 
         try:
@@ -803,96 +787,222 @@ class HarnessGenerator:
                 traceback.print_exc()
             return None
 
-    def _compile_to_bc_debug(self, source_file: str, output_dir: Path) -> str | None:
-        """Compile source to BC with -O1 -g (for loop detection + debug info)."""
-        if not self.compile_commands:
-            return None
+    def generate_validation_plan(
+        self,
+        verdict: dict[str, Any],
+        output_dir: str,
+        cfg_dump: str | None = None,
+    ) -> dict | None:
+        """Generate a cross-function trace plan to validate a triage verdict.
 
-        source_path = Path(source_file)
-        if not source_path.exists():
-            return None
+        Looks up all relevant_functions, annotates their source with BB IDs
+        from the CFG dump, and asks the LLM to find counter-example paths.
 
-        flags = self.compile_commands.get_compile_flags(source_file)
-        if not flags:
-            return None
+        Args:
+            verdict: Triage verdict dict (from verdict JSON).
+            output_dir: Directory containing harness + CFG dump.
+            cfg_dump: Path to CFG dump file. If None, looks for
+                cfg_{func_name}.txt in output_dir.
 
-        # Filter and force -O1 -g
-        filtered = []
-        for f in flags:
-            if f.startswith(("-flto", "-save-temps", "-g", "-O")):
-                continue
-            filtered.append(f)
-
-        bc_name = source_path.stem + "_dbg.bc"
-        bc_path = output_dir / bc_name
-
-        cmd = ["clang-14"] + filtered + [
-            "-O1", "-g",
-            "-emit-llvm", "-c", str(source_path), "-o", str(bc_path),
-        ]
-
-        if self.verbose:
-            print(f"    Compiling with -O1 -g: {source_path.name} -> {bc_name}")
-
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
-        if result.returncode != 0:
-            if self.verbose:
-                print(f"    Debug BC compilation failed:\n{result.stderr[:500]}")
-            return None
-
-        return str(bc_path)
-
-    def _instrument_for_bbids(
-        self, func_name: str, bc_file: str, output_dir: Path,
-    ) -> str | None:
-        """Run UCSanPass only on BC to get BB ID annotations and CFG dump.
-
-        Returns path to the IR file, or None on failure.
-        CFG dump is written as a side-effect to cfg_{func_name}.txt.
+        Returns:
+            Plan dict or None on error.
         """
-        if not self.symsan_dir:
-            return None
-
-        ucsan_pass = self.symsan_dir / "lib" / "symsan" / "UCSanPass.so"
-        # Use target ucsan abilist if it exists, otherwise standard
-        target_abilist = output_dir / f"target_ucsan_abilist_{func_name}.txt"
-        if not target_abilist.exists():
-            target_abilist = self.symsan_dir / "lib" / "symsan" / "ucsan_abilist.txt"
-
-        config_path = output_dir / f"config_{func_name}.yaml"
-        ir_path = output_dir / f"bbids_{func_name}.ll"
-        cfg_path = output_dir / f"cfg_{func_name}.txt"
-
-        env = {
-            "METADATA": str(config_path),
-            "KO_USE_THOROUPY": "1",
-            "KO_CC": "clang-14",
-            "PATH": os.environ.get("PATH", ""),
-            "HOME": os.environ.get("HOME", ""),
-        }
-
-        cmd = [
-            "opt-14",
-            "-load", str(ucsan_pass),
-            f"-load-pass-plugin={ucsan_pass}",
-            f"-ucsan-abilist={target_abilist}",
-            "-ucsan-with-taint=true",
-            "-ucsan-trace-bb",
-            f"-ucsan-dump-cfg={cfg_path}",
-            "-passes=ucsan",
-            "-S", "-disable-verify",
-            bc_file, "-o", str(ir_path),
-        ]
-
-        result = subprocess.run(
-            cmd, capture_output=True, text=True, timeout=60, env=env,
+        from .bbid_extractor import (
+            format_annotated_function,
+            parse_cfg_dump,
         )
-        if result.returncode != 0:
+
+        out = Path(output_dir)
+        func_name = verdict["function_name"]
+        relevant = verdict.get("relevant_functions", [func_name])
+        hypothesis = verdict.get("hypothesis", "unknown")
+        issue = verdict.get("issue", {})
+
+        # Find CFG dump
+        if cfg_dump:
+            cfg_path = Path(cfg_dump)
+        else:
+            cfg_path = out / f"cfg_{func_name}.txt"
+        if not cfg_path.exists():
             if self.verbose:
-                print(f"    UCSan instrumentation failed:\n{result.stderr[:500]}")
+                print(f"  No CFG dump found: {cfg_path}")
+                print("  Run the build script first to generate BB IDs.")
             return None
 
-        return str(ir_path)
+        infos = parse_cfg_dump(str(cfg_path))
+        if self.verbose:
+            print(f"  Loaded CFG: {len(infos)} BBs from {cfg_path.name}")
+
+        # Look up all relevant functions and annotate their source
+        annotated_blocks = []
+        all_funcs = []
+        for rname in relevant:
+            funcs = self.db.get_function_by_name(rname)
+            if not funcs:
+                if self.verbose:
+                    print(f"  Function not found: {rname}")
+                continue
+            func = funcs[0]
+            all_funcs.append(func)
+
+            if not func.file_path or not func.line_start or not func.line_end:
+                if self.verbose:
+                    print(f"  No source location for: {rname}")
+                continue
+
+            annotated = format_annotated_function(
+                infos, func.file_path, func.line_start, func.line_end,
+            )
+            bb_count = sum(
+                1 for i in infos
+                if Path(i.file).name == Path(func.file_path).name
+                and func.line_start <= i.line <= func.line_end
+            )
+            annotated_blocks.append(
+                f"### `{func.name}` ({func.file_path}:{func.line_start}-"
+                f"{func.line_end}, {bb_count} BBs)\n\n```c\n{annotated}\n```"
+            )
+
+        if not annotated_blocks:
+            if self.verbose:
+                print("  No functions annotated — cannot generate plan")
+            return None
+
+        # Build context from verdict
+        assumptions = verdict.get("assumptions", [])
+        assertions = verdict.get("assertions", [])
+
+        assumptions_text = "None."
+        if assumptions:
+            assumptions_text = "\n".join(
+                f"  {i}. {a}" for i, a in enumerate(assumptions, 1)
+            )
+
+        assertions_text = "None."
+        if assertions:
+            assertions_text = "\n".join(
+                f"  {i}. {a}" for i, a in enumerate(assertions, 1)
+            )
+
+        context = (
+            f"### Triage Verdict\n\n"
+            f"- Function: `{func_name}`\n"
+            f"- Hypothesis: **{hypothesis}**\n"
+            f"- Issue: [{issue.get('severity', '')}] "
+            f"{issue.get('issue_kind', '')} — "
+            f"{issue.get('description', '')}\n\n"
+            f"### Reasoning\n\n"
+            f"{verdict.get('reasoning', 'N/A')}\n\n"
+            f"### Assumptions\n\n{assumptions_text}\n\n"
+            f"### Assertions\n\n{assertions_text}\n\n"
+            f"All functions listed below are **real code** (not stubs). "
+            f"The executor explores actual code paths across function "
+            f"boundaries."
+        )
+
+        # Build goal based on hypothesis
+        if hypothesis == "safe":
+            goal = (
+                "The verdict claims this code is **safe**. Your job is to "
+                "find paths that could **disprove** this — a counter-example "
+                "where the safety assumption is violated.\n\n"
+                "Specifically, look for paths where:\n"
+                + "\n".join(
+                    f"- Assumption could fail: {a}" for a in assumptions
+                )
+                + "\n\nIf such a path exists, ucsan will find the violation. "
+                "If not, the verdict is confirmed."
+            )
+        else:
+            feasible = verdict.get("feasible_path", [])
+            path_text = " → ".join(feasible) if feasible else "see reasoning"
+            goal = (
+                f"The verdict claims this code is **unsafe**. Your job is to "
+                f"find the specific violation path described in the verdict "
+                f"and confirm the violation happens.\n\n"
+                f"Target path: {path_text}\n\n"
+                f"Guide the executor to reach the described violation. If "
+                f"ucsan reaches it and finds the violation, verdict confirmed."
+            )
+
+        annotated_sources = "\n\n".join(annotated_blocks)
+
+        prompt = PLAN_PROMPT.format(
+            context=context,
+            annotated_sources=annotated_sources,
+            goal=goal,
+        )
+
+        try:
+            if self.verbose:
+                print(f"  Generating validation plan for: {func_name} "
+                      f"({len(relevant)} functions)")
+
+            response = self.llm.complete(prompt)
+            self._stats["llm_calls"] += 1
+
+            if self.log_file:
+                self._log_interaction(
+                    f"{func_name}_validation_plan", prompt, response,
+                )
+
+            # Parse JSON from response
+            json_match = re.search(
+                r"```json\s*(.*?)\s*```", response, re.DOTALL,
+            )
+            if json_match:
+                plan: dict = json.loads(json_match.group(1))
+            else:
+                plan = json.loads(response.strip())
+
+            # Post-process: convert target_edges → target_bids
+            succ_map = {}
+            for bb in infos:
+                if bb.is_conditional and bb.true_bb_id is not None:
+                    succ_map[bb.bb_id] = (bb.true_bb_id, bb.false_bb_id)
+
+            for trace in plan.get("traces", []):
+                edges = trace.pop("target_edges", [])
+                flip_bids = set()
+                for edge in edges:
+                    src = edge.get("from")
+                    dst = edge.get("to")
+                    if src not in succ_map:
+                        if self.verbose:
+                            print(
+                                f"    Warning: BB {src} is not a "
+                                f"conditional branch"
+                            )
+                        continue
+                    true_bb, false_bb = succ_map[src]
+                    if dst in (true_bb, false_bb):
+                        flip_bids.add(src)
+                    elif self.verbose:
+                        print(
+                            f"    Warning: edge {src}→{dst} doesn't "
+                            f"match successors T:{true_bb} F:{false_bb}"
+                        )
+                trace["target_bids"] = sorted(flip_bids)
+
+            # Write plan
+            plan_path = out / f"plan_{func_name}_validation.json"
+            plan_path.write_text(json.dumps(plan, indent=2))
+
+            if self.verbose:
+                n_traces = len(plan.get("traces", []))
+                n_depri = len(plan.get("deprioritize", []))
+                print(f"    Plan: {n_traces} traces, {n_depri} deprioritized")
+                print(f"    Wrote: {plan_path}")
+
+            return plan
+
+        except Exception as e:
+            self._stats["errors"] += 1
+            if self.verbose:
+                print(f"  Error generating validation plan: {e}")
+                import traceback
+                traceback.print_exc()
+            return None
 
     # Primitive C types that don't need void* replacement
     _PRIMITIVE_TYPES = {
@@ -1044,9 +1154,20 @@ class HarnessGenerator:
     def _build_ucsan_config(
         self, func_name: str,
         shim_callees: list[str] | None = None,
+        scope_functions: list[str] | None = None,
     ) -> str:
-        """Build ucsan config YAML (entry + scope + shims)."""
-        lines = ["entry: test", "scope:", f"  - {func_name}"]
+        """Build ucsan config YAML (entry + scope + shims).
+
+        Args:
+            func_name: Primary target function (used as default scope).
+            shim_callees: Functions that get __shim_ stubs.
+            scope_functions: All functions to instrument. Defaults to
+                [func_name] if not provided.
+        """
+        scoped = scope_functions or [func_name]
+        lines = ["entry: test", "scope:"]
+        for s in scoped:
+            lines.append(f"  - {s}")
         if shim_callees:
             lines.append("shims:")
             for cname in shim_callees:
@@ -1057,18 +1178,22 @@ class HarnessGenerator:
     def _build_script(
         self, func_name: str, out_dir: Path, bc_file: str | None,
         file_path: str | None = None,
+        source_files: list[str] | None = None,
     ) -> str:
         """Generate a shell build script using ko-clang.
 
         ko-clang handles UCSanPass + TaintPass instrumentation internally
         using built-in ucsan_abilist.txt and dfsan_abilist.txt.
+
+        When source_files are provided, compiles from source (enables
+        KO_TRACE_BB / KO_DUMP_CFG for BB ID extraction).  Falls back
+        to compiling from bc_file otherwise.
         """
         ko_clang = self.ko_clang_path or "$KO_CLANG"
 
         config_file = out_dir / f"config_{func_name}.yaml"
         shim_file = out_dir / f"shim_{func_name}.c"
-
-        bc = bc_file or "$1"
+        cfg_dump = out_dir / f"cfg_{func_name}.txt"
 
         # Build include flags from compile_commands
         include_flags_str = ""
@@ -1083,20 +1208,87 @@ class HarnessGenerator:
                     f'"{f}"' for f in iflags
                 ) + " \\\n    "
 
-        script = f"""\
+        # Build compile flags for source files (full flags, not just includes)
+        compile_flags_str = ""
+        if self.compile_commands and file_path:
+            cflags = []
+            for flag in self.compile_commands.get_compile_flags(file_path):
+                if flag.startswith(("-flto", "-save-temps")):
+                    continue
+                cflags.append(flag)
+            if cflags:
+                compile_flags_str = " \\\n    ".join(
+                    f'"{f}"' for f in cflags
+                ) + " \\\n    "
+
+        # Determine source files to compile
+        srcs = source_files or ([file_path] if file_path else [])
+
+        if srcs:
+            # Compile from source — enables BB tracing
+            src_compile_steps = []
+            obj_files = []
+            for src in srcs:
+                src_name = Path(src).name
+                obj_name = Path(src).stem + ".o"
+                obj_path = out_dir / obj_name
+                obj_files.append(str(obj_path))
+                src_compile_steps.append(
+                    f'echo "  Compiling {src_name}..."\n'
+                    f'METADATA="$CONFIG" KO_CC=clang-14 '
+                    f'KO_TRACE_BB=1 KO_DUMP_CFG="$CFG" \\\n'
+                    f'    "$KO_CLANG" -c -g \\\n'
+                    f'    {compile_flags_str}"{src}" -o "{obj_path}"'
+                )
+
+            src_steps = "\n".join(src_compile_steps)
+            link_objs = " ".join(f'"{o}"' for o in obj_files)
+
+            script = f"""\
 #!/bin/bash
 set -e
 
 # Build harness for {func_name}
-# Usage: {out_dir}/build_{func_name}.sh [path/to/project.bc]
+KO_CLANG="{ko_clang}"
+CONFIG="{config_file}"
+SHIM="{shim_file}"
+CFG="{cfg_dump}"
+OUT="{out_dir}/{func_name}.ucsan"
 
+# Step 1: Compile shim
+echo "[1/3] Compiling shim..."
+METADATA="$CONFIG" KO_CC=clang-14 \\
+    "$KO_CLANG" -c \\
+    {include_flags_str}"$SHIM" -o "$SHIM.o"
+
+# Step 2: Compile project source (with BB tracing)
+echo "[2/3] Compiling project source..."
+rm -f "$CFG"
+{src_steps}
+
+# Step 3: Link
+echo "[3/3] Linking..."
+METADATA="$CONFIG" KO_USE_THOROUPY=1 KO_CC=clang-14 \\
+    "$KO_CLANG" {link_objs} "$SHIM.o" -o "$OUT"
+
+echo "Built: $OUT"
+echo "CFG dump: $CFG"
+"""
+        else:
+            # Fallback: compile from BC (no BB tracing)
+            bc = bc_file or "$1"
+            script = f"""\
+#!/bin/bash
+set -e
+
+# Build harness for {func_name}
 KO_CLANG="{ko_clang}"
 CONFIG="{config_file}"
 SHIM="{shim_file}"
 BC="${{1:-{bc}}}"
 OUT="{out_dir}/{func_name}.ucsan"
 
-# Step 1: Compile shim (ko-clang instruments with UCSanPass + TaintPass)
+# Step 1: Compile shim
 echo "[1/3] Compiling shim..."
 METADATA="$CONFIG" KO_CC=clang-14 \\
     "$KO_CLANG" -c \\
@@ -1107,7 +1299,7 @@ echo "[2/3] Compiling project bitcode..."
 METADATA="$CONFIG" KO_CC=clang-14 \\
     "$KO_CLANG" -c "$BC" -o "$BC.o"
 
-# Step 3: Link with ko-clang
+# Step 3: Link
 echo "[3/3] Linking..."
 METADATA="$CONFIG" KO_USE_THOROUPY=1 KO_CC=clang-14 \\
     "$KO_CLANG" "$BC.o" "$SHIM.o" -o "$OUT"

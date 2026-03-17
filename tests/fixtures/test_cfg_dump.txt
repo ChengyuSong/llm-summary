@@ -1,0 +1,6 @@
+/tmp/test_cfg_dump/test.c,4,9:0:C:T:1:F:3
+/tmp/test_cfg_dump/test.c,7,13:1:C:T:2:F:5
+/tmp/test_cfg_dump/test.c,10,13:2:D:4
+/tmp/test_cfg_dump/test.c,18,1:4:D:5
+/tmp/test_cfg_dump/test.c,18,1:5:R
+/tmp/test_cfg_dump/test.c,16,9:3:D:4
