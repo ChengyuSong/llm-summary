@@ -3400,6 +3400,7 @@ def import_dep_summaries(db_path, dep_db_paths, force, verbose):
     target_db = SummaryDB(db_path)
     total_funcs = 0
     total_summaries = 0
+    total_edges = 0
 
     try:
         for dep_path in dep_db_paths:
@@ -3469,19 +3470,63 @@ def import_dep_summaries(db_path, dep_db_paths, force, verbose):
                             console.print(f"  {src_func.name}: {', '.join(kinds)}")
 
                 target_db.conn.commit()
+
+                # --- Copy call edges ---
+                # Build src→tgt ID mapping for all functions present in both DBs
+                id_map: dict[int, int] = {}
+                for src_func in dep_funcs:
+                    if src_func.id is None:
+                        continue
+                    candidates = target_db.get_function_by_name(src_func.name)
+                    if candidates and candidates[0].id is not None:
+                        id_map[src_func.id] = candidates[0].id
+
+                # Fetch dep call edges and remap
+                copied_edges = 0
+                if id_map:
+                    dep_edges = dep_db.conn.execute(
+                        "SELECT caller_id, callee_id, is_indirect, file_path, line, \"column\""
+                        " FROM call_edges"
+                    ).fetchall()
+                    for edge in dep_edges:
+                        src_caller = edge[0]
+                        src_callee = edge[1]
+                        tgt_caller = id_map.get(src_caller)
+                        tgt_callee = id_map.get(src_callee)
+                        if tgt_caller is None or tgt_callee is None:
+                            continue
+                        # Skip if edge already exists
+                        existing = target_db.conn.execute(
+                            "SELECT id FROM call_edges"
+                            " WHERE caller_id = ? AND callee_id = ?",
+                            (tgt_caller, tgt_callee),
+                        ).fetchone()
+                        if existing:
+                            continue
+                        target_db.conn.execute(
+                            "INSERT INTO call_edges"
+                            " (caller_id, callee_id, is_indirect, file_path, line, \"column\")"
+                            " VALUES (?, ?, ?, ?, ?, ?)",
+                            (tgt_caller, tgt_callee, edge[2], edge[3], edge[4], edge[5]),
+                        )
+                        copied_edges += 1
+                    target_db.conn.commit()
             finally:
                 dep_db.close()
 
             total_funcs += copied_funcs
             total_summaries += copied_summaries
+            total_edges += copied_edges
             console.print(
                 f"  {Path(dep_path).name}: "
-                f"{copied_funcs} functions, {copied_summaries} summaries imported"
+                f"{copied_funcs} functions, {copied_summaries} summaries,"
+                f" {copied_edges} call edges imported"
             )
 
         console.print(
             f"\n[bold]Total:[/bold] {total_funcs} functions, "
-            f"{total_summaries} summaries imported into {db_path}"
+            f"{total_summaries} summaries, {total_edges} call edges"
+            f" imported into {db_path}"
         )
     finally:
         target_db.close()
