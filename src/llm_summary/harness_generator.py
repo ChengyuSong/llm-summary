@@ -1027,7 +1027,10 @@ class HarnessGenerator:
         "void", "const char", "const void", "const unsigned char",
     }
 
-    def _build_extern_decl(self, name: str, signature: str) -> str:
+    def _build_extern_decl(
+        self, name: str, signature: str,
+        param_names: list[str] | None = None,
+    ) -> str:
         """Build extern declaration, replacing typedefs with canonical C types.
 
         - Pointer typedefs (e.g. gzFile -> struct gzFile_s *) become void *
@@ -1066,7 +1069,18 @@ class HarnessGenerator:
 
         if params_str.strip():
             params = [replace_type(p) for p in params_str.split(",")]
-            params_out = ", ".join(params)
+            # Attach parameter names if provided
+            if param_names:
+                named: list[str] = []
+                for i, p in enumerate(params):
+                    pname = param_names[i] if i < len(param_names) else f"p{i}"
+                    if p == "...":
+                        named.append(p)
+                    else:
+                        named.append(f"{p} {pname}")
+                params_out = ", ".join(named)
+            else:
+                params_out = ", ".join(params)
         else:
             params_out = "void"
 
@@ -1575,19 +1589,18 @@ echo "Built: $OUT"
         lines.append("extern void *assume_freed(void *ptr, uint64_t id);")
         lines.append("")
 
-        # --- Include headers that define referenced struct types ---
-        ref_types = self._collect_referenced_types(
-            func_signature, contracts or [], callee_contracts,
-        )
-        if ref_types and file_path:
-            headers = self._find_type_headers(file_path, ref_types)
-            for h in sorted(headers):
+        # --- Include project headers from the source file ---
+        if file_path:
+            src_headers = self._extract_source_includes(file_path)
+            for h in src_headers:
                 lines.append(f'#include "{h}"')
-            if headers:
+            if src_headers:
                 lines.append("")
 
         # --- Target function extern ---
-        target_extern = self._build_extern_decl(func_name, func_signature)
+        target_extern = self._build_extern_decl(
+            func_name, func_signature, func_params,
+        )
         lines.append("/* Target function (in bitcode) */")
         lines.append(target_extern)
         lines.append("")
@@ -1903,6 +1916,40 @@ echo "Built: $OUT"
             + lines[body_end - 1:]  # } line and after
         )
         return "\n".join(new_lines)
+
+    def _extract_source_includes(self, file_path: str) -> list[str]:
+        """Extract project-local #include "..." directives from a source file.
+
+        Returns absolute paths for quoted includes resolved relative to the
+        source file's directory.
+        """
+        import re as _re
+        src = Path(file_path)
+        if not src.exists():
+            return []
+        includes: list[str] = []
+        src_dir = src.parent
+        for line in src.read_text(errors="replace").splitlines():
+            m = _re.match(r'\s*#\s*include\s+"([^"]+)"', line)
+            if m:
+                hdr = m.group(1)
+                resolved = src_dir / hdr
+                if resolved.exists():
+                    includes.append(str(resolved.resolve()))
+                else:
+                    # Try include paths from compile_commands
+                    if self.compile_commands:
+                        for flag in self.compile_commands.get_compile_flags(
+                            file_path,
+                        ):
+                            if flag.startswith("-I"):
+                                inc_dir = Path(flag[2:])
+                                candidate = inc_dir / hdr
+                                if candidate.exists():
+                                    includes.append(
+                                        str(candidate.resolve()))
+                                    break
+        return includes
 
     def _collect_referenced_types(
         self,

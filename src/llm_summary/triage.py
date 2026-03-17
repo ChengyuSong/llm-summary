@@ -366,6 +366,13 @@ contracts. Your job is to check the CALLER CONTEXT:
 - A null deref is real only if callers can actually pass NULL
 - A buffer overflow is real only if callers can pass a size exceeding bounds
 
+IMPORTANT: If a function has zero callers in the call graph, it could be an
+ENTRY FUNCTION — directly callable by external code with NO constraints on
+its arguments. This means the function must be safe for ALL valid inputs.
+Do NOT treat "no callers" as evidence of safety or unreachability.
+Similarly, "deprecated" does NOT mean unused — existing code may still call
+deprecated APIs. Treat deprecated functions as reachable entry points.
+
 ## Workflow (strictly enforced)
 
 ### ANALYZE phase
