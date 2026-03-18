@@ -46,7 +46,7 @@ echo "Log:     $LOG_FILE"
 [ -n "$SEED" ] && echo "Seed:    $SEED"
 echo "---"
 
-python run_policy.py "$BINARY" "$PLAN" ${SEED:+"$SEED"} 2>&1 \
+python run_policy.py "$BINARY" "$PLAN" ${SEED:+"$SEED"} --output-dir "$OUT_DIR" 2>&1 \
     | tee "$LOG_FILE"
 
 # Print summary from log

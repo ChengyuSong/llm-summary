@@ -4558,5 +4558,48 @@ def gen_harness(
             Path(tmp_cc_path).unlink(missing_ok=True)
 
 
+@main.command("consume-validation")
+@click.option("--verdict", "-v", required=True, help="Path to verdict JSON file")
+@click.option(
+    "--harness-dir", "-d", required=True,
+    help="Base harness directory containing per-verdict subdirs",
+)
+@click.option("--output", "-o", default=None, help="Output JSON path (default: stdout)")
+def consume_validation(verdict: str, harness_dir: str, output: str | None) -> None:
+    """Classify validation outcomes for triage verdicts.
+
+    Reads validation_result.json files produced by thoroupy and classifies
+    each verdict as confirmed or rejected.
+
+    Example:
+        llm-summary consume-validation \\
+            -v harnesses/png_static/verdict_png_build_16to8_table.json \\
+            -d harnesses/png_static
+    """
+    from pathlib import Path
+
+    from .validation_consumer import consume_validation_dir
+
+    results = consume_validation_dir(Path(verdict), Path(harness_dir))
+
+    if not results:
+        console.print("[yellow]No validation results found[/yellow]")
+        return
+
+    for r in results:
+        status = "[green]CONFIRMED[/green]" if r["confirmed"] else "[red]REJECTED[/red]"
+        console.print(
+            f"  {r['function']}[{r['issue_index']}] "
+            f"{r['hypothesis']} → {status}: {r['summary']}"
+        )
+
+    if output:
+        with open(output, "w") as f:
+            json.dump(results, f, indent=2)
+        console.print(f"\nResults written to: {output}")
+    else:
+        console.print(json.dumps(results, indent=2))
+
+
 if __name__ == "__main__":
     main()

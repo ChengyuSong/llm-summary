@@ -18,7 +18,6 @@ Usage:
 
 import argparse
 import json
-import re
 import subprocess
 import sys
 import time
@@ -29,6 +28,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
 from llm_summary.db import SummaryDB
 from llm_summary.link_units.pipeline import load_link_units, topo_sort_link_units
+from llm_summary.validation_consumer import classify_outcome
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 SCRIPTS_DIR = REPO_ROOT / "scripts"
@@ -200,15 +200,21 @@ def run_gen_harness(
     return _run_cmd(cmd, verbose, timeout)
 
 
-def run_thoroupy(binary: Path, policy: Path, timeout: int) -> dict:
-    """Run thoroupy on a harness binary."""
+def run_thoroupy(
+    binary: Path, plan: Path, verdict: dict, timeout: int,
+) -> dict:
+    """Run thoroupy on a harness binary and classify the outcome.
+
+    Args:
+        binary: Path to .ucsan binary
+        plan: Path to plan JSON for thoroupy
+        verdict: The verdict dict this harness validates
+        timeout: Max seconds for the run
+    """
     result: dict = {
         "binary": str(binary),
-        "policy": str(policy),
+        "plan": str(plan),
         "success": False,
-        "seeds": 0,
-        "assertion_failures": [],
-        "bbs_covered": 0,
         "error": None,
         "timing_seconds": 0.0,
     }
@@ -220,22 +226,20 @@ def run_thoroupy(binary: Path, policy: Path, timeout: int) -> dict:
     start = time.monotonic()
     try:
         subprocess.run(
-            ["bash", str(THOROUPY_SCRIPT), str(binary), str(policy)],
+            ["bash", str(THOROUPY_SCRIPT), str(binary), str(plan)],
             capture_output=True, text=True, timeout=timeout,
         )
         result["timing_seconds"] = round(time.monotonic() - start, 2)
 
-        log_file = binary.parent / f"thoroupy_{binary.stem}.log"
-        if log_file.exists():
-            log = log_file.read_text()
-            result["seeds"] = len(re.findall(r"New seed", log))
-            failures = re.findall(r"ERROR: assertion (\d+) failure", log)
-            result["assertion_failures"] = sorted(set(failures))
-            bbs = re.findall(r"trace_bb.*bb: \d+ (\d+)", log)
-            result["bbs_covered"] = len(set(bbs))
+        vr_path = binary.parent / "validation_result.json"
+        if vr_path.exists():
+            with open(vr_path) as f:
+                validation = json.load(f)
+            outcome = classify_outcome(verdict, validation)
             result["success"] = True
+            result["outcome"] = outcome.to_dict()
         else:
-            result["error"] = "no log file produced"
+            result["error"] = "no validation_result.json produced"
     except subprocess.TimeoutExpired:
         result["error"] = f"timeout after {timeout}s"
         result["timing_seconds"] = round(time.monotonic() - start, 2)
@@ -378,7 +382,7 @@ def process_target(
                 if args.verbose:
                     print(f"        running {binary.name}...")
                 run_result = run_thoroupy(
-                    binary, plan, timeout=args.run_timeout,
+                    binary, plan, verdict=v, timeout=args.run_timeout,
                 )
                 func_result["runs"].append(run_result)
 
@@ -598,19 +602,18 @@ def main() -> None:
         for f in t["functions"]
         if f["validate"]["success"]
     )
-    total_runs = sum(
-        len(f.get("runs", []))
-        for r in all_results
-        for t in r.get("targets", [])
-        for f in t["functions"]
-    )
-    total_assertions = sum(
-        len(run.get("assertion_failures", []))
+    all_runs = [
+        run
         for r in all_results
         for t in r.get("targets", [])
         for f in t["functions"]
         for run in f.get("runs", [])
-    )
+    ]
+    total_runs = len(all_runs)
+    outcome_counts: dict[str, int] = {}
+    for run in all_runs:
+        oc = run.get("outcome", {}).get("outcome", "error")
+        outcome_counts[oc] = outcome_counts.get(oc, 0) + 1
 
     print()
     print("=" * 60)
@@ -621,7 +624,8 @@ def main() -> None:
     print(f"  Triaged:           {total_triage}")
     print(f"  Validated:         {total_validate}")
     print(f"  Thoroupy runs:     {total_runs}")
-    print(f"  Assertion IDs hit: {total_assertions}")
+    for oc, cnt in sorted(outcome_counts.items()):
+        print(f"    {oc}: {cnt}")
 
     timestamp = time.strftime("%Y%m%d_%H%M%S")
     output_path = args.output or f"validate_report_{timestamp}.json"
@@ -640,7 +644,7 @@ def main() -> None:
                     "triaged": total_triage,
                     "validated": total_validate,
                     "runs": total_runs,
-                    "assertion_ids_hit": total_assertions,
+                    "outcomes": outcome_counts,
                 },
             },
             f,
