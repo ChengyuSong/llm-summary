@@ -19,9 +19,11 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any
 
 from .db import SummaryDB
+from .git_tools import GitTools
 from .llm.base import LLMBackend
 from .models import (
     Function,
@@ -79,23 +81,23 @@ ALLOWED_TRANSITIONS: dict[str, list[str]] = {
     "HYPOTHESIZE": ["VERDICT"],
 }
 
+_DB_TOOLS = {
+    "read_function_source",
+    "get_callers",
+    "get_callees",
+    "get_summaries",
+    "get_verification_summary",
+}
+
+_GIT_TOOLS = {
+    "git_show",
+    "git_ls_tree",
+    "git_grep",
+}
+
 PHASE_TOOLS: dict[str, set[str]] = {
-    "ANALYZE": {
-        "read_function_source",
-        "get_callers",
-        "get_callees",
-        "get_summaries",
-        "get_verification_summary",
-        "transition_phase",
-    },
-    "HYPOTHESIZE": {
-        "read_function_source",
-        "get_callers",
-        "get_callees",
-        "get_summaries",
-        "get_verification_summary",
-        "transition_phase",
-    },
+    "ANALYZE": _DB_TOOLS | _GIT_TOOLS | {"transition_phase"},
+    "HYPOTHESIZE": _DB_TOOLS | _GIT_TOOLS | {"transition_phase"},
     "VERDICT": {
         "submit_verdict",
     },
@@ -317,6 +319,11 @@ TRIAGE_TOOL_DEFINITIONS: list[dict[str, Any]] = [
     },
 ]
 
+# Append shared git-based file tools
+from .git_tools import GIT_TOOL_DEFINITIONS as _GIT_TOOL_DEFS  # noqa: E402
+
+TRIAGE_TOOL_DEFINITIONS.extend(_GIT_TOOL_DEFS)
+
 
 # ---------------------------------------------------------------------------
 # System prompt
@@ -415,9 +422,13 @@ def _resolve_function(db: SummaryDB, name: str) -> Function | None:
 class TriageToolExecutor:
     """Executes triage tools against the function database."""
 
-    def __init__(self, db: SummaryDB, verbose: bool = False):
+    def __init__(
+        self, db: SummaryDB, verbose: bool = False,
+        git_tools: GitTools | None = None,
+    ) -> None:
         self.db = db
         self.verbose = verbose
+        self.git_tools = git_tools
         self._current_phase = "ANALYZE"
         self._func_cache: dict[str, Function | None] = {}
 
@@ -441,6 +452,12 @@ class TriageToolExecutor:
                     f"Use transition_phase to advance."
                 ),
             }
+        # Git tools are dispatched via GitTools instance
+        if tool_name in _GIT_TOOLS:
+            if self.git_tools is None:
+                return {"error": f"Tool '{tool_name}' unavailable: no project path"}
+            return self.git_tools.dispatch(tool_name, tool_input)
+
         handler = getattr(self, f"_tool_{tool_name}", None)
         if handler is None:
             return {"error": f"Unknown tool: {tool_name}"}
@@ -678,10 +695,12 @@ class TriageAgent:
         db: SummaryDB,
         llm: LLMBackend,
         verbose: bool = False,
+        project_path: Path | None = None,
     ):
         self.db = db
         self.llm = llm
         self.verbose = verbose
+        self.project_path = project_path
 
     def triage_issue(
         self,
@@ -691,7 +710,12 @@ class TriageAgent:
         vsummary: VerificationSummary,
     ) -> TriageResult:
         """Triage a single issue via LLM ReAct loop."""
-        executor = TriageToolExecutor(self.db, verbose=self.verbose)
+        git = (
+            GitTools(self.project_path) if self.project_path else None
+        )
+        executor = TriageToolExecutor(
+            self.db, verbose=self.verbose, git_tools=git,
+        )
         user_prompt = self._build_issue_prompt(func, issue, issue_index, vsummary)
         messages: list[dict[str, Any]] = [
             {"role": "user", "content": user_prompt},
@@ -707,6 +731,9 @@ class TriageAgent:
         for turn in range(MAX_TURNS):
             # Filter tools to only those allowed in current phase
             allowed = PHASE_TOOLS.get(executor.phase, set())
+            # Hide git tools when no project_path was given
+            if git is None:
+                allowed = allowed - _GIT_TOOLS
             tools = [t for t in TRIAGE_TOOL_DEFINITIONS if t["name"] in allowed]
 
             response = self.llm.complete_with_tools(

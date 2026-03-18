@@ -136,6 +136,7 @@ def run_triage(
     llm_host: str,
     llm_port: int | None,
     severity: str | None,
+    project_path: Path | None,
     verbose: bool,
     timeout: int,
 ) -> tuple[bool, str, float]:
@@ -155,6 +156,8 @@ def run_triage(
         cmd += ["--llm-port", str(llm_port)]
     if severity:
         cmd += ["--severity", severity]
+    if project_path:
+        cmd += ["--project-path", str(project_path)]
     if verbose:
         cmd.append("--verbose")
     return _run_cmd(cmd, verbose, timeout)
@@ -313,6 +316,7 @@ def process_target(
                 llm_host=args.llm_host,
                 llm_port=args.llm_port,
                 severity=args.severity,
+                project_path=project_path,
                 verbose=args.verbose,
                 timeout=args.triage_timeout,
             )
@@ -368,13 +372,13 @@ def process_target(
             if not vdir.exists():
                 continue
             for binary in sorted(vdir.glob("*.ucsan")):
-                policy = vdir / f"policy_{binary.stem}.json"
-                if not policy.exists():
+                plan = vdir / f"plan_{binary.stem}_validation.json"
+                if not plan.exists():
                     continue
                 if args.verbose:
                     print(f"        running {binary.name}...")
                 run_result = run_thoroupy(
-                    binary, policy, timeout=args.run_timeout,
+                    binary, plan, timeout=args.run_timeout,
                 )
                 func_result["runs"].append(run_result)
 

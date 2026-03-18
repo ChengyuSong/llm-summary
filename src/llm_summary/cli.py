@@ -4160,12 +4160,16 @@ def show_issues(
     "-o", "--output", default=None,
     help="Write JSON results to file (default: print to stdout).",
 )
+@click.option(
+    "--project-path", default=None,
+    help="Project source root (enables git_show/git_grep/git_ls_tree tools).",
+)
 def triage(
     db_path: str, backend: str, model: str | None,
     llm_host: str, llm_port: int | None, disable_thinking: bool,
     verbose: bool, function_names: tuple[str, ...],
     severity: str | None, issue_index: int | None,
-    output: str | None,
+    output: str | None, project_path: str | None,
 ) -> None:
     """Triage verification issues: prove safety or feasibility.
 
@@ -4192,7 +4196,11 @@ def triage(
     db = SummaryDB(db_path)
 
     try:
-        agent = TriageAgent(db, llm, verbose=verbose)
+        from pathlib import Path as _Path
+        agent = TriageAgent(
+            db, llm, verbose=verbose,
+            project_path=_Path(project_path) if project_path else None,
+        )
 
         # Resolve functions to triage
         if function_names:
