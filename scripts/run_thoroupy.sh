@@ -2,18 +2,26 @@
 # Run thoroupy policy scheduler on a harness binary with a trace plan.
 #
 # Usage:
-#   ./scripts/run_thoroupy.sh <binary> <plan.json> [seed_file]
+#   ./scripts/run_thoroupy.sh [--output-dir DIR] <binary> <plan.json> [seed_file]
 #
 # Example:
 #   ./scripts/run_thoroupy.sh harnesses/zlibstatic/gzputc.ucsan harnesses/zlibstatic/plan_gzputc.json
+#   ./scripts/run_thoroupy.sh --output-dir /tmp/out harnesses/zlibstatic/gzputc.ucsan harnesses/zlibstatic/plan_gzputc.json
 
 set -euo pipefail
 
 THOROUPY_DIR="$HOME/fuzzing/ucsan/thoroupy"
 VENV_DIR="$HOME/project/llm-summary/venv"
 
+# Parse --output-dir option
+OUT_DIR=""
+if [ "${1:-}" = "--output-dir" ]; then
+    OUT_DIR="$(realpath "$2")"
+    shift 2
+fi
+
 if [ $# -lt 2 ]; then
-    echo "Usage: $0 <binary> <plan.json> [seed_file]"
+    echo "Usage: $0 [--output-dir DIR] <binary> <plan.json> [seed_file]"
     exit 1
 fi
 
@@ -30,8 +38,10 @@ if [ ! -f "$PLAN" ]; then
     exit 1
 fi
 
-# Output dir next to the plan file
-OUT_DIR="$(dirname "$PLAN")"
+# Default output dir: next to the plan file
+if [ -z "$OUT_DIR" ]; then
+    OUT_DIR="$(dirname "$PLAN")"
+fi
 LOG_FILE="$OUT_DIR/thoroupy_$(basename "$BINARY" .ucsan).log"
 
 # Activate venv

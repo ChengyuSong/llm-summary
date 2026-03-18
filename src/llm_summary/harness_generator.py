@@ -292,7 +292,26 @@ class HarnessGenerator:
             "fix_attempts": 0,
         }
         self._triage_context: dict[str, Any] | None = None
+        self._ucsan_abilist = self._load_ucsan_abilist()
         self._check_toolchain()
+
+    def _load_ucsan_abilist(self) -> set[str]:
+        """Load function names from ucsan_abilist.txt.
+
+        These functions have custom ucsan handlers and must NOT be shimmed.
+        """
+        if self.symsan_dir is None:
+            return set()
+        abilist = self.symsan_dir / "lib" / "symsan" / "ucsan_abilist.txt"
+        if not abilist.exists():
+            return set()
+        names: set[str] = set()
+        for line in abilist.read_text().splitlines():
+            line = line.strip()
+            if line.startswith("fun:") and "=" in line:
+                name = line[4:line.index("=")]
+                names.add(name)
+        return names
 
     def _check_toolchain(self) -> None:
         """Validate that required toolchain binaries exist."""
@@ -375,11 +394,18 @@ class HarnessGenerator:
         postconds_section = self._format_postconditions(postconds)
 
         # Determine which callees need shim stubs
+        # Never shim functions in ucsan's abilist (they have custom handlers)
         if self._triage_context is not None:
             real_fns = set(self._triage_context.get("real_functions", []))
-            shim_callees = [k for k in callee_contracts if k not in real_fns]
+            shim_callees = [
+                k for k in callee_contracts
+                if k not in real_fns and k not in self._ucsan_abilist
+            ]
         else:
-            shim_callees = list(callee_contracts.keys())
+            shim_callees = [
+                k for k in callee_contracts
+                if k not in self._ucsan_abilist
+            ]
 
         # Build fill-in template (used for both triage and normal paths)
         template = self._build_fill_template(
@@ -1527,10 +1553,10 @@ echo "Built: $OUT"
         where the LLM needs to add code. Everything else is fixed.
         """
         real_fns = set((triage_context or {}).get("real_functions", []))
-        # Only generate stubs for callees NOT in real_functions
+        # Only generate stubs for callees NOT in real_functions or ucsan abilist
         stub_callees = {
             k: v for k, v in callee_contracts.items()
-            if k not in real_fns
+            if k not in real_fns and k not in self._ucsan_abilist
         }
 
         lines: list[str] = []

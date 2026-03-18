@@ -4558,6 +4558,140 @@ def gen_harness(
             Path(tmp_cc_path).unlink(missing_ok=True)
 
 
+@main.command("reflect")
+@click.option("--verdict", "-v", required=True, help="Path to verdict JSON file")
+@click.option(
+    "--harness-dir", "-d", required=True,
+    help="Base harness directory containing per-verdict subdirs",
+)
+@click.option("--db", "db_path", required=True, help="Database file path")
+@click.option(
+    "--backend",
+    type=click.Choice(["claude", "openai", "ollama", "llamacpp", "gemini"]),
+    default="claude",
+)
+@click.option("--model", default=None, help="Model name to use")
+@click.option("--llm-host", default="localhost")
+@click.option("--llm-port", default=None, type=int)
+@click.option("--disable-thinking", is_flag=True)
+@click.option("--verbose", is_flag=True)
+@click.option("--output", "-o", default=None, help="Output JSON path")
+def reflect_cmd(
+    verdict: str, harness_dir: str, db_path: str,
+    backend: str, model: str | None, llm_host: str,
+    llm_port: int | None, disable_thinking: bool,
+    verbose: bool, output: str | None,
+) -> None:
+    """Reflect on validation outcomes that need investigation.
+
+    Analyzes mismatches between triage verdicts and thoroupy validation
+    evidence (e.g., different crash type than predicted, infeasible traces
+    with unrelated crashes).
+
+    Example:
+        llm-summary reflect \\
+            -v harnesses/png_static/verdict_png_build_gamma_table.json \\
+            -d harnesses/png_static \\
+            --db func-scans/libpng/png_static/functions.db \\
+            --backend claude -v
+    """
+    from pathlib import Path
+
+    from .reflection import reflect
+    from .validation_consumer import consume_validation_dir
+
+    verdict_path = Path(verdict)
+    harness_path = Path(harness_dir)
+
+    # Load verdicts
+    with open(verdict_path) as f:
+        verdicts_data = json.load(f)
+    if not isinstance(verdicts_data, list):
+        verdicts_data = [verdicts_data]
+
+    # Classify outcomes
+    outcomes = consume_validation_dir(verdict_path, harness_path)
+    if not outcomes:
+        console.print("[yellow]No validation results found[/yellow]")
+        return
+
+    # Build LLM
+    kwargs = _build_backend_kwargs(backend, llm_host, llm_port, disable_thinking)
+    llm = create_backend(backend, model=model, **kwargs)
+    console.print(f"Using {backend} backend ({llm.model})")
+
+    db = SummaryDB(db_path)
+    try:
+        verdict_by_idx = {
+            v.get("issue_index", i): v
+            for i, v in enumerate(verdicts_data)
+        }
+
+        results = []
+        for oc in outcomes:
+            v = verdict_by_idx.get(oc["issue_index"])
+            if not v:
+                continue
+
+            # Find CFG dump and output dir for this verdict
+            idx = oc["issue_index"]
+            func_name = oc["function"]
+            vdir = harness_path / func_name / f"v{idx}"
+
+            # Determine entry name from binary path
+            binary = Path(oc.get("binary", ""))
+            entry_name = binary.stem if binary.stem else None
+
+            cfg_path = None
+            if entry_name:
+                candidate = vdir / f"cfg_{entry_name}.txt"
+                if candidate.exists():
+                    cfg_path = str(candidate)
+
+            status = (
+                "[green]CONFIRMED[/green]" if oc["confirmed"]
+                else "[red]REJECTED[/red]"
+            )
+            console.print(
+                f"\n  {func_name}[{idx}] {oc['hypothesis']} → {status}: "
+                f"{oc['summary']}"
+            )
+
+            assessment = reflect(
+                verdict=v,
+                outcome=oc,
+                db=db,
+                llm=llm,
+                cfg_dump_path=cfg_path,
+                output_dir=str(vdir),
+                entry_name=entry_name,
+                verbose=verbose,
+            )
+            results.append({
+                "function": func_name,
+                "issue_index": idx,
+                "outcome": oc["outcome"],
+                "reflection": assessment,
+            })
+
+            hyp = assessment.get("hypothesis", "?")
+            conf = assessment.get("confidence", "?")
+            action = assessment.get("action", "?")
+            console.print(
+                f"  → {hyp} ({conf}) action={action}: "
+                f"{assessment.get('reasoning', '')[:200]}"
+            )
+
+        if output:
+            with open(output, "w") as f:
+                json.dump(results, f, indent=2)
+            console.print(f"\nResults written to: {output}")
+        else:
+            console.print(json.dumps(results, indent=2))
+    finally:
+        db.close()
+
+
 @main.command("consume-validation")
 @click.option("--verdict", "-v", required=True, help="Path to verdict JSON file")
 @click.option(
