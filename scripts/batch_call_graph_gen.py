@@ -113,6 +113,8 @@ def _recompile_to_bc(entry: dict, bc_output: Path, verbose: bool = False) -> boo
 
     Returns True on success.
     """
+    # Resolve to absolute so -o works when cwd differs from caller's cwd
+    bc_output = bc_output.resolve()
     if "arguments" in entry:
         args = list(entry["arguments"])
     elif "command" in entry:
