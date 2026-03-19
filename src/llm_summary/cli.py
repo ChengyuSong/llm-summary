@@ -4688,6 +4688,119 @@ def reflect_cmd(
         db.close()
 
 
+@main.command("bug-report")
+@click.option("--verdict", "-v", required=True, help="Path to verdict JSON file")
+@click.option(
+    "--project-path", "-p", required=True,
+    help="Path to the project source directory",
+)
+@click.option("--db", "db_path", required=True, help="Database file path")
+@click.option(
+    "--compile-commands", default=None,
+    help="Path to compile_commands.json for include dirs",
+)
+@click.option("--output-dir", "-o", default=None, help="Output directory for report")
+@click.option("--target-name", "-t", default=None, help="Link unit target name (e.g. png_static)")
+@click.option(
+    "--backend",
+    type=click.Choice(["claude", "openai", "ollama", "llamacpp", "gemini"]),
+    default="claude",
+)
+@click.option("--model", default=None, help="Model name to use")
+@click.option("--llm-host", default="localhost")
+@click.option("--llm-port", default=None, type=int)
+@click.option("--disable-thinking", is_flag=True)
+@click.option("--verbose", is_flag=True)
+def bug_report_cmd(
+    verdict: str, project_path: str, db_path: str,
+    compile_commands: str | None, output_dir: str | None,
+    target_name: str | None,
+    backend: str, model: str | None, llm_host: str,
+    llm_port: int | None, disable_thinking: bool,
+    verbose: bool,
+) -> None:
+    """Generate a bug report for a feasible-confirmed verdict.
+
+    Searches the project for existing harnesses (OSS-Fuzz, tests),
+    generates a standalone PoC harness, compiles with ASan, runs it,
+    and writes a markdown bug report.
+
+    Example:
+        llm-summary bug-report \\
+            -v harnesses/png_static/verdict_png_chunk_warning.json \\
+            -p /data/csong/opensource/libpng \\
+            --db func-scans/libpng/png_static/functions.db \\
+            --backend llamacpp
+    """
+    from pathlib import Path
+
+    from .bug_report import run_bug_report
+
+    verdict_path = Path(verdict)
+    proj_path = Path(project_path)
+
+    with open(verdict_path) as f:
+        verdicts_data = json.load(f)
+    if not isinstance(verdicts_data, list):
+        verdicts_data = [verdicts_data]
+
+    kwargs = _build_backend_kwargs(backend, llm_host, llm_port, disable_thinking)
+    llm = create_backend(backend, model=model, **kwargs)
+    console.print(f"Using {backend} backend ({llm.model})")
+
+    db = SummaryDB(db_path)
+    cc_path = Path(compile_commands) if compile_commands else None
+
+    try:
+        for v in verdicts_data:
+            func_name = v["function_name"]
+            hypothesis = v.get("hypothesis", "unknown")
+
+            if hypothesis != "feasible":
+                if verbose:
+                    console.print(
+                        f"[dim]Skipping {func_name}: "
+                        f"hypothesis={hypothesis} (not feasible)[/dim]",
+                    )
+                continue
+
+            idx = v.get("issue_index", 0)
+            out = Path(output_dir) if output_dir else (
+                Path("harnesses") / proj_path.name / func_name / f"v{idx}"
+            )
+
+            console.print(f"\n[bold]{func_name}[/bold] [{idx}]")
+
+            result = run_bug_report(
+                verdict=v,
+                db=db,
+                llm=llm,
+                project_path=proj_path,
+                output_dir=out,
+                compile_commands_path=cc_path,
+                target_name=target_name,
+                verbose=verbose,
+            )
+
+            if result["success"]:
+                console.print(
+                    f"  [green]PoC confirmed crash![/green] "
+                    f"Report: {result['report_path']}",
+                )
+            elif result.get("compile_error"):
+                console.print(
+                    f"  [red]Compile failed[/red]: "
+                    f"{result['compile_error'][:200]}",
+                )
+            else:
+                console.print(
+                    f"  [yellow]No crash from PoC[/yellow] "
+                    f"Report: {result['report_path']}",
+                )
+    finally:
+        db.close()
+
+
 @main.command("consume-validation")
 @click.option("--verdict", "-v", required=True, help="Path to verdict JSON file")
 @click.option(
