@@ -152,6 +152,13 @@ Rules:
 - Keep the code minimal — only add what the contracts require
 - Do NOT add comments — the code should be self-explanatory
 - In stubs: use assert_* for pre-conditions, assume_* for post-conditions
+- Contract-to-assertion mapping:
+  - not_null → assert_cond(ptr != NULL, id)
+  - nullable → no assertion needed (NULL is allowed)
+  - not_freed → assert_allocated(ptr, 0, id)  (still allocated)
+  - buffer_size(N) → assert_allocated(ptr, N, id)
+  - initialized(N) → assert_init(ptr, N, id)
+  - freed → assert_freed(ptr, id)
 - In test(): use assert_* to verify post-conditions after the call
 - Post-condition annotations use brackets for qualifiers:
   - `[may_be_null]` means the pointer may be NULL — do NOT assert non-NULL
@@ -204,6 +211,13 @@ Rules:
 - Keep the code minimal — only add what the contracts require
 - Do NOT add comments — the code should be self-explanatory
 - In stubs: use assert_* for pre-conditions, assume_* for post-conditions
+- Contract-to-assertion mapping:
+  - not_null → assert_cond(ptr != NULL, id)
+  - nullable → no assertion needed (NULL is allowed)
+  - not_freed → assert_allocated(ptr, 0, id)  (still allocated)
+  - buffer_size(N) → assert_allocated(ptr, N, id)
+  - initialized(N) → assert_init(ptr, N, id)
+  - freed → assert_freed(ptr, id)
 - In test(): use assert_* to verify post-conditions after the call
 - Post-condition annotations use brackets for qualifiers:
   - `[may_be_null]` means the pointer may be NULL — do NOT assert non-NULL
@@ -407,11 +421,37 @@ class HarnessGenerator:
                 if k not in self._ucsan_abilist
             ]
 
+        # Build preceding function info for sequential test cases
+        preceding: list[dict[str, Any]] | None = None
+        if self._triage_context:
+            test_seq = self._triage_context.get("test_sequence", [])
+            if len(test_seq) > 1:
+                preceding = []
+                for pf_name in test_seq[:-1]:
+                    pf_funcs = self.db.get_function_by_name(pf_name)
+                    if not pf_funcs:
+                        continue
+                    pf = pf_funcs[0]
+                    assert pf.id is not None
+                    pf_postconds = self._gather_postconditions(pf.id)
+                    # Merge preceding callees into callee_contracts
+                    pf_callees = self._gather_callee_contracts(pf.id)
+                    for ck, cv in pf_callees.items():
+                        if ck not in callee_contracts:
+                            callee_contracts[ck] = cv
+                    preceding.append({
+                        "name": pf.name,
+                        "signature": pf.signature or "",
+                        "params": pf.params or [],
+                        "postconds": pf_postconds,
+                    })
+
         # Build fill-in template (used for both triage and normal paths)
         template = self._build_fill_template(
             func.name, func.signature or "", func.params or [],
             callee_contracts, postconds, self._triage_context,
             contracts=contracts, file_path=func.file_path,
+            preceding_functions=preceding,
         )
 
         # Build prompt
@@ -1546,11 +1586,17 @@ echo "Built: $OUT"
         triage_context: dict[str, Any] | None = None,
         contracts: list[dict[str, Any]] | None = None,
         file_path: str | None = None,
+        preceding_functions: list[dict[str, Any]] | None = None,
     ) -> str:
         """Build a fill-in-the-blank C template for shim generation.
 
         Generates the complete shim structure with `/* FILL: ... */` markers
         where the LLM needs to add code. Everything else is fixed.
+
+        Args:
+            preceding_functions: For sequential test cases, info dicts for
+                functions to call before the target. Each dict has keys:
+                name, signature, params, postconds.
         """
         real_fns = set((triage_context or {}).get("real_functions", []))
         # Only generate stubs for callees NOT in real_functions or ucsan abilist
@@ -1588,7 +1634,10 @@ echo "Built: $OUT"
         lines.append(" *   assume_cond(result, id)"
                       "              -- constrain solver, exit if false")
         lines.append(" *   ptr = assume_allocated(ptr, size, id)"
-                      " -- ensure allocation (returns new ptr!)")
+                      " -- ensure ptr is allocated with size bytes.")
+        lines.append(
+            " *     ptr must be an existing variable."
+            " To allocate new memory, use malloc(size).")
         lines.append(" *   assume_init(ptr, size, id)"
                       "           -- mark size bytes as initialized")
         lines.append(" *   ptr = assume_freed(ptr, id)"
@@ -1632,6 +1681,25 @@ echo "Built: $OUT"
                 lines.append(f'#include "{h}"')
             if src_headers:
                 lines.append("")
+
+        # --- Emit definitions for types only defined in .c files ---
+        source_typedefs = self._get_source_only_typedefs(stub_callees)
+        if source_typedefs:
+            lines.append("/* Types defined in source files (not headers) */")
+            for defn in source_typedefs:
+                lines.append(defn)
+            lines.append("")
+
+        # --- Preceding function externs (sequential test case) ---
+        if preceding_functions:
+            lines.append("/* Preceding functions (in bitcode, called before "
+                         "target to establish state) */")
+            for pf in preceding_functions:
+                pf_extern = self._build_extern_decl(
+                    pf["name"], pf["signature"], pf["params"],
+                )
+                lines.append(pf_extern)
+            lines.append("")
 
         # --- Target function extern ---
         target_extern = self._build_extern_decl(
@@ -1688,61 +1756,69 @@ echo "Built: $OUT"
 
         # --- test() entry ---
         lines.append("/* ---- Entry point ---- */")
+        lines.append("/* FILL: Write the complete test() function.")
+        lines.append(" *")
+        lines.append(" * test() is the entry point for ucsan concolic "
+                     "execution.")
+        lines.append(" * Its parameters become symbolic inputs.")
+        lines.append(" *")
 
-        test_params, call_args = self._build_test_params(
-            func_name, func_signature, func_params,
-        )
+        # List all functions to call in order
+        all_call_funcs: list[dict[str, Any]] = []
+        if preceding_functions:
+            all_call_funcs.extend(preceding_functions)
+        all_call_funcs.append({
+            "name": func_name,
+            "signature": func_signature,
+            "params": func_params,
+            "postconds": postconds,
+            "is_target": True,
+        })
 
-        lines.append(f"void test({test_params}) {{")
+        lines.append(" * Call these functions in order:")
+        for si, cf in enumerate(all_call_funcs, 1):
+            cf_sig = cf["signature"]
+            cf_paren = cf_sig.index("(")
+            cf_ret = cf_sig[:cf_paren].strip()
+            cf_params_str = cf_sig[cf_paren + 1:cf_sig.rindex(")")]
+            role = ("function under test" if cf.get("is_target")
+                    else "establishes state")
+            lines.append(
+                f" *   {si}. {cf_ret} {cf['name']}"
+                f"({cf_params_str})"
+                f"  — {role}")
+            cf_postconds = self._format_postcond_comments(
+                cf.get("postconds", {}))
+            for pc in cf_postconds:
+                lines.append(f" *      Post: {pc}")
 
-        # assume_allocated for pointer params — tells the engine
-        # the buffer is allocated with the correct size
-        buf_size_map: dict[str, str] = {}
-        for c in (contracts or []):
-            if c.get("contract_kind") == "buffer_size" and c.get("size_expr"):
-                buf_size_map[c["target"]] = c["size_expr"]
-
-        paren = func_signature.index("(")
-        param_types = func_signature[paren + 1:func_signature.rindex(")")
-                                     ].split(",")
-        for ptype, pname in zip(param_types, func_params, strict=False):
-            ptype = ptype.strip()
-            if ptype.endswith("*") or ptype in self._get_pointer_typedefs():
-                size_expr = buf_size_map.get(pname, f"sizeof(*{pname})")
-                aid = id_counter
-                id_counter += 1
-                id_map.append(
-                    f"{aid}: test:{pname}:assume_allocated")
-                lines.append(
-                    f"    {ptype} {pname} = assume_allocated("
-                    f"input_{pname}, {size_expr}, {aid});")
-
-        lines.append("")
-        ret_type = func_signature[:paren].strip()
-        if ret_type != "void":
-            c_ret = self._resolve_type(ret_type)
-            lines.append(f"    {c_ret} result = {func_name}({call_args});")
-        else:
-            lines.append(f"    {func_name}({call_args});")
-
-        # Post-conditions with IDs
-        lines.append("")
+        # Post-condition IDs for the target function
         postcond_comments = self._format_postcond_comments(postconds)
         if postcond_comments:
+            lines.append(" *")
             lines.append(
-                "    /* FILL: verify post-conditions with assert_init / "
-                "assert_allocated / assert_cond")
+                " * Assert these post-conditions on the target function:")
             for pc in postcond_comments:
                 cid = id_counter
                 id_counter += 1
                 id_map.append(f"{cid}: {func_name}:post:{pc}")
-                lines.append(f"     *   id={cid} {pc}")
-            lines.append("     */")
-        else:
-            lines.append(
-                "    /* FILL: post-condition assertions (if any) */")
+                lines.append(f" *   id={cid} {pc}")
 
-        lines.append("}")
+        lines.append(" *")
+        lines.append(" * Rules:")
+        lines.append(
+            " * - Pointer params: use assume_allocated(input_X, "
+            "sizeof(*X), ID) to make them symbolic")
+        lines.append(
+            " * - Shared params: if multiple functions take the same"
+            " struct pointer, use one variable")
+        lines.append(
+            " * - Return values: wire them if the next function needs"
+            " the result")
+        lines.append(
+            " * - Post-conditions: assert on the target function only,"
+            " using the IDs above")
+        lines.append(" */")
         lines.append("")
 
         # Insert ID map comment at the top (after headers, before stubs)
@@ -1826,7 +1902,7 @@ echo "Built: $OUT"
             return t
         is_const = t.startswith("const ")
         bare = t.removeprefix("const ").strip()
-        # Pointer types: keep as-is (headers provide definitions)
+        # Pointer types: keep as-is (headers or emitted typedefs provide defs)
         if t.endswith("*"):
             return t
         if bare in self._get_pointer_typedefs():
@@ -1838,6 +1914,92 @@ echo "Built: $OUT"
         if bare not in self._PRIMITIVE_TYPES:
             return "int"
         return t
+
+    def _get_source_only_typedefs(
+        self, stub_callees: dict[str, dict[str, Any]] | None,
+    ) -> list[str]:
+        """Return C definitions for types only defined in .c files.
+
+        Scans all parameter types in stub_callees, finds those whose base
+        type exists in the typedefs table only in .c files (not headers),
+        and returns their definitions to emit in the shim.
+        """
+        if not stub_callees:
+            return []
+
+        # Collect base type names from all stub signatures
+        base_names: set[str] = set()
+        ptr_typedefs = self._get_pointer_typedefs()
+        for cinfo in stub_callees.values():
+            sig = cinfo["signature"]
+            paren = sig.index("(")
+            ret_raw = sig[:paren].strip()
+            params_str = sig[paren + 1:sig.rindex(")")]
+            all_types = [ret_raw]
+            if params_str.strip():
+                all_types.extend(t.strip() for t in params_str.split(","))
+            for t in all_types:
+                bare = (t.removeprefix("const ").strip()
+                        .rstrip("*").rstrip()
+                        .removeprefix("struct ").strip())
+                if (bare and bare not in self._PRIMITIVE_TYPES
+                        and bare not in ptr_typedefs
+                        and bare not in self._get_scalar_typedefs()):
+                    base_names.add(bare)
+
+        if not base_names:
+            return []
+
+        # Check which are source-only and have definitions
+        definitions: list[str] = []
+        for name in sorted(base_names):
+            rows = self.db.conn.execute(
+                "SELECT file_path, definition, pp_definition, line_number "
+                "FROM typedefs WHERE name = ?", (name,)
+            ).fetchall()
+            if not rows:
+                continue
+            if not all(r[0].endswith(".c") for r in rows):
+                continue  # available from a header
+            # Prefer pp_definition (macro-expanded), then definition
+            defn = rows[0][2] or rows[0][1]
+            if defn:
+                definitions.append(defn.rstrip())
+                continue
+            # No stored definition — extract from source file
+            src_path, line_no = rows[0][0], rows[0][3]
+            extracted = self._extract_typedef_from_source(src_path, line_no)
+            if extracted:
+                definitions.append(extracted)
+
+        return definitions
+
+    @staticmethod
+    def _extract_typedef_from_source(
+        file_path: str, start_line: int,
+    ) -> str | None:
+        """Extract a typedef/struct definition from a source file.
+
+        Reads from start_line and collects lines until a closing brace +
+        semicolon is found (handles ``typedef struct { ... } name;``).
+        """
+        from pathlib import Path
+        src = Path(file_path)
+        if not src.exists() or not start_line:
+            return None
+        all_lines = src.read_text(errors="replace").splitlines()
+        if start_line < 1 or start_line > len(all_lines):
+            return None
+        collected: list[str] = []
+        brace_depth = 0
+        for line in all_lines[start_line - 1:]:
+            collected.append(line)
+            brace_depth += line.count("{") - line.count("}")
+            if brace_depth <= 0 and ";" in line:
+                break
+            if len(collected) > 100:
+                return None  # safety limit
+        return "\n".join(collected) if collected else None
 
     @staticmethod
     def _format_postcond_comments(postconds: dict) -> list[str]:

@@ -4419,7 +4419,29 @@ def gen_harness(
                     console.print("[red]No relevant_functions in verdict[/red]")
                     continue
 
-                entries = _find_entry_functions(db, relevant)
+                # Build test cases from validation_plan or fallback
+                vplan = v.get("validation_plan", [])
+                if vplan:
+                    test_cases: list[list[str]] = []
+                    for tc in vplan:
+                        tc_entries = tc.get("entries", [])
+                        # Remove functions called by other functions
+                        # in THIS entry list, preserving order
+                        tc_non_entries = (
+                            set(tc_entries)
+                            - set(_find_entry_functions(db, tc_entries))
+                        )
+                        filtered = [
+                            e for e in tc_entries
+                            if e not in tc_non_entries
+                        ]
+                        if filtered:
+                            test_cases.append(filtered)
+                else:
+                    # Legacy: one test case per entry function
+                    entries = _find_entry_functions(db, relevant)
+                    test_cases = [[e] for e in entries]
+
                 # Per-verdict output dir to avoid overwriting
                 verdict_dir = str(
                     Path(output_dir) / func_name / f"v{issue_idx}"
@@ -4428,15 +4450,19 @@ def gen_harness(
                 console.print(
                     f"Validating {func_name}#{issue_idx} "
                     f"({v.get('hypothesis', '?')}): "
-                    f"entries={entries} -> {verdict_dir}"
+                    f"test_cases={test_cases} -> {verdict_dir}"
                 )
 
-                other_entries = set(entries)
-                for entry in entries:
-                    # Scope per entry: exclude other entry functions
+                for tc_entries in test_cases:
+                    # Harness named after the last entry (function under test)
+                    harness_name = tc_entries[-1]
+                    # Scope: all entries + non-entry relevant functions
+                    all_entry_fns = {
+                        e for tc in test_cases for e in tc
+                    }
                     entry_scope = [
                         f for f in relevant
-                        if f == entry or f not in other_entries
+                        if f in tc_entries or f not in all_entry_fns
                     ]
                     triage_ctx = {
                         "hypothesis": v.get("hypothesis", ""),
@@ -4447,37 +4473,41 @@ def gen_harness(
                         "assumptions": v.get("assumptions", []),
                         "assertions": v.get("assertions", []),
                         "real_functions": entry_scope,
+                        "test_sequence": tc_entries,
                     }
 
                     result = generator.validate_triage(
-                        entry,
+                        harness_name,
                         triage_context=triage_ctx,
                         output_dir=verdict_dir,
                         bc_file=bc_file,
                     )
                     if result:
-                        console.print(f"[green]Harness generated: {entry}[/green]")
+                        console.print(
+                            f"[green]Harness generated: {harness_name}[/green]"
+                        )
 
                         # Auto-build to get CFG dump, then generate
                         # validation plan with counter-example traces
                         out = Path(verdict_dir)
-                        script = out / f"build_{entry}.sh"
+                        script = out / f"build_{harness_name}.sh"
                         if script.exists():
-                            console.print(f"  Building {entry}...")
+                            console.print(f"  Building {harness_name}...")
                             build_result = subprocess.run(
                                 ["bash", str(script)],
                                 capture_output=True, text=True,
                             )
                             if build_result.returncode == 0:
                                 console.print(
-                                    f"  [green]Built: {entry}.ucsan[/green]"
+                                    f"  [green]Built: "
+                                    f"{harness_name}.ucsan[/green]"
                                 )
-                                cfg_path = out / f"cfg_{entry}.txt"
+                                cfg_path = out / f"cfg_{harness_name}.txt"
                                 if cfg_path.exists():
                                     plan = generator.generate_validation_plan(
                                         v, str(out),
                                         cfg_dump=str(cfg_path),
-                                        entry_name=entry,
+                                        entry_name=harness_name,
                                         scope_functions=entry_scope,
                                     )
                                     if plan:
@@ -4502,7 +4532,7 @@ def gen_harness(
                                     f"{build_result.stderr[:200]}[/red]"
                                 )
                     else:
-                        console.print(f"[red]Failed: {entry}[/red]")
+                        console.print(f"[red]Failed: {harness_name}[/red]")
             return
 
         # Determine which functions to process

@@ -56,9 +56,10 @@ class TriageResult:
     assumptions: list[str] = field(default_factory=list)
     assertions: list[str] = field(default_factory=list)
     relevant_functions: list[str] = field(default_factory=list)
+    validation_plan: list[dict[str, Any]] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
-        return {
+        result = {
             "function_name": self.function_name,
             "issue_index": self.issue_index,
             "issue": self.issue.to_dict(),
@@ -70,6 +71,9 @@ class TriageResult:
             "assertions": self.assertions,
             "relevant_functions": self.relevant_functions,
         }
+        if self.validation_plan:
+            result["validation_plan"] = self.validation_plan
+        return result
 
 
 # ---------------------------------------------------------------------------
@@ -313,6 +317,32 @@ TRIAGE_TOOL_DEFINITIONS: list[dict[str, Any]] = [
                         "gets stubbed."
                     ),
                 },
+                "validation_plan": {
+                    "type": "array",
+                    "description": (
+                        "How to test the relevant_functions. Each element is "
+                        "a test case with an 'entries' list (function names). "
+                        "If entries has one function, test it alone. If "
+                        "entries has multiple functions, call them sequentially "
+                        "in test() (e.g. first call sets up state, second "
+                        "call is the function under test). Example for a "
+                        "safety proof that depends on an invariant: "
+                        "[{\"entries\": [\"setup_fn\", \"target_fn\"]}]. "
+                        "Example for independent entries: "
+                        "[{\"entries\": [\"entry_a\"]}, "
+                        "{\"entries\": [\"entry_b\"]}]."
+                    ),
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "entries": {
+                                "type": "array",
+                                "items": {"type": "string"},
+                            },
+                        },
+                        "required": ["entries"],
+                    },
+                },
             },
             "required": ["hypothesis", "reasoning", "relevant_functions"],
         },
@@ -398,6 +428,12 @@ deprecated APIs. Treat deprecated functions as reachable entry points.
 2. Include relevant_functions: all functions whose behavior matters for
    the proof (the target, constraining callers, relevant callees). These
    will be used to set up symbolic validation scope.
+3. Include validation_plan: unit-test-style harnesses for validation.
+   Each element has an "entries" list — functions test() will call in order.
+   DO NOT include callees within relevant_functions that will be called
+   by top-level functions — they are kept as real code automatically.
+   Sequential: [{"entries": ["set_X", "destroy_X"]}].
+   Independent: [{"entries": ["entry_a"]}, {"entries": ["entry_b"]}].
 
 ## Rules
 - Always read the function source and at least its direct callers
@@ -903,6 +939,7 @@ class TriageAgent:
                 assumptions=verdict.get("assumptions", []),
                 assertions=verdict.get("assertions", []),
                 relevant_functions=verdict.get("relevant_functions", []),
+                validation_plan=verdict.get("validation_plan", []),
             )
 
         return TriageResult(

@@ -33,6 +33,11 @@ from llm_summary.models import SafetyIssue
 from llm_summary.reflection import reflect
 from llm_summary.validation_consumer import classify_outcome
 
+
+class PipelineError(Exception):
+    """Raised when --stop-on-error is set and a stage fails."""
+
+
 REPO_ROOT = Path(__file__).resolve().parent.parent
 SCRIPTS_DIR = REPO_ROOT / "scripts"
 FUNC_SCANS_DIR = REPO_ROOT / "func-scans"
@@ -76,9 +81,14 @@ def _find_dbs(project_name: str) -> list[tuple[str, Path]]:
 
 
 def _find_issues(
-    db_path: Path, severity: str | None,
+    db_path: Path, severity: str | None, *, include_reviewed: bool = False,
 ) -> list[tuple[str, int]]:
-    """Query DB for (function_name, issue_count) with verification issues."""
+    """Query DB for (function_name, issue_count) with verification issues.
+
+    By default, skips issues that already have a non-pending review status
+    (e.g. false_positive, confirmed).  Pass include_reviewed=True to include
+    all issues regardless of review status.
+    """
     db = SummaryDB(str(db_path))
     results: list[tuple[str, int]] = []
     try:
@@ -90,6 +100,18 @@ def _find_issues(
             issues = vs.issues
             if severity:
                 issues = [i for i in issues if i.severity == severity]
+            if not include_reviewed and issues:
+                reviews = db.get_issue_reviews(func.id)
+                reviewed_fps = {
+                    r["issue_fingerprint"]
+                    for r in reviews
+                    if r["status"] != "pending"
+                }
+                if reviewed_fps:
+                    issues = [
+                        i for i in issues
+                        if i.fingerprint() not in reviewed_fps
+                    ]
             if issues:
                 results.append((func.name, len(issues)))
     finally:
@@ -287,7 +309,7 @@ def run_reflection(
             project_path=project_path,
             verbose=args.verbose,
         )
-        return result  # type: ignore[no-any-return]
+        return result
     except Exception as e:
         if args.verbose:
             print(f"        reflection failed: {e}")
@@ -311,7 +333,9 @@ def process_target(
     }
     start = time.monotonic()
 
-    all_issues = _find_issues(db_path, args.severity)
+    all_issues = _find_issues(
+        db_path, args.severity, include_reviewed=args.force,
+    )
 
     # Apply global skip/limit across all functions
     issues: list[tuple[str, int]] = []
@@ -346,17 +370,18 @@ def process_target(
         verdict_path = harness_dir / f"verdict_{func_name}.json"
 
         # Triage
-        if args.skip_triage and verdict_path.exists():
-            func_result["triage"]["success"] = True
-            func_result["triage"]["skipped"] = True
-            if args.verbose:
-                print(f"      {func_name}: reusing verdict")
-        elif args.skip_triage:
-            func_result["triage"]["error"] = "no existing verdict"
-            if args.verbose:
-                print(f"      {func_name}: no verdict, skipped")
-            result["functions"].append(func_result)
-            continue
+        if not args.force and verdict_path.exists() or args.skip_triage:
+            if verdict_path.exists():
+                func_result["triage"]["success"] = True
+                func_result["triage"]["skipped"] = True
+                if args.verbose:
+                    print(f"      {func_name}: reusing verdict")
+            else:
+                func_result["triage"]["error"] = "no existing verdict"
+                if args.verbose:
+                    print(f"      {func_name}: no verdict, skipped")
+                result["functions"].append(func_result)
+                continue
         else:
             if args.verbose:
                 print(f"      {func_name}: triaging {issue_count} issues...")
@@ -380,6 +405,9 @@ def process_target(
 
         if not func_result["triage"]["success"]:
             result["functions"].append(func_result)
+            if args.stop_on_error:
+                err = func_result["triage"].get("error", "unknown")
+                raise PipelineError(f"triage failed for {func_name}: {err}")
             continue
 
         if args.skip_validate:
@@ -392,26 +420,48 @@ def process_target(
             result["functions"].append(func_result)
             continue
 
-        if args.verbose:
-            print(f"      {func_name}: generating harnesses...")
-        ok, err, dur = run_gen_harness(
-            db_path=db_path,
-            verdict_path=verdict_path,
-            backend=args.backend,
-            model=args.model,
-            llm_host=args.llm_host,
-            llm_port=args.llm_port,
-            ko_clang_path=args.ko_clang_path,
-            compile_commands=compile_commands,
-            project_path=project_path,
-            verbose=args.verbose,
-            timeout=args.gen_timeout,
-        )
-        func_result["validate"]["success"] = ok
-        func_result["validate"]["error"] = err if not ok else None
-        func_result["validate"]["timing_seconds"] = round(dur, 2)
+        # Check for existing .ucsan binaries
+        has_binaries = False
+        if not args.force:
+            func_dir = harness_dir / func_name
+            if func_dir.exists():
+                has_binaries = any(func_dir.rglob("*.ucsan"))
 
-        if not ok or args.skip_run:
+        if has_binaries:
+            func_result["validate"]["success"] = True
+            func_result["validate"]["skipped"] = True
+            if args.verbose:
+                print(f"      {func_name}: reusing harnesses")
+        else:
+            if args.verbose:
+                print(f"      {func_name}: generating harnesses...")
+            ok, err, dur = run_gen_harness(
+                db_path=db_path,
+                verdict_path=verdict_path,
+                backend=args.backend,
+                model=args.model,
+                llm_host=args.llm_host,
+                llm_port=args.llm_port,
+                ko_clang_path=args.ko_clang_path,
+                compile_commands=compile_commands,
+                project_path=project_path,
+                verbose=args.verbose,
+                timeout=args.gen_timeout,
+            )
+            func_result["validate"]["success"] = ok
+            func_result["validate"]["error"] = err if not ok else None
+            func_result["validate"]["timing_seconds"] = round(dur, 2)
+
+        if not func_result["validate"]["success"]:
+            result["functions"].append(func_result)
+            if args.stop_on_error:
+                err = func_result["validate"].get("error", "unknown")
+                raise PipelineError(
+                    f"validation failed for {func_name}: {err}",
+                )
+            continue
+
+        if args.skip_run:
             result["functions"].append(func_result)
             continue
 
@@ -429,17 +479,52 @@ def process_target(
                 plan = vdir / f"plan_{binary.stem}_validation.json"
                 if not plan.exists():
                     continue
-                if args.verbose:
-                    print(f"        running {binary.name}...")
-                run_result = run_thoroupy(
-                    binary, plan, verdict=v, timeout=args.run_timeout,
-                )
-                func_result["runs"].append(run_result)
 
-                # Auto-review safe_confirmed as false_positive
+                # Reuse existing validation result
+                vr_path = binary.parent / "validation_result.json"
+                if not args.force and vr_path.exists():
+                    if args.verbose:
+                        print(f"        reusing {binary.name} result")
+                    try:
+                        with open(vr_path) as f:
+                            validation = json.load(f)
+                        outcome = classify_outcome(v, validation)
+                        run_result: dict = {
+                            "binary": str(binary),
+                            "plan": str(plan),
+                            "success": True,
+                            "skipped": True,
+                            "error": None,
+                            "timing_seconds": 0.0,
+                            "outcome": outcome.to_dict(),
+                        }
+                    except Exception as e:
+                        run_result = {
+                            "binary": str(binary),
+                            "plan": str(plan),
+                            "success": False,
+                            "skipped": True,
+                            "error": f"bad cached result: {e}",
+                            "timing_seconds": 0.0,
+                        }
+                    func_result["runs"].append(run_result)
+                else:
+                    if args.verbose:
+                        print(f"        running {binary.name}...")
+                    run_result = run_thoroupy(
+                        binary, plan, verdict=v, timeout=args.run_timeout,
+                    )
+                    func_result["runs"].append(run_result)
+
+                # Auto-review safe_confirmed / feasible_confirmed
+                outcome_status = {
+                    "safe_confirmed": "false_positive",
+                    "feasible_confirmed": "confirmed",
+                }
                 oc = run_result.get("outcome", {})
                 outcome_type = oc.get("outcome", "")
-                if outcome_type == "safe_confirmed":
+                review_status = outcome_status.get(outcome_type)
+                if review_status:
                     issue_d = v.get("issue", {})
                     vi_obj = SafetyIssue(
                         location=issue_d.get("location", ""),
@@ -458,18 +543,18 @@ def process_target(
                                 function_id=funcs[0].id,
                                 issue_index=idx,
                                 fingerprint=vi_obj.fingerprint(),
-                                status="false_positive",
+                                status=review_status,
                                 reason=oc.get("summary", ""),
                             )
                             if args.verbose:
                                 print(
-                                    f"        reviewed #{idx} as false_positive"
+                                    f"        reviewed #{idx} as {review_status}"
                                 )
                     finally:
                         db.close()
 
                 # Reflect on non-trivial outcomes
-                elif outcome_type and not args.skip_reflect:
+                if outcome_type and outcome_type != "safe_confirmed" and not args.skip_reflect:
                     if reflect_llm is None:
                         kwargs = build_backend_kwargs(
                             args.backend, args.llm_host, args.llm_port,
@@ -612,6 +697,10 @@ def main() -> None:
         help="Per-harness thoroupy timeout (seconds)",
     )
     parser.add_argument(
+        "--force", action="store_true",
+        help="Regenerate artifacts even if they already exist",
+    )
+    parser.add_argument(
         "--skip-triage", action="store_true",
         help="Reuse existing verdict files, skip triage step",
     )
@@ -626,6 +715,10 @@ def main() -> None:
     parser.add_argument(
         "--skip-reflect", action="store_true",
         help="Skip reflection after thoroupy runs",
+    )
+    parser.add_argument(
+        "--stop-on-error", action="store_true",
+        help="Abort the pipeline on the first triage or validation failure",
     )
     parser.add_argument(
         "--filter", type=str, default=None,
@@ -695,9 +788,15 @@ def main() -> None:
     print()
 
     all_results = []
+    stopped_early = False
     for i, project_name in enumerate(projects, 1):
         print(f"[{i}/{len(projects)}] {project_name}...", end=" ", flush=True)
-        result = process_project(project_name, args)
+        try:
+            result = process_project(project_name, args)
+        except PipelineError as e:
+            print(f"\nSTOPPED: {e}")
+            stopped_early = True
+            break
         all_results.append(result)
         print(_format_result(result))
 
@@ -774,6 +873,8 @@ def main() -> None:
             indent=2,
         )
     print(f"\nReport written to: {output_path}")
+    if stopped_early:
+        sys.exit(1)
 
 
 if __name__ == "__main__":
