@@ -80,6 +80,9 @@ e.g., "n > 0" for a buffer_size that only applies when n is nonzero, \
 or "n == 0" for a nullable that is only safe when n is zero
 
 Rules:
+- For C++ member functions, treat `this` as an implicit pointer parameter. \
+If the function accesses any member field, `this` is dereferenced and \
+needs `not_null` and `not_freed` contracts.
 - Pointer params that are **dereferenced** (read/write through \
 `*p`, `p->field`, `p[i]`) without a NULL check → `not_null`
 - Pointer params that are **checked for NULL** before any \

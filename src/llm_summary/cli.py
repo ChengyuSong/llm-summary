@@ -4812,7 +4812,7 @@ def bug_report_cmd(
     "--harness-dir", "-d", required=True,
     help="Base harness directory containing per-verdict subdirs",
 )
-@click.option("--db", "db_path", default=None, help="DB path to auto-review safe_confirmed")
+@click.option("--db", "db_path", default=None, help="DB path to auto-review validated outcomes")
 @click.option("--output", "-o", default=None, help="Output JSON path (default: stdout)")
 def consume_validation(
     verdict: str, harness_dir: str, db_path: str | None, output: str | None,
@@ -4821,7 +4821,8 @@ def consume_validation(
 
     Reads validation_result.json files produced by thoroupy and classifies
     each verdict as confirmed or rejected.  When --db is provided,
-    safe_confirmed outcomes are auto-reviewed as false_positive.
+    safe_confirmed outcomes are auto-reviewed as false_positive;
+    feasible_confirmed outcomes are auto-reviewed as confirmed.
 
     Example:
         llm-summary consume-validation \\
@@ -4855,13 +4856,18 @@ def consume_validation(
             f"{r['hypothesis']} → {status}: {r['summary']}"
         )
 
-    # Auto-review safe_confirmed
+    # Auto-review safe_confirmed / feasible_confirmed
+    outcome_to_status = {
+        "safe_confirmed": "false_positive",
+        "feasible_confirmed": "confirmed",
+    }
     if db_path:
         db = SummaryDB(db_path)
         try:
             reviewed = 0
             for r in results:
-                if r["outcome"] != "safe_confirmed":
+                review_status = outcome_to_status.get(r["outcome"])
+                if not review_status:
                     continue
                 v = verdict_by_idx.get(r["issue_index"])
                 if not v:
@@ -4882,14 +4888,13 @@ def consume_validation(
                         function_id=funcs[0].id,
                         issue_index=r["issue_index"],
                         fingerprint=vi_obj.fingerprint(),
-                        status="false_positive",
+                        status=review_status,
                         reason=r.get("summary", ""),
                     )
                     reviewed += 1
             if reviewed:
                 console.print(
-                    f"\n[green]Auto-reviewed {reviewed} issue(s) "
-                    f"as false_positive[/green]"
+                    f"\n[green]Auto-reviewed {reviewed} issue(s)[/green]"
                 )
         finally:
             db.close()

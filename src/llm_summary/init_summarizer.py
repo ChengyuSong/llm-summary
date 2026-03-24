@@ -17,9 +17,14 @@ from .models import (
 # --- Shared init task instructions (single source of truth) ---
 
 _INIT_INSTRUCTIONS = """\
+For C++ member functions, `this` is an implicit pointer parameter. \
+Constructors and methods that write to member fields (e.g., `m_data = ...`, \
+which is `this->m_data`) are initializing fields via `this`.
+
 Only include caller-visible initializations:
 - **Output parameters**: memory written via pointer parameters (e.g., `*out = value`)
-- **Struct fields**: fields written via a parameter (e.g., `ctx->data = ...`)
+- **Struct fields**: fields written via a parameter or `this` \
+(e.g., `ctx->data = ...`, `m_data = ...`)
 - **Return values**: the function's return value itself
 
 Do NOT include local variables — they are not visible to the caller after return.

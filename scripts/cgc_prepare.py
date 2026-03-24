@@ -38,6 +38,19 @@ FUNC_SCANS_DIR = REPO_ROOT / "func-scans" / "cgc"
 C_EXTENSIONS = {".c", ".cpp", ".cc", ".cxx", ".c++"}
 
 
+def _infer_project_root(source_files: list[str]) -> Path | None:
+    """Infer project root as common parent of all source files."""
+    if not source_files:
+        return None
+    parents = [Path(f).resolve().parent for f in source_files]
+    root = parents[0]
+    for p in parents[1:]:
+        # Walk up until we find a common ancestor
+        while root != p and root not in p.parents:
+            root = root.parent
+    return root
+
+
 def find_challenges(cgc_dir: Path) -> list[str]:
     """Find single-binary challenge names (skip multi-binary)."""
     challenges_dir = cgc_dir / "challenges"
@@ -152,8 +165,10 @@ def scan_challenge(
 
         db = SummaryDB(str(db_path))
         try:
+            project_root = _infer_project_root(source_files)
             extractor = FunctionExtractor(
                 compile_commands=cc, enable_preprocessing=True,
+                project_root=project_root,
             )
 
             all_functions = []
@@ -287,14 +302,15 @@ def patch_rescan(
 
         # Step 3: Re-extract from patched compile_commands
         cc = CompileCommandsDB(patched_cc)
-        extractor = FunctionExtractor(
-            compile_commands=cc, enable_preprocessing=True,
-        )
-
         all_files = cc.get_all_files()
         source_files = [
             f for f in all_files if Path(f).suffix.lower() in C_EXTENSIONS
         ]
+        project_root = _infer_project_root(source_files)
+        extractor = FunctionExtractor(
+            compile_commands=cc, enable_preprocessing=True,
+            project_root=project_root,
+        )
 
         all_functions = []
         for f in source_files:

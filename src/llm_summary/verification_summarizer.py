@@ -42,6 +42,9 @@ Your job is to check what the function does *given* those \
 pre-conditions hold — not to re-flag them as bugs.
 An issue is only real if it can occur even when all pre-conditions are satisfied.
 
+For C++ member functions, `this` is an implicit pointer parameter. \
+Track its state (freed, null) like any other pointer.
+
 Walk the function statement by statement, tracking two kinds of state:
 - **Pointer/buffer properties**: null, non-null, freed, initialized, allocated size
 - **Integer value ranges**: bounds from checks, assignments, return values

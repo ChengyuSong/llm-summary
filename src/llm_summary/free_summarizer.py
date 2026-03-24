@@ -26,12 +26,16 @@ pthread_join, pthread_cancel, and similar. Do NOT include internal stdio \
 buffer management (e.g. fprintf/fwrite/putc may internally realloc a \
 buffer — that is an implementation detail, not a free or resource release).
 
+For C++ member functions, `this` is an implicit pointer parameter. \
+Frees of `this` itself (e.g., `delete this`) or fields accessed via `this` \
+(e.g., `delete m_data` which is `this->m_data`) should be reported accordingly.
+
 For each operation (in either list), identify:
 
 1. **target**: What gets freed — the expression (e.g., "ptr", "info_ptr->palette", "row_buf")
 2. **target_kind**: One of:
-   - "parameter" — a function parameter is freed
-   - "field" — a struct field (accessed via parameter or global) is freed
+   - "parameter" — a function parameter (including `this`) is freed
+   - "field" — a struct field (accessed via parameter, `this`, or global) is freed
    - "local" — a local variable is freed
    - "return_value" — the freed pointer is also returned (rare)
 3. **deallocator**: The function that performs the free (e.g., "free", "close", "sem_destroy")
