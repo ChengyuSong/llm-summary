@@ -268,6 +268,7 @@ class VerificationSummarizer:
         func: Function,
         callee_summaries: dict[str, VerificationSummary] | None = None,
         alias_context: str | None = None,
+        previous_summary_json: str | None = None,
     ) -> VerificationSummary:
         """Verify a function and simplify its contracts."""
         if callee_summaries is None:
@@ -286,6 +287,12 @@ class VerificationSummarizer:
         prompt, system, cache_system = self._build_prompt_and_system(
             func.llm_source, func, own_contracts, callee_section, alias_context,
         )
+
+        if previous_summary_json is not None:
+            from .driver import SCC_PREVIOUS_SUMMARY_SECTION
+            prompt += SCC_PREVIOUS_SUMMARY_SECTION.format(
+                previous_json=previous_summary_json,
+            )
 
         try:
             if self.verbose:
@@ -326,6 +333,13 @@ class VerificationSummarizer:
                         self._stats["contracts_simplified"] += max(
                             0, raw_count - remaining_count
                         )
+
+            if previous_summary_json is not None:
+                from .builder.json_utils import extract_json as _ej
+                from .driver import extract_scc_changed
+                summary._scc_changed = extract_scc_changed(  # type: ignore[attr-defined]
+                    _ej(llm_response.content),
+                )
 
             return summary
 

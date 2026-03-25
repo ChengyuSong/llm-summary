@@ -329,6 +329,7 @@ class AllocationSummarizer:
         self,
         func: Function,
         callee_summaries: dict[str, AllocationSummary] | None = None,
+        previous_summary_json: str | None = None,
     ) -> AllocationSummary:
         """
         Generate allocation summary for a single function.
@@ -355,6 +356,13 @@ class AllocationSummarizer:
         prompt, system, cache_system = self._build_prompt_and_system(
             func.llm_source, func, callee_section,
         )
+
+        # On SCC re-iterations, append previous summary for convergence check
+        if previous_summary_json is not None:
+            from .driver import SCC_PREVIOUS_SUMMARY_SECTION
+            prompt += SCC_PREVIOUS_SUMMARY_SECTION.format(
+                previous_json=previous_summary_json,
+            )
 
         # Query LLM
         try:
@@ -386,6 +394,14 @@ class AllocationSummarizer:
             summary = self._parse_response(llm_response.content, func.name)
             with self._stats_lock:
                 self._stats["functions_processed"] += 1
+
+            # SCC convergence: extract "changed" from parsed JSON
+            if previous_summary_json is not None:
+                from .builder.json_utils import extract_json as _ej
+                from .driver import extract_scc_changed
+                summary._scc_changed = extract_scc_changed(  # type: ignore[attr-defined]
+                    _ej(llm_response.content),
+                )
 
             return summary
 

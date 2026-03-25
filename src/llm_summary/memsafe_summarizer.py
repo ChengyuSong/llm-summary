@@ -256,6 +256,7 @@ class MemsafeSummarizer:
         callee_summaries: dict[str, MemsafeSummary] | None = None,
         callee_params: dict[str, list[str]] | None = None,
         alias_context: str | None = None,
+        previous_summary_json: str | None = None,
     ) -> MemsafeSummary:
         """Generate safety contract summary for a single function.
 
@@ -290,6 +291,12 @@ class MemsafeSummarizer:
             annotated_source, func, callee_note, alias_context, used_inline,
         )
 
+        if previous_summary_json is not None:
+            from .driver import SCC_PREVIOUS_SUMMARY_SECTION
+            prompt += SCC_PREVIOUS_SUMMARY_SECTION.format(
+                previous_json=previous_summary_json,
+            )
+
         try:
             if self.verbose:
                 if self._progress_total > 0:
@@ -319,6 +326,13 @@ class MemsafeSummarizer:
             summary = self._parse_response(llm_response.content, func.name)
             with self._stats_lock:
                 self._stats["functions_processed"] += 1
+
+            if previous_summary_json is not None:
+                from .builder.json_utils import extract_json as _ej
+                from .driver import extract_scc_changed
+                summary._scc_changed = extract_scc_changed(  # type: ignore[attr-defined]
+                    _ej(llm_response.content),
+                )
 
             return summary
 

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import threading
 from collections import deque
 from concurrent.futures import as_completed
@@ -19,6 +20,34 @@ from .models import (
 )
 from .ordering import ProcessingOrderer
 from .verification_summarizer import IncompleteCalleeError
+
+_MAX_SCC_ITERATIONS = 3
+"""Maximum iterations for recursive SCC convergence."""
+
+SCC_PREVIOUS_SUMMARY_SECTION = """\
+
+## Previous Summary (from prior iteration)
+
+The callee summaries above may have been updated since this summary was \
+generated. Review whether the changes affect YOUR summary. Add a \
+`"changed": true/false` field at the TOP of your JSON response.
+- `true`: callee changes affect this summary — output the updated summary.
+- `false`: callee changes do NOT affect this summary — output the previous \
+summary unchanged.
+
+Previous:
+```json
+{previous_json}
+```
+"""
+
+
+def extract_scc_changed(parsed: dict[str, Any]) -> bool:
+    """Extract the ``"changed"`` field from a parsed LLM JSON dict.
+
+    Returns ``True`` (assume changed) if the field is missing.
+    """
+    return bool(parsed.get("changed", True))
 
 
 class SummaryPass(Protocol):
@@ -72,6 +101,7 @@ class AllocationPass:
     ) -> AllocationSummary:
         result: AllocationSummary = self.summarizer.summarize_function(
             func, callee_summaries,
+            previous_summary_json=kwargs.get("previous_summary_json"),
         )
         return result
 
@@ -97,6 +127,7 @@ class FreePass:
     ) -> FreeSummary:
         result: FreeSummary = self.summarizer.summarize_function(
             func, callee_summaries,
+            previous_summary_json=kwargs.get("previous_summary_json"),
         )
         return result
 
@@ -122,6 +153,7 @@ class InitPass:
     ) -> InitSummary:
         result: InitSummary = self.summarizer.summarize_function(
             func, callee_summaries,
+            previous_summary_json=kwargs.get("previous_summary_json"),
         )
         return result
 
@@ -157,6 +189,7 @@ class MemsafePass:
             alias_context = self.alias_builder.build_context(func, callee_names)
         result: MemsafeSummary = self.summarizer.summarize_function(
             func, callee_summaries, callee_params, alias_context=alias_context,
+            previous_summary_json=kwargs.get("previous_summary_json"),
         )
         return result
 
@@ -191,6 +224,7 @@ class VerificationPass:
             alias_context = self.alias_builder.build_context(func, callee_names)
         result: VerificationSummary = self.summarizer.summarize_function(
             func, callee_summaries, alias_context=alias_context,
+            previous_summary_json=kwargs.get("previous_summary_json"),
         )
         return result
 
@@ -270,6 +304,7 @@ class BottomUpDriver:
         current: int,
         total: int,
         force_dirty: set[int] | None = None,
+        scc_iter: int = 0,
     ) -> None:
         """Process a single function through all passes. Thread-safe."""
         # Skip sourceless stubs (e.g. stdlib) — nothing to summarize
@@ -330,10 +365,21 @@ class BottomUpDriver:
             p.summarizer._progress_current = current
             p.summarizer._progress_total = total
 
+            # On SCC re-iterations, pass previous summary for convergence check
+            prev_json: str | None = None
+            if scc_iter > 0:
+                with results_lock:
+                    prev = results[p.name].get(func_id)
+                if prev is not None:
+                    prev_json = json.dumps(prev.to_dict(), indent=2)
+
             # Generate summary (passes that don't accept callee_funcs ignore it)
             try:
                 try:
-                    summary = p.summarize(func, callee_summaries, callee_funcs=callee_funcs)
+                    summary = p.summarize(
+                        func, callee_summaries, callee_funcs=callee_funcs,
+                        previous_summary_json=prev_json,
+                    )
                 except TypeError:
                     summary = p.summarize(func, callee_summaries)
             except IncompleteCalleeError as e:
@@ -391,19 +437,27 @@ class BottomUpDriver:
                         print(f"  Retry of {p.name} for {func.name} failed: {e2}")
                     continue
 
-            with results_lock:
-                results[p.name][func_id] = summary
-
             # Don't persist error summaries — they would poison the
             # cache and block retries on subsequent runs.
             desc = getattr(summary, "description", "") or ""
             is_error = desc.startswith("Error generating summary:") or \
                 desc.startswith("Error during verification:")
+
+            # Check if summary content actually changed (for SCC convergence).
+            # The LLM sets _scc_changed=False when it determines the previous
+            # summary is still valid after callee updates.
+            changed = getattr(summary, "_scc_changed", True)
+
+            with results_lock:
+                results[p.name][func_id] = summary
+
             if not is_error:
-                p.store(func, summary)
-                # Propagate: callers of this function should also be force-rerun
-                # so that incremental mode converges in one pass.
-                if force_dirty is not None:
+                if changed:
+                    p.store(func, summary)
+                # Propagate: callers of this function should also be
+                # force-rerun so that incremental mode converges in one
+                # pass.  Only propagate when content actually changed.
+                if force_dirty is not None and changed:
                     with results_lock:
                         force_dirty.add(func_id)
 
@@ -474,25 +528,66 @@ class BottomUpDriver:
             current = 0
 
             for level in levels:
-                futures = []
+                # Separate non-recursive (parallelizable) from recursive
+                parallel_funcs: list[tuple[int, Function]] = []
+                recursive_sccs: list[list[int]] = []
                 for scc in level:
-                    for func_id in scc:
-                        current += 1
-                        func = self.db.get_function(func_id)
-                        if func is None:
-                            continue
-                        fut = self.pool.submit(
-                            self._process_func,
-                            func_id, func, passes, graph, results,
-                            results_lock, force, affected, current, total,
-                            force_dirty,
-                        )
-                        futures.append(fut)
+                    if len(scc) > 1:
+                        recursive_sccs.append(scc)
+                    else:
+                        for func_id in scc:
+                            current += 1
+                            func = self.db.get_function(func_id)
+                            if func is not None:
+                                parallel_funcs.append((func_id, func))
 
-                # Wait for all functions at this level to complete before
-                # moving to the next level (which may depend on these results)
+                # Run non-recursive functions in parallel
+                futures = []
+                for func_id, func in parallel_funcs:
+                    fut = self.pool.submit(
+                        self._process_func,
+                        func_id, func, passes, graph, results,
+                        results_lock, force, affected, current, total,
+                        force_dirty,
+                    )
+                    futures.append(fut)
                 for fut in as_completed(futures):
-                    fut.result()  # re-raises any exception
+                    fut.result()
+
+                # Run recursive SCCs sequentially with convergence
+                for scc in recursive_sccs:
+                    for scc_iter in range(_MAX_SCC_ITERATIONS):
+                        scc_changed = False
+                        for func_id in scc:
+                            if scc_iter == 0:
+                                current += 1
+                            func = self.db.get_function(func_id)
+                            if func is None:
+                                continue
+                            dirty_before = (
+                                len(force_dirty)
+                                if force_dirty is not None else 0
+                            )
+                            self._process_func(
+                                func_id, func, passes, graph, results,
+                                results_lock, force, affected,
+                                current, total, force_dirty,
+                                scc_iter=scc_iter,
+                            )
+                            dirty_after = (
+                                len(force_dirty)
+                                if force_dirty is not None else 0
+                            )
+                            if dirty_after > dirty_before:
+                                scc_changed = True
+                        if not scc_changed:
+                            break
+                        if scc_iter < _MAX_SCC_ITERATIONS - 1:
+                            if self.verbose:
+                                print(
+                                    f"  SCC iteration {scc_iter + 1}:"
+                                    f" re-running {len(scc)} functions"
+                                )
         else:
             # Sequential mode: original behavior
             processing_order = list(orderer.get_processing_order())
@@ -500,15 +595,35 @@ class BottomUpDriver:
             current = 0
 
             for scc in processing_order:
-                for func_id in scc:
-                    current += 1
-                    func = self.db.get_function(func_id)
-                    if func is None:
-                        continue
-                    self._process_func(
-                        func_id, func, passes, graph, results,
-                        results_lock, force, affected, current, total,
-                        force_dirty,
-                    )
+                is_recursive = len(scc) > 1
+                max_iters = _MAX_SCC_ITERATIONS if is_recursive else 1
+                for scc_iter in range(max_iters):
+                    scc_changed = False
+                    for func_id in scc:
+                        if scc_iter == 0:
+                            current += 1
+                        func = self.db.get_function(func_id)
+                        if func is None:
+                            continue
+                        dirty_before = (
+                            len(force_dirty) if force_dirty is not None
+                            else 0
+                        )
+                        self._process_func(
+                            func_id, func, passes, graph, results,
+                            results_lock, force, affected, current, total,
+                            force_dirty, scc_iter=scc_iter,
+                        )
+                        dirty_after = (
+                            len(force_dirty) if force_dirty is not None
+                            else 0
+                        )
+                        if dirty_after > dirty_before:
+                            scc_changed = True
+                    if not scc_changed:
+                        break
+                    if scc_iter < max_iters - 1 and self.verbose:
+                        print(f"  SCC iteration {scc_iter + 1}: "
+                              f"re-running {len(scc)} functions")
 
         return results
