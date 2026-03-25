@@ -21,12 +21,15 @@ MAX_FUNCTIONS=""
 LIMIT=""
 FORCE=""
 INCREMENTAL=""
+NO_PATCH=""
+DISABLE_THINKING=""
 VERBOSE=""
 CGC_DIR="/data/csong/cgc/cb-multios"
 KAMAIN_BIN="kanalyzer"
 FUNC_SCANS_DIR="func-scans/cgc"
 GT_FILE="cgc_ground_truth.json"
 EVAL_OUTPUT="cgc_eval_report.json"
+LOG_DIR=""
 
 # ── Usage ─────────────────────────────────────────────────────────────────────
 usage() {
@@ -51,8 +54,11 @@ Optional:
   --cgc-dir PATH       Path to cb-multios directory (default: $CGC_DIR)
   --kamain-bin PATH    Path to KAMain/kanalyzer binary (default: $KAMAIN_BIN)
   -o, --output FILE    Evaluation report output path (default: $EVAL_OUTPUT)
+  --log-dir DIR        Log LLM conversations to per-challenge files under DIR
   --force              Force re-summarize/verify even if cached
   --incremental        Only re-summarize functions with stale callee summaries
+  --no-patch           Skip patched analysis (phases 5-6)
+  --disable-thinking   Disable thinking/reasoning mode for LLM
   -v, --verbose        Verbose output
 
 Phases:
@@ -96,10 +102,16 @@ while [[ $# -gt 0 ]]; do
             KAMAIN_BIN="$2"; shift 2 ;;
         -o|--output)
             EVAL_OUTPUT="$2"; shift 2 ;;
+        --log-dir)
+            LOG_DIR="$2"; shift 2 ;;
         --force|-f)
             FORCE="--force"; shift ;;
         --incremental)
             INCREMENTAL="--incremental"; shift ;;
+        --no-patch)
+            NO_PATCH=1; shift ;;
+        --disable-thinking)
+            DISABLE_THINKING="--disable-thinking"; shift ;;
         --verbose|-v)
             VERBOSE="--verbose"; shift ;;
         *)
@@ -119,9 +131,10 @@ FILTER_ARGS=""
 [[ -n "$LIMIT" ]]  && FILTER_ARGS="$FILTER_ARGS --limit $LIMIT"
 
 LLM_ARGS="--backend $BACKEND"
-[[ -n "$MODEL" ]]    && LLM_ARGS="$LLM_ARGS --model $MODEL"
-[[ -n "$LLM_HOST" ]] && LLM_ARGS="$LLM_ARGS --llm-host $LLM_HOST"
-[[ -n "$LLM_PORT" ]] && LLM_ARGS="$LLM_ARGS --llm-port $LLM_PORT"
+[[ -n "$MODEL" ]]             && LLM_ARGS="$LLM_ARGS --model $MODEL"
+[[ -n "$LLM_HOST" ]]          && LLM_ARGS="$LLM_ARGS --llm-host $LLM_HOST"
+[[ -n "$LLM_PORT" ]]          && LLM_ARGS="$LLM_ARGS --llm-port $LLM_PORT"
+[[ -n "$DISABLE_THINKING" ]]  && LLM_ARGS="$LLM_ARGS --disable-thinking"
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 TOTAL_START=$(date +%s)
@@ -164,9 +177,12 @@ echo "Scans:    $FUNC_SCANS_DIR"
 echo "Output:   $EVAL_OUTPUT"
 echo "CGC dir:  $CGC_DIR"
 echo "From:     phase $FROM_PHASE"
+[[ -n "$LOG_DIR" ]]     && echo "Log dir:  $LOG_DIR"
 [[ -n "$FORCE" ]]       && echo "Force:       yes"
 [[ -n "$INCREMENTAL" ]] && echo "Incremental: yes"
-[[ -n "$VERBOSE" ]]     && echo "Verbose:  yes"
+[[ -n "$NO_PATCH" ]]          && echo "No patch:    yes"
+[[ -n "$DISABLE_THINKING" ]]  && echo "Thinking:    disabled"
+[[ -n "$VERBOSE" ]]           && echo "Verbose:     yes"
 echo ""
 
 # ── Phase 0: extract ground truth ────────────────────────────────────────────
@@ -233,13 +249,19 @@ if [[ 3 -le $FROM_PHASE ]] && [[ $FROM_PHASE -le 7 ]] || [[ $FROM_PHASE -le 3 ]]
         echo "[$idx/$TOTAL] $challenge_name"
         challenge_start=$(date +%s)
 
+        LOG_LLM_ARGS=""
+        if [[ -n "$LOG_DIR" ]]; then
+            mkdir -p "$LOG_DIR"
+            LOG_LLM_ARGS="--log-llm $LOG_DIR/${challenge_name}.log"
+        fi
+
         # Phase 3: summarize
         if [[ $FROM_PHASE -le 3 ]]; then
             echo "  summarize..."
             if ! llm-summary summarize \
                 --db "$db_path" \
                 --type allocation --type free --type init --type memsafe \
-                $LLM_ARGS --init-stdlib $FORCE $INCREMENTAL $VERBOSE; then
+                $LLM_ARGS --init-stdlib $FORCE $INCREMENTAL $LOG_LLM_ARGS $VERBOSE; then
                 echo "  FAILED summarize"
                 N_FAIL=$((N_FAIL + 1))
                 continue
@@ -252,7 +274,7 @@ if [[ 3 -le $FROM_PHASE ]] && [[ $FROM_PHASE -le 7 ]] || [[ $FROM_PHASE -le 3 ]]
             if ! llm-summary summarize \
                 --db "$db_path" \
                 --type verify \
-                $LLM_ARGS $FORCE $INCREMENTAL $VERBOSE; then
+                $LLM_ARGS $FORCE $INCREMENTAL $LOG_LLM_ARGS $VERBOSE; then
                 echo "  FAILED verify"
                 N_FAIL=$((N_FAIL + 1))
                 continue
@@ -260,7 +282,7 @@ if [[ 3 -le $FROM_PHASE ]] && [[ $FROM_PHASE -le 7 ]] || [[ $FROM_PHASE -le 3 ]]
         fi
 
         # Phase 5: patch re-scan
-        if [[ $FROM_PHASE -le 5 ]]; then
+        if [[ -z "$NO_PATCH" ]] && [[ $FROM_PHASE -le 5 ]]; then
             echo "  patch re-scan..."
             python3 scripts/cgc_prepare.py \
                 --cgc-dir "$CGC_DIR" --func-scans-dir "$FUNC_SCANS_DIR" \
@@ -269,18 +291,18 @@ if [[ 3 -le $FROM_PHASE ]] && [[ $FROM_PHASE -le 7 ]] || [[ $FROM_PHASE -le 3 ]]
 
         # Phase 6: patched incremental summarize + verify
         patched_db="$FUNC_SCANS_DIR/$challenge_name/functions_patched.db"
-        if [[ $FROM_PHASE -le 6 ]] && [[ -f "$patched_db" ]]; then
+        if [[ -z "$NO_PATCH" ]] && [[ $FROM_PHASE -le 6 ]] && [[ -f "$patched_db" ]]; then
             echo "  patched summarize (incremental)..."
             llm-summary summarize \
                 --db "$patched_db" \
                 --type allocation --type free --type init --type memsafe \
-                $LLM_ARGS --incremental --init-stdlib $VERBOSE
+                $LLM_ARGS --incremental --init-stdlib $LOG_LLM_ARGS $VERBOSE
 
             echo "  patched verify (incremental)..."
             llm-summary summarize \
                 --db "$patched_db" \
                 --type verify \
-                $LLM_ARGS --incremental $VERBOSE
+                $LLM_ARGS --incremental $LOG_LLM_ARGS $VERBOSE
         fi
 
         challenge_elapsed=$(( $(date +%s) - challenge_start ))

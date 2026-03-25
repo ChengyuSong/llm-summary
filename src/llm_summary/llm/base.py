@@ -5,11 +5,11 @@ from dataclasses import dataclass
 from typing import Any
 
 
-def make_json_response_format(schema: dict) -> dict:
+def make_json_response_format(schema: dict, name: str = "response") -> dict:
     """Wrap a JSON Schema dict into OpenAI-compatible response_format."""
     return {
         "type": "json_schema",
-        "json_schema": {"schema": schema},
+        "json_schema": {"name": name, "schema": schema},
     }
 
 

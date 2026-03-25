@@ -35,6 +35,10 @@ def build_backend_kwargs(
         if llm_port is None:
             llm_port = 11434
         kwargs["base_url"] = f"http://{llm_host}:{llm_port}"
+    elif backend == "openai":
+        if llm_host != "localhost" or llm_port is not None:
+            port = llm_port if llm_port is not None else 8000
+            kwargs["base_url"] = f"http://{llm_host}:{port}/v1"
     if disable_thinking:
         kwargs["enable_thinking"] = False
     return kwargs
