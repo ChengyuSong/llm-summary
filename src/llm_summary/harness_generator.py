@@ -84,6 +84,22 @@ A branch marked `loop` is a loop back-edge.
 
 {goal}
 
+## Execution Options
+
+The concolic executor has configurable options you can tune:
+
+- `loop_threshold`: max loop iterations before termination (default: 3). \
+Increase if the function needs deeper loop exploration to reach the target.
+- `solve_ub`: enable UB solving in the constraint solver (default: true). \
+Disable if you only care about reachability, not UB detection.
+- `checker_nullderef`: null pointer dereference checker (default: on).
+- `checker_ubi`: uninitialized memory use checker (default: on).
+- `trace_bounds`: bounds tracking with OOB/UAF exit on violation (default: on).
+- `no_upcast`: disallow negative-offset container_of casts (default: on). \
+Turn off if the code legitimately uses container_of patterns.
+- `no_enlarge`: disallow object size growth beyond initial allocation (default: on). \
+Turn off if the code uses realloc or flexible array members.
+
 Output a JSON trace plan:
 
 ```json
@@ -101,7 +117,16 @@ Output a JSON trace plan:
       "bb_id": 100004,
       "reason": "why this branch is not worth exploring"
     }}
-  ]
+  ],
+  "ucsan_config": {{
+    "loop_threshold": 3,
+    "solve_ub": true,
+    "checker_nullderef": true,
+    "checker_ubi": true,
+    "trace_bounds": true,
+    "no_upcast": true,
+    "no_enlarge": true
+  }}
 }}
 ```
 
@@ -115,6 +140,7 @@ multiple branches.
 no memory ops, deep loop iterations, arithmetic unrelated to the goal).
 - Loops: one iteration usually suffices. Mark loop back-edges as deprioritize \
 unless the access pattern changes across iterations.
+- `ucsan_config`: only include fields you want to change from defaults.
 
 Output ONLY the JSON block, no other text.
 """
@@ -247,6 +273,22 @@ Generate a scheduling policy for the following shim.
 
 {callee_section}
 
+## Execution Options
+
+The concolic executor has configurable options you can tune:
+
+- `loop_threshold`: max loop iterations before termination (default: 3). \
+Increase if the function needs deeper loop exploration to reach the target.
+- `solve_ub`: enable UB solving in the constraint solver (default: true). \
+Disable if you only care about reachability, not UB detection.
+- `checker_nullderef`: null pointer dereference checker (default: on).
+- `checker_ubi`: uninitialized memory use checker (default: on).
+- `trace_bounds`: bounds tracking with OOB/UAF exit on violation (default: on).
+- `no_upcast`: disallow negative-offset container_of casts (default: on). \
+Turn off if the code legitimately uses container_of patterns.
+- `no_enlarge`: disallow object size growth beyond initial allocation (default: on). \
+Turn off if the code uses realloc or flexible array members.
+
 Output a single ```json fenced block:
 
 ```json
@@ -261,10 +303,19 @@ Output a single ```json fenced block:
       "priority": "high|medium|low"
     }}}}
   ],
-  "loop_bound": 3,
-  "timeout_ms": 10000
+  "ucsan_config": {{{{
+    "loop_threshold": 3,
+    "solve_ub": true,
+    "checker_nullderef": true,
+    "checker_ubi": true,
+    "trace_bounds": true,
+    "no_upcast": true,
+    "no_enlarge": true
+  }}}}
 }}}}
 ```
+
+Only include `ucsan_config` fields you want to change from defaults.
 """
 
 
@@ -856,6 +907,11 @@ class HarnessGenerator:
             self._stats["llm_calls"] += 1
             policy = self._extract_json_block(schedule_response)
 
+            # Extract runtime config from LLM output
+            runtime_config = self._build_runtime_config(
+                policy.pop("ucsan_config", {}),
+            )
+
             self._stats["functions_processed"] += 1
 
             # Write output files
@@ -876,6 +932,10 @@ class HarnessGenerator:
                 )
                 config_path.write_text(ucsan_config)
 
+                if runtime_config:
+                    rt_path = out / f"runtime_{func_name}.json"
+                    rt_path.write_text(json.dumps(runtime_config, indent=2))
+
                 build_script = self._build_script(
                     func_name, out, bc_file, file_path=func.file_path,
                     source_files=source_files,
@@ -888,6 +948,8 @@ class HarnessGenerator:
                     print(f"    Wrote: {shim_path}")
                     print(f"    Wrote: {policy_path}")
                     print(f"    Wrote: {config_path}")
+                    if runtime_config:
+                        print(f"    Wrote: {rt_path}")
                     print(f"    Wrote: {script_path}")
 
             return c_code, policy
@@ -1306,15 +1368,33 @@ class HarnessGenerator:
                         )
                 trace["target_bids"] = sorted(flip_bids)
 
+            # Extract runtime config from LLM output
+            runtime_config = self._build_runtime_config(
+                plan.pop("ucsan_config", {}),
+            )
+
+            # Disable checkers unrelated to the issue being validated
+            issue_kind = issue.get("issue_kind", "")
+            if issue_kind:
+                runtime_config = self._apply_issue_checker_filter(
+                    runtime_config, issue_kind,
+                )
+
             # Write plan
             plan_path = out / f"plan_{plan_name}_validation.json"
             plan_path.write_text(json.dumps(plan, indent=2))
+
+            if runtime_config:
+                rt_path = out / f"runtime_{plan_name}.json"
+                rt_path.write_text(json.dumps(runtime_config, indent=2))
 
             if self.verbose:
                 n_traces = len(plan.get("traces", []))
                 n_depri = len(plan.get("deprioritize", []))
                 print(f"    Plan: {n_traces} traces, {n_depri} deprioritized")
                 print(f"    Wrote: {plan_path}")
+                if runtime_config:
+                    print(f"    Wrote: {rt_path}")
 
             return plan
 
@@ -2454,6 +2534,76 @@ echo "Built: $OUT"
         """Extract the first ```c fenced block from a response."""
         match = re.search(r"```c\s*(.*?)\s*```", response, re.DOTALL)
         return match.group(1) if match else None
+
+    @staticmethod
+    @staticmethod
+    def _build_runtime_config(ucsan_config: dict[str, Any]) -> dict[str, Any]:
+        """Convert LLM ucsan_config to run_policy.py --config format.
+
+        The LLM outputs flat booleans/ints; this converts to the nested
+        structure expected by run_policy.py DEFAULT_CONFIG.
+        """
+        runtime: dict[str, Any] = {}
+
+        # ucsan_config.termination.loop.threshold
+        if "loop_threshold" in ucsan_config:
+            runtime["ucsan_config"] = {
+                "termination": {
+                    "loop": {"threshold": ucsan_config["loop_threshold"]}
+                }
+            }
+
+        # UCSAN_OPTIONS flags
+        opts: dict[str, str] = {}
+        for flag in ("checker_nullderef", "checker_ubi", "trace_bounds",
+                      "no_upcast", "no_enlarge"):
+            if flag in ucsan_config:
+                opts[flag] = "1" if ucsan_config[flag] else "0"
+        if opts:
+            runtime["ucsan_options"] = opts
+
+        # TAINT_OPTIONS flags
+        taint: dict[str, str] = {}
+        if "solve_ub" in ucsan_config:
+            taint["solve_ub"] = "1" if ucsan_config["solve_ub"] else "0"
+        if "trace_bounds" in ucsan_config:
+            taint["trace_bounds"] = "1" if ucsan_config["trace_bounds"] else "0"
+        if taint:
+            runtime["taint_options"] = taint
+
+        return runtime
+
+    @staticmethod
+    def _apply_issue_checker_filter(
+        runtime: dict[str, Any], issue_kind: str,
+    ) -> dict[str, Any]:
+        """Disable checkers unrelated to the issue being validated.
+
+        Prevents false positives from unrelated checker exits (e.g.
+        null_deref exit when validating a buffer_overflow issue).
+        """
+        # Map issue_kind → which checkers are relevant
+        # If not in the map, leave all checkers enabled
+        relevant_checkers: dict[str, set[str]] = {
+            "null_deref": {"checker_nullderef"},
+            "buffer_overflow": {"trace_bounds"},
+            "use_after_free": {"trace_bounds"},
+            "out_of_bounds": {"trace_bounds"},
+            "uninitialized_use": {"checker_ubi"},
+        }
+        relevant = relevant_checkers.get(issue_kind)
+        if relevant is None:
+            return runtime
+
+        all_checkers = {"checker_nullderef", "checker_ubi", "trace_bounds"}
+        disable = all_checkers - relevant
+
+        opts = runtime.get("ucsan_options", {})
+        for checker in disable:
+            opts[checker] = "0"
+        runtime["ucsan_options"] = opts
+
+        return runtime
 
     @staticmethod
     def _extract_json_block(response: str) -> dict[str, Any]:

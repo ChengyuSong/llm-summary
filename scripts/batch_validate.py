@@ -42,6 +42,30 @@ class PipelineError(Exception):
     """Raised when --stop-on-error is set and a stage fails."""
 
 
+def _issues_fingerprint(db_path: Path, func_name: str, severity: str | None = None) -> str:
+    """Combined fingerprint of all verification issues for a function.
+
+    Changes when issues are added, removed, or modified — so stale
+    verdict/harness files keyed by this fingerprint are invalidated.
+    """
+    import hashlib
+    db = SummaryDB(str(db_path))
+    try:
+        funcs = db.get_function_by_name(func_name)
+        if not funcs or funcs[0].id is None:
+            return "none"
+        vs = db.get_verification_summary_by_function_id(funcs[0].id)
+        if not vs or not vs.issues:
+            return "none"
+        issues = vs.issues
+        if severity:
+            issues = [i for i in issues if i.severity == severity]
+        fps = sorted(i.fingerprint() for i in issues)
+        return hashlib.sha256("|".join(fps).encode()).hexdigest()[:12]
+    finally:
+        db.close()
+
+
 REPO_ROOT = Path(__file__).resolve().parent.parent
 SCRIPTS_DIR = REPO_ROOT / "scripts"
 FUNC_SCANS_DIR = REPO_ROOT / "func-scans"
@@ -378,7 +402,8 @@ def process_target(
             "runs": [],
         }
 
-        verdict_path = harness_dir / f"verdict_{func_name}.json"
+        ifp = _issues_fingerprint(db_path, func_name, args.severity)
+        verdict_path = harness_dir / f"verdict_{func_name}_{ifp}.json"
 
         # Triage
         if not args.force and verdict_path.exists() or args.skip_triage:
@@ -408,7 +433,7 @@ def process_target(
                 severity=args.severity,
                 project_path=project_path,
                 verbose=args.verbose,
-                timeout=args.triage_timeout,
+                timeout=args.triage_timeout * max(1, issue_count),
             )
             func_result["triage"]["success"] = ok
             func_result["triage"]["error"] = err if not ok else None
@@ -452,9 +477,7 @@ def process_target(
         any_validate_ok = False
         for vi, v in enumerate(vlist):
             idx = v.get("issue_index", vi)
-            vdir = harness_dir / func_name / f"v{idx}"
 
-            # Skip already-reviewed issues
             issue_d = v.get("issue", {})
             vi_obj = SafetyIssue(
                 location=issue_d.get("location", ""),
@@ -465,6 +488,7 @@ def process_target(
                 contract_kind=issue_d.get("contract_kind"),
             )
             fp = vi_obj.fingerprint()
+            vdir = harness_dir / func_name / f"v{idx}_{fp}"
             if fp in reviewed_fps:
                 if args.verbose:
                     print(
@@ -516,6 +540,18 @@ def process_target(
                         )
                     continue
                 has_binary = vdir.exists() and any(vdir.glob("*.ucsan"))
+                if not has_binary:
+                    if args.verbose:
+                        print(
+                            f"      {func_name}#{idx}: "
+                            f"build failed (no .ucsan binary)"
+                        )
+                    if args.stop_on_error:
+                        raise PipelineError(
+                            f"build failed for "
+                            f"{func_name}#{idx}: no .ucsan binary",
+                        )
+                    continue
 
             if has_binary:
                 any_validate_ok = True
@@ -614,6 +650,19 @@ def process_target(
                                     f"        summaries updated: "
                                     f"{updated}"
                                 )
+
+                        # Refresh reviewed_fps — reflection may have
+                        # marked other issues for the same function
+                        db = SummaryDB(str(db_path))
+                        try:
+                            funcs = db.get_function_by_name(func_name)
+                            if funcs:
+                                assert funcs[0].id is not None
+                                for r in db.get_issue_reviews(funcs[0].id):
+                                    if r["status"] != "pending":
+                                        reviewed_fps[r["issue_fingerprint"]] = r["status"]
+                        finally:
+                            db.close()
 
         func_result["validate"]["success"] = any_validate_ok
         result["functions"].append(func_result)

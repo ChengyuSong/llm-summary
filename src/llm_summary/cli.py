@@ -2102,6 +2102,26 @@ def find_allocator_candidates(
         db.close()
 
 
+def _issue_fingerprint(issue_dict: dict) -> str:
+    """Compute issue fingerprint from a verdict's issue dict."""
+    from .models import SafetyIssue
+    si = SafetyIssue(
+        location=issue_dict.get("location", ""),
+        issue_kind=issue_dict.get("issue_kind", ""),
+        description=issue_dict.get("description", ""),
+        severity=issue_dict.get("severity", "medium"),
+        callee=issue_dict.get("callee"),
+        contract_kind=issue_dict.get("contract_kind"),
+    )
+    return si.fingerprint()
+
+
+def _verdict_dir(base: Path, func_name: str, idx: int, issue_dict: dict) -> Path:
+    """Build per-verdict output dir with fingerprint for staleness detection."""
+    fp = _issue_fingerprint(issue_dict)
+    return base / func_name / f"v{idx}_{fp}"
+
+
 def _find_entry_functions(db: SummaryDB, relevant: list[str]) -> list[str]:
     """Find entry functions: those with no callers within the relevant set.
 
@@ -4453,10 +4473,10 @@ def gen_harness(
                     entries = _find_entry_functions(db, relevant)
                     test_cases = [[e] for e in entries]
 
-                # Per-verdict output dir to avoid overwriting
-                verdict_dir = str(
-                    Path(output_dir) / func_name / f"v{issue_idx}"
-                )
+                # Per-verdict output dir — fingerprint prevents stale reuse
+                verdict_dir = str(_verdict_dir(
+                    Path(output_dir), func_name, issue_idx, v.get("issue", {}),
+                ))
                 Path(verdict_dir).mkdir(parents=True, exist_ok=True)
                 console.print(
                     f"Validating {func_name}#{issue_idx} "
@@ -4475,6 +4495,37 @@ def gen_harness(
                         f for f in relevant
                         if f in tc_entries or f not in all_entry_fns
                     ]
+
+                    out = Path(verdict_dir)
+
+                    if plan_only:
+                        # Skip harness generation, just regenerate plan
+                        cfg_path = out / f"cfg_{harness_name}.txt"
+                        if cfg_path.exists():
+                            plan_result = generator.generate_validation_plan(
+                                v, str(out),
+                                cfg_dump=str(cfg_path),
+                                entry_name=harness_name,
+                                scope_functions=entry_scope,
+                            )
+                            if plan_result:
+                                console.print(
+                                    f"  [green]Validation plan: "
+                                    f"{len(plan_result.get('traces', []))} "
+                                    f"traces[/green]"
+                                )
+                            else:
+                                console.print(
+                                    "[yellow]  Failed to generate "
+                                    "validation plan[/yellow]"
+                                )
+                        else:
+                            console.print(
+                                f"[yellow]  No CFG dump at {cfg_path} — "
+                                f"run without --plan-only first[/yellow]"
+                            )
+                        continue
+
                     triage_ctx = {
                         "hypothesis": v.get("hypothesis", ""),
                         "reasoning": v.get("reasoning", ""),
@@ -4500,31 +4551,69 @@ def gen_harness(
 
                         # Auto-build to get CFG dump, then generate
                         # validation plan with counter-example traces
-                        out = Path(verdict_dir)
                         script = out / f"build_{harness_name}.sh"
                         if script.exists():
                             console.print(f"  Building {harness_name}...")
-                            build_result = subprocess.run(
-                                ["bash", str(script)],
-                                capture_output=True, text=True,
-                            )
-                            if build_result.returncode == 0:
+                            build_ok = False
+                            for build_attempt in range(3):
+                                build_result = subprocess.run(
+                                    ["bash", str(script)],
+                                    capture_output=True, text=True,
+                                )
+                                if build_result.returncode == 0:
+                                    build_ok = True
+                                    break
+                                # Link/build error — feed back to fix agent
+                                link_err = (
+                                    build_result.stderr + build_result.stdout
+                                ).strip()
+                                if (
+                                    generator._can_use_fix_agent()
+                                    and build_attempt < 2
+                                ):
+                                    console.print(
+                                        f"  [yellow]Build failed "
+                                        f"(attempt {build_attempt + 1}), "
+                                        f"retrying with fix agent...[/yellow]"
+                                    )
+                                    shim_path = out / f"shim_{harness_name}.c"
+                                    cfg_yaml = out / f"config_{harness_name}.yaml"
+                                    if shim_path.exists() and cfg_yaml.exists():
+                                        fixed = generator._fix_with_agent(
+                                            shim_path.read_text(),
+                                            cfg_yaml.read_text(),
+                                            None,
+                                            link_err,
+                                        )
+                                        if fixed:
+                                            shim_path.write_text(fixed)
+                                            console.print(
+                                                "  Fix agent updated shim"
+                                            )
+                                            continue
+                                console.print(
+                                    f"[red]  Build failed: "
+                                    f"{link_err[:200]}[/red]"
+                                )
+                                break
+
+                            if build_ok:
                                 console.print(
                                     f"  [green]Built: "
                                     f"{harness_name}.ucsan[/green]"
                                 )
                                 cfg_path = out / f"cfg_{harness_name}.txt"
                                 if cfg_path.exists():
-                                    plan = generator.generate_validation_plan(
+                                    plan_result = generator.generate_validation_plan(
                                         v, str(out),
                                         cfg_dump=str(cfg_path),
                                         entry_name=harness_name,
                                         scope_functions=entry_scope,
                                     )
-                                    if plan:
+                                    if plan_result:
                                         console.print(
                                             f"  [green]Validation plan: "
-                                            f"{len(plan.get('traces', []))} "
+                                            f"{len(plan_result.get('traces', []))} "
                                             f"traces[/green]"
                                         )
                                     else:
@@ -4537,11 +4626,6 @@ def gen_harness(
                                         "[yellow]  No CFG dump — "
                                         "skipping plan[/yellow]"
                                     )
-                            else:
-                                console.print(
-                                    f"[red]  Build failed: "
-                                    f"{build_result.stderr[:200]}[/red]"
-                                )
                     else:
                         console.print(f"[red]Failed: {harness_name}[/red]")
             return
@@ -4676,7 +4760,7 @@ def reflect_cmd(
             # Find CFG dump and output dir for this verdict
             idx = oc["issue_index"]
             func_name = oc["function"]
-            vdir = harness_path / func_name / f"v{idx}"
+            vdir = _verdict_dir(harness_path, func_name, idx, v.get("issue", {}))
 
             # Determine entry name from binary path
             binary = Path(oc.get("binary", ""))
@@ -4811,8 +4895,9 @@ def bug_report_cmd(
                 continue
 
             idx = v.get("issue_index", 0)
-            out = Path(output_dir) if output_dir else (
-                Path("harnesses") / proj_path.name / func_name / f"v{idx}"
+            out = Path(output_dir) if output_dir else _verdict_dir(
+                Path("harnesses") / proj_path.name, func_name, idx,
+                v.get("issue", {}),
             )
 
             console.print(f"\n[bold]{func_name}[/bold] [{idx}]")

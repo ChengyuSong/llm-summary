@@ -20,7 +20,7 @@ class ClaudeBackend(LLMBackend):
         api_key: str | None = None,
         project_id: str | None = None,
         location: str | None = None,
-        max_tokens: int = 4096,
+        max_tokens: int = 16384,
     ):
         super().__init__(model)
         self.api_key = api_key or os.environ.get("ANTHROPIC_API_KEY")
