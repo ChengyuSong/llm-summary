@@ -264,6 +264,36 @@ STDLIB_SUMMARIES: dict[str, AllocationSummary] = {
         parameters={"dirp": ParameterInfo(role="directory_stream", used_in_allocation=False)},
         description="Closes directory stream.",
     ),
+    # CGC library
+    "cgc_allocate": AllocationSummary(
+        function_name="cgc_allocate",
+        allocations=[
+            Allocation(
+                alloc_type=AllocationType.HEAP,
+                source="cgc_allocate",
+                size_expr="length",
+                size_params=["length"],
+                returned=False,
+                stored_to="*addr",
+                may_be_null=False,
+            )
+        ],
+        parameters={
+            "length": ParameterInfo(role="size_indicator", used_in_allocation=True),
+            "is_X": ParameterInfo(role="executable_flag", used_in_allocation=False),
+            "addr": ParameterInfo(role="output_pointer", used_in_allocation=False),
+        },
+        description="Allocates length bytes of memory, stores pointer to *addr.",
+    ),
+    "cgc_deallocate": AllocationSummary(
+        function_name="cgc_deallocate",
+        allocations=[],
+        parameters={
+            "addr": ParameterInfo(role="pointer_to_free", used_in_allocation=False),
+            "length": ParameterInfo(role="mapping_length", used_in_allocation=False),
+        },
+        description="Deallocates memory region at addr of given length.",
+    ),
     # Memory mapping
     "mmap": AllocationSummary(
         function_name="mmap",
@@ -366,6 +396,20 @@ STDLIB_FREE_SUMMARIES: dict[str, FreeSummary] = {
         ],
         description="Unmaps memory region previously mapped with mmap.",
     ),
+    # CGC library
+    "cgc_deallocate": FreeSummary(
+        function_name="cgc_deallocate",
+        frees=[
+            FreeOp(
+                target="addr",
+                target_kind="parameter",
+                deallocator="cgc_deallocate",
+                conditional=False,
+                nulled_after=False,
+            )
+        ],
+        description="Deallocates memory region previously allocated by cgc_allocate.",
+    ),
     "freeaddrinfo": FreeSummary(
         function_name="freeaddrinfo",
         frees=[
@@ -431,6 +475,31 @@ STDLIB_INIT_SUMMARIES: dict[str, InitSummary] = {
             )
         ],
         description="Always initializes dest by copying n bytes from src (overlapping safe).",
+    ),
+    # CGC library
+    "cgc_receive": InitSummary(
+        function_name="cgc_receive",
+        inits=[
+            InitOp(
+                target="*buf",
+                target_kind="parameter",
+                initializer="cgc_receive",
+                byte_count="up to count (actual in *rx_bytes)",
+            )
+        ],
+        description="Receives up to count bytes into buf from fd.",
+    ),
+    "cgc_random": InitSummary(
+        function_name="cgc_random",
+        inits=[
+            InitOp(
+                target="*buf",
+                target_kind="parameter",
+                initializer="cgc_random",
+                byte_count="up to count (actual in *rnd_bytes)",
+            )
+        ],
+        description="Fills buf with up to count random bytes.",
     ),
     "strncpy": InitSummary(
         function_name="strncpy",
@@ -795,6 +864,97 @@ STDLIB_MEMSAFE_SUMMARIES: dict[str, MemsafeSummary] = {
         contracts=[],
         description="No safety pre-conditions required (size=0 is valid).",
     ),
+    # CGC library
+    "cgc_allocate": MemsafeSummary(
+        function_name="cgc_allocate",
+        contracts=[
+            MemsafeContract(
+                target="addr", contract_kind="not_null",
+                description="addr must not be NULL",
+            ),
+        ],
+        description="Requires addr to be a valid pointer to receive the allocated address.",
+    ),
+    "cgc_deallocate": MemsafeSummary(
+        function_name="cgc_deallocate",
+        contracts=[
+            MemsafeContract(
+                target="addr", contract_kind="not_null",
+                description="addr must not be NULL",
+            ),
+            MemsafeContract(
+                target="addr", contract_kind="not_freed",
+                description=(
+                    "addr must point to live memory"
+                    " (not already deallocated)"
+                ),
+            ),
+        ],
+        description="Requires addr to point to a live cgc_allocate'd region.",
+    ),
+    "cgc_receive": MemsafeSummary(
+        function_name="cgc_receive",
+        contracts=[
+            MemsafeContract(
+                target="buf", contract_kind="not_null",
+                description="buf must not be NULL",
+            ),
+            MemsafeContract(
+                target="buf", contract_kind="buffer_size",
+                description="buf must point to at least count bytes",
+                size_expr="count", relationship="byte_count",
+            ),
+        ],
+        description=(
+            "Requires buf to be non-NULL and point to at least count bytes."
+        ),
+    ),
+    "cgc_transmit": MemsafeSummary(
+        function_name="cgc_transmit",
+        contracts=[
+            MemsafeContract(
+                target="buf", contract_kind="not_null",
+                description="buf must not be NULL",
+            ),
+            MemsafeContract(
+                target="buf", contract_kind="buffer_size",
+                description="buf must point to at least count bytes",
+                size_expr="count", relationship="byte_count",
+            ),
+        ],
+        description=(
+            "Requires buf to be non-NULL and point to at least count bytes."
+        ),
+    ),
+    "cgc_random": MemsafeSummary(
+        function_name="cgc_random",
+        contracts=[
+            MemsafeContract(
+                target="buf", contract_kind="not_null",
+                description="buf must not be NULL",
+            ),
+            MemsafeContract(
+                target="buf", contract_kind="buffer_size",
+                description="buf must point to at least count bytes",
+                size_expr="count", relationship="byte_count",
+            ),
+        ],
+        description=(
+            "Requires buf to be non-NULL and point to at least count bytes."
+        ),
+    ),
+    "cgc_fdwait": MemsafeSummary(
+        function_name="cgc_fdwait",
+        contracts=[],
+        description=(
+            "All pointer parameters are nullable (readfds, writefds, timeout, readyfds)."
+        ),
+    ),
+    "cgc__terminate": MemsafeSummary(
+        function_name="cgc__terminate",
+        contracts=[],
+        description="No memory safety pre-conditions (takes unsigned int status).",
+    ),
 }
 
 
@@ -815,6 +975,9 @@ STDLIB_ATTRIBUTES: dict[str, str] = {
     "verr": "__attribute__((noreturn))",
     "verrx": "__attribute__((noreturn))",
     "thrd_exit": "__attribute__((noreturn))",
+    # CGC library
+    "cgc__terminate": "__attribute__((noreturn))",
+    "cgc_longjmp": "__attribute__((noreturn))",
     # nonnull + returns_nonnull
     "strlen": "__attribute__((nonnull(1)))",
     "strcmp": "__attribute__((nonnull(1, 2)))",
