@@ -118,8 +118,8 @@ class TestAnnotateSource:
         assert "// (macro) D(fpu, 0)" in annotated
         assert "int ZSTD_cpuid_fpu" in annotated
 
-    def test_with_callsites_uses_original_source_not_pp(self):
-        """Annotation operates on func.source (line offsets), not pp_source."""
+    def test_with_callsites_uses_llm_source(self):
+        """Annotation operates on llm_source (macro-annotated), not raw source."""
         source = "void f(char *p) {\n    free(p);\n}"
         pp_source = "void f(char *p) { free(p); }"  # single line — different structure
         callsites = [
@@ -141,13 +141,53 @@ class TestAnnotateSource:
 
         assert used is True
         lines = annotated.splitlines()
-        # PRE annotation should be on its own line before "free(p);"
+        # PRE annotation should be on its own line before the actual "free(p);" call
         pre_idx = next(i for i, l in enumerate(lines) if "/* PRE[" in l)
-        # The line after the annotation block (skip contract + closing */) should be the callsite
-        free_idx = next(i for i, l in enumerate(lines) if "free(p);" in l)
+        # Find the actual call line (not a // (macro) comment)
+        free_idx = next(
+            i for i, l in enumerate(lines)
+            if "free(p);" in l and not l.lstrip().startswith("//")
+        )
         assert free_idx > pre_idx
-        # Should use original source structure (3 lines), not pp_source (1 line)
-        assert "void f(char *p) {" in lines[0]
+
+    def test_ifdef_declarations_visible(self):
+        """Variables from #ifdef blocks (in pp_source) are visible in annotated output."""
+        # Raw source has #ifdef stripped — no in_data declaration
+        source = "void f() {\n    memcpy(in_data, src, n);\n}"
+        # pp_source includes the declaration from the resolved #ifdef branch
+        pp_source = "void f() {\n    uint8_t in_data[3072];\n    memcpy(in_data, src, n);\n}"
+        callsites = [
+            {"callee": "memcpy", "line": 11, "line_in_body": 1,
+             "via_macro": False, "macro_name": None, "args": ["in_data", "src", "n"]},
+        ]
+        callee_summaries = {
+            "memcpy": MemsafeSummary(
+                function_name="memcpy",
+                contracts=[
+                    MemsafeContract(target="dest", contract_kind="not_null",
+                                    description="dest must not be NULL"),
+                ],
+            ),
+        }
+        callee_params = {"memcpy": ["dest", "src", "n"]}
+
+        ms = _make_summarizer()
+        func = _make_func(source, callsites, pp_source=pp_source)
+        annotated, used = ms._annotate_source(func, callee_summaries, callee_params)
+
+        assert used is True
+        # The declaration from pp_source should be visible
+        assert "uint8_t in_data[3072];" in annotated
+        # PRE comment should appear before the memcpy call
+        lines = annotated.splitlines()
+        pre_idx = next(i for i, l in enumerate(lines) if "/* PRE[" in l)
+        call_idx = next(
+            i for i, l in enumerate(lines)
+            if "memcpy(in_data" in l
+            and not l.lstrip().startswith("//")
+            and "/* PRE[" not in l
+        )
+        assert call_idx > pre_idx
 
     def test_empty_contracts_no_annotation(self):
         """Callee with empty contracts list doesn't produce PRE comment."""

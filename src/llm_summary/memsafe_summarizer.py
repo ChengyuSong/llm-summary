@@ -549,65 +549,93 @@ class MemsafeSummarizer:
         all_callee_names = {cs["callee"] for cs in func.callsites}
         callee_attrs = self._get_callee_attributes(list(all_callee_names))
 
-        # Group callsites by line_in_body (0-based offset from function start line).
-        # line_in_body offsets are relative to the *original* source, so annotation
-        # must always operate on func.source, not pp_source.
-        # Include callees with contracts OR attributes (e.g., noreturn).
-        by_line: dict[int, list[dict]] = {}
-        for cs in func.callsites:
+        # Build ordered queues of pending callsites per callee name.
+        # Sorted by line_in_body so that when the same callee appears
+        # multiple times, we match them in source order.
+        callsite_queues: dict[str, list[dict]] = {}
+        sorted_cs = sorted(
+            func.callsites,
+            key=lambda cs: cs.get("line_in_body", 0),
+        )
+        for cs in sorted_cs:
             callee = cs["callee"]
             if callee in callee_summaries or callee in callee_attrs:
-                by_line.setdefault(cs["line_in_body"], []).append(cs)
+                callsite_queues.setdefault(callee, []).append(cs)
 
-        if not by_line:
+        if not callsite_queues:
             return func.llm_source, False
 
-        lines = func.source.splitlines()
+        # Build regex patterns for each callee to match call expressions.
+        # For via_macro calls, also match the macro name since the callee
+        # name won't appear in the source text.
+        callee_patterns: dict[str, re.Pattern[str]] = {}
+        for callee in callsite_queues:
+            alt_names = {callee}
+            for cs in callsite_queues[callee]:
+                if cs.get("via_macro") and cs.get("macro_name"):
+                    alt_names.add(cs["macro_name"])
+            pattern = "|".join(
+                r"\b" + re.escape(name) + r"\s*\(" for name in alt_names
+            )
+            callee_patterns[callee] = re.compile(pattern)
+
+        lines = func.llm_source.splitlines()
         result: list[str] = []
-        for i, line in enumerate(lines):
-            for cs in by_line.get(i, []):
-                callee = cs["callee"]
-                summary = callee_summaries.get(callee)
-                has_contracts = summary and summary.contracts
-                has_attrs = callee in callee_attrs
+        used_inline = False
+        for line in lines:
+            stripped = line.lstrip()
+            # Skip matching on macro annotation comment lines
+            if not stripped.startswith("// (macro)"):
+                for callee, queue in callsite_queues.items():
+                    if not queue:
+                        continue
+                    if not callee_patterns[callee].search(line):
+                        continue
 
-                if not has_contracts and not has_attrs:
-                    continue
+                    cs = queue.pop(0)
+                    summary = callee_summaries.get(callee)
+                    has_contracts = summary and summary.contracts
+                    has_attrs = callee in callee_attrs
 
-                actual_args: list[str] = cs.get("args", [])
-                formal_params: list[str] = callee_params.get(callee, [])
-                via_macro = cs.get("via_macro", False)
-                macro_name = cs.get("macro_name")
+                    if not has_contracts and not has_attrs:
+                        continue
 
-                # For macro-hidden calls the expanded arg tokens are messy; omit them.
-                if via_macro:
-                    header = f"{callee}  [via macro {macro_name or '?'}]"
-                    actual_args = []  # skip substitution — formals don't map cleanly
-                else:
-                    args_str = ", ".join(actual_args)
-                    header = f"{callee}({args_str})"
+                    actual_args: list[str] = cs.get("args", [])
+                    formal_params: list[str] = callee_params.get(callee, [])
+                    via_macro = cs.get("via_macro", False)
+                    macro_name = cs.get("macro_name")
 
-                indent = " " * (len(line) - len(line.lstrip()))
+                    # For macro-hidden calls the expanded arg tokens are messy; omit them.
+                    if via_macro:
+                        header = f"{callee}  [via macro {macro_name or '?'}]"
+                        actual_args = []  # skip substitution — formals don't map cleanly
+                    else:
+                        args_str = ", ".join(actual_args)
+                        header = f"{callee}({args_str})"
 
-                # Add attribute annotation (e.g., noreturn)
-                if has_attrs:
-                    result.append(f"{indent}/* {callee}: {callee_attrs[callee]} */")
+                    indent = " " * (len(line) - len(line.lstrip()))
 
-                # Add contract annotations
-                if has_contracts and summary is not None:
-                    result.append(f"{indent}/* PRE[{header}]:")
-                    for c in summary.contracts:
-                        target = _substitute(c.target, formal_params, actual_args)
-                        if c.contract_kind == "buffer_size" and c.size_expr:
-                            size = _substitute(c.size_expr, formal_params, actual_args)
-                            result.append(f"{indent} *   {target}: {c.contract_kind}({size})")
-                        else:
-                            result.append(f"{indent} *   {target}: {c.contract_kind}")
-                    result.append(f"{indent} */")
+                    # Add attribute annotation (e.g., noreturn)
+                    if has_attrs:
+                        result.append(f"{indent}/* {callee}: {callee_attrs[callee]} */")
+
+                    # Add contract annotations
+                    if has_contracts and summary is not None:
+                        result.append(f"{indent}/* PRE[{header}]:")
+                        for c in summary.contracts:
+                            target = _substitute(c.target, formal_params, actual_args)
+                            if c.contract_kind == "buffer_size" and c.size_expr:
+                                size = _substitute(c.size_expr, formal_params, actual_args)
+                                result.append(f"{indent} *   {target}: {c.contract_kind}({size})")
+                            else:
+                                result.append(f"{indent} *   {target}: {c.contract_kind}")
+                        result.append(f"{indent} */")
+
+                    used_inline = True
 
             result.append(line)
 
-        return "\n".join(result), True
+        return "\n".join(result), used_inline
 
     def _build_flat_callee_list(
         self,

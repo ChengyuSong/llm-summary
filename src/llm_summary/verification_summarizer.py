@@ -670,147 +670,167 @@ class VerificationSummarizer:
                 if post:
                     callee_post[callee_func.name] = post
 
-        # Group callsites by line_in_body
-        by_line: dict[int, list[dict]] = {}
-        for cs in func.callsites:
+        # Build ordered queues of pending callsites per callee name.
+        # Sorted by line_in_body so that when the same callee appears
+        # multiple times, we match them in source order.
+        callsite_queues: dict[str, list[dict]] = {}
+        sorted_cs = sorted(
+            func.callsites,
+            key=lambda cs: cs.get("line_in_body", 0),
+        )
+        for cs in sorted_cs:
             cname = str(cs["callee"])
             has_pre = (cname in callee_summaries
                        and callee_summaries[cname].simplified_contracts is not None)
             has_post = cname in callee_post
             has_attrs = cname in callee_attrs
             if has_pre or has_post or has_attrs:
-                by_line.setdefault(cs["line_in_body"], []).append(cs)
+                callsite_queues.setdefault(cname, []).append(cs)
 
-        if not by_line:
+        if not callsite_queues:
             return func.llm_source
 
-        lines = func.source.splitlines()
+        # Build regex patterns for each callee to match call expressions.
+        callee_patterns: dict[str, re.Pattern[str]] = {}
+        for callee in callsite_queues:
+            callee_patterns[callee] = re.compile(
+                r"\b" + re.escape(callee) + r"\s*\("
+            )
+
+        lines = func.llm_source.splitlines()
         result: list[str] = []
-        for i, line in enumerate(lines):
+        for line in lines:
             # Collect post-condition lines to emit after the callsite
             post_lines: list[str] = []
 
-            for cs in by_line.get(i, []):
-                callee_name = str(cs["callee"])
-                actual_args: list[str] = cs.get("args", [])
-                formal_params: list[str] = callee_params.get(callee_name, [])
-                via_macro: bool = bool(cs.get("via_macro", False))
-                macro_name = cs.get("macro_name")
+            stripped = line.lstrip()
+            if not stripped.startswith("// (macro)"):
+                for callee_name, queue in callsite_queues.items():
+                    if not queue:
+                        continue
+                    if not callee_patterns[callee_name].search(line):
+                        continue
 
-                if via_macro:
-                    header = f"{callee_name}  [via macro {macro_name or '?'}]"
-                    actual_args = []
-                else:
-                    args_str = ", ".join(actual_args)
-                    header = f"{callee_name}({args_str})"
+                    cs = queue.pop(0)
+                    actual_args: list[str] = cs.get("args", [])
+                    formal_params: list[str] = callee_params.get(callee_name, [])
+                    via_macro: bool = bool(cs.get("via_macro", False))
+                    macro_name = cs.get("macro_name")
 
-                indent = " " * (len(line) - len(line.lstrip()))
+                    if via_macro:
+                        header = f"{callee_name}  [via macro {macro_name or '?'}]"
+                        actual_args = []
+                    else:
+                        args_str = ", ".join(actual_args)
+                        header = f"{callee_name}({args_str})"
 
-                # Attribute annotation (before call)
-                if callee_name in callee_attrs:
-                    result.append(
-                        f"{indent}/* {callee_name}: "
-                        f"{callee_attrs[callee_name]} */"
-                    )
+                    indent = " " * (len(line) - len(line.lstrip()))
 
-                # Pre-conditions (before call)
-                verified = callee_summaries.get(callee_name)
-                if verified and verified.simplified_contracts:
-                    result.append(f"{indent}/* PRE[{header}]:")
-                    for c in verified.simplified_contracts:
-                        target = _substitute(c.target, formal_params, actual_args)
-                        if c.contract_kind == "buffer_size" and c.size_expr:
-                            size = _substitute(
-                                c.size_expr, formal_params, actual_args,
-                            )
-                            result.append(
-                                f"{indent} *   {target}:"
-                                f" {c.contract_kind}({size})"
-                            )
-                        else:
-                            result.append(
-                                f"{indent} *   {target}: {c.contract_kind}"
-                            )
-                    result.append(f"{indent} */")
+                    # Attribute annotation (before call)
+                    if callee_name in callee_attrs:
+                        result.append(
+                            f"{indent}/* {callee_name}: "
+                            f"{callee_attrs[callee_name]} */"
+                        )
 
-                # Post-conditions (after call)
-                post = callee_post.get(callee_name, {})
-                if post:
-                    post_lines.append(f"{indent}/* POST[{header}]:")
-                    allocs: list[Allocation] = post.get(  # type: ignore[assignment]
-                        "allocations", [],
-                    )
-                    for a in allocs:
-                        extras = []
-                        if a.may_be_null:
-                            extras.append("may_be_null")
-                        else:
-                            extras.append("never_null")
-                        if a.returned:
-                            extras.append("returned")
-                        if a.stored_to:
-                            stored = _substitute(
-                                a.stored_to, formal_params, actual_args,
+                    # Pre-conditions (before call)
+                    verified = callee_summaries.get(callee_name)
+                    if verified and verified.simplified_contracts:
+                        result.append(f"{indent}/* PRE[{header}]:")
+                        for c in verified.simplified_contracts:
+                            target = _substitute(c.target, formal_params, actual_args)
+                            if c.contract_kind == "buffer_size" and c.size_expr:
+                                size = _substitute(
+                                    c.size_expr, formal_params, actual_args,
+                                )
+                                result.append(
+                                    f"{indent} *   {target}:"
+                                    f" {c.contract_kind}({size})"
+                                )
+                            else:
+                                result.append(
+                                    f"{indent} *   {target}: {c.contract_kind}"
+                                )
+                        result.append(f"{indent} */")
+
+                    # Post-conditions (after call)
+                    post = callee_post.get(callee_name, {})
+                    if post:
+                        post_lines.append(f"{indent}/* POST[{header}]:")
+                        allocs: list[Allocation] = post.get(  # type: ignore[assignment]
+                            "allocations", [],
+                        )
+                        for a in allocs:
+                            extras = []
+                            if a.may_be_null:
+                                extras.append("may_be_null")
+                            else:
+                                extras.append("never_null")
+                            if a.returned:
+                                extras.append("returned")
+                            if a.stored_to:
+                                stored = _substitute(
+                                    a.stored_to, formal_params, actual_args,
+                                )
+                                extras.append(f"stored_to={stored}")
+                            size_desc = ""
+                            if a.size_expr:
+                                size_desc = (
+                                    f"({_substitute(a.size_expr, formal_params, actual_args)})"
+                                )
+                            post_lines.append(
+                                f"{indent} *   alloc: {a.source}{size_desc}"
+                                f" [{', '.join(extras)}]"
                             )
-                            extras.append(f"stored_to={stored}")
-                        size_desc = ""
-                        if a.size_expr:
-                            size_desc = (
-                                f"({_substitute(a.size_expr, formal_params, actual_args)})"
+                        frees: list[FreeOp] = post.get(  # type: ignore[assignment]
+                            "frees", [],
+                        )
+                        for fop in frees:
+                            target = _substitute(
+                                fop.target, formal_params, actual_args,
                             )
-                        post_lines.append(
-                            f"{indent} *   alloc: {a.source}{size_desc}"
-                            f" [{', '.join(extras)}]"
-                        )
-                    frees: list[FreeOp] = post.get(  # type: ignore[assignment]
-                        "frees", [],
-                    )
-                    for fop in frees:
-                        target = _substitute(
-                            fop.target, formal_params, actual_args,
-                        )
-                        extras_f = []
-                        if fop.conditional:
-                            extras_f.append(
-                                f"when {fop.condition}"
-                                if fop.condition else "conditional"
+                            extras_f = []
+                            if fop.conditional:
+                                extras_f.append(
+                                    f"when {fop.condition}"
+                                    if fop.condition else "conditional"
+                                )
+                            if fop.nulled_after:
+                                extras_f.append("nulled_after")
+                            extra_str = (
+                                f" [{', '.join(extras_f)}]" if extras_f else ""
                             )
-                        if fop.nulled_after:
-                            extras_f.append("nulled_after")
-                        extra_str = (
-                            f" [{', '.join(extras_f)}]" if extras_f else ""
+                            post_lines.append(
+                                f"{indent} *   free:"
+                                f" {fop.deallocator}({target}){extra_str}"
+                            )
+                        inits: list[InitOp] = post.get(  # type: ignore[assignment]
+                            "inits", [],
                         )
-                        post_lines.append(
-                            f"{indent} *   free:"
-                            f" {fop.deallocator}({target}){extra_str}"
+                        for iop in inits:
+                            target = _substitute(
+                                iop.target, formal_params, actual_args,
+                            )
+                            byte_info = (
+                                f" [{iop.byte_count} bytes]"
+                                if iop.byte_count else ""
+                            )
+                            post_lines.append(
+                                f"{indent} *   init:"
+                                f" {iop.initializer}({target}){byte_info}"
+                            )
+                        out_ranges: list[OutputRange] = post.get(  # type: ignore[assignment]
+                            "output_ranges", [],
                         )
-                    inits: list[InitOp] = post.get(  # type: ignore[assignment]
-                        "inits", [],
-                    )
-                    for iop in inits:
-                        target = _substitute(
-                            iop.target, formal_params, actual_args,
-                        )
-                        byte_info = (
-                            f" [{iop.byte_count} bytes]"
-                            if iop.byte_count else ""
-                        )
-                        post_lines.append(
-                            f"{indent} *   init:"
-                            f" {iop.initializer}({target}){byte_info}"
-                        )
-                    out_ranges: list[OutputRange] = post.get(  # type: ignore[assignment]
-                        "output_ranges", [],
-                    )
-                    for orange in out_ranges:
-                        target = _substitute(
-                            orange.target, formal_params, actual_args,
-                        )
-                        post_lines.append(
-                            f"{indent} *   range:"
-                            f" {target} = {orange.range}"
-                        )
-                    post_lines.append(f"{indent} */")
+                        for orange in out_ranges:
+                            target = _substitute(
+                                orange.target, formal_params, actual_args,
+                            )
+                            post_lines.append(
+                                f"{indent} *   range:"
+                                f" {target} = {orange.range}"
+                            )
+                        post_lines.append(f"{indent} */")
 
             result.append(line)
             result.extend(post_lines)
