@@ -98,6 +98,8 @@ being set → `initialized`
 does NOT satisfy internally, propagate it
 - Only include size_expr and relationship for buffer_size contracts
 - Only include condition when the contract is not unconditional
+- If size_expr is a compile-time constant (e.g., expanded from a macro), \
+use the numeric value, not the macro name
 
 Respond in JSON format:
 ```json
