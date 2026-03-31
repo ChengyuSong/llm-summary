@@ -1,60 +1,32 @@
-# Bug Triage Integration
+# Bug Triage Agent
 
-Integration plan for incorporating the pbfuzz bug triage agent
-(`~/fuzzing/pbfuzz/`) into llm-summary, using our LLM backend abstraction
-for model switching.
+Phase-gated ReAct agent that proves memory safety issues (from verification
+Pass 5) are either **safe** (cannot manifest) or **feasible** (reachable with
+concrete inputs). Uses `complete_with_tools()` with any LLM backend.
 
-## Motivation
+## Origin: pbfuzz Lessons
 
-The verification pass (Pass 5) finds memory safety issues via Hoare-logic
-reasoning, but cannot:
+The agent descends from the pbfuzz bug triage agent (`~/fuzzing/pbfuzz/`).
+Key takeaway: without strict phase enforcement, the agent loops on analysis
+or jumps to conclusions. The phase-gated state machine solved this.
 
-- **Confirm** whether an issue is real or a false positive
-- **Reproduce** it with a concrete input
-- **Rank** issues by reachability from entry points
+### Reused from pbfuzz
 
-The pbfuzz agent can do this through a structured workflow with debugger
-integration, but is locked to Claude Agent SDK — can't use Gemini, local
-models, etc.
+- **Workflow state machine** — phase gating prevents agent from getting stuck
+- **Structured memory** — persistent state across ReAct iterations
+- **Prompt structure** — static context (project config) separated from
+  dynamic state (workflow phase)
 
-## Key Insight from pbfuzz Evaluation
+### Replaced
 
-The phase-gated workflow state machine (PLAN -> IMPLEMENT -> EXECUTE ->REFLECT)
-is essential. Without strict phase enforcement, the agent gets stuck — some
-execution states are hard to reason about, and the agent either loops on
-analysis without acting, or jumps to execution without a plan.
-
-## What to Reuse from pbfuzz
-
-### Keep (proven valuable)
-
-| Component | Why |
-|---|---|
-| **Workflow state machine** | Phase gating prevents agent from getting stuck |
-| **GDB via named pipes** (`gdb.sh`) | Lets LLM set breakpoints, inspect vars, confirm bugs |
-| **Structured memory** (BugPredicates, Preconditions, RootCauses, TriggerPlans) | Persistent state across ReAct iterations |
-| **Deviation detector** concept | Identify why a path wasn't reached |
-| **Prompt structure** (project_config + workflow_state) | Separates static context from dynamic state |
-
-### Replace
-
-| pbfuzz Component | llm-summary Replacement |
+| pbfuzz | llm-summary |
 |---|---|
 | Claude Agent SDK | `complete_with_tools()` ReAct loop (any backend) |
-| MCP call_graph server | `functions.db` queries (already have callers/callees) |
-| MCP search server | Direct source reads from DB |
-| MCP corpus server | Call graph + summaries in DB |
-| MCP workflow server | Python-side phase controller (no MCP overhead) |
-| MCP fuzzer server | Thoroupy / standalone harness runner |
-
-### Skip
-
-| Component | Why |
-|---|---|
-| MCP protocol layer | Unnecessary when tools are Python functions in-process |
-| DAP/LLDB debugger (`debugger.py`) | Complex; GDB named-pipe approach is simpler and portable |
-| AFLGo static analysis inputs | We have our own call graph and function summaries |
-| cursor-cli dependency | Replaced by our backend abstraction |
+| MCP call_graph/search/corpus servers | `functions.db` queries (in-process) |
+| MCP workflow server | Python-side phase controller |
+| MCP fuzzer server | ucsan / standalone harness runner |
+| MCP protocol layer | Direct Python tool functions |
+| cursor-cli | LLM backend abstraction |
 
 ## Architecture
 
@@ -62,173 +34,252 @@ analysis without acting, or jumps to execution without a plan.
 Verification Pass (existing)
   | SafetyIssue[] (in functions.db)
   v
-Triage Controller (new)
-  | Phase-gated workflow: ANALYZE -> PLAN -> CONFIRM -> REFLECT
+TriageAgent (triage.py)
+  | Phase-gated workflow: ANALYZE -> HYPOTHESIZE -> VERDICT
   | Uses complete_with_tools() with any backend
   |
-  | Tools available to LLM:
-  |   read_function(name)      -- source from DB
-  |   get_callers(name)        -- call graph from DB
-  |   get_callees(name)        -- call graph from DB
-  |   get_contracts(name)      -- pre/post conditions from DB
-  |   read_source_file(path)   -- raw file read
-  |   run_gdb(binary, cmds)    -- GDB session via named pipe
-  |   run_harness(binary, input) -- execute harness, capture output
+  | Tools (phase-filtered):
+  |   read_function_source(name)   -- source from DB
+  |   get_callers(name)            -- call graph + caller source
+  |   get_callees(name)            -- direct + resolved indirect calls
+  |   get_summaries(name)          -- contracts, allocs, frees, inits
+  |   get_verification_summary(name) -- full issue list
+  |   git_show(path)               -- read tracked files (optional)
+  |   git_grep(pattern)            -- search repo (optional)
+  |   git_ls_tree(path)            -- list repo tree (optional)
+  |   transition_phase(next)       -- advance workflow
+  |   submit_verdict(...)          -- final proof
   v
-TriageReport (new)
-  | Per-issue: verdict, reasoning, evidence (GDB trace if available)
+TriageResult[]
+  | Per-issue: hypothesis, reasoning, contracts/path, relevant_functions
   v
-Harness Generator (existing, enhanced)
-  | Receives triage context: which path to target, preconditions
+gen-harness --validate (existing, enhanced)
+  | Reads verdict, generates ucsan harness per entry function
 ```
 
 ## Workflow Phases
 
-Adapted from pbfuzz's PLAN -> IMPLEMENT -> EXECUTE -> REFLECT, tuned for
-triage rather than fuzzing:
+Three phases, strictly enforced by `TriageToolExecutor`:
 
 ### ANALYZE (read-only)
 
-- Read the `SafetyIssue` details: location, kind, severity, description
+- Read `SafetyIssue` details: location, kind, severity, description
 - Read function source, callee contracts, caller context from DB
-- Identify the bug predicate: what condition triggers this issue
-- Identify reaching preconditions: what caller state reaches this path
-- **Allowed tools**: `read_function`, `get_callers`, `get_callees`,
-  `get_contracts`, `read_source_file`
-- **Output**: BugPredicates, Preconditions, RootCauses
+- Identify the bug predicate and reaching preconditions
+- Optionally inspect project source via git tools
+- **Tools**: `read_function_source`, `get_callers`, `get_callees`,
+  `get_summaries`, `get_verification_summary`, git tools, `transition_phase`
 
-### PLAN
+### HYPOTHESIZE
 
-- Design a confirmation strategy: what input/state would trigger the issue
-- Create TriggerPlans with complexity scores
-- If issue looks unreachable (all paths guarded), can verdict as `unlikely`
-  and skip remaining phases
-- **Allowed tools**: same as ANALYZE + write to workflow state
-- **Output**: TriggerPlans, preliminary verdict
+- Formulate a proof: either safety (updated contracts) or feasibility
+  (call chain + assumptions)
+- Same tools as ANALYZE for continued investigation
+- **Tools**: same as ANALYZE
 
-### CONFIRM (requires harness binary)
+### VERDICT
 
-- Execute harness under GDB with breakpoints at issue location
-- Check if bug path is reachable with crafted input
-- Capture evidence: call stack, variable values at breakpoint
-- **Allowed tools**: `run_gdb`, `run_harness`
-- **Output**: Evidence, updated verdict
+- Submit the final proof via `submit_verdict`
+- **Tools**: `submit_verdict` only
 
-### REFLECT
+### Two Outcomes
 
-- Analyze why confirmation succeeded or failed
-- For unreached paths: identify which precondition was violated
-- Update verdict with evidence
-- If inconclusive and attempts remain, loop back to PLAN
-- **Allowed tools**: read-only, analysis tools
-- **Output**: Final `TriageVerdict`
+**Safety proof** — the issue cannot manifest:
+- Updated/new contracts that prove the property holds
+- Example: all callers pass non-null, so null deref is impossible
+
+**Feasibility proof** — the issue is reachable:
+- Concrete call chain from entry to bug site
+- Input assumptions that trigger it
+
+Both include `relevant_functions` (scope for validation) and
+`assumptions`/`assertions` (for ucsan harness).
+
+## Phase Gating
+
+Enforced in Python by `TriageToolExecutor`:
+
+```python
+ALLOWED_TRANSITIONS = {
+    "ANALYZE": ["HYPOTHESIZE"],
+    "HYPOTHESIZE": ["VERDICT"],
+}
+
+PHASE_TOOLS = {
+    "ANALYZE":     _DB_TOOLS | GIT_TOOL_NAMES | {"transition_phase"},
+    "HYPOTHESIZE": _DB_TOOLS | GIT_TOOL_NAMES | {"transition_phase"},
+    "VERDICT":     {"submit_verdict"},
+}
+```
+
+When the LLM calls a tool not allowed in the current phase, the executor
+returns an error with guidance on which tools are available.
 
 ## Data Models
 
 ```python
-class TriageVerdict:
-    issue: SafetyIssue           # from verification pass
-    verdict: str                 # confirmed | likely | unlikely | false_positive
-    confidence: float            # 0.0 - 1.0
-    reasoning: str               # LLM explanation
-    evidence: list[str]          # GDB traces, path analysis
-    bug_predicates: list[dict]   # extracted triggering conditions
-    preconditions: list[dict]    # reaching conditions
-    root_cause: str | None       # vulnerability category
-
-class TriageWorkflowState:
-    phase: str                   # ANALYZE | PLAN | CONFIRM | REFLECT
+@dataclass
+class TriageResult:
+    function_name: str
+    issue_index: int
     issue: SafetyIssue
-    bug_predicates: list[dict]
-    preconditions: list[dict]
-    root_causes: list[dict]
-    trigger_plans: list[dict]
-    evidence: list[str]
-    metrics: dict                # attempts, phase transitions
-    log: list[str]               # action history (capped)
+    hypothesis: str              # "safe" or "feasible"
+    reasoning: str               # natural language proof
+
+    # Safety proof
+    updated_contracts: list[dict]  # new/strengthened contracts
+
+    # Feasibility proof
+    feasible_path: list[str]     # call chain from entry to bug site
+
+    # For symbolic validation (ucsan)
+    assumptions: list[str]       # input constraints
+    assertions: list[str]        # violation conditions to check
+    relevant_functions: list[str]  # functions to keep as real code
+    validation_plan: list[dict]  # test case harnesses
 ```
 
-## Phase Gating
-
-The controller enforces phase transitions in Python (no MCP needed):
+### submit_verdict Schema
 
 ```python
-ALLOWED_TRANSITIONS = {
-    "ANALYZE": ["PLAN"],
-    "PLAN": ["CONFIRM", "REFLECT"],  # REFLECT if early verdict
-    "CONFIRM": ["REFLECT"],
-    "REFLECT": ["PLAN", "DONE"],     # loop back or finish
-}
+submit_verdict(
+    hypothesis: "safe" | "feasible",
+    reasoning: str,
 
-PHASE_TOOLS = {
-    "ANALYZE": {"read_function", "get_callers", "get_callees",
-                "get_contracts", "read_source_file"},
-    "PLAN":    {"read_function", "get_callers", "get_callees",
-                "get_contracts", "read_source_file"},
-    "CONFIRM": {"run_gdb", "run_harness", "read_source_file"},
-    "REFLECT": {"read_function", "get_callers", "get_callees",
-                "get_contracts", "read_source_file"},
-}
+    # Safety proof:
+    updated_contracts: [{
+        "target": str,        # parameter/field name
+        "contract_kind": "not_null" | "nullable" | "not_freed" |
+                         "initialized" | "buffer_size",
+        "description": str,
+        "size_expr": str,     # for buffer_size (optional)
+    }],
+
+    # Feasibility proof:
+    feasible_path: [str],     # call chain
+
+    # Both:
+    assumptions: [str],
+    assertions: [str],
+    relevant_functions: [str],
+    validation_plan: [{"entries": [str]}],  # optional
+)
 ```
 
-When the LLM calls a tool not allowed in the current phase, the controller
-returns an error message with guidance on which phase to transition to.
+## Validation Pipeline
 
-## Implementation Phases
+Triage results feed into `gen-harness --validate` for symbolic confirmation:
 
-### Phase 1: Static triage (no execution)
+```
+llm-summary triage --db <db> -f func -o verdict.json
+  ↓
+llm-summary gen-harness --db <db> --validate verdict.json
+  ↓
+For each verdict:
+  1. Extract relevant_functions, validation_plan
+  2. Find entry functions (no callers within relevant set)
+  3. Generate C harness via TRIAGE_VALIDATE_PROMPT
+  4. Compile with ko-clang → .ucsan binary
+  5. Run ucsan for symbolic validation
+```
 
-- `src/llm_summary/triage.py` — controller + tool definitions
-- CLI: `llm-summary triage --db <db> --severity high,medium`
-- ANALYZE and PLAN phases only (no CONFIRM)
-- Uses `complete_with_tools()` ReAct loop
-- Output: JSON report with per-issue verdicts
-- Works with any backend
+### TRIAGE_VALIDATE_PROMPT
 
-### Phase 2: GDB integration
+Generates a C shim for ucsan concolic execution with contract-to-assertion
+mapping:
 
-- Port `gdb.sh` named-pipe wrapper
-- Add `run_gdb` tool to the ReAct loop
-- CONFIRM phase enabled
-- Requires harness binary (from `gen-harness`)
-- Pipeline: triage -> gen-harness -> confirm
+| Contract kind | Assertion |
+|---|---|
+| `not_null` | `__assert_cond(ptr != NULL, id)` |
+| `nullable` | (no assertion) |
+| `not_freed` | `__assert_allocated(ptr, 0, id)` |
+| `buffer_size(N)` | `__assert_allocated(ptr, N, id)` |
+| `initialized(N)` | `__assert_init(ptr, N, id)` |
+| `freed` | `__assert_freed(ptr, id)` |
 
-### Phase 3: Batch pipeline + harness chaining
+Post-condition qualifiers: `[may_be_null]` suppresses non-NULL assert;
+`[when COND]` wraps assertion in `if (COND) { ... }`.
 
-- `scripts/batch_triage.py` — run triage across all high/medium issues
-- Auto-invoke `gen-harness` for confirmed issues
-- Integration with thoroupy for deeper confirmation
-- Aggregate report generation
+## Git Tools Integration
 
-### Phase 4: Feedback loop
+When `--project-path` is provided, the agent gains access to the project
+repository via `GitTools`:
 
-- Triage results improve future verification (fewer false positives)
-- Confirmed issues feed into targeted harness generation
-- Track triage accuracy over time (ground truth from manual review)
+- `git_show` — read tracked files at any ref
+- `git_grep` — search file contents
+- `git_ls_tree` — list directory structure
+
+These use git plumbing commands with `--` separators and input validation
+for injection prevention. Shared with other agents via `git_tools.py`.
+
+When `--project-path` is omitted, git tools are hidden from the tool list
+and the agent works purely from DB-provided source.
+
+## CLI Usage
+
+```bash
+# Triage all high-severity issues
+llm-summary triage --db func-scans/libpng/functions.db \
+  --severity high --backend claude -v
+
+# Triage specific function
+llm-summary triage --db func-scans/zlib/functions.db \
+  -f deflate -v
+
+# Triage specific issue by index
+llm-summary triage --db func-scans/zlib/functions.db \
+  -f gz_write --issue-index 0 -v
+
+# With git tools for source inspection
+llm-summary triage --db func-scans/libpng/functions.db \
+  -f png_read_row --project-path /data/csong/opensource/libpng -v
+
+# Save results for validation
+llm-summary triage --db func-scans/zlib/functions.db \
+  -f deflate -o verdict.json --backend gemini
+
+# Validate triage results with ucsan harness
+llm-summary gen-harness --db func-scans/zlib/functions.db \
+  --validate verdict.json --ko-clang-path ~/fuzzing/ucsan/ko-clang \
+  --compile-commands /data/csong/build-artifacts/zlib/compile_commands.json
+```
+
+### CLI Options
+
+```
+llm-summary triage --db <path> [options]
+
+Required:
+  --db PATH                      Database file
+
+Optional:
+  -f, --function NAME...         Function(s) to triage (default: all with issues)
+  --severity {high|medium|low}   Filter by issue severity
+  --issue-index N                Triage specific issue (requires single -f)
+  --backend {claude|openai|ollama|llamacpp|gemini}  (default: claude)
+  --model STR                    Model override
+  --project-path PATH            Enable git tools
+  -o, --output PATH              JSON output file (default: summary to stdout)
+  -v, --verbose                  Print detailed logs
+  --disable-thinking             Disable extended thinking
+  --llm-host, --llm-port         For local backends
+```
 
 ## Key Files
 
 | File | Purpose |
 |---|---|
-| `src/llm_summary/triage.py` | Triage controller, workflow, tool defs |
-| `src/llm_summary/models.py` | TriageVerdict, TriageWorkflowState models |
-| `src/llm_summary/cli.py` | `triage` subcommand |
-| `scripts/gdb_pipe.sh` | GDB named-pipe wrapper (ported from pbfuzz) |
-| `scripts/batch_triage.py` | Batch triage runner |
+| `src/llm_summary/triage.py` | TriageAgent, TriageToolExecutor, system prompt, phase gating |
+| `src/llm_summary/agent_tools.py` | Tool definitions (DB read tools, triage-only tools), ToolExecutor |
+| `src/llm_summary/git_tools.py` | GitTools class, git_show/git_grep/git_ls_tree |
+| `src/llm_summary/harness_generator.py` | validate_triage(), TRIAGE_VALIDATE_PROMPT |
+| `src/llm_summary/models.py` | SafetyIssue, TriageResult, VerificationSummary |
+| `src/llm_summary/cli.py` | `triage` subcommand, `gen-harness --validate` |
 
-## Example Usage
+## Future Work
 
-```bash
-# Static triage (Phase 1)
-llm-summary triage --db func-scans/libpng/functions.db \
-  --severity high,medium --backend claude
-
-# With GDB confirmation (Phase 2)
-llm-summary triage --db func-scans/libpng/functions.db \
-  --severity high --backend gemini \
-  --harness-dir harnesses/libpng/ --confirm
-
-# Batch (Phase 3)
-python scripts/batch_triage.py --project libpng --backend claude \
-  --severity high,medium --confirm
-```
+- **GDB integration**: Named-pipe based debugger for runtime confirmation
+  (port `gdb.sh` from pbfuzz, add `run_gdb`/`run_harness` tools)
+- **Batch pipeline**: `scripts/batch_triage.py` for bulk triage across projects
+- **Feedback loop**: Triage accuracy tracking, confirmed issues feeding back
+  into verification to reduce false positives
