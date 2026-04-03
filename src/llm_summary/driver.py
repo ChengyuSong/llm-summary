@@ -303,6 +303,24 @@ class BottomUpDriver:
 
         return affected
 
+    def compute_reachable(
+        self, entry_ids: set[int], graph: dict[int, list[int]]
+    ) -> set[int]:
+        """Compute the set of function IDs reachable from *entry_ids*.
+
+        This is *entry_ids* plus all transitive callees (forward edges).
+        """
+        reachable = set(entry_ids)
+        queue: deque[int] = deque(entry_ids)
+        while queue:
+            node = queue.popleft()
+            for callee in graph.get(node, []):
+                if callee not in reachable:
+                    reachable.add(callee)
+                    queue.append(callee)
+
+        return reachable
+
     def _process_func(
         self,
         func_id: int,

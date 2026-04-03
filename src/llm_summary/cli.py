@@ -141,11 +141,16 @@ def main():
     help="Only re-summarize dirty functions (missing, source-changed, or callee-updated) "
          "and their transitive callers.",
 )
+@click.option(
+    "--exclude-unreachable-from", "entry_functions", multiple=True,
+    help="Only process functions reachable from the given function(s). "
+         "Excludes dead code not in the call graph of these roots.",
+)
 def summarize(
     db_path, backend, model, llm_host, llm_port,
     disable_thinking, verbose, force, log_llm, init_stdlib,
     allocator_file, summary_types, deallocator_file, vsnap,
-    jobs, cache_mode, function_names, incremental,
+    jobs, cache_mode, function_names, incremental, entry_functions,
 ):
     """Generate allocation, free, init, memsafe, and/or verify
     summaries on a pre-populated database.
@@ -448,6 +453,27 @@ def summarize(
                 return
             console.print(f"  Targeting {len(target_ids)} function(s): {', '.join(function_names)}")
             force = True  # always re-summarize targeted functions
+
+        # Restrict to functions reachable from entry points
+        if entry_functions and not function_names:
+            entry_ids: set[int] = set()
+            for ename in entry_functions:
+                found = db.get_function_by_name(ename)
+                if found:
+                    for fn in found:
+                        assert fn.id is not None
+                        entry_ids.add(fn.id)
+                else:
+                    console.print(f"[yellow]Warning: entry '{ename}' not found in DB[/yellow]")
+            if entry_ids:
+                tmp_driver = BottomUpDriver(db, verbose=False)
+                graph, _ = tmp_driver.build_graph()
+                reachable = tmp_driver.compute_reachable(entry_ids, graph)
+                target_ids = reachable
+                console.print(
+                    f"  Entry points: {', '.join(entry_functions)}"
+                    f" → {len(reachable)} reachable functions"
+                )
 
         # Compute dirty_ids for incremental mode
         dirty_ids = None
