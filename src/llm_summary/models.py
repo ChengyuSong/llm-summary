@@ -342,6 +342,8 @@ class InitSummary:
     inits: list[InitOp] = field(default_factory=list)
     output_ranges: list[OutputRange] = field(default_factory=list)
     description: str = ""
+    noreturn: bool = False
+    noreturn_condition: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
         result: dict[str, Any] = {
@@ -351,6 +353,10 @@ class InitSummary:
         }
         if self.output_ranges:
             result["output_ranges"] = [o.to_dict() for o in self.output_ranges]
+        if self.noreturn or self.noreturn_condition:
+            result["noreturn"] = self.noreturn
+            if self.noreturn_condition:
+                result["noreturn_condition"] = self.noreturn_condition
         return result
 
 

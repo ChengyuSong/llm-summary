@@ -501,6 +501,30 @@ class SummaryDB:
             decl_header=_col("decl_header"),
         )
 
+    def update_callsites(
+        self, function_id: int, callsites: list[dict],
+    ) -> None:
+        """Update the callsites_json for a function."""
+        import json as _json
+
+        self.conn.execute(
+            "UPDATE functions SET callsites_json = ? WHERE id = ?",
+            (_json.dumps(callsites), function_id),
+        )
+        self.conn.commit()
+
+    def update_function_attributes(
+        self, function_id: int | None, attributes: str,
+    ) -> None:
+        """Update the attributes for a function."""
+        if function_id is None:
+            return
+        self.conn.execute(
+            "UPDATE functions SET attributes = ? WHERE id = ?",
+            (attributes, function_id),
+        )
+        self.conn.commit()
+
     # ========== Function Block Operations ==========
 
     def insert_function_blocks(self, blocks: list[FunctionBlock]) -> list[int | None]:
@@ -985,11 +1009,16 @@ class SummaryDB:
             )
             for o in data.get("output_ranges", [])
         ]
+        noreturn = bool(data.get("noreturn", False))
+        noreturn_condition = data.get("noreturn_condition") or None
+
         return InitSummary(
             function_name=data.get("function", ""),
             inits=inits,
             output_ranges=output_ranges,
             description=data.get("description", ""),
+            noreturn=noreturn,
+            noreturn_condition=noreturn_condition,
         )
 
     # ========== Memsafe Summary Operations ==========

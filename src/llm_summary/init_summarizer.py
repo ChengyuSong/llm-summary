@@ -81,7 +81,23 @@ Examples of useful ranges:
 - A function that returns a percentage: `[0, 100]`
 - A function that returns a status code from a small enum: `{{0, -1}}`
 
-Skip ranges that are just the full type range or truly unbounded.\
+Skip ranges that are just the full type range or truly unbounded.
+
+## Noreturn Detection
+
+Determine whether this function **never returns** to its caller on some or all paths. \
+A function is noreturn if every execution path ends in a call to a known noreturn \
+function (e.g., `abort()`, `exit()`, `__builtin_unreachable()`) or an infinite loop \
+with no break.
+
+Use the callee summaries and attributes: if a callee has `__attribute__((noreturn))`, \
+any path that unconditionally calls it will not return.
+
+Report:
+- **noreturn**: true if the function never returns on ANY path
+- **noreturn_condition**: if noreturn only on some paths, the condition under which \
+the function does not return (e.g., "cond == 0"). Omit if unconditionally noreturn \
+or if the function always returns.\
 """
 
 
@@ -112,7 +128,9 @@ Respond in JSON format:
       "range": "[lower, upper] or >= 0",
       "description": "brief context"
     {cb}
-  ]
+  ],
+  "noreturn": false,
+  "noreturn_condition": "condition under which function does not return"
 {cb}
 ```
 
@@ -121,10 +139,12 @@ If the function does not unconditionally initialize any caller-visible state, re
 {ob}
   "function": "{func_name}",
   "description": "Does not unconditionally initialize caller-visible state",
-  "inits": []
+  "inits": [],
+  "noreturn": false
 {cb}
 ```
-Omit output_ranges if no outputs have a range narrower than their declared type."""
+Omit output_ranges if no outputs have a range narrower than their declared type. \
+Omit noreturn_condition if noreturn is false or if unconditionally noreturn."""
 
 
 # --- Single-message prompt (no caching) ---
@@ -255,8 +275,10 @@ INIT_RESPONSE_FORMAT = make_json_response_format({
         "description": {"type": "string"},
         "inits": {"type": "array", "items": _INIT_ITEM},
         "output_ranges": {"type": "array", "items": _OUTPUT_RANGE_ITEM},
+        "noreturn": {"type": "boolean"},
+        "noreturn_condition": {"type": "string"},
     },
-    "required": ["function", "description", "inits"],
+    "required": ["function", "description", "inits", "noreturn"],
 })
 
 INIT_BLOCK_RESPONSE_FORMAT = make_json_response_format({
@@ -542,13 +564,17 @@ class InitSummarizer:
         callee_summaries: dict[str, InitSummary],
     ) -> str:
         """Build the callee init summaries section for the prompt."""
-        if not callee_summaries:
-            return (
-                "No callee initialization summaries available"
-                " (leaf function or external calls only)."
-            )
+        # Also include callees with attributes but no init summary
+        # (e.g., stdlib functions like abort with __attribute__((noreturn)))
+        all_callee_names = list(callee_summaries.keys())
+        if func.id is not None:
+            callee_ids = self.db.get_callees(func.id)
+            for cid in callee_ids:
+                cf = self.db.get_function(cid)
+                if cf and cf.name not in callee_summaries:
+                    all_callee_names.append(cf.name)
 
-        callee_attrs = self._get_callee_attributes(list(callee_summaries.keys()))
+        callee_attrs = self._get_callee_attributes(all_callee_names)
 
         lines = []
         for name, summary in callee_summaries.items():
@@ -566,6 +592,13 @@ class InitSummarizer:
                 )
                 lines.append(
                     f"- `{name}`: {desc}{attr_suffix}"
+                )
+
+        # Add callees with attributes but no init summary
+        for name in all_callee_names:
+            if name not in callee_summaries and name in callee_attrs:
+                lines.append(
+                    f"- `{name}`: (external) {callee_attrs[name]}"
                 )
 
         if not lines:
@@ -632,9 +665,14 @@ class InitSummarizer:
                 )
             )
 
+        noreturn = bool(data.get("noreturn", False))
+        noreturn_condition = data.get("noreturn_condition") or None
+
         return InitSummary(
             function_name=data.get("function", func_name),
             inits=inits,
             output_ranges=output_ranges,
             description=data.get("description", ""),
+            noreturn=noreturn,
+            noreturn_condition=noreturn_condition,
         )

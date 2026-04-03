@@ -159,6 +159,16 @@ class InitPass:
 
     def store(self, func: Function, summary: InitSummary) -> None:
         self.db.upsert_init_summary(func, summary, model_used=self.model)
+        # Propagate unconditional noreturn to function attributes
+        if summary.noreturn and not summary.noreturn_condition:
+            existing = func.attributes or ""
+            if "__attribute__((noreturn))" not in existing:
+                new_attrs = (
+                    f"{existing} __attribute__((noreturn))".strip()
+                    if existing else "__attribute__((noreturn))"
+                )
+                self.db.update_function_attributes(func.id, new_attrs)
+                func.attributes = new_attrs
 
 
 class MemsafePass:
