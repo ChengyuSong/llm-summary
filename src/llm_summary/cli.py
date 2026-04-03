@@ -2491,7 +2491,7 @@ def scan(
         return
 
     # Filter to C/C++ source files and assembly files
-    c_extensions = {".c", ".cpp", ".cc", ".cxx", ".c++"}
+    c_extensions = {".c", ".cpp", ".cc", ".cxx", ".c++", ".i"}
     asm_extensions = {".s", ".S", ".asm"}
     all_files = compile_commands.get_all_files()
 
@@ -4629,6 +4629,33 @@ def gen_harness(
                                         "[yellow]  No CFG dump — "
                                         "skipping plan[/yellow]"
                                     )
+
+                                # Auto-generate seeds
+                                seed_results = generator.generate_seeds(
+                                    harness_name, triage_ctx, str(out),
+                                )
+                                if seed_results:
+                                    console.print(
+                                        f"  [green]Generated "
+                                        f"{len(seed_results)} seed(s)[/green]"
+                                    )
+                                    for seed_path, script_path in seed_results:
+                                        seed_build = subprocess.run(
+                                            ["bash", str(script_path)],
+                                            capture_output=True, text=True,
+                                        )
+                                        if seed_build.returncode == 0:
+                                            console.print(
+                                                f"  [green]Built: "
+                                                f"{seed_path.stem}.ucsan"
+                                                f"[/green]"
+                                            )
+                                        else:
+                                            console.print(
+                                                f"  [yellow]Seed build "
+                                                f"failed: {seed_path.name}"
+                                                f"[/yellow]"
+                                            )
                     else:
                         console.print(f"[red]Failed: {harness_name}[/red]")
             return

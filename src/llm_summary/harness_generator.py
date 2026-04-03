@@ -981,6 +981,254 @@ class HarnessGenerator:
         finally:
             self._triage_context = None
 
+    def generate_seeds(
+        self,
+        func_name: str,
+        triage_context: dict[str, Any],
+        output_dir: str,
+    ) -> list[tuple[Path, Path]]:
+        """Generate seed tests for a validated triage verdict.
+
+        Reads the existing shim and config from *output_dir*, calls the
+        seed-generation agent, writes seed C files and build scripts.
+
+        Returns list of (seed_c_path, build_script_path) tuples.
+        """
+        from .seed_generator import generate_seed_tests
+
+        out = Path(output_dir)
+        shim_path = out / f"shim_{func_name}.c"
+        config_path = out / f"config_{func_name}.yaml"
+
+        if not shim_path.exists() or not config_path.exists():
+            if self.verbose:
+                print(f"  Missing shim or config for {func_name}")
+            return []
+
+        shim_code = shim_path.read_text()
+        ucsan_config = config_path.read_text()
+
+        # Resolve source file for include flags
+        file_path: str | None = None
+        funcs = self.db.get_function_by_name(func_name)
+        if funcs and funcs[0].file_path:
+            file_path = funcs[0].file_path
+
+        # Build include flags
+        include_flags: list[str] = []
+        if self.compile_commands and file_path:
+            for flag in self.compile_commands.get_compile_flags(file_path):
+                if flag.startswith(("-I", "-isystem", "-iquote",
+                                    "-D", "-include")):
+                    include_flags.append(flag)
+
+        # Git tools for project exploration
+        git = GitTools(self.project_path) if self.project_path else None
+
+        if not self._can_use_fix_agent():
+            if self.verbose:
+                print("  Seed generation requires tool-use LLM backend")
+            return []
+
+        seed_paths = generate_seed_tests(
+            func_name=func_name,
+            shim_code=shim_code,
+            triage_context=triage_context,
+            output_dir=out,
+            llm=self.llm,
+            compile_fn=self._compile_shim,
+            ucsan_config=ucsan_config,
+            file_path=file_path,
+            git_tools=git,
+            include_flags=include_flags,
+            verbose=self.verbose,
+        )
+
+        if not seed_paths:
+            if self.verbose:
+                print("  No seeds generated")
+            return []
+
+        # Collect project object files (everything except shim .o)
+        shim_obj = out / f"shim_{func_name}.c.o"
+        project_objs = [
+            p for p in out.glob("*.o")
+            if p != shim_obj and not p.name.startswith("seed_")
+        ]
+
+        # Generate build scripts for each seed
+        results: list[tuple[Path, Path]] = []
+        for seed_path in seed_paths:
+            script = self._build_seed_script(
+                func_name=func_name,
+                seed_path=seed_path,
+                config_path=config_path,
+                project_objs=project_objs,
+                output_dir=out,
+                file_path=file_path,
+            )
+            script_path = out / f"build_{seed_path.stem}.sh"
+            script_path.write_text(script)
+            script_path.chmod(0o755)
+            results.append((seed_path, script_path))
+
+            if self.verbose:
+                print(f"    Wrote: {script_path}")
+
+        self._stats["llm_calls"] += 1  # approximate
+        return results
+
+    def refine_seeds(
+        self,
+        func_name: str,
+        coverage_results: dict[str, Any],
+        output_dir: str,
+    ) -> list[tuple[Path, Path]]:
+        """Refine seeds based on coverage gaps from a thoroupy run.
+
+        Reads previous seeds and coverage data, generates new seeds
+        targeting missed paths.
+
+        Returns list of (seed_c_path, build_script_path) tuples.
+        """
+        from .seed_generator import refine_seed_tests
+
+        out = Path(output_dir)
+        shim_path = out / f"shim_{func_name}.c"
+        config_path = out / f"config_{func_name}.yaml"
+
+        if not shim_path.exists() or not config_path.exists():
+            return []
+
+        shim_code = shim_path.read_text()
+        ucsan_config = config_path.read_text()
+
+        # Read previous seeds
+        previous_seeds: list[str] = []
+        for sp in sorted(out.glob(f"seed_{func_name}_*.c")):
+            previous_seeds.append(sp.read_text())
+
+        if not previous_seeds:
+            if self.verbose:
+                print(f"  No previous seeds for {func_name}")
+            return []
+
+        # Resolve source file
+        file_path: str | None = None
+        funcs = self.db.get_function_by_name(func_name)
+        if funcs and funcs[0].file_path:
+            file_path = funcs[0].file_path
+
+        include_flags: list[str] = []
+        if self.compile_commands and file_path:
+            for flag in self.compile_commands.get_compile_flags(file_path):
+                if flag.startswith(("-I", "-isystem", "-iquote",
+                                    "-D", "-include")):
+                    include_flags.append(flag)
+
+        git = GitTools(self.project_path) if self.project_path else None
+
+        if not self._can_use_fix_agent():
+            return []
+
+        seed_paths = refine_seed_tests(
+            func_name=func_name,
+            shim_code=shim_code,
+            previous_seeds=previous_seeds,
+            coverage_results=coverage_results,
+            output_dir=out,
+            llm=self.llm,
+            compile_fn=self._compile_shim,
+            ucsan_config=ucsan_config,
+            file_path=file_path,
+            git_tools=git,
+            include_flags=include_flags,
+            verbose=self.verbose,
+        )
+
+        if not seed_paths:
+            return []
+
+        shim_obj = out / f"shim_{func_name}.c.o"
+        project_objs = [
+            p for p in out.glob("*.o")
+            if p != shim_obj and not p.name.startswith("seed_")
+        ]
+
+        results: list[tuple[Path, Path]] = []
+        for seed_path in seed_paths:
+            script = self._build_seed_script(
+                func_name=func_name,
+                seed_path=seed_path,
+                config_path=config_path,
+                project_objs=project_objs,
+                output_dir=out,
+                file_path=file_path,
+            )
+            script_path = out / f"build_{seed_path.stem}.sh"
+            script_path.write_text(script)
+            script_path.chmod(0o755)
+            results.append((seed_path, script_path))
+
+        return results
+
+    def _build_seed_script(
+        self,
+        func_name: str,
+        seed_path: Path,
+        config_path: Path,
+        project_objs: list[Path],
+        output_dir: Path,
+        file_path: str | None = None,
+    ) -> str:
+        """Generate a build script for a seed test.
+
+        Compiles the seed .c and links with existing project .o files
+        (the seed includes its own stubs, so no shim .o needed).
+        """
+        ko_clang = self.ko_clang_path or "$KO_CLANG"
+
+        # Include flags
+        include_flags_str = ""
+        if self.compile_commands and file_path:
+            iflags = []
+            for flag in self.compile_commands.get_compile_flags(file_path):
+                if flag.startswith(("-I", "-isystem", "-iquote",
+                                    "-D", "-include")):
+                    iflags.append(flag)
+            if iflags:
+                include_flags_str = " \\\n    ".join(
+                    f'"{f}"' for f in iflags
+                ) + " \\\n    "
+
+        obj_files = " ".join(f'"{o}"' for o in project_objs)
+        out_name = seed_path.stem + ".ucsan"
+        out_path = output_dir / out_name
+
+        return f"""\
+#!/bin/bash
+set -e
+
+# Build seed for {func_name} ({seed_path.name})
+KO_CLANG="{ko_clang}"
+CONFIG="{config_path}"
+SEED="{seed_path}"
+OUT="{out_path}"
+
+# Step 1: Compile seed
+echo "[1/2] Compiling seed {seed_path.name}..."
+METADATA="$CONFIG" KO_CC=clang-14 \\
+    "$KO_CLANG" -c \\
+    {include_flags_str}"$SEED" -o "$SEED.o"
+
+# Step 2: Link with project objects
+echo "[2/2] Linking..."
+METADATA="$CONFIG" KO_USE_THOROUPY=1 KO_CC=clang-14 \\
+    "$KO_CLANG" {obj_files} "$SEED.o" -o "$OUT"
+
+echo "Built: $OUT"
+"""
+
     def generate_plan(
         self,
         func_name: str,
