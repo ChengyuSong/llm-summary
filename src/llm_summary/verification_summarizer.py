@@ -100,6 +100,12 @@ A `nullable` callee parameter accepts NULL safely — not a bug.
 Unchecked `may_be_null` return dereferenced → `null_deref`.
 Use after callee frees → `use_after_free`.
 
+**CRITICAL — contract-based reasoning**: A callee call is only a bug if it \
+violates the callee's stated PRE-conditions. If `PRE[callee(...)]: no \
+pre-conditions`, then passing ANY value (including NULL or freed pointers) \
+is safe — the callee's summary guarantees it does not use the pointer \
+unsafely. Do NOT override this with general knowledge. Trust the contracts.
+
 Pay special attention to these commonly missed patterns:
 - **Integer overflow in size calculations**: narrow integer in multiplication for allocation/VLA
 - **Off-by-one in bounds checks**: loop bounds, size comparisons, fence-post errors
@@ -697,9 +703,21 @@ class VerificationSummarizer:
                 r"\b" + re.escape(callee) + r"\s*\("
             )
 
+        # Build line-number index for resolved indirect calls that
+        # won't match by callee name in source (e.g. (*funcPtr)(data)
+        # resolved to goodB2GSink).
+        indirect_by_line: dict[int, list[tuple[str, dict]]] = {}
+        for callee_name, queue in callsite_queues.items():
+            for cs in queue:
+                if cs.get("was_indirect"):
+                    line_idx = cs.get("line_in_body", 0)
+                    indirect_by_line.setdefault(line_idx, []).append(
+                        (callee_name, cs),
+                    )
+
         lines = func.llm_source.splitlines()
         result: list[str] = []
-        for line in lines:
+        for line_idx, line in enumerate(lines):
             # Collect post-condition lines to emit after the callsite
             post_lines: list[str] = []
 
@@ -708,8 +726,14 @@ class VerificationSummarizer:
                 for callee_name, queue in callsite_queues.items():
                     if not queue:
                         continue
+                    # Try regex match first; fall back to line-number
+                    # match for resolved indirect calls.
                     if not callee_patterns[callee_name].search(line):
-                        continue
+                        if not any(
+                            cn == callee_name and c is queue[0]
+                            for cn, c in indirect_by_line.get(line_idx, [])
+                        ):
+                            continue
 
                     cs = queue.pop(0)
                     actual_args: list[str] = cs.get("args", [])
@@ -725,6 +749,15 @@ class VerificationSummarizer:
                         header = f"{callee_name}({args_str})"
 
                     indent = " " * (len(line) - len(line.lstrip()))
+
+                    # For resolved indirect calls, add a comment
+                    # linking the fptr expression to the resolved callee.
+                    is_resolved_indirect = bool(cs.get("was_indirect"))
+                    if is_resolved_indirect:
+                        result.append(
+                            f"{indent}/* indirect call resolves to:"
+                            f" {header} */"
+                        )
 
                     # Attribute annotation (before call)
                     if callee_name in callee_attrs:
@@ -752,6 +785,13 @@ class VerificationSummarizer:
                                     f"{indent} *   {target}: {c.contract_kind}"
                                 )
                         result.append(f"{indent} */")
+                    elif verified:
+                        # Explicitly note empty pre-conditions so the
+                        # LLM knows no contract is required at this call.
+                        result.append(
+                            f"{indent}/* PRE[{header}]:"
+                            f" no pre-conditions */"
+                        )
 
                     # Post-conditions (after call)
                     post = callee_post.get(callee_name, {})
