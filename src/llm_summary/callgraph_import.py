@@ -392,6 +392,8 @@ class CallGraphImporter:
 
         # Phase 2: Import call edges
         edges_batch: list[CallEdge] = []
+        # Track indirect edges per caller for callsite back-fill
+        indirect_targets: dict[int, list[str]] = {}  # caller_id -> [callee_name]
 
         for ka_key, ka_info in functions.items():
             caller_id = self._id_cache.get(ka_key)
@@ -426,6 +428,9 @@ class CallGraphImporter:
 
                 if is_indirect:
                     stats.indirect_edges += 1
+                    # Extract short callee name for callsite back-fill
+                    short = _parse_ka_function_key(callee_name)[1]
+                    indirect_targets.setdefault(caller_id, []).append(short)
                 else:
                     stats.direct_edges += 1
 
@@ -434,7 +439,45 @@ class CallGraphImporter:
             self.db.add_call_edges_batch(edges_batch)
         stats.edges_imported = len(edges_batch)
 
+        # Phase 3: Back-fill __indirect__ callsites with resolved callee names
+        if indirect_targets:
+            self._backfill_indirect_callsites(indirect_targets)
+
         return stats
+
+    def _backfill_indirect_callsites(
+        self, indirect_targets: dict[int, list[str]],
+    ) -> None:
+        """Replace ``__indirect__`` callsite placeholders with resolved names.
+
+        The extractor records indirect calls as ``callee='__indirect__'``.
+        After KAMain resolves them, this method patches in the real callee
+        names so the verify pass can annotate them with contracts.
+        """
+        for caller_id, callee_names in indirect_targets.items():
+            funcs = [
+                f for f in self.db.get_all_functions() if f.id == caller_id
+            ]
+            if not funcs:
+                continue
+            func = funcs[0]
+            if not func.callsites:
+                continue
+
+            # Find __indirect__ entries and assign resolved names in order
+            callee_iter = iter(callee_names)
+            updated = False
+            for cs in func.callsites:
+                if cs.get("callee") == "__indirect__":
+                    resolved = next(callee_iter, None)
+                    if resolved is not None:
+                        cs["callee"] = resolved
+                        cs.pop("is_indirect", None)
+                        cs["was_indirect"] = True
+                        updated = True
+
+            if updated:
+                self.db.update_callsites(caller_id, func.callsites)
 
     def _resolve_callee(
         self, callee_ref: str, all_functions: dict, stats: ImportStats

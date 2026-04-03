@@ -587,54 +587,71 @@ class FunctionExtractor:
         callsites: list[dict] = []
         seen: set[tuple[str, int]] = set()
 
+        def _extract_args(call_cursor: Cursor) -> list[str]:
+            args: list[str] = []
+            children = list(call_cursor.get_children())
+            for arg_cursor in children[1:]:
+                tokens = list(arg_cursor.get_tokens())
+                arg_text = (
+                    " ".join(t.spelling for t in tokens)
+                    if tokens
+                    else arg_cursor.spelling or ""
+                )
+                # get_tokens() can return the entire macro
+                # expansion; fall back to raw source text.
+                if len(arg_text) > 200:
+                    raw = self._get_raw_extent_text(arg_cursor, raw_lines)
+                    if raw:
+                        arg_text = raw
+                if arg_text:
+                    args.append(arg_text)
+            return args
+
         def walk(cursor: Cursor) -> None:
             for child in cursor.get_children():
                 if child.kind == CursorKind.CALL_EXPR:
                     referenced = child.referenced
-                    if referenced is not None:
+                    line = child.location.line  # 1-based
+
+                    if referenced is not None and referenced.spelling:
                         callee_name = referenced.spelling
-                        if callee_name:
-                            line = child.location.line  # 1-based
-                            key = (callee_name, line)
-                            if key not in seen:
-                                seen.add(key)
-                                line_in_body = line - func_start_line  # 0-based
-                                raw_line = raw_lines[line - 1] if 0 < line <= len(raw_lines) else ""
-                                via_macro = not bool(
-                                    re.search(r"\b" + re.escape(callee_name) + r"\b", raw_line)
-                                )
-                                macro_name = None
-                                if via_macro:
-                                    m = re.search(r"\b([A-Z_][A-Z0-9_]{2,})\s*\(", raw_line)
-                                    macro_name = m.group(1) if m else None
+                        key = (callee_name, line)
+                        if key not in seen:
+                            seen.add(key)
+                            line_in_body = line - func_start_line  # 0-based
+                            raw_line = raw_lines[line - 1] if 0 < line <= len(raw_lines) else ""
+                            via_macro = not bool(
+                                re.search(r"\b" + re.escape(callee_name) + r"\b", raw_line)
+                            )
+                            macro_name = None
+                            if via_macro:
+                                m = re.search(r"\b([A-Z_][A-Z0-9_]{2,})\s*\(", raw_line)
+                                macro_name = m.group(1) if m else None
 
-                                # Argument texts: skip first child (function reference)
-                                args: list[str] = []
-                                children = list(child.get_children())
-                                for arg_cursor in children[1:]:
-                                    tokens = list(arg_cursor.get_tokens())
-                                    arg_text = (
-                                        " ".join(t.spelling for t in tokens)
-                                        if tokens
-                                        else arg_cursor.spelling or ""
-                                    )
-                                    # get_tokens() can return the entire macro
-                                    # expansion; fall back to raw source text.
-                                    if len(arg_text) > 200:
-                                        raw = self._get_raw_extent_text(arg_cursor, raw_lines)
-                                        if raw:
-                                            arg_text = raw
-                                    if arg_text:
-                                        args.append(arg_text)
-
-                                callsites.append({
-                                    "callee": callee_name,
-                                    "line": line,
-                                    "line_in_body": line_in_body,
-                                    "via_macro": via_macro,
-                                    "macro_name": macro_name,
-                                    "args": args,
-                                })
+                            callsites.append({
+                                "callee": callee_name,
+                                "line": line,
+                                "line_in_body": line_in_body,
+                                "via_macro": via_macro,
+                                "macro_name": macro_name,
+                                "args": _extract_args(child),
+                            })
+                    elif referenced is None:
+                        # Indirect call (function pointer) — record with
+                        # placeholder callee so import-callgraph can back-fill
+                        # the resolved target later.
+                        key = ("__indirect__", line)
+                        if key not in seen:
+                            seen.add(key)
+                            callsites.append({
+                                "callee": "__indirect__",
+                                "line": line,
+                                "line_in_body": line - func_start_line,
+                                "via_macro": False,
+                                "macro_name": None,
+                                "args": _extract_args(child),
+                                "is_indirect": True,
+                            })
                 walk(child)
 
         walk(func_cursor)
