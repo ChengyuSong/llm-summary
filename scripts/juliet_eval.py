@@ -72,11 +72,39 @@ SUBPROP_TO_KINDS: dict[str, set[str]] = {
     "no-overflow": {"integer_overflow"},
 }
 
-# Boilerplate function prefixes shared across all Juliet .i files
-BOILERPLATE_PREFIXES = (
-    "print", "ldv_", "decode", "global", "internal_start",
-    "stdThread", "assume_abort", "reach_error",
-)
+# Boilerplate functions shared across all Juliet .i files (identical source)
+BOILERPLATE_FUNCTIONS = {
+    "assume_abort_if_not", "reach_error", "internal_start",
+    # ldv_ wrappers
+    "ldv_asprintf", "ldv_calloc", "ldv_error", "ldv_exit", "ldv_exit_1",
+    "ldv_exit_2", "ldv_free", "ldv_malloc", "ldv_realloc",
+    "ldv_reference_calloc", "ldv_reference_free", "ldv_reference_malloc",
+    "ldv_reference_realloc", "ldv_reference_xmalloc",
+    "ldv_reference_xzalloc", "ldv_reference_zalloc",
+    "ldv_strcpy", "ldv_strdup", "ldv_strcpy_1", "ldv_strlen", "ldv_strncpy",
+    "ldv_undef_int", "ldv_undef_int_negative", "ldv_undef_int_nonpositive",
+    "ldv_undef_int_positive", "ldv_undef_long", "ldv_undef_uint",
+    "ldv_undef_ulong", "ldv_undef_ulonglong",
+    "ldv_xmalloc", "ldv_xzalloc", "ldv_zalloc",
+    # print helpers
+    "printBytesLine", "printDoubleLine", "printFloatLine",
+    "printHexCharLine", "printHexUnsignedCharLine", "printIntLine",
+    "printLine", "printLongLine", "printLongLongLine", "printShortLine",
+    "printSizeTLine", "printStructLine", "printUnsignedLine",
+    "printWLine", "printWcharLine",
+    # decode helpers
+    "decodeHexChars", "decodeHexWChars",
+    # global predicates
+    "globalReturnsFalse", "globalReturnsTrue", "globalReturnsTrueOrFalse",
+    "staticReturnsFalse",
+    # threading stubs
+    "stdThreadCreate", "stdThreadDestroy", "stdThreadJoin",
+    "stdThreadLockAcquire", "stdThreadLockCreate",
+    "stdThreadLockDestroy", "stdThreadLockRelease",
+    # bswap intrinsics
+    "__bswap_16", "__bswap_32", "__bswap_64",
+    "__uint16_identity", "__uint32_identity", "__uint64_identity",
+}
 
 
 @dataclass
@@ -139,7 +167,7 @@ def find_target_functions(db: SummaryDB, variant: str) -> list[str]:
         name = f.name
         if name == "main":
             continue
-        if any(name.startswith(p) for p in BOILERPLATE_PREFIXES):
+        if name in BOILERPLATE_FUNCTIONS:
             continue
         # Skip empty stubs (bad1-bad9, good1-good9)
         if re.match(r"^(bad|good)\d+$", name):
@@ -326,6 +354,69 @@ def phase_evaluate(
     return issues
 
 
+# ── Summary cache for boilerplate functions ─────────────────────────────────
+
+SUMMARY_TABLES = [
+    "allocation_summaries",
+    "free_summaries",
+    "init_summaries",
+    "memsafe_summaries",
+    "verification_summaries",
+]
+
+# Key: (func_name, source_hash) → {table_name: summary_json}
+SummaryCache = dict[tuple[str, str], dict[str, str]]
+
+
+def build_summary_cache(db: SummaryDB) -> SummaryCache:
+    """Extract boilerplate function summaries, keyed by (name, source_hash)."""
+    cache: SummaryCache = {}
+    for func in db.get_all_functions():
+        if func.id is None or not func.source_hash:
+            continue
+        if func.name not in BOILERPLATE_FUNCTIONS:
+            continue
+        key = (func.name, func.source_hash)
+        blobs: dict[str, str] = {}
+        for table in SUMMARY_TABLES:
+            row = db.conn.execute(
+                f"SELECT summary_json FROM {table} WHERE function_id = ?",  # noqa: S608
+                (func.id,),
+            ).fetchone()
+            if row:
+                blobs[table] = row[0]
+        if blobs:
+            cache[key] = blobs
+    return cache
+
+
+def apply_summary_cache(db: SummaryDB, cache: SummaryCache) -> int:
+    """Inject cached summaries into a DB for matching functions. Returns count."""
+    injected = 0
+    for func in db.get_all_functions():
+        if func.id is None or not func.source_hash:
+            continue
+        key = (func.name, func.source_hash)
+        if key not in cache:
+            continue
+        blobs = cache[key]
+        for table, summary_json in blobs.items():
+            existing = db.conn.execute(
+                f"SELECT id FROM {table} WHERE function_id = ?",  # noqa: S608
+                (func.id,),
+            ).fetchone()
+            if existing:
+                continue
+            db.conn.execute(
+                f"INSERT INTO {table} (function_id, summary_json, model_used) "  # noqa: S608
+                "VALUES (?, ?, ?)",
+                (func.id, summary_json, "cached"),
+            )
+        injected += 1
+    db.conn.commit()
+    return injected
+
+
 # ── Task runner ──────────────────────────────────────────────────────────────
 
 def run_one_task(
@@ -340,6 +431,7 @@ def run_one_task(
     from_phase: int = 0,
     to_phase: int = 4,
     force: bool = False,
+    summary_cache: SummaryCache | None = None,
 ) -> tuple[list[dict[str, Any]], int]:
     """Run pipeline phases on one .i file using persistent work_dir.
 
@@ -373,6 +465,12 @@ def run_one_task(
             assert main_id is not None
             reachable_ids = driver.compute_reachable({main_id}, graph)
             log.debug("  Reachable from main: %d functions", len(reachable_ids))
+
+        # Inject cached summaries before summarization
+        if summary_cache and not force:
+            n_cached = apply_summary_cache(db, summary_cache)
+            if n_cached:
+                log.debug("  Injected %d cached summaries", n_cached)
 
         # Phase 2: summarize
         if from_phase <= 2 and to_phase >= 2:
@@ -534,6 +632,8 @@ def main() -> None:
         level=logging.INFO,
         format="%(asctime)s %(levelname)s %(message)s",
     )
+    logging.getLogger("httpx").setLevel(logging.WARNING)
+    logging.getLogger("httpcore").setLevel(logging.WARNING)
     if args.verbose:
         log.setLevel(logging.DEBUG)
 
@@ -567,6 +667,7 @@ def main() -> None:
     tp = tn = fp = fn = errors = 0
     total_funcs = 0
     total_reachable = 0
+    summary_cache: SummaryCache = {}
 
     for idx, (yml_path, info) in enumerate(tasks):
         i_file = info["i_file"]
@@ -614,13 +715,28 @@ def main() -> None:
                 args.verbose, args.kamain_bin, log_llm,
                 from_phase=args.from_phase, to_phase=args.to_phase,
                 force=args.force,
+                summary_cache=summary_cache,
             )
             result.elapsed_s = time.time() - t0
             result.llm_calls = llm_calls
             result.issues_found = issues
 
-            # Collect scan stats from DB
+            # Grow summary cache from completed task
             db_path = work_dir / "functions.db"
+            if db_path.exists():
+                sdb = SummaryDB(str(db_path))
+                new_entries = build_summary_cache(sdb)
+                sdb.close()
+                added = 0
+                for k, v in new_entries.items():
+                    if k not in summary_cache:
+                        summary_cache[k] = v
+                        added += 1
+                if added:
+                    log.debug("  Cache: +%d entries (total %d)",
+                              added, len(summary_cache))
+
+            # Collect scan stats from DB
             if db_path.exists():
                 sdb = SummaryDB(str(db_path))
                 all_funcs = sdb.get_all_functions()
