@@ -99,6 +99,9 @@ Calling through a NULL function pointer (indirect call via a null pointer) is a 
 A `nullable` callee parameter accepts NULL safely — not a bug.
 Unchecked `may_be_null` return dereferenced → `null_deref`.
 Use after callee frees → `use_after_free`.
+Passing a non-heap pointer or non-base heap pointer to a callee that may free it → `invalid_free`.
+Integer issues: overflow, underflow, truncation, sign conversion errors → `integer_overflow`.
+Allocated memory becomes inaccessible without freeing → `memory_leak`.
 
 **CRITICAL — contract-based reasoning**: A callee call is only a bug if it \
 violates the callee's stated PRE-conditions. If `PRE[callee(...)]: no \
@@ -138,7 +141,8 @@ Respond with JSON:
   ],
   "issues": [
     {{"location": "line N",
-      "issue_kind": "null_deref|buffer_overflow|use_after_free|double_free|uninitialized_use",
+      "issue_kind":
+        "null_deref|buffer_overflow|use_after_free|double_free|uninitialized_use|memory_leak|integer_overflow|invalid_free",
       "description": "the problem", "severity": "high|medium|low",
       "callee": "if contract violation",
       "contract_kind": "if contract violation"}}
@@ -182,7 +186,8 @@ Respond in JSON:
   "issues": [
     {{{{
       "location": "line N or description",
-      "issue_kind": "null_deref|buffer_overflow|use_after_free|double_free|uninitialized_use",
+      "issue_kind":
+        "null_deref|buffer_overflow|use_after_free|double_free|uninitialized_use|memory_leak|integer_overflow|invalid_free",
       "description": "what the problem is",
       "severity": "high|medium|low"
     }}}}
@@ -199,6 +204,9 @@ _VALID_ISSUE_KINDS = {
     "use_after_free",
     "double_free",
     "uninitialized_use",
+    "memory_leak",
+    "integer_overflow",
+    "invalid_free",
 }
 _VALID_SEVERITIES = {"high", "medium", "low"}
 _VALID_CONTRACT_KINDS = {"not_null", "nullable", "not_freed", "initialized", "buffer_size"}

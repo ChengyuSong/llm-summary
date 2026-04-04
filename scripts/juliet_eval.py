@@ -66,9 +66,10 @@ DEFAULT_FUNC_SCANS = "func-scans/sv-benchmarks"
 
 # ── SV-COMP property -> our issue_kind mapping ─────────────────────────────
 SUBPROP_TO_KINDS: dict[str, set[str]] = {
-    "valid-free": {"double_free", "use_after_free"},
+    "valid-free": {"double_free", "use_after_free", "invalid_free"},
     "valid-deref": {"null_deref", "buffer_overflow", "use_after_free"},
     "valid-memtrack": {"memory_leak"},
+    "no-overflow": {"integer_overflow"},
 }
 
 # Boilerplate function prefixes shared across all Juliet .i files
@@ -111,6 +112,12 @@ def parse_yml(yml_path: Path) -> dict[str, Any]:
         if "expected_verdict" in prop:
             expected_verdict = prop["expected_verdict"]
             subproperty = prop.get("subproperty", "")
+            if not subproperty:
+                # Derive from property_file, e.g., "no-overflow.prp"
+                pf = prop.get("property_file", "")
+                base = Path(pf).stem  # "no-overflow"
+                if base in SUBPROP_TO_KINDS:
+                    subproperty = base
             break
 
     return {
@@ -331,6 +338,7 @@ def run_one_task(
     kamain_bin: str = DEFAULT_KAMAIN,
     log_llm: str | None = None,
     from_phase: int = 0,
+    to_phase: int = 4,
     force: bool = False,
 ) -> tuple[list[dict[str, Any]], int]:
     """Run pipeline phases on one .i file using persistent work_dir.
@@ -367,7 +375,7 @@ def run_one_task(
             log.debug("  Reachable from main: %d functions", len(reachable_ids))
 
         # Phase 2: summarize
-        if from_phase <= 2:
+        if from_phase <= 2 and to_phase >= 2:
             total_llm += phase_summarize(
                 db, backend, model, verbose, log_llm,
                 force=force or from_phase <= 0,
@@ -375,12 +383,16 @@ def run_one_task(
             )
 
         # Phase 3: verify
-        if from_phase <= 3:
+        if from_phase <= 3 and to_phase >= 3:
             total_llm += phase_verify(
                 db, backend, model, verbose, log_llm,
                 force=force or from_phase <= 0,
                 reachable_ids=reachable_ids,
             )
+
+        if to_phase < 4:
+            db.close()
+            return [], total_llm
 
         # Find targets (needed for phase 4: evaluate)
         targets = find_target_functions(db, variant)
@@ -398,6 +410,35 @@ def run_one_task(
     except Exception:
         db.close()
         raise
+
+
+def collect_tasks_from_set_file(
+    set_file: Path,
+    benchmarks_base: Path,
+    cwe_filter: str | None,
+) -> list[tuple[Path, dict[str, Any]]]:
+    """Collect tasks from a .set file (glob patterns relative to benchmarks_base)."""
+    seen: set[Path] = set()
+    tasks: list[tuple[Path, dict[str, Any]]] = []
+    for line in set_file.read_text().splitlines():
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        for yml_path in sorted(benchmarks_base.glob(line)):
+            if yml_path in seen:
+                continue
+            seen.add(yml_path)
+            name = yml_path.stem
+            if cwe_filter:
+                if not any(name.startswith(c) for c in cwe_filter.split(",")):
+                    continue
+            try:
+                info = parse_yml(yml_path)
+            except Exception as e:
+                log.warning("Failed to parse %s: %s", yml_path, e)
+                continue
+            tasks.append((yml_path, info))
+    return tasks
 
 
 def collect_tasks(
@@ -465,9 +506,18 @@ def main() -> None:
         help="Persistent work directory (default: %(default)s)",
     )
     parser.add_argument(
+        "--set-file", default=None,
+        help="SV-COMP .set file with glob patterns (e.g., Juliet.set)",
+    )
+    parser.add_argument(
         "--from-phase", type=int, default=0,
         help="Start from phase N (0=scan, 1=callgraph, 2=summarize, "
              "3=verify, 4=evaluate-only)",
+    )
+    parser.add_argument(
+        "--to-phase", type=int, default=4,
+        help="Stop after phase N (0=scan, 1=callgraph, 2=summarize, "
+             "3=verify, 4=evaluate)",
     )
     parser.add_argument(
         "--force", "-f", action="store_true",
@@ -494,7 +544,16 @@ def main() -> None:
 
     func_scans = Path(args.func_scans_dir)
 
-    tasks = collect_tasks(benchmarks_dir, args.cwe, args.variant)
+    if args.set_file:
+        set_path = Path(args.set_file)
+        if not set_path.exists():
+            log.error("Set file not found: %s", set_path)
+            sys.exit(1)
+        tasks = collect_tasks_from_set_file(
+            set_path, benchmarks_dir.parent, args.cwe,
+        )
+    else:
+        tasks = collect_tasks(benchmarks_dir, args.cwe, args.variant)
     log.info("Collected %d tasks", len(tasks))
 
     if args.limit > 0:
@@ -506,6 +565,8 @@ def main() -> None:
 
     results: list[TaskResult] = []
     tp = tn = fp = fn = errors = 0
+    total_funcs = 0
+    total_reachable = 0
 
     for idx, (yml_path, info) in enumerate(tasks):
         i_file = info["i_file"]
@@ -551,43 +612,61 @@ def main() -> None:
                 i_path, variant, work_dir,
                 args.backend, args.model,
                 args.verbose, args.kamain_bin, log_llm,
-                from_phase=args.from_phase, force=args.force,
+                from_phase=args.from_phase, to_phase=args.to_phase,
+                force=args.force,
             )
             result.elapsed_s = time.time() - t0
             result.llm_calls = llm_calls
             result.issues_found = issues
 
-            # Filter issues by subproperty if applicable
-            if subprop and subprop in SUBPROP_TO_KINDS:
-                relevant_kinds = SUBPROP_TO_KINDS[subprop]
-                relevant_issues = [
-                    i for i in issues
-                    if i.get("issue_kind", "") in relevant_kinds
-                ]
-            else:
-                relevant_issues = issues
+            # Collect scan stats from DB
+            db_path = work_dir / "functions.db"
+            if db_path.exists():
+                sdb = SummaryDB(str(db_path))
+                all_funcs = sdb.get_all_functions()
+                total_funcs += len(all_funcs)
+                main_funcs = sdb.get_function_by_name("main")
+                if main_funcs:
+                    drv = BottomUpDriver(sdb, verbose=False)
+                    graph, _ = drv.build_graph()
+                    mid = main_funcs[0].id
+                    assert mid is not None
+                    reachable = drv.compute_reachable({mid}, graph)
+                    total_reachable += len(reachable)
+                sdb.close()
 
-            result.predicted_safe = len(relevant_issues) == 0
-            result.correct = result.predicted_safe == expected_safe
+            if args.to_phase >= 4:
+                # Filter issues by subproperty if applicable
+                if subprop and subprop in SUBPROP_TO_KINDS:
+                    relevant_kinds = SUBPROP_TO_KINDS[subprop]
+                    relevant_issues = [
+                        i for i in issues
+                        if i.get("issue_kind", "") in relevant_kinds
+                    ]
+                else:
+                    relevant_issues = issues
 
-            if expected_safe and result.predicted_safe:
-                result.classification = "TN"
-                tn += 1
-            elif expected_safe and not result.predicted_safe:
-                result.classification = "FP"
-                fp += 1
-            elif not expected_safe and not result.predicted_safe:
-                result.classification = "TP"
-                tp += 1
-            else:
-                result.classification = "FN"
-                fn += 1
+                result.predicted_safe = len(relevant_issues) == 0
+                result.correct = result.predicted_safe == expected_safe
 
-            log.info(
-                "  -> %s (%d issues, %.1fs, %d LLM calls)",
-                result.classification, len(relevant_issues),
-                result.elapsed_s, llm_calls,
-            )
+                if expected_safe and result.predicted_safe:
+                    result.classification = "TN"
+                    tn += 1
+                elif expected_safe and not result.predicted_safe:
+                    result.classification = "FP"
+                    fp += 1
+                elif not expected_safe and not result.predicted_safe:
+                    result.classification = "TP"
+                    tp += 1
+                else:
+                    result.classification = "FN"
+                    fn += 1
+
+                log.info(
+                    "  -> %s (%d issues, %.1fs, %d LLM calls)",
+                    result.classification, len(relevant_issues),
+                    result.elapsed_s, llm_calls,
+                )
 
         except Exception as e:
             result.elapsed_s = time.time() - t0
@@ -599,48 +678,61 @@ def main() -> None:
 
     # -- Summary --
     total = len(results)
-    correct = tp + tn
-    accuracy = correct / total if total else 0
-    precision = tp / (tp + fp) if (tp + fp) else 0
-    recall = tp / (tp + fn) if (tp + fn) else 0
-    f1 = (
-        2 * precision * recall / (precision + recall)
-        if (precision + recall) else 0
-    )
-
-    summary = {
-        "total": total,
-        "correct": correct,
-        "accuracy": accuracy,
-        "precision": precision,
-        "recall": recall,
-        "f1": f1,
-        "tp": tp, "tn": tn, "fp": fp, "fn": fn,
-        "errors": errors,
-    }
-
     log.info("")
-    log.info("=== Results ===")
-    log.info(
-        "Total: %d  Correct: %d  Accuracy: %.1f%%",
-        total, correct, accuracy * 100,
-    )
-    log.info(
-        "TP: %d  TN: %d  FP: %d  FN: %d  Errors: %d",
-        tp, tn, fp, fn, errors,
-    )
-    log.info(
-        "Precision: %.3f  Recall: %.3f  F1: %.3f",
-        precision, recall, f1,
-    )
+
+    if args.to_phase < 4:
+        log.info("=== Scan Stats (phase 0-%d) ===", args.to_phase)
+        log.info("Tasks: %d  Total functions: %d  Reachable: %d",
+                 total, total_funcs, total_reachable)
+        log.info("Errors: %d", errors)
+    else:
+        correct = tp + tn
+        accuracy = correct / total if total else 0
+        precision = tp / (tp + fp) if (tp + fp) else 0
+        recall = tp / (tp + fn) if (tp + fn) else 0
+        f1 = (
+            2 * precision * recall / (precision + recall)
+            if (precision + recall) else 0
+        )
+
+        summary: dict[str, Any] = {
+            "total": total,
+            "correct": correct,
+            "accuracy": accuracy,
+            "precision": precision,
+            "recall": recall,
+            "f1": f1,
+            "tp": tp, "tn": tn, "fp": fp, "fn": fn,
+            "errors": errors,
+        }
+
+        log.info("=== Results ===")
+        log.info(
+            "Total: %d  Correct: %d  Accuracy: %.1f%%",
+            total, correct, accuracy * 100,
+        )
+        log.info(
+            "TP: %d  TN: %d  FP: %d  FN: %d  Errors: %d",
+            tp, tn, fp, fn, errors,
+        )
+        log.info(
+            "Precision: %.3f  Recall: %.3f  F1: %.3f",
+            precision, recall, f1,
+        )
 
     output: dict[str, Any] = {
-        "summary": summary,
+        "summary": {
+            "total_tasks": total,
+            "total_functions": total_funcs,
+            "total_reachable": total_reachable,
+            "errors": errors,
+        } if args.to_phase < 4 else summary,
         "config": {
             "backend": args.backend,
             "model": args.model,
             "cwe": args.cwe,
-            "variant": args.variant,
+            "variant": getattr(args, "variant", None),
+            "to_phase": args.to_phase,
         },
         "results": [asdict(r) for r in results],
     }
