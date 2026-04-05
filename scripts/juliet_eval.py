@@ -556,6 +556,61 @@ def run_one_task(
                         "UPDATE functions SET attributes = ? "
                         "WHERE id = ?", (attrs, funcs[0].id),
                     )
+            # SV-COMP __VERIFIER_nondet_* builtins: full-range nondeterministic
+            _verifier_nondet = {
+                "__VERIFIER_nondet_int": ("int", "sizeof(int)"),
+                "__VERIFIER_nondet_uint": ("unsigned int", "sizeof(unsigned int)"),
+                "__VERIFIER_nondet_long": ("long", "sizeof(long)"),
+                "__VERIFIER_nondet_ulong": ("unsigned long", "sizeof(unsigned long)"),
+                "__VERIFIER_nondet_short": ("short", "sizeof(short)"),
+                "__VERIFIER_nondet_ushort": (
+                    "unsigned short", "sizeof(unsigned short)",
+                ),
+                "__VERIFIER_nondet_char": ("char", "sizeof(char)"),
+                "__VERIFIER_nondet_uchar": (
+                    "unsigned char", "sizeof(unsigned char)",
+                ),
+                "__VERIFIER_nondet_bool": ("_Bool", "sizeof(_Bool)"),
+                "__VERIFIER_nondet_float": ("float", "sizeof(float)"),
+                "__VERIFIER_nondet_double": ("double", "sizeof(double)"),
+            }
+            from llm_summary.models import (
+                InitOp,
+                InitSummary,
+                MemsafeSummary,
+                OutputRange,
+            )
+            for vname, (vtype, vsize) in _verifier_nondet.items():
+                funcs = db.get_function_by_name(vname)
+                if funcs:
+                    isum = InitSummary(
+                        function_name=vname,
+                        inits=[InitOp(
+                            target="return value",
+                            target_kind="return_value",
+                            initializer="nondeterministic",
+                            byte_count=vsize,
+                        )],
+                        output_ranges=[OutputRange(
+                            target="return value",
+                            range=f"full {vtype} range",
+                            description=(
+                                f"Any valid {vtype} value; "
+                                "arithmetic on this value may overflow"
+                            ),
+                        )],
+                        description=f"Returns a nondeterministic {vtype} value "
+                        f"(any value in the full {vtype} range).",
+                    )
+                    db.upsert_init_summary(funcs[0], isum, model_used="builtin")
+                    msum = MemsafeSummary(
+                        function_name=vname,
+                        contracts=[],
+                        description="No safety pre-conditions required.",
+                    )
+                    db.upsert_memsafe_summary(
+                        funcs[0], msum, model_used="builtin",
+                    )
             db.conn.commit()
 
         # Load alias context from vsnapshot if available
@@ -720,6 +775,10 @@ def main() -> None:
         "--force", "-f", action="store_true",
         help="Force re-run even if cached",
     )
+    parser.add_argument(
+        "--filter", default=None,
+        help="Only run tasks whose stem contains this substring",
+    )
     parser.add_argument("--verbose", "-v", action="store_true")
     parser.add_argument(
         "--llm-log-dir", default=None,
@@ -754,6 +813,12 @@ def main() -> None:
         log.error("Either --benchmarks or --set-file is required")
         sys.exit(1)
     log.info("Collected %d tasks", len(tasks))
+
+    if args.filter:
+        tasks = [
+            (p, info) for p, info in tasks if args.filter in p.stem
+        ]
+        log.info("Filtered to %d tasks matching '%s'", len(tasks), args.filter)
 
     if args.limit > 0:
         tasks = tasks[: args.limit]
