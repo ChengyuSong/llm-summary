@@ -20,6 +20,12 @@ from ..builder.llm_utils import (
     truncate_messages,
 )
 from ..builder.tools import BuildTools
+from ..docker_paths import (
+    DOCKER_BUILD_PREFIX as DOCKER_WORKSPACE_BUILD,
+)
+from ..docker_paths import (
+    DOCKER_SRC_PREFIX as DOCKER_WORKSPACE_SRC,
+)
 from ..llm.base import LLMBackend
 from .skills import parse_ninja_targets, prescan_build_dir, run_ar_t
 from .tool_definitions import DISCOVERY_TOOL_DEFINITIONS
@@ -33,9 +39,6 @@ TURNS_LOW_WARNING = 7
 TURNS_EXTENSION = 10     # extra turns granted per request_more_turns call
 MAX_TURN_EXTENSIONS = 10 # maximum extensions allowed
 
-# Docker paths (same convention as builder)
-DOCKER_WORKSPACE_SRC = "/workspace/src"
-DOCKER_WORKSPACE_BUILD = "/workspace/build"
 DOCKER_COMMAND_TIMEOUT = 120
 
 SYSTEM_PROMPT = """\

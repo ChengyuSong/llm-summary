@@ -7,6 +7,7 @@ from collections.abc import Iterator
 from pathlib import Path
 
 from ..compile_commands import CompileCommandsDB
+from ..docker_paths import remap_path as _remap_docker_path
 from ..models import AssemblyCheckResult, AssemblyFinding, AssemblyType
 
 # Default filename for unavoidable assembly records
@@ -43,10 +44,6 @@ class AssemblyChecker:
         (r'\basm\s+sideeffect\b', "asm sideeffect"),
         (r'module\s+asm\b', "module asm"),
     ]
-
-    # Docker container path prefixes to translate
-    DOCKER_SRC_PREFIX = "/workspace/src"
-    DOCKER_BUILD_PREFIX = "/workspace/build"
 
     def __init__(
         self,
@@ -148,11 +145,7 @@ class AssemblyChecker:
 
     def _translate_docker_path(self, docker_path: str) -> str:
         """Translate Docker container paths to host paths."""
-        if docker_path.startswith(self.DOCKER_SRC_PREFIX):
-            return str(self.project_path / docker_path[len(self.DOCKER_SRC_PREFIX) + 1:])
-        elif docker_path.startswith(self.DOCKER_BUILD_PREFIX):
-            return str(self.build_dir / docker_path[len(self.DOCKER_BUILD_PREFIX) + 1:])
-        return docker_path
+        return _remap_docker_path(docker_path, self.project_path, self.build_dir)
 
     def check(self, scan_ir: bool = True, max_findings_per_type: int = 20) -> AssemblyCheckResult:
         """

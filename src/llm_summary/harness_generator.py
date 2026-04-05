@@ -939,6 +939,7 @@ class HarnessGenerator:
                 build_script = self._build_script(
                     func_name, out, bc_file, file_path=func.file_path,
                     source_files=source_files,
+                    scope_functions=scope_fns,
                 )
                 script_path = out / f"build_{func_name}.sh"
                 script_path.write_text(build_script)
@@ -1838,6 +1839,7 @@ echo "Built: $OUT"
         self, func_name: str, out_dir: Path, bc_file: str | None,
         file_path: str | None = None,
         source_files: list[str] | None = None,
+        scope_functions: list[str] | None = None,
     ) -> str:
         """Generate a shell build script using ko-clang.
 
@@ -1895,13 +1897,33 @@ echo "Built: $OUT"
                 src_compile_steps.append(
                     f'echo "  Compiling {src_name}..."\n'
                     f'METADATA="$CONFIG" KO_CC=clang-14 '
-                    f'KO_TRACE_BB=1 KO_DUMP_CFG="$CFG" \\\n'
+                    f'KO_DONT_OPTIMIZE=1 KO_TRACE_BB=1 KO_DUMP_CFG="$CFG" \\\n'
                     f'    "$KO_CLANG" -c -g -fno-inline-functions \\\n'
                     f'    {compile_flags_str}"{src}" -o "{obj_path}"'
                 )
 
             src_steps = "\n".join(src_compile_steps)
             link_objs = " ".join(f'"{o}"' for o in obj_files)
+
+            # Build globalize step: for each source .o, check if
+            # scope .taint symbols are local (t) and promote to global (T).
+            # This is needed when target functions are static.
+            scoped = scope_functions or [func_name]
+            taint_syms = [f"{s}.taint" for s in scoped]
+            globalize_lines: list[str] = []
+            for obj in obj_files:
+                # For each .o, check and globalize any local .taint symbols
+                sym_checks = []
+                for sym in taint_syms:
+                    sym_checks.append(
+                        f'  if nm "{obj}" 2>/dev/null '
+                        f"| grep -q ' t {sym}$'; then\n"
+                        f'    objcopy --globalize-symbol=\'{sym}\' "{obj}"\n'
+                        f'    echo "    Globalized {sym}"\n'
+                        f'  fi'
+                    )
+                globalize_lines.extend(sym_checks)
+            globalize_block = "\n".join(globalize_lines)
 
             script = f"""\
 #!/bin/bash
@@ -1915,18 +1937,22 @@ CFG="{cfg_dump}"
 OUT="{out_dir}/{func_name}.ucsan"
 
 # Step 1: Compile shim
-echo "[1/3] Compiling shim..."
+echo "[1/4] Compiling shim..."
 METADATA="$CONFIG" KO_CC=clang-14 \\
     "$KO_CLANG" -c \\
     {include_flags_str}"$SHIM" -o "$SHIM.o"
 
 # Step 2: Compile project source (with BB tracing)
-echo "[2/3] Compiling project source..."
+echo "[2/4] Compiling project source..."
 rm -f "$CFG"
 {src_steps}
 
-# Step 3: Link
-echo "[3/3] Linking..."
+# Step 3: Globalize static .taint symbols (if any)
+echo "[3/4] Checking for static scope symbols..."
+{globalize_block}
+
+# Step 4: Link
+echo "[4/4] Linking..."
 METADATA="$CONFIG" KO_USE_THOROUPY=1 KO_CC=clang-14 \\
     "$KO_CLANG" {link_objs} "$SHIM.o" -o "$OUT"
 

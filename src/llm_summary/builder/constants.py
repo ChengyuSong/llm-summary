@@ -1,9 +1,14 @@
 """Shared constants for the builder module."""
 
-# Docker mount paths
-DOCKER_WORKSPACE_SRC = "/workspace/src"
-DOCKER_WORKSPACE_BUILD = "/workspace/build"
-DOCKER_CCACHE_DIR = "/ccache"
+from ..docker_paths import (
+    DOCKER_BUILD_PREFIX as DOCKER_WORKSPACE_BUILD,  # noqa: F401
+)
+from ..docker_paths import (
+    DOCKER_CCACHE_DIR,  # noqa: F401
+)
+from ..docker_paths import (
+    DOCKER_SRC_PREFIX as DOCKER_WORKSPACE_SRC,  # noqa: F401
+)
 
 # ccache defaults
 DEFAULT_CCACHE_DIR = "~/.cache/llm-summary-ccache"

@@ -6,14 +6,15 @@ import shlex
 import subprocess
 from pathlib import Path
 
+import sys as _sys
 
-# ---------------------------------------------------------------------------
-# Docker container path translation
-# ---------------------------------------------------------------------------
+_sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
-def is_docker_path(path: str) -> bool:
-    """Check if a path uses Docker container conventions (/workspace/...)."""
-    return path.startswith("/workspace/")
+from llm_summary.docker_paths import (  # noqa: E402
+    is_docker_path,
+    remap_path,
+    translate_compiler_arg as translate_arg,
+)
 
 
 def resolve_host_path(
@@ -21,59 +22,8 @@ def resolve_host_path(
     project_source_dir: Path,
     build_dir: Path,
 ) -> Path:
-    """Translate a Docker /workspace/ path to the host equivalent.
-
-    Docker volume mapping convention:
-      /workspace/src   -> project_source_dir
-      /workspace/build -> build_dir
-    """
-    if not is_docker_path(container_path):
-        return Path(container_path)
-
-    remainder = container_path[len("/workspace/"):]
-
-    if remainder.startswith("src/"):
-        return project_source_dir / remainder[len("src/"):]
-    elif remainder.startswith("src"):
-        return project_source_dir
-    elif remainder.startswith("build/"):
-        return build_dir / remainder[len("build/"):]
-    elif remainder.startswith("build"):
-        return build_dir
-    else:
-        return build_dir / remainder
-
-
-def translate_arg(
-    arg: str,
-    project_source_dir: Path,
-    build_dir: Path,
-) -> str:
-    """Translate Docker /workspace/ paths within a single compiler argument.
-
-    Handles both standalone paths (/workspace/src/foo.c) and paths embedded
-    in flags (-I/workspace/src, -isystem/workspace/src, etc.).
-    """
-    if is_docker_path(arg):
-        return str(resolve_host_path(arg, project_source_dir, build_dir))
-    # Handle flags with embedded paths, e.g. -I/workspace/src or -isystem/workspace/...
-    for prefix in ("-I", "-isystem", "-isysroot", "-include", "-iprefix",
-                   "-iwithprefix", "-iwithprefixbefore", "-iquote"):
-        if arg.startswith(prefix) and is_docker_path(arg[len(prefix):]):
-            translated = resolve_host_path(arg[len(prefix):], project_source_dir, build_dir)
-            return f"{prefix}{translated}"
-    return arg
-
-
-def _translate_command_paths(
-    command: str,
-    project_source_dir: Path,
-    build_dir: Path,
-) -> str:
-    """Translate /workspace/ paths inside a compile command string."""
-    parts = shlex.split(command)
-    translated = [translate_arg(p, project_source_dir, build_dir) for p in parts]
-    return " ".join(shlex.quote(p) for p in translated)
+    """Translate a Docker /workspace/ path to the host equivalent."""
+    return Path(remap_path(container_path, project_source_dir, build_dir))
 
 
 def resolve_compile_commands(
@@ -85,20 +35,11 @@ def resolve_compile_commands(
     with open(cc_path) as f:
         entries = json.load(f)
 
-    def _arg_has_docker_path(a: str) -> bool:
-        return translate_arg(a, project_source_dir, build_dir) != a
-
-    def _entry_has_docker_path(e: dict) -> bool:
-        if is_docker_path(e.get("directory", "")) or is_docker_path(e.get("file", "")):
-            return True
-        for a in e.get("arguments", []):
-            if _arg_has_docker_path(a):
-                return True
-        if "/workspace/" in e.get("command", ""):
-            return True
-        return False
-
-    needs_translation = any(_entry_has_docker_path(e) for e in entries[:5])
+    needs_translation = any(
+        is_docker_path(e.get("directory", "")) or is_docker_path(e.get("file", ""))
+        or "/workspace/" in (e.get("command", "") or " ".join(e.get("arguments", [])))
+        for e in entries[:5]
+    )
 
     if not needs_translation:
         return entries
@@ -107,13 +48,15 @@ def resolve_compile_commands(
     for entry in entries:
         e = dict(entry)
         if is_docker_path(e.get("directory", "")):
-            e["directory"] = str(resolve_host_path(e["directory"], project_source_dir, build_dir))
+            e["directory"] = remap_path(e["directory"], project_source_dir, build_dir)
         if is_docker_path(e.get("file", "")):
-            e["file"] = str(resolve_host_path(e["file"], project_source_dir, build_dir))
+            e["file"] = remap_path(e["file"], project_source_dir, build_dir)
         if "output" in e and is_docker_path(e["output"]):
-            e["output"] = str(resolve_host_path(e["output"], project_source_dir, build_dir))
+            e["output"] = remap_path(e["output"], project_source_dir, build_dir)
         if "command" in e:
-            e["command"] = _translate_command_paths(e["command"], project_source_dir, build_dir)
+            parts = shlex.split(e["command"])
+            parts = [translate_arg(p, project_source_dir, build_dir) for p in parts]
+            e["command"] = " ".join(shlex.quote(p) for p in parts)
         if "arguments" in e:
             e["arguments"] = [
                 translate_arg(a, project_source_dir, build_dir)

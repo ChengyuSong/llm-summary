@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from .db import SummaryDB
+from .docker_paths import strip_docker_prefix as _strip_docker_prefix
 from .models import CallEdge
 from .stdlib import get_stdlib_attributes
 
@@ -245,21 +246,6 @@ def _strip_template_params(name: str) -> str:
             result.append(ch)
     return "".join(result)
 
-
-_DOCKER_PATH_PREFIXES = ("/workspace/src/", "/workspace/build/")
-
-
-def _strip_docker_prefix(path: str) -> str:
-    """Strip Docker container path prefixes from a file path.
-
-    KAMain reads debug info from .bc files compiled inside Docker, so function
-    keys and file fields carry /workspace/src/ or /workspace/build/ prefixes.
-    Strip them so that suffix matching against host paths in the DB works.
-    """
-    for prefix in _DOCKER_PATH_PREFIXES:
-        if path.startswith(prefix):
-            return path[len(prefix):]
-    return path
 
 
 def _parse_ka_function_key(key: str) -> tuple[str | None, str]:

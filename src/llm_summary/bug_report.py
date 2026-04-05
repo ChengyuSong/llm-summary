@@ -19,6 +19,7 @@ from pathlib import Path
 from typing import Any
 
 from .db import SummaryDB
+from .docker_paths import remap_path as _remap_path
 from .git_tools import GitTools
 from .llm.base import LLMBackend
 
@@ -251,19 +252,6 @@ def generate_poc_harness(
         return code_match.group(1)
     # If no fences, assume entire response is code
     return response.strip()
-
-
-DOCKER_SRC_PREFIX = "/workspace/src"
-DOCKER_BUILD_PREFIX = "/workspace/build"
-
-
-def _remap_path(path: str, project_path: Path, build_dir: Path | None) -> str:
-    """Remap Docker container paths to host paths."""
-    if path.startswith(DOCKER_SRC_PREFIX):
-        return str(project_path / path[len(DOCKER_SRC_PREFIX):].lstrip("/"))
-    if build_dir and path.startswith(DOCKER_BUILD_PREFIX):
-        return str(build_dir / path[len(DOCKER_BUILD_PREFIX):].lstrip("/"))
-    return path
 
 
 def _extract_include_dirs(

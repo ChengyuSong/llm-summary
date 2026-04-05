@@ -153,6 +153,11 @@ def _find_compile_commands(project_name: str) -> Path | None:
     return cc if cc.exists() else None
 
 
+def _find_build_dir(project_name: str) -> Path | None:
+    build_dir = Path("/data/csong/build-artifacts") / project_name
+    return build_dir if build_dir.exists() else None
+
+
 def _find_project_path(project_name: str) -> Path | None:
     src = Path("/data/csong/opensource") / project_name
     return src if src.exists() else None
@@ -229,6 +234,7 @@ def run_gen_harness(
     verbose: bool,
     timeout: int,
     issue_index: int | None = None,
+    build_dir: Path | None = None,
 ) -> tuple[bool, str, float]:
     """Run llm-summary gen-harness --validate."""
     cmd = [
@@ -251,6 +257,8 @@ def run_gen_harness(
         cmd += ["--compile-commands", str(compile_commands)]
     if project_path:
         cmd += ["--project-path", str(project_path)]
+    if build_dir:
+        cmd += ["--build-dir", str(build_dir)]
     if verbose:
         cmd.append("--verbose")
     return _run_cmd(cmd, verbose, timeout)
@@ -390,6 +398,7 @@ def process_target(
 
     compile_commands = _find_compile_commands(project_name)
     project_path = _find_project_path(project_name)
+    build_dir = _find_build_dir(project_name)
     harness_dir = HARNESSES_DIR / target_name
     reflect_llm = None  # lazily created when first reflection is needed
 
@@ -526,6 +535,7 @@ def process_target(
                     verbose=args.verbose,
                     timeout=args.gen_timeout,
                     issue_index=idx,
+                    build_dir=build_dir,
                 )
                 if not ok:
                     if args.verbose:

@@ -2176,6 +2176,7 @@ def _find_entry_functions(db: SummaryDB, relevant: list[str]) -> list[str]:
     return candidates if candidates else [relevant[0]]
 
 
+
 def _load_compile_commands(
     compile_commands_path: str,
     project_path: str | None = None,
@@ -2192,7 +2193,9 @@ def _load_compile_commands(
     import json as _json
     import tempfile
 
-    from .link_units.skills import _is_docker_path, _resolve_host_path, _translate_arg
+    from .docker_paths import is_docker_path as _is_docker_path
+    from .docker_paths import remap_path as _remap_path_str
+    from .docker_paths import translate_compiler_arg as _translate_arg
 
     with open(compile_commands_path) as f:
         entries = _json.load(f)
@@ -2227,17 +2230,24 @@ def _load_compile_commands(
             raise click.UsageError(hint)
 
         proj_dir = Path(project_path)
-        build_dir_path = Path(build_dir) if build_dir else proj_dir
+        if build_dir:
+            build_dir_path = Path(build_dir)
+        else:
+            raise click.UsageError(
+                "compile_commands.json requires path remapping but "
+                "--build-dir was not provided.  Pass "
+                "--build-dir <host-build-dir> explicitly."
+            )
 
         resolved = []
         for e in entries:
             e = dict(e)
             if _is_docker_path(e.get("directory", "")):
-                e["directory"] = str(_resolve_host_path(e["directory"], proj_dir, build_dir_path))
+                e["directory"] = _remap_path_str(e["directory"], proj_dir, build_dir_path)
             if _is_docker_path(e.get("file", "")):
-                e["file"] = str(_resolve_host_path(e["file"], proj_dir, build_dir_path))
+                e["file"] = _remap_path_str(e["file"], proj_dir, build_dir_path)
             if "output" in e and _is_docker_path(e["output"]):
-                e["output"] = str(_resolve_host_path(e["output"], proj_dir, build_dir_path))
+                e["output"] = _remap_path_str(e["output"], proj_dir, build_dir_path)
             if "arguments" in e:
                 e["arguments"] = [
                     _translate_arg(a, proj_dir, build_dir_path)
