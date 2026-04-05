@@ -1050,6 +1050,12 @@ class HarnessGenerator:
                 print("  No seeds generated")
             return []
 
+        # Extract callee stubs from shim into a standalone file for seed linking.
+        # Seeds provide their own test() entry, so they can't link the full shim
+        # (multi-def on test/main).  Instead we extract everything before the
+        # "Entry point" marker into stubs_<func>.c.
+        stubs_path = self._extract_stubs(func_name, out)
+
         # Collect project object files (everything except shim .o)
         shim_obj = out / f"shim_{func_name}.c.o"
         project_objs = [
@@ -1065,6 +1071,7 @@ class HarnessGenerator:
                 seed_path=seed_path,
                 config_path=config_path,
                 project_objs=project_objs,
+                stubs_path=stubs_path,
                 output_dir=out,
                 file_path=file_path,
             )
@@ -1150,6 +1157,8 @@ class HarnessGenerator:
         if not seed_paths:
             return []
 
+        stubs_path = self._extract_stubs(func_name, out)
+
         shim_obj = out / f"shim_{func_name}.c.o"
         project_objs = [
             p for p in out.glob("*.o")
@@ -1163,6 +1172,7 @@ class HarnessGenerator:
                 seed_path=seed_path,
                 config_path=config_path,
                 project_objs=project_objs,
+                stubs_path=stubs_path,
                 output_dir=out,
                 file_path=file_path,
             )
@@ -1180,12 +1190,14 @@ class HarnessGenerator:
         config_path: Path,
         project_objs: list[Path],
         output_dir: Path,
+        stubs_path: Path | None = None,
         file_path: str | None = None,
     ) -> str:
         """Generate a build script for a seed test.
 
         Compiles the seed .c and links with existing project .o files
-        (the seed includes its own stubs, so no shim .o needed).
+        plus a stubs .o (callee stubs extracted from the shim, without
+        the test/main entry point that would conflict with the seed).
         """
         ko_clang = self.ko_clang_path or "$KO_CLANG"
 
@@ -1206,6 +1218,24 @@ class HarnessGenerator:
         out_name = seed_path.stem + ".ucsan"
         out_path = output_dir / out_name
 
+        # Build stubs compile + link steps if stubs file exists
+        if stubs_path:
+            stubs_compile = f"""\
+# Step 2: Compile callee stubs
+echo "[2/3] Compiling callee stubs..."
+METADATA="$CONFIG" KO_CC=clang-14 \\
+    "$KO_CLANG" -c \\
+    {include_flags_str}"{stubs_path}" -o "{stubs_path}.o"
+"""
+            link_step = "3"
+            link_total = "3"
+            link_objs = f'{obj_files} "{stubs_path}.o" "$SEED.o"'
+        else:
+            stubs_compile = ""
+            link_step = "2"
+            link_total = "2"
+            link_objs = f'{obj_files} "$SEED.o"'
+
         return f"""\
 #!/bin/bash
 set -e
@@ -1217,18 +1247,46 @@ SEED="{seed_path}"
 OUT="{out_path}"
 
 # Step 1: Compile seed
-echo "[1/2] Compiling seed {seed_path.name}..."
+echo "[1/{link_total}] Compiling seed {seed_path.name}..."
 METADATA="$CONFIG" KO_CC=clang-14 \\
     "$KO_CLANG" -c \\
     {include_flags_str}"$SEED" -o "$SEED.o"
 
-# Step 2: Link with project objects
-echo "[2/2] Linking..."
+{stubs_compile}\
+# Step {link_step}: Link with project objects
+echo "[{link_step}/{link_total}] Linking..."
 METADATA="$CONFIG" KO_USE_THOROUPY=1 KO_CC=clang-14 \\
-    "$KO_CLANG" {obj_files} "$SEED.o" -o "$OUT"
+    "$KO_CLANG" {link_objs} -o "$OUT"
 
 echo "Built: $OUT"
 """
+
+    @staticmethod
+    def _extract_stubs(func_name: str, output_dir: Path) -> Path | None:
+        """Extract callee stubs from the shim into a standalone file.
+
+        Takes everything before the ``/* ---- Entry point`` marker so seeds
+        can link callee stubs without pulling in the shim's test()/main().
+        Returns the path to the stubs file, or None if no stubs were found.
+        """
+        shim_path = output_dir / f"shim_{func_name}.c"
+        if not shim_path.exists():
+            return None
+
+        shim_text = shim_path.read_text()
+        marker = "/* ---- Entry point"
+        idx = shim_text.find(marker)
+        if idx < 0:
+            return None
+
+        stubs_text = shim_text[:idx]
+        # Only write if there are actual stub functions
+        if "/* ---- Callee stubs" not in stubs_text:
+            return None
+
+        stubs_path = output_dir / f"stubs_{func_name}.c"
+        stubs_path.write_text(stubs_text)
+        return stubs_path
 
     def generate_plan(
         self,
