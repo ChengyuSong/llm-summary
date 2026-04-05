@@ -427,6 +427,7 @@ def summarize(
             verification_summarizer = VerificationSummarizer(
                 db, llm, verbose=verbose, log_file=log_llm,
                 cache_mode=cache_mode,
+                entry_functions=set(entry_functions) if entry_functions else None,
             )
             passes.append(VerificationPass(
                 verification_summarizer, db, llm.model,

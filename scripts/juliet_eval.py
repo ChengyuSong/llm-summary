@@ -332,6 +332,7 @@ def phase_verify(
     log_llm: str | None,
     force: bool,
     reachable_ids: set[int] | None = None,
+    entry_functions: set[str] | None = None,
 ) -> int:
     """Run verification pass. Returns LLM call count."""
     llm = create_backend(backend, model=model)
@@ -339,6 +340,7 @@ def phase_verify(
 
     verify_s = VerificationSummarizer(
         db, llm, verbose=verbose, cache_mode=cache_mode, log_file=log_llm,
+        entry_functions=entry_functions,
     )
 
     v_passes: list[SummaryPass] = [VerificationPass(verify_s, db, llm.model)]
@@ -520,6 +522,7 @@ def run_one_task(
                 db, backend, model, verbose, log_llm,
                 force=force or from_phase <= 0,
                 reachable_ids=reachable_ids,
+                entry_functions={"main"} if main_funcs else None,
             )
 
         if to_phase < 4:

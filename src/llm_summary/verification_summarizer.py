@@ -271,12 +271,14 @@ class VerificationSummarizer:
         verbose: bool = False,
         log_file: str | None = None,
         cache_mode: str = "none",
+        entry_functions: set[str] | None = None,
     ):
         self.db = db
         self.llm = llm
         self.verbose = verbose
         self.log_file = log_file
         self.cache_mode = cache_mode
+        self.entry_functions = entry_functions or set()
         self._stats = {
             "functions_processed": 0,
             "llm_calls": 0,
@@ -318,7 +320,10 @@ class VerificationSummarizer:
             )
 
         callee_section = self._build_callee_section(func, callee_summaries)
-        own_contracts = self._build_own_contracts_section(func)
+        if func.name in self.entry_functions:
+            own_contracts = "No pre-conditions (program entry point).\n"
+        else:
+            own_contracts = self._build_own_contracts_section(func)
 
         annotated_source = self._annotate_source(
             func, callee_summaries, callee_params,
