@@ -583,10 +583,15 @@ class InitSummarizer:
         for name, summary in callee_summaries.items():
             attr_suffix = f" {callee_attrs[name]}" if name in callee_attrs else ""
             if summary.inits:
-                init_desc = ", ".join(
-                    f"{i.initializer}({i.target})"
-                    for i in summary.inits
-                )
+                parts = []
+                for i in summary.inits:
+                    s = f"{i.initializer}({i.target})"
+                    if i.byte_count:
+                        s += f" [{i.byte_count} bytes]"
+                    if i.conditional and i.condition:
+                        s += f" [when {i.condition}]"
+                    parts.append(s)
+                init_desc = ", ".join(parts)
                 lines.append(f"- `{name}`: Initializes {init_desc}{attr_suffix}")
             else:
                 desc = (

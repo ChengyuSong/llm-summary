@@ -623,10 +623,13 @@ class AllocationSummarizer:
         for name, summary in callee_summaries.items():
             attr_suffix = f" {callee_attrs[name]}" if name in callee_attrs else ""
             if summary.allocations:
-                alloc_desc = ", ".join(
-                    f"{a.source}({a.size_expr or 'unknown size'})"
-                    for a in summary.allocations
-                )
+                parts = []
+                for a in summary.allocations:
+                    s = f"{a.source}({a.size_expr or 'unknown size'})"
+                    if a.stored_to:
+                        s += f" → {a.stored_to}"
+                    parts.append(s)
+                alloc_desc = ", ".join(parts)
                 lines.append(f"- `{name}`: Allocates via {alloc_desc}{attr_suffix}")
             else:
                 lines.append(f"- `{name}`: {summary.description or 'No allocations'}{attr_suffix}")
