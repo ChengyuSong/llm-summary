@@ -130,7 +130,7 @@ _LEAK_ITEM = {
         "allocation": {"type": "string"},
         "stored_to": {"type": "string"},
         "reason": {"type": "string"},
-        "severity": {"type": "string"},
+        "severity": {"type": "string", "enum": ["high", "medium", "low"]},
     },
     "required": ["allocation", "reason", "severity"],
 }
@@ -151,7 +151,7 @@ _SIMPLIFIED_FREE_ITEM = {
     "type": "object",
     "properties": {
         "target": {"type": "string"},
-        "target_kind": {"type": "string"},
+        "target_kind": {"type": "string", "enum": ["parameter", "field"]},
         "deallocator": {"type": "string"},
         "conditional": {"type": "boolean"},
         "condition": {"type": "string"},

@@ -218,10 +218,16 @@ _CONTRACT_ITEM = {
     "type": "object",
     "properties": {
         "target": {"type": "string"},
-        "contract_kind": {"type": "string"},
+        "contract_kind": {
+            "type": "string",
+            "enum": [
+                "disallow_null", "allow_null", "not_freed",
+                "initialized", "buffer_size",
+            ],
+        },
         "description": {"type": "string"},
         "size_expr": {"type": "string"},
-        "relationship": {"type": "string"},
+        "relationship": {"type": "string", "enum": ["byte_count", "element_count"]},
     },
     "required": ["target", "contract_kind", "description"],
 }
@@ -230,9 +236,12 @@ _ISSUE_ITEM = {
     "type": "object",
     "properties": {
         "location": {"type": "string"},
-        "issue_kind": {"type": "string"},
+        "issue_kind": {
+            "type": "string",
+            "enum": list(_VALID_ISSUE_KINDS),
+        },
         "description": {"type": "string"},
-        "severity": {"type": "string"},
+        "severity": {"type": "string", "enum": list(_VALID_SEVERITIES)},
         "callee": {"type": "string"},
         "contract_kind": {"type": "string"},
     },

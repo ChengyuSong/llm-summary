@@ -59,50 +59,30 @@ include it in this function's own contracts. Apply formal→actual argument subs
 annotation lists actual arguments (e.g., `PRE[foo(s->buf, n)]`), the contract targets named after
 the callee's formals should be read with those actuals substituted in.
 
-For each contract, identify:
+For each contract, provide **target**, **contract_kind**, **description**, \
+and optionally **size_expr** + **relationship** (buffer_size only) or \
+**condition** (when the contract applies only under a specific condition).
 
-1. **target**: The parameter or expression the contract applies to (e.g., "ptr", "buf", "ctx->data")
-2. **contract_kind**: One of:
-   - "disallow_null" — pointer parameter that is dereferenced and must not be NULL
-   - "allow_null" — pointer parameter that is explicitly checked \
-for NULL before use (caller MAY pass NULL)
-   - "not_freed" — pointer passed to free/dealloc that must \
-point to live memory
-   - "buffer_size" — pointer used with memcpy/memset/indexing \
-that must have sufficient capacity
-   - "initialized" — variable/field whose value is **read** (in a branch, index, \
-arithmetic, or as a source operand) before being written; a write-only dereference \
-like `p->field = val` does NOT require `initialized` — it only needs `disallow_null`
-3. **description**: Brief description of the requirement
-4. **size_expr**: (buffer_size only) The size expression required, \
-e.g., "n", "sizeof(T)", "strlen(src)+1"
-5. **relationship**: (buffer_size only) One of "byte_count" or "element_count"
-6. **condition** (optional): A C expression under which this contract applies, \
-e.g., "n > 0" for a buffer_size that only applies when n is nonzero, \
-or "n == 0" for a allow_null that is only safe when n is zero
+**contract_kind** — one of:
+- `disallow_null` — pointer dereferenced (`*p`, `p->f`, `p[i]`) without a \
+NULL check. For C++ member functions, `this` is implicitly dereferenced \
+if any member field is accessed.
+- `allow_null` — pointer checked for NULL before any dereference \
+(e.g., `if (p == NULL) return`). Add `condition` if allow_null only \
+under a specific condition (e.g., `"n == 0"`).
+- `not_freed` — pointer passed to `free()` or a deallocator; must point \
+to live heap memory.
+- `buffer_size` — pointer used with memcpy/memset/array indexing; must \
+have sufficient capacity. Include `size_expr` and `relationship` \
+(`"byte_count"` or `"element_count"`). Use numeric values for \
+compile-time constants, not macro names. Add `condition` if conditional.
+- `initialized` — variable/field whose value is **read** (branch, index, \
+arithmetic, source operand) before being written. Write-only dereference \
+like `p->field = val` is NOT uninitialized use — only needs `disallow_null`.
 
-Rules:
-- For C++ member functions, treat `this` as an implicit pointer parameter. \
-If the function accesses any member field, `this` is dereferenced and \
-needs `disallow_null` and `not_freed` contracts.
-- Pointer params that are **dereferenced** (read/write through \
-`*p`, `p->field`, `p[i]`) without a NULL check → `disallow_null`
-- Pointer params that are **checked for NULL** before any \
-dereference (e.g., `if (p == NULL) return`) → `allow_null`
-- Pointer params allow_null only under a specific condition (e.g., when n==0) → \
-`allow_null` with `condition`
-- Params passed to `free()` or deallocators → `not_freed`
-- Params used in memcpy/memset/array indexing with a size → \
-`buffer_size` (include size_expr + relationship); add `condition` if only applies conditionally
-- Params/fields whose value is **read** (in branch, index, arithmetic, \
-or as source operand) before being written → `initialized`. \
-Write-only access like `p->field = val` is NOT uninitialized use.
-- If a callee PRE annotation lists a requirement this function \
-does NOT satisfy internally, propagate it
-- Only include size_expr and relationship for buffer_size contracts
-- Only include condition when the contract is not unconditional
-- If size_expr is a compile-time constant (e.g., expanded from a macro), \
-use the numeric value, not the macro name
+**Propagation**: if a callee PRE annotation lists a requirement this \
+function does NOT satisfy internally, propagate it as this function's \
+own contract.
 
 Respond in JSON format:
 ```json
@@ -190,10 +170,16 @@ _MEMSAFE_CONTRACT_ITEM = {
     "type": "object",
     "properties": {
         "target": {"type": "string"},
-        "contract_kind": {"type": "string"},
+        "contract_kind": {
+            "type": "string",
+            "enum": [
+                "disallow_null", "allow_null", "not_freed",
+                "initialized", "buffer_size",
+            ],
+        },
         "description": {"type": "string"},
         "size_expr": {"type": "string"},
-        "relationship": {"type": "string"},
+        "relationship": {"type": "string", "enum": ["byte_count", "element_count"]},
         "condition": {"type": "string"},
     },
     "required": ["target", "contract_kind", "description"],
