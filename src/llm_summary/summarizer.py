@@ -77,6 +77,11 @@ flexible array and sets the length field
 
 4. **Description**: One-sentence summary of what this function allocates
 
+**Callee propagation**: If a callee's summary says it allocates and \
+stores to a caller-visible location (struct field, global, output parameter), \
+propagate that allocation as your own. Do NOT drop callee allocations \
+just because this function doesn't allocate directly.
+
 Consider:
 - Wrapper functions that call allocators
 - Size calculations (n + 1, n * sizeof(T), etc.)

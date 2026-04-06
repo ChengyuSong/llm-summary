@@ -56,6 +56,11 @@ Only present when conditional is true
 **IMPORTANT**: Enumerate EVERY distinct initialization site individually. \
 Do NOT collapse multiple inits into a single entry.
 
+**Callee propagation**: If a callee's summary says it initializes a \
+caller-visible location (struct field, output parameter), propagate \
+that initialization as your own. Do NOT drop callee initializations \
+just because this function doesn't initialize directly.
+
 Consider:
 - Direct assignments to output parameters and struct fields
 - Calls to memset, memcpy, calloc, etc. (use callee summaries)
