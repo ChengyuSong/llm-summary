@@ -70,7 +70,9 @@ for NULL before use (caller MAY pass NULL)
 point to live memory
    - "buffer_size" — pointer used with memcpy/memset/indexing \
 that must have sufficient capacity
-   - "initialized" — variable/field used in dereference, branch, or index that must be initialized
+   - "initialized" — variable/field whose value is **read** (in a branch, index, \
+arithmetic, or as a source operand) before being written; a write-only dereference \
+like `p->field = val` does NOT require `initialized` — it only needs `not_null`
 3. **description**: Brief description of the requirement
 4. **size_expr**: (buffer_size only) The size expression required, \
 e.g., "n", "sizeof(T)", "strlen(src)+1"
@@ -92,8 +94,9 @@ dereference (e.g., `if (p == NULL) return`) → `nullable`
 - Params passed to `free()` or deallocators → `not_freed`
 - Params used in memcpy/memset/array indexing with a size → \
 `buffer_size` (include size_expr + relationship); add `condition` if only applies conditionally
-- Params/fields used in dereference, branch, or index before \
-being set → `initialized`
+- Params/fields whose value is **read** (in branch, index, arithmetic, \
+or as source operand) before being written → `initialized`. \
+Write-only access like `p->field = val` is NOT uninitialized use.
 - If a callee PRE annotation lists a requirement this function \
 does NOT satisfy internally, propagate it
 - Only include size_expr and relationship for buffer_size contracts

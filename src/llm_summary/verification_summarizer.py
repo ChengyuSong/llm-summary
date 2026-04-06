@@ -101,6 +101,9 @@ Unchecked `may_be_null` return dereferenced → `null_deref`.
 Use after callee frees → `use_after_free`.
 Passing a non-heap pointer or non-base heap pointer to a callee that may free it → `invalid_free`.
 Integer issues: overflow, underflow, truncation, sign conversion errors → `integer_overflow`.
+Reading a variable/field value (in branch, index, arithmetic, or as source operand) \
+before it is written → `uninitialized_use`. Write-only dereference like \
+`p->field = val` is NOT uninitialized use — it only requires `p` to be non-null.
 
 **CRITICAL — contract-based reasoning**: A callee call is only a bug if it \
 violates the callee's stated PRE-conditions. If `PRE[callee(...)]: no \
