@@ -43,7 +43,7 @@ class TestAnnotateSource:
             "memcpy": MemsafeSummary(
                 function_name="memcpy",
                 contracts=[
-                    MemsafeContract(target="dest", contract_kind="not_null",
+                    MemsafeContract(target="dest", contract_kind="disallow_null",
                                     description="dest must not be NULL"),
                     MemsafeContract(target="dest", contract_kind="buffer_size",
                                     description="dest must have n bytes",
@@ -60,7 +60,7 @@ class TestAnnotateSource:
         assert used is True
         assert "/* PRE[memcpy(buf, src, n)]:" in annotated
         # formal→actual substitution: "dest" → "buf"
-        assert "buf: not_null" in annotated
+        assert "buf: disallow_null" in annotated
         assert "buf: buffer_size(n)" in annotated
         # Original callsite line preserved
         assert "memcpy(buf, src, n);" in annotated
@@ -96,7 +96,7 @@ class TestAnnotateSource:
         callee_summaries = {
             "assert_valid": MemsafeSummary(
                 function_name="assert_valid",
-                contracts=[MemsafeContract(target="ptr", contract_kind="not_null",
+                contracts=[MemsafeContract(target="ptr", contract_kind="disallow_null",
                                            description="ptr must not be NULL")],
             ),
         }
@@ -129,7 +129,7 @@ class TestAnnotateSource:
         callee_summaries = {
             "free": MemsafeSummary(
                 function_name="free",
-                contracts=[MemsafeContract(target="ptr", contract_kind="not_null",
+                contracts=[MemsafeContract(target="ptr", contract_kind="disallow_null",
                                            description="ptr must not be NULL")],
             ),
         }
@@ -164,7 +164,7 @@ class TestAnnotateSource:
             "memcpy": MemsafeSummary(
                 function_name="memcpy",
                 contracts=[
-                    MemsafeContract(target="dest", contract_kind="not_null",
+                    MemsafeContract(target="dest", contract_kind="disallow_null",
                                     description="dest must not be NULL"),
                 ],
             ),

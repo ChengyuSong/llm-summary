@@ -96,7 +96,7 @@ File: {file_path}
 
 Report ALL issues — do not omit or consolidate.
 Calling through a NULL function pointer (indirect call via a null pointer) is a `null_deref`.
-A `nullable` callee parameter accepts NULL safely — not a bug.
+An `allow_null` callee parameter accepts NULL safely — not a bug.
 Unchecked `may_be_null` return dereferenced → `null_deref`.
 Use after callee frees → `use_after_free`.
 Passing a non-heap pointer or non-base heap pointer to a callee that may free it → `invalid_free`.
@@ -138,8 +138,10 @@ Respond with JSON:
   "function": "{name}",
   "description": "One-sentence summary",
   "simplified_contracts": [
-    {{"target": "param", "contract_kind": "not_null|nullable|not_freed|initialized|buffer_size",
-      "description": "brief", "size_expr": "buffer_size only", "relationship": "buffer_size only"}}
+    {{"target": "param",
+      "contract_kind": "disallow_null|allow_null|not_freed|initialized|buffer_size",
+      "description": "brief", "size_expr": "buffer_size only",
+      "relationship": "buffer_size only"}}
   ],
   "issues": [
     {{"location": "line N",
@@ -210,7 +212,7 @@ _VALID_ISSUE_KINDS = {
     "invalid_free",
 }
 _VALID_SEVERITIES = {"high", "medium", "low"}
-_VALID_CONTRACT_KINDS = {"not_null", "nullable", "not_freed", "initialized", "buffer_size"}
+_VALID_CONTRACT_KINDS = {"disallow_null", "allow_null", "not_freed", "initialized", "buffer_size"}
 
 _CONTRACT_ITEM = {
     "type": "object",
@@ -1205,9 +1207,9 @@ class VerificationSummarizer:
         # Parse simplified contracts
         contracts = []
         for c in data.get("simplified_contracts", []):
-            contract_kind = c.get("contract_kind", "not_null")
+            contract_kind = c.get("contract_kind", "disallow_null")
             if contract_kind not in _VALID_CONTRACT_KINDS:
-                contract_kind = "not_null"
+                contract_kind = "disallow_null"
 
             size_expr = None
             relationship = None

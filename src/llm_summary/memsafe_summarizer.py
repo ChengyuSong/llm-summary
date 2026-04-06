@@ -63,8 +63,8 @@ For each contract, identify:
 
 1. **target**: The parameter or expression the contract applies to (e.g., "ptr", "buf", "ctx->data")
 2. **contract_kind**: One of:
-   - "not_null" — pointer parameter that is dereferenced and must not be NULL
-   - "nullable" — pointer parameter that is explicitly checked \
+   - "disallow_null" — pointer parameter that is dereferenced and must not be NULL
+   - "allow_null" — pointer parameter that is explicitly checked \
 for NULL before use (caller MAY pass NULL)
    - "not_freed" — pointer passed to free/dealloc that must \
 point to live memory
@@ -72,25 +72,25 @@ point to live memory
 that must have sufficient capacity
    - "initialized" — variable/field whose value is **read** (in a branch, index, \
 arithmetic, or as a source operand) before being written; a write-only dereference \
-like `p->field = val` does NOT require `initialized` — it only needs `not_null`
+like `p->field = val` does NOT require `initialized` — it only needs `disallow_null`
 3. **description**: Brief description of the requirement
 4. **size_expr**: (buffer_size only) The size expression required, \
 e.g., "n", "sizeof(T)", "strlen(src)+1"
 5. **relationship**: (buffer_size only) One of "byte_count" or "element_count"
 6. **condition** (optional): A C expression under which this contract applies, \
 e.g., "n > 0" for a buffer_size that only applies when n is nonzero, \
-or "n == 0" for a nullable that is only safe when n is zero
+or "n == 0" for a allow_null that is only safe when n is zero
 
 Rules:
 - For C++ member functions, treat `this` as an implicit pointer parameter. \
 If the function accesses any member field, `this` is dereferenced and \
-needs `not_null` and `not_freed` contracts.
+needs `disallow_null` and `not_freed` contracts.
 - Pointer params that are **dereferenced** (read/write through \
-`*p`, `p->field`, `p[i]`) without a NULL check → `not_null`
+`*p`, `p->field`, `p[i]`) without a NULL check → `disallow_null`
 - Pointer params that are **checked for NULL** before any \
-dereference (e.g., `if (p == NULL) return`) → `nullable`
-- Pointer params nullable only under a specific condition (e.g., when n==0) → \
-`nullable` with `condition`
+dereference (e.g., `if (p == NULL) return`) → `allow_null`
+- Pointer params allow_null only under a specific condition (e.g., when n==0) → \
+`allow_null` with `condition`
 - Params passed to `free()` or deallocators → `not_freed`
 - Params used in memcpy/memset/array indexing with a size → \
 `buffer_size` (include size_expr + relationship); add `condition` if only applies conditionally
@@ -112,7 +112,7 @@ Respond in JSON format:
   "contracts": [
     {{
       "target": "parameter or expression",
-      "contract_kind": "not_null|nullable|not_freed|initialized|buffer_size",
+      "contract_kind": "disallow_null|allow_null|not_freed|initialized|buffer_size",
       "description": "brief description of the requirement",
       "size_expr": "n (buffer_size only, omit otherwise)",
       "relationship": "byte_count (buffer_size only, omit otherwise)",
@@ -161,7 +161,7 @@ Respond in JSON:
   "contracts": [
     {{{{
       "target": "parameter or expression",
-      "contract_kind": "not_null|nullable|not_freed|initialized|buffer_size",
+      "contract_kind": "disallow_null|allow_null|not_freed|initialized|buffer_size",
       "description": "brief description",
       "size_expr": "n (buffer_size only)",
       "relationship": "byte_count (buffer_size only)",
@@ -381,7 +381,7 @@ class MemsafeSummarizer:
                     for c in data.get("contracts", []):
                         all_block_contracts.append(MemsafeContract(
                             target=c.get("target", ""),
-                            contract_kind=c.get("contract_kind", "not_null"),
+                            contract_kind=c.get("contract_kind", "disallow_null"),
                             description=c.get("description", ""),
                             size_expr=c.get("size_expr"),
                             relationship=c.get("relationship"),
@@ -422,7 +422,7 @@ class MemsafeSummarizer:
                 for c in data.get("contracts", []):
                     all_block_contracts.append(MemsafeContract(
                         target=c.get("target", ""),
-                        contract_kind=c.get("contract_kind", "not_null"),
+                        contract_kind=c.get("contract_kind", "disallow_null"),
                         description=c.get("description", ""),
                         size_expr=c.get("size_expr"),
                         relationship=c.get("relationship"),
@@ -696,12 +696,12 @@ class MemsafeSummarizer:
         data = extract_json(response)
 
         # Parse contracts
-        valid_kinds = {"not_null", "nullable", "not_freed", "initialized", "buffer_size"}
+        valid_kinds = {"disallow_null", "allow_null", "not_freed", "initialized", "buffer_size"}
         contracts = []
         for c in data.get("contracts", []):
-            contract_kind = c.get("contract_kind", "not_null")
+            contract_kind = c.get("contract_kind", "disallow_null")
             if contract_kind not in valid_kinds:
-                contract_kind = "not_null"
+                contract_kind = "disallow_null"
 
             size_expr = None
             relationship = None

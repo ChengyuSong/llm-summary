@@ -259,7 +259,7 @@ TRIAGE_ONLY_TOOL_DEFINITIONS: list[dict[str, Any]] = [
                             "contract_kind": {
                                 "type": "string",
                                 "enum": [
-                                    "not_null", "nullable", "not_freed",
+                                    "disallow_null", "allow_null", "not_freed",
                                     "initialized", "buffer_size",
                                 ],
                             },

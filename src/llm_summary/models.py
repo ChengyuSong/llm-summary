@@ -369,7 +369,7 @@ class MemsafeContract:
     """A single safety pre-condition required for memory-safe execution."""
 
     target: str  # "ptr", "buf", "ctx->data", "s"
-    contract_kind: str  # "not_null", "nullable", "not_freed", "initialized", "buffer_size"
+    contract_kind: str  # "disallow_null", "allow_null", "not_freed", "initialized", "buffer_size"
     description: str  # "buf must point to at least n bytes"
     size_expr: str | None = None  # buffer_size only: "n", "sizeof(T)", "strlen(src)+1"
     relationship: str | None = None  # buffer_size only: "byte_count", "element_count"

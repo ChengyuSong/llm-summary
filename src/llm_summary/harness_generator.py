@@ -180,8 +180,8 @@ Rules:
 - Do NOT add comments — the code should be self-explanatory
 - In stubs: use assert_* for pre-conditions, assume_* for post-conditions
 - Contract-to-assertion mapping:
-  - not_null → assert_cond(ptr != NULL, id)
-  - nullable → no assertion needed (NULL is allowed)
+  - disallow_null → assert_cond(ptr != NULL, id)
+  - allow_null → no assertion needed (NULL is allowed)
   - not_freed → assert_allocated(ptr, 0, id)  (still allocated)
   - buffer_size(N) → assert_allocated(ptr, N, id)
   - initialized(N) → assert_init(ptr, N, id)
@@ -239,8 +239,8 @@ Rules:
 - Do NOT add comments — the code should be self-explanatory
 - In stubs: use assert_* for pre-conditions, assume_* for post-conditions
 - Contract-to-assertion mapping:
-  - not_null → assert_cond(ptr != NULL, id)
-  - nullable → no assertion needed (NULL is allowed)
+  - disallow_null → assert_cond(ptr != NULL, id)
+  - allow_null → no assertion needed (NULL is allowed)
   - not_freed → assert_allocated(ptr, 0, id)  (still allocated)
   - buffer_size(N) → assert_allocated(ptr, N, id)
   - initialized(N) → assert_init(ptr, N, id)
@@ -298,7 +298,7 @@ Output a single ```json fenced block:
     {{{{
       "type": "assume|boundary_access|callee_contract",
       "description": "what this checks",
-      "contract_kind": "not_null|buffer_size|...",
+      "contract_kind": "disallow_null|buffer_size|...",
       "target": "parameter name",
       "priority": "high|medium|low"
     }}}}

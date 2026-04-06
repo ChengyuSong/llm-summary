@@ -705,7 +705,7 @@ STDLIB_MEMSAFE_SUMMARIES: dict[str, MemsafeSummary] = {
         function_name="memcpy",
         contracts=[
             MemsafeContract(
-                target="dest", contract_kind="not_null",
+                target="dest", contract_kind="disallow_null",
                 description="dest must not be NULL",
             ),
             MemsafeContract(
@@ -714,7 +714,7 @@ STDLIB_MEMSAFE_SUMMARIES: dict[str, MemsafeSummary] = {
                 size_expr="n", relationship="byte_count",
             ),
             MemsafeContract(
-                target="src", contract_kind="not_null",
+                target="src", contract_kind="disallow_null",
                 description="src must not be NULL",
             ),
             MemsafeContract(
@@ -732,7 +732,7 @@ STDLIB_MEMSAFE_SUMMARIES: dict[str, MemsafeSummary] = {
         function_name="memmove",
         contracts=[
             MemsafeContract(
-                target="dest", contract_kind="not_null",
+                target="dest", contract_kind="disallow_null",
                 description="dest must not be NULL",
             ),
             MemsafeContract(
@@ -741,7 +741,7 @@ STDLIB_MEMSAFE_SUMMARIES: dict[str, MemsafeSummary] = {
                 size_expr="n", relationship="byte_count",
             ),
             MemsafeContract(
-                target="src", contract_kind="not_null",
+                target="src", contract_kind="disallow_null",
                 description="src must not be NULL",
             ),
             MemsafeContract(
@@ -759,7 +759,7 @@ STDLIB_MEMSAFE_SUMMARIES: dict[str, MemsafeSummary] = {
         function_name="memset",
         contracts=[
             MemsafeContract(
-                target="s", contract_kind="not_null",
+                target="s", contract_kind="disallow_null",
                 description="s must not be NULL",
             ),
             MemsafeContract(
@@ -774,7 +774,7 @@ STDLIB_MEMSAFE_SUMMARIES: dict[str, MemsafeSummary] = {
         function_name="free",
         contracts=[
             MemsafeContract(
-                target="ptr", contract_kind="nullable",
+                target="ptr", contract_kind="allow_null",
                 description=(
                     "ptr may be NULL"
                     " (free(NULL) is a no-op per C standard)"
@@ -797,7 +797,7 @@ STDLIB_MEMSAFE_SUMMARIES: dict[str, MemsafeSummary] = {
         function_name="strlen",
         contracts=[
             MemsafeContract(
-                target="s", contract_kind="not_null",
+                target="s", contract_kind="disallow_null",
                 description="s must not be NULL",
             ),
             MemsafeContract(
@@ -817,7 +817,7 @@ STDLIB_MEMSAFE_SUMMARIES: dict[str, MemsafeSummary] = {
         function_name="strcpy",
         contracts=[
             MemsafeContract(
-                target="dest", contract_kind="not_null",
+                target="dest", contract_kind="disallow_null",
                 description="dest must not be NULL",
             ),
             MemsafeContract(
@@ -830,7 +830,7 @@ STDLIB_MEMSAFE_SUMMARIES: dict[str, MemsafeSummary] = {
                 relationship="byte_count",
             ),
             MemsafeContract(
-                target="src", contract_kind="not_null",
+                target="src", contract_kind="disallow_null",
                 description="src must not be NULL",
             ),
             MemsafeContract(
@@ -850,7 +850,7 @@ STDLIB_MEMSAFE_SUMMARIES: dict[str, MemsafeSummary] = {
         function_name="strncpy",
         contracts=[
             MemsafeContract(
-                target="dest", contract_kind="not_null",
+                target="dest", contract_kind="disallow_null",
                 description="dest must not be NULL",
             ),
             MemsafeContract(
@@ -859,7 +859,7 @@ STDLIB_MEMSAFE_SUMMARIES: dict[str, MemsafeSummary] = {
                 size_expr="n", relationship="byte_count",
             ),
             MemsafeContract(
-                target="src", contract_kind="not_null",
+                target="src", contract_kind="disallow_null",
                 description="src must not be NULL",
             ),
         ],
@@ -872,7 +872,7 @@ STDLIB_MEMSAFE_SUMMARIES: dict[str, MemsafeSummary] = {
         function_name="strcmp",
         contracts=[
             MemsafeContract(
-                target="s1", contract_kind="not_null",
+                target="s1", contract_kind="disallow_null",
                 description="s1 must not be NULL",
             ),
             MemsafeContract(
@@ -883,7 +883,7 @@ STDLIB_MEMSAFE_SUMMARIES: dict[str, MemsafeSummary] = {
                 ),
             ),
             MemsafeContract(
-                target="s2", contract_kind="not_null",
+                target="s2", contract_kind="disallow_null",
                 description="s2 must not be NULL",
             ),
             MemsafeContract(
@@ -903,7 +903,7 @@ STDLIB_MEMSAFE_SUMMARIES: dict[str, MemsafeSummary] = {
         function_name="snprintf",
         contracts=[
             MemsafeContract(
-                target="str", contract_kind="not_null",
+                target="str", contract_kind="disallow_null",
                 description="str must not be NULL",
             ),
             MemsafeContract(
@@ -914,7 +914,7 @@ STDLIB_MEMSAFE_SUMMARIES: dict[str, MemsafeSummary] = {
                 size_expr="size", relationship="byte_count",
             ),
             MemsafeContract(
-                target="format", contract_kind="not_null",
+                target="format", contract_kind="disallow_null",
                 description="format must not be NULL",
             ),
         ],
@@ -929,7 +929,7 @@ STDLIB_MEMSAFE_SUMMARIES: dict[str, MemsafeSummary] = {
         function_name="printf",
         contracts=[
             MemsafeContract(
-                target="format", contract_kind="not_null",
+                target="format", contract_kind="disallow_null",
                 description="format must not be NULL",
             ),
         ],
@@ -939,11 +939,11 @@ STDLIB_MEMSAFE_SUMMARIES: dict[str, MemsafeSummary] = {
         function_name="fprintf",
         contracts=[
             MemsafeContract(
-                target="stream", contract_kind="not_null",
+                target="stream", contract_kind="disallow_null",
                 description="stream must not be NULL",
             ),
             MemsafeContract(
-                target="format", contract_kind="not_null",
+                target="format", contract_kind="disallow_null",
                 description="format must not be NULL",
             ),
         ],
@@ -955,7 +955,7 @@ STDLIB_MEMSAFE_SUMMARIES: dict[str, MemsafeSummary] = {
         function_name="fwrite",
         contracts=[
             MemsafeContract(
-                target="ptr", contract_kind="not_null",
+                target="ptr", contract_kind="disallow_null",
                 description="ptr must not be NULL",
             ),
             MemsafeContract(
@@ -968,7 +968,7 @@ STDLIB_MEMSAFE_SUMMARIES: dict[str, MemsafeSummary] = {
                 relationship="byte_count",
             ),
             MemsafeContract(
-                target="stream", contract_kind="not_null",
+                target="stream", contract_kind="disallow_null",
                 description="stream must not be NULL",
             ),
         ],
@@ -981,7 +981,7 @@ STDLIB_MEMSAFE_SUMMARIES: dict[str, MemsafeSummary] = {
         function_name="fread",
         contracts=[
             MemsafeContract(
-                target="ptr", contract_kind="not_null",
+                target="ptr", contract_kind="disallow_null",
                 description="ptr must not be NULL",
             ),
             MemsafeContract(
@@ -994,7 +994,7 @@ STDLIB_MEMSAFE_SUMMARIES: dict[str, MemsafeSummary] = {
                 relationship="byte_count",
             ),
             MemsafeContract(
-                target="stream", contract_kind="not_null",
+                target="stream", contract_kind="disallow_null",
                 description="stream must not be NULL",
             ),
         ],
@@ -1013,7 +1013,7 @@ STDLIB_MEMSAFE_SUMMARIES: dict[str, MemsafeSummary] = {
         function_name="cgc_allocate",
         contracts=[
             MemsafeContract(
-                target="addr", contract_kind="not_null",
+                target="addr", contract_kind="disallow_null",
                 description="addr must not be NULL",
             ),
         ],
@@ -1023,7 +1023,7 @@ STDLIB_MEMSAFE_SUMMARIES: dict[str, MemsafeSummary] = {
         function_name="cgc_deallocate",
         contracts=[
             MemsafeContract(
-                target="addr", contract_kind="not_null",
+                target="addr", contract_kind="disallow_null",
                 description="addr must not be NULL",
             ),
             MemsafeContract(
@@ -1040,7 +1040,7 @@ STDLIB_MEMSAFE_SUMMARIES: dict[str, MemsafeSummary] = {
         function_name="cgc_receive",
         contracts=[
             MemsafeContract(
-                target="buf", contract_kind="not_null",
+                target="buf", contract_kind="disallow_null",
                 description="buf must not be NULL",
             ),
             MemsafeContract(
@@ -1057,7 +1057,7 @@ STDLIB_MEMSAFE_SUMMARIES: dict[str, MemsafeSummary] = {
         function_name="cgc_transmit",
         contracts=[
             MemsafeContract(
-                target="buf", contract_kind="not_null",
+                target="buf", contract_kind="disallow_null",
                 description="buf must not be NULL",
             ),
             MemsafeContract(
@@ -1074,7 +1074,7 @@ STDLIB_MEMSAFE_SUMMARIES: dict[str, MemsafeSummary] = {
         function_name="cgc_random",
         contracts=[
             MemsafeContract(
-                target="buf", contract_kind="not_null",
+                target="buf", contract_kind="disallow_null",
                 description="buf must not be NULL",
             ),
             MemsafeContract(

@@ -87,7 +87,7 @@ Return a single JSON object with exactly these four keys:
      "contracts": [
        {{
          "target": "<param name>",
-         "contract_kind": "not_null|not_freed|buffer_size|initialized|non_negative",
+         "contract_kind": "disallow_null|not_freed|buffer_size|initialized|non_negative",
          "description": "<human-readable precondition>",
          "size_expr": "<expression>",        (only for buffer_size)
          "relationship": "byte_count|element_count"  (only for buffer_size)

@@ -1073,7 +1073,7 @@ class SummaryDB:
         contracts = [
             MemsafeContract(
                 target=c.get("target", ""),
-                contract_kind=c.get("contract_kind", "not_null"),
+                contract_kind=c.get("contract_kind", "disallow_null"),
                 description=c.get("description", ""),
                 size_expr=c.get("size_expr"),
                 relationship=c.get("relationship"),
@@ -1131,7 +1131,7 @@ class SummaryDB:
             contracts = [
                 MemsafeContract(
                     target=c.get("target", ""),
-                    contract_kind=c.get("contract_kind", "not_null"),
+                    contract_kind=c.get("contract_kind", "disallow_null"),
                     description=c.get("description", ""),
                     size_expr=c.get("size_expr"),
                     relationship=c.get("relationship"),
