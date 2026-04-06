@@ -402,6 +402,8 @@ class LeakSummarizer:
                         d = f"{a.source}({a.size_expr or '?'})"
                         if a.stored_to:
                             d += f" -> {a.stored_to}"
+                        if not a.may_be_null:
+                            d += " [never null]"
                         alloc_descs.append(d)
                     parts.append(f"Allocates: {', '.join(alloc_descs)}")
 
@@ -435,6 +437,8 @@ class LeakSummarizer:
                 extras.append(f"stored_to={a.stored_to}")
             if a.may_be_null:
                 extras.append("may_be_null")
+            else:
+                extras.append("not_null")
             if extras:
                 desc += f" [{', '.join(extras)}]"
             lines.append(f"- {desc}")
