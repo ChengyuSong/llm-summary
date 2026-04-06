@@ -716,12 +716,28 @@ class VerificationSummarizer:
                 if callee_func is None:
                     continue
                 post: _post_data = {}
-                alloc_summary = self.db.get_summary_by_function_id(callee_id)
-                if alloc_summary and alloc_summary.allocations:
-                    post["allocations"] = alloc_summary.allocations
-                free_summary = self.db.get_free_summary_by_function_id(callee_id)
-                if free_summary and (free_summary.frees or free_summary.resource_releases):
-                    post["frees"] = free_summary.frees
+                # Prefer simplified alloc/free from leak pass
+                leak_summary = self.db.get_leak_summary_by_function_id(
+                    callee_id,
+                )
+                if leak_summary is not None:
+                    if leak_summary.simplified_allocations:
+                        post["allocations"] = leak_summary.simplified_allocations
+                    if leak_summary.simplified_frees:
+                        post["frees"] = leak_summary.simplified_frees
+                else:
+                    alloc_summary = self.db.get_summary_by_function_id(
+                        callee_id,
+                    )
+                    if alloc_summary and alloc_summary.allocations:
+                        post["allocations"] = alloc_summary.allocations
+                    free_summary = self.db.get_free_summary_by_function_id(
+                        callee_id,
+                    )
+                    if free_summary and (
+                        free_summary.frees or free_summary.resource_releases
+                    ):
+                        post["frees"] = free_summary.frees
                 init_summary = self.db.get_init_summary_by_function_id(callee_id)
                 if init_summary and init_summary.inits:
                     post["inits"] = init_summary.inits
@@ -984,66 +1000,126 @@ class VerificationSummarizer:
                 section_lines.append("**Pre-conditions:** None")
 
             # Post-conditions from Passes 1-3
+            # Prefer simplified alloc/free from leak pass when available
             post_parts = []
+            leak_summary = self.db.get_leak_summary_by_function_id(callee_id)
 
-            # Pass 1: Allocations (includes non-heap pointer provenance)
-            alloc_summary = self.db.get_summary_by_function_id(callee_id)
-            if alloc_summary and not alloc_summary.allocations:
-                post_parts.append("  No heap allocations")
-            if alloc_summary and alloc_summary.allocations:
-                alloc_descs = []
-                for a in alloc_summary.allocations:
-                    desc = f"{a.source}"
-                    if a.size_expr:
-                        desc += f"({a.size_expr})"
-                    extras = []
-                    atype = a.alloc_type.value
-                    if atype != "heap":
-                        extras.append(f"type={atype}")
-                    if a.may_be_null:
-                        extras.append("may_be_null")
-                    else:
-                        extras.append("not_null")
-                    if a.returned:
-                        extras.append("returned")
-                    if a.stored_to:
-                        extras.append(f"stored_to={a.stored_to}")
-                    desc += f" [{', '.join(extras)}]"
-                    alloc_descs.append(desc)
-                post_parts.append(f"  Allocations: {'; '.join(alloc_descs)}")
-                if alloc_summary.buffer_size_pairs:
-                    for bsp in alloc_summary.buffer_size_pairs:
-                        post_parts.append(
-                            f"  Buffer-size pair: ({bsp.buffer}, {bsp.size}) "
-                            f"{bsp.relationship}"
-                        )
-
-            # Pass 2: Frees
-            free_summary = self.db.get_free_summary_by_function_id(callee_id)
-            if free_summary and (free_summary.frees or free_summary.resource_releases):
-                def _fmt_ops(ops: list) -> list[str]:
-                    descs = []
-                    for f in ops:
-                        desc = f"{f.deallocator}({f.target})"
+            # Allocations: simplified (unresolved) from leak pass, or raw
+            if leak_summary is not None:
+                if leak_summary.simplified_allocations:
+                    alloc_descs = []
+                    for a in leak_summary.simplified_allocations:
+                        desc = f"{a.source}"
+                        if a.size_expr:
+                            desc += f"({a.size_expr})"
                         extras = []
-                        if f.conditional:
-                            cond_text = f"when {f.condition}" if f.condition else "conditional"
-                            extras.append(cond_text)
-                        if f.nulled_after:
-                            extras.append("nulled_after")
-                        if extras:
-                            desc += f" [{', '.join(extras)}]"
-                        if f.description:
-                            desc += f" — {f.description}"
-                        descs.append(desc)
-                    return descs
-                if free_summary.frees:
-                    post_parts.append(f"  Frees: {'; '.join(_fmt_ops(free_summary.frees))}")
-                if free_summary.resource_releases:
-                    releases = _fmt_ops(free_summary.resource_releases)
+                        atype = a.alloc_type.value
+                        if atype != "heap":
+                            extras.append(f"type={atype}")
+                        if a.may_be_null:
+                            extras.append("may_be_null")
+                        else:
+                            extras.append("not_null")
+                        if a.returned:
+                            extras.append("returned")
+                        if a.stored_to:
+                            extras.append(f"stored_to={a.stored_to}")
+                        desc += f" [{', '.join(extras)}]"
+                        alloc_descs.append(desc)
                     post_parts.append(
-                        f"  Releases: {'; '.join(releases)}"
+                        f"  Unfreed allocations: {'; '.join(alloc_descs)}"
                     )
+                else:
+                    post_parts.append("  No unfreed allocations")
+            else:
+                alloc_summary = self.db.get_summary_by_function_id(callee_id)
+                if alloc_summary and not alloc_summary.allocations:
+                    post_parts.append("  No heap allocations")
+                if alloc_summary and alloc_summary.allocations:
+                    alloc_descs = []
+                    for a in alloc_summary.allocations:
+                        desc = f"{a.source}"
+                        if a.size_expr:
+                            desc += f"({a.size_expr})"
+                        extras = []
+                        atype = a.alloc_type.value
+                        if atype != "heap":
+                            extras.append(f"type={atype}")
+                        if a.may_be_null:
+                            extras.append("may_be_null")
+                        else:
+                            extras.append("not_null")
+                        if a.returned:
+                            extras.append("returned")
+                        if a.stored_to:
+                            extras.append(f"stored_to={a.stored_to}")
+                        desc += f" [{', '.join(extras)}]"
+                        alloc_descs.append(desc)
+                    post_parts.append(f"  Allocations: {'; '.join(alloc_descs)}")
+                    if alloc_summary.buffer_size_pairs:
+                        for bsp in alloc_summary.buffer_size_pairs:
+                            post_parts.append(
+                                f"  Buffer-size pair: ({bsp.buffer}, {bsp.size}) "
+                                f"{bsp.relationship}"
+                            )
+
+            # Frees: simplified (caller-visible) from leak pass, or raw
+            if leak_summary is not None:
+                if leak_summary.simplified_frees:
+                    def _fmt_leak_frees(ops: list) -> list[str]:
+                        descs = []
+                        for f in ops:
+                            desc = f"{f.deallocator}({f.target})"
+                            extras = []
+                            if f.conditional:
+                                cond_text = (
+                                    f"when {f.condition}"
+                                    if f.condition else "conditional"
+                                )
+                                extras.append(cond_text)
+                            if extras:
+                                desc += f" [{', '.join(extras)}]"
+                            if f.description:
+                                desc += f" — {f.description}"
+                            descs.append(desc)
+                        return descs
+                    post_parts.append(
+                        f"  Frees: "
+                        f"{'; '.join(_fmt_leak_frees(leak_summary.simplified_frees))}"
+                    )
+            else:
+                free_summary = self.db.get_free_summary_by_function_id(callee_id)
+                if free_summary and (
+                    free_summary.frees or free_summary.resource_releases
+                ):
+                    def _fmt_ops(ops: list) -> list[str]:
+                        descs = []
+                        for f in ops:
+                            desc = f"{f.deallocator}({f.target})"
+                            extras = []
+                            if f.conditional:
+                                cond_text = (
+                                    f"when {f.condition}"
+                                    if f.condition else "conditional"
+                                )
+                                extras.append(cond_text)
+                            if f.nulled_after:
+                                extras.append("nulled_after")
+                            if extras:
+                                desc += f" [{', '.join(extras)}]"
+                            if f.description:
+                                desc += f" — {f.description}"
+                            descs.append(desc)
+                        return descs
+                    if free_summary.frees:
+                        post_parts.append(
+                            f"  Frees: {'; '.join(_fmt_ops(free_summary.frees))}"
+                        )
+                    if free_summary.resource_releases:
+                        releases = _fmt_ops(free_summary.resource_releases)
+                        post_parts.append(
+                            f"  Releases: {'; '.join(releases)}"
+                        )
 
             # Pass 3: Initializations + output ranges
             init_summary = self.db.get_init_summary_by_function_id(callee_id)

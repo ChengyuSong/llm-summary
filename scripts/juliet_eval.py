@@ -47,6 +47,7 @@ from llm_summary.driver import (
     BottomUpDriver,
     FreePass,
     InitPass,
+    LeakPass,
     MemsafePass,
     SummaryPass,
     VerificationPass,
@@ -54,6 +55,7 @@ from llm_summary.driver import (
 from llm_summary.extractor import FunctionExtractor
 from llm_summary.free_summarizer import FreeSummarizer
 from llm_summary.init_summarizer import InitSummarizer
+from llm_summary.leak_summarizer import LeakSummarizer
 from llm_summary.llm import create_backend
 from llm_summary.memsafe_summarizer import MemsafeSummarizer
 from llm_summary.summarizer import AllocationSummarizer
@@ -328,6 +330,36 @@ def phase_summarize(
     )
 
 
+# ── Phase 2.5: leak detection ────────────────────────────────────────────────
+
+def phase_leak(
+    db: SummaryDB,
+    backend: str,
+    model: str | None,
+    verbose: bool,
+    log_llm: str | None,
+    force: bool,
+    reachable_ids: set[int] | None = None,
+    entry_functions: set[str] | None = None,
+) -> int:
+    """Run leak detection pass. Returns LLM call count."""
+    llm = create_backend(backend, model=model)
+
+    leak_s = LeakSummarizer(
+        db, llm, verbose=verbose, log_file=log_llm,
+        entry_functions=entry_functions,
+    )
+
+    l_passes: list[SummaryPass] = [
+        LeakPass(leak_s, db, llm.model),
+    ]
+
+    driver = BottomUpDriver(db, verbose=verbose)
+    driver.run(l_passes, force=force, target_ids=reachable_ids)
+
+    return int(leak_s.stats.get("llm_calls", 0))
+
+
 # ── Phase 3: verify ─────────────────────────────────────────────────────────
 
 def phase_verify(
@@ -375,6 +407,10 @@ def _collect_issues(
             if vsm and vsm.issues:
                 for issue in vsm.issues:
                     issues.append(issue.to_dict())
+            lsm = db.get_leak_summary_by_function_id(f.id)
+            if lsm and lsm.issues:
+                for issue in lsm.issues:
+                    issues.append(issue.to_dict())
     return issues
 
 
@@ -407,6 +443,7 @@ SUMMARY_TABLES = [
     "init_summaries",
     "memsafe_summaries",
     "verification_summaries",
+    "leak_summaries",
 ]
 
 # Key: (func_name, source_hash) → {table_name: summary_json}
@@ -639,8 +676,14 @@ def run_one_task(
                 alias_builder=alias_builder,
             )
 
-        # Phase 3: verify
+        # Phase 3: leak + verify
         if from_phase <= 3 and to_phase >= 3:
+            total_llm += phase_leak(
+                db, backend, model, verbose, log_llm,
+                force=force or from_phase <= 0,
+                reachable_ids=reachable_ids,
+                entry_functions={"main"} if main_funcs else None,
+            )
             total_llm += phase_verify(
                 db, backend, model, verbose, log_llm,
                 force=force or from_phase <= 0,
