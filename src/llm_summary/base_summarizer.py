@@ -1,0 +1,100 @@
+"""Base class for LLM-based summarizers with shared stats and logging."""
+
+from __future__ import annotations
+
+import threading
+
+from llm_summary.db import SummaryDB
+from llm_summary.llm.base import LLMBackend, LLMResponse
+
+
+class BaseSummarizer:
+    """Common infrastructure for all summarizer classes.
+
+    Provides:
+    - Thread-safe stats accumulation (llm_calls, tokens, cache metrics)
+    - ``record_response()`` to update stats from an ``LLMResponse``
+    - ``_log_interaction()`` for optional prompt/response logging
+    - Progress tracking (``_progress_current``, ``_progress_total``)
+    """
+
+    # Subclasses can override to add pass-specific stats keys.
+    _extra_stats: dict[str, int] = {}
+
+    def __init__(
+        self,
+        db: SummaryDB,
+        llm: LLMBackend,
+        *,
+        verbose: bool = False,
+        log_file: str | None = None,
+        pass_label: str = "",
+    ) -> None:
+        self.db = db
+        self.llm = llm
+        self.verbose = verbose
+        self.log_file = log_file
+        self._pass_label = pass_label
+        self._stats: dict[str, int] = {
+            "functions_processed": 0,
+            "llm_calls": 0,
+            "cache_hits": 0,
+            "errors": 0,
+            "cache_read_tokens": 0,
+            "cache_creation_tokens": 0,
+            "input_tokens": 0,
+            "output_tokens": 0,
+            **self._extra_stats,
+        }
+        self._stats_lock = threading.Lock()
+        self._progress_current = 0
+        self._progress_total = 0
+
+    @property
+    def stats(self) -> dict[str, int]:
+        with self._stats_lock:
+            return self._stats.copy()
+
+    def record_response(self, response: LLMResponse) -> None:
+        """Update stats from an LLM response (thread-safe)."""
+        with self._stats_lock:
+            self._stats["llm_calls"] += 1
+            if response.cached:
+                self._stats["cache_hits"] += 1
+            self._stats["cache_read_tokens"] += response.cache_read_tokens
+            self._stats["cache_creation_tokens"] += response.cache_creation_tokens
+            self._stats["input_tokens"] += response.input_tokens
+            self._stats["output_tokens"] += response.output_tokens
+
+    def record_call(self) -> None:
+        """Record a plain LLM call with no metadata (e.g. ``complete()``)."""
+        with self._stats_lock:
+            self._stats["llm_calls"] += 1
+
+    def record_error(self) -> None:
+        """Increment the error counter (thread-safe)."""
+        with self._stats_lock:
+            self._stats["errors"] += 1
+
+    def _log_interaction(
+        self, func_name: str, prompt: str, response: str,
+    ) -> None:
+        """Log LLM interaction to file."""
+        if not self.log_file:
+            return
+        import datetime
+
+        label = f" [{self._pass_label}]" if self._pass_label else ""
+        with open(self.log_file, "a", encoding="utf-8") as f:
+            timestamp = datetime.datetime.now().isoformat()
+            f.write(f"\n{'=' * 80}\n")
+            f.write(f"Function: {func_name}{label}\n")
+            f.write(f"Timestamp: {timestamp}\n")
+            f.write(f"Model: {self.llm.model}\n")
+            f.write(f"{'-' * 80}\n")
+            f.write("PROMPT:\n")
+            f.write(prompt)
+            f.write(f"\n{'-' * 80}\n")
+            f.write("RESPONSE:\n")
+            f.write(response)
+            f.write(f"\n{'=' * 80}\n\n")

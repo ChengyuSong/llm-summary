@@ -5,9 +5,9 @@ allocations (memory leaks).  Produces simplified allocation/free summaries
 for compositional bottom-up analysis and reports ``memory_leak`` issues.
 """
 
-import threading
 from typing import Any
 
+from .base_summarizer import BaseSummarizer
 from .db import SummaryDB
 from .llm.base import LLMBackend, make_json_response_format
 from .models import (
@@ -184,12 +184,14 @@ LEAK_RESPONSE_FORMAT = make_json_response_format({
 # Summarizer
 # ---------------------------------------------------------------------------
 
-class LeakSummarizer:
+class LeakSummarizer(BaseSummarizer):
     """Detects memory leaks by comparing alloc vs free summaries.
 
     Returns a LeakSummary with simplified alloc/free for compositional
     bottom-up analysis plus memory_leak issues.
     """
+
+    _extra_stats = {"leaks_found": 0}
 
     def __init__(
         self,
@@ -199,26 +201,8 @@ class LeakSummarizer:
         log_file: str | None = None,
         entry_functions: set[str] | None = None,
     ):
-        self.db = db
-        self.llm = llm
-        self.verbose = verbose
-        self.log_file = log_file
+        super().__init__(db, llm, verbose=verbose, log_file=log_file, pass_label="leak pass")
         self.entry_functions = entry_functions or {"main"}
-        self._stats = {
-            "functions_processed": 0,
-            "llm_calls": 0,
-            "cache_hits": 0,
-            "leaks_found": 0,
-            "errors": 0,
-        }
-        self._stats_lock = threading.Lock()
-        self._progress_current = 0
-        self._progress_total = 0
-
-    @property
-    def stats(self) -> dict[str, int]:
-        with self._stats_lock:
-            return self._stats.copy()
 
     def summarize_function(
         self,
@@ -299,8 +283,7 @@ class LeakSummarizer:
                 system=LEAK_SYSTEM_PROMPT,
                 response_format=LEAK_RESPONSE_FORMAT,
             )
-            with self._stats_lock:
-                self._stats["llm_calls"] += 1
+            self.record_call()
 
             if self.log_file:
                 self._log_interaction(func.name, prompt, response)
@@ -313,8 +296,7 @@ class LeakSummarizer:
             return summary
 
         except Exception as e:
-            with self._stats_lock:
-                self._stats["errors"] += 1
+            self.record_error()
             if self.verbose:
                 print(f"  Error in leak check for {func.name}: {e}")
             return LeakSummary(
@@ -520,23 +502,3 @@ class LeakSummarizer:
             issues=issues,
         )
 
-    def _log_interaction(
-        self, func_name: str, prompt: str, response: str,
-    ) -> None:
-        if not self.log_file:
-            return
-        import datetime
-
-        with open(self.log_file, "a", encoding="utf-8") as f:
-            timestamp = datetime.datetime.now().isoformat()
-            f.write(f"\n{'=' * 80}\n")
-            f.write(f"Function: {func_name} [leak pass]\n")
-            f.write(f"Timestamp: {timestamp}\n")
-            f.write(f"Model: {self.llm.model}\n")
-            f.write(f"{'-' * 80}\n")
-            f.write("PROMPT:\n")
-            f.write(prompt)
-            f.write(f"\n{'-' * 80}\n")
-            f.write("RESPONSE:\n")
-            f.write(response)
-            f.write(f"\n{'=' * 80}\n\n")

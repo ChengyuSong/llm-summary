@@ -63,6 +63,19 @@ from llm_summary.verification_summarizer import VerificationSummarizer
 
 log = logging.getLogger("juliet_eval")
 
+# Token-tracking keys shared across all summarizers
+_TOKEN_KEYS = ("llm_calls", "input_tokens", "output_tokens")
+
+
+def _merge_stats(*summarizers: Any) -> dict[str, int]:
+    """Sum token-tracking keys across multiple summarizers."""
+    merged: dict[str, int] = {k: 0 for k in _TOKEN_KEYS}
+    for s in summarizers:
+        st = s.stats
+        for k in _TOKEN_KEYS:
+            merged[k] += int(st.get(k, 0))
+    return merged
+
 DEFAULT_KAMAIN = "/home/csong/project/kanalyzer/release/lib/KAMain"
 DEFAULT_FUNC_SCANS = "func-scans/sv-benchmarks"
 
@@ -130,6 +143,8 @@ class TaskResult:
     error: str | None = None
     elapsed_s: float = 0.0
     llm_calls: int = 0
+    input_tokens: int = 0
+    output_tokens: int = 0
 
 
 def parse_yml(yml_path: Path) -> dict[str, Any] | None:
@@ -322,12 +337,7 @@ def phase_summarize(
     driver = BottomUpDriver(db, verbose=verbose)
     driver.run(passes, force=force, target_ids=reachable_ids)
 
-    return (
-        int(alloc_s.stats.get("llm_calls", 0))
-        + int(free_s.stats.get("llm_calls", 0))
-        + int(init_s.stats.get("llm_calls", 0))
-        + int(memsafe_s.stats.get("llm_calls", 0))
-    )
+    return _merge_stats(alloc_s, free_s, init_s, memsafe_s)
 
 
 # ── Phase 2.5: leak detection ────────────────────────────────────────────────
@@ -357,7 +367,7 @@ def phase_leak(
     driver = BottomUpDriver(db, verbose=verbose)
     driver.run(l_passes, force=force, target_ids=reachable_ids)
 
-    return int(leak_s.stats.get("llm_calls", 0))
+    return _merge_stats(leak_s)
 
 
 # ── Phase 3: verify ─────────────────────────────────────────────────────────
@@ -389,7 +399,7 @@ def phase_verify(
     driver = BottomUpDriver(db, verbose=verbose)
     driver.run(v_passes, force=force, target_ids=reachable_ids)
 
-    return int(verify_s.stats.get("llm_calls", 0))
+    return _merge_stats(verify_s)
 
 
 # ── Phase 4: evaluate ───────────────────────────────────────────────────────
@@ -514,15 +524,19 @@ def run_one_task(
     to_phase: int = 4,
     force: bool = False,
     summary_cache: SummaryCache | None = None,
-) -> tuple[list[dict[str, Any]], int]:
+) -> tuple[list[dict[str, Any]], dict[str, int]]:
     """Run pipeline phases on one .i file using persistent work_dir.
 
-    Returns (issues_list, llm_call_count).
+    Returns (issues_list, stats_dict).
     """
     work_dir.mkdir(parents=True, exist_ok=True)
     db_path = work_dir / "functions.db"
     db = SummaryDB(str(db_path))
-    total_llm = 0
+    total_stats: dict[str, int] = {k: 0 for k in _TOKEN_KEYS}
+
+    def _add_stats(phase_stats: dict[str, int]) -> None:
+        for k in _TOKEN_KEYS:
+            total_stats[k] += phase_stats.get(k, 0)
 
     try:
         # Phase 0: scan
@@ -669,38 +683,38 @@ def run_one_task(
 
         # Phase 2: summarize
         if from_phase <= 2 and to_phase >= 2:
-            total_llm += phase_summarize(
+            _add_stats(phase_summarize(
                 db, backend, model, verbose, log_llm,
-                force=force or from_phase <= 0,
+                force=force,
                 reachable_ids=reachable_ids,
                 alias_builder=alias_builder,
-            )
+            ))
 
         # Phase 3: leak + verify
         if from_phase <= 3 and to_phase >= 3:
-            total_llm += phase_leak(
+            _add_stats(phase_leak(
                 db, backend, model, verbose, log_llm,
-                force=force or from_phase <= 0,
+                force=force,
                 reachable_ids=reachable_ids,
                 entry_functions={"main"} if main_funcs else None,
-            )
-            total_llm += phase_verify(
+            ))
+            _add_stats(phase_verify(
                 db, backend, model, verbose, log_llm,
-                force=force or from_phase <= 0,
+                force=force,
                 reachable_ids=reachable_ids,
                 entry_functions={"main"} if main_funcs else None,
                 alias_builder=alias_builder,
-            )
+            ))
 
         if to_phase < 4:
             db.close()
-            return [], total_llm
+            return [], total_stats
 
         # Phase 4: evaluate
         issues = phase_evaluate(db, variant, reachable_ids=reachable_ids)
         log.debug("  Issues: %d", len(issues))
         db.close()
-        return issues, total_llm
+        return issues, total_stats
 
     except Exception:
         db.close()
@@ -942,7 +956,7 @@ def main() -> None:
             log_llm = str(log_dir / f"{stem}.log")
 
         try:
-            issues, llm_calls = run_one_task(
+            issues, task_stats = run_one_task(
                 i_path, variant, work_dir,
                 args.backend, args.model,
                 args.verbose, args.kamain_bin, log_llm,
@@ -951,7 +965,9 @@ def main() -> None:
                 summary_cache=summary_cache,
             )
             result.elapsed_s = time.time() - t0
-            result.llm_calls = llm_calls
+            result.llm_calls = task_stats["llm_calls"]
+            result.input_tokens = task_stats["input_tokens"]
+            result.output_tokens = task_stats["output_tokens"]
             result.issues_found = issues
 
             # Grow summary cache from completed task
@@ -1012,9 +1028,10 @@ def main() -> None:
                     fn += 1
 
                 log.info(
-                    "  -> %s (%d issues, %.1fs, %d LLM calls)",
+                    "  -> %s (%d issues, %.1fs, %d LLM calls, %dk in + %dk out)",
                     result.classification, len(relevant_issues),
-                    result.elapsed_s, llm_calls,
+                    result.elapsed_s, result.llm_calls,
+                    result.input_tokens // 1000, result.output_tokens // 1000,
                 )
 
         except Exception as e:
@@ -1068,6 +1085,15 @@ def main() -> None:
             "Precision: %.3f  Recall: %.3f  F1: %.3f",
             precision, recall, f1,
         )
+
+    # Token totals
+    total_llm_calls = sum(r.llm_calls for r in results)
+    total_input = sum(r.input_tokens for r in results)
+    total_output = sum(r.output_tokens for r in results)
+    log.info(
+        "Tokens: %d LLM calls, %dk input, %dk output",
+        total_llm_calls, total_input // 1000, total_output // 1000,
+    )
 
     output: dict[str, Any] = {
         "summary": {

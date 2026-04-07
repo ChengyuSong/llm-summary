@@ -2,8 +2,8 @@
 
 import json
 import re
-import threading
 
+from .base_summarizer import BaseSummarizer
 from .db import SummaryDB
 from .llm.base import LLMBackend, make_json_response_format
 from .models import (
@@ -301,7 +301,7 @@ INIT_BLOCK_RESPONSE_FORMAT = make_json_response_format({
 })
 
 
-class InitSummarizer:
+class InitSummarizer(BaseSummarizer):
     """Generates initialization summaries for functions using LLM."""
 
     def __init__(
@@ -312,27 +312,8 @@ class InitSummarizer:
         log_file: str | None = None,
         cache_mode: str = "none",
     ):
-        self.db = db
-        self.llm = llm
-        self.verbose = verbose
-        self.log_file = log_file
+        super().__init__(db, llm, verbose=verbose, log_file=log_file, pass_label="init")
         self.cache_mode = cache_mode
-        self._stats = {
-            "functions_processed": 0,
-            "llm_calls": 0,
-            "cache_hits": 0,
-            "errors": 0,
-            "cache_read_tokens": 0,
-            "cache_creation_tokens": 0,
-        }
-        self._stats_lock = threading.Lock()
-        self._progress_current = 0
-        self._progress_total = 0
-
-    @property
-    def stats(self) -> dict[str, int]:
-        with self._stats_lock:
-            return self._stats.copy()
 
     def summarize_function(
         self,
@@ -376,12 +357,7 @@ class InitSummarizer:
                 prompt, system=system, cache_system=cache_system,
                 response_format=INIT_RESPONSE_FORMAT,
             )
-            with self._stats_lock:
-                self._stats["llm_calls"] += 1
-                if llm_response.cached:
-                    self._stats["cache_hits"] += 1
-                self._stats["cache_read_tokens"] += llm_response.cache_read_tokens
-                self._stats["cache_creation_tokens"] += llm_response.cache_creation_tokens
+            self.record_response(llm_response)
 
             if self.log_file:
                 self._log_interaction(func.name, prompt, llm_response.content)
@@ -400,8 +376,7 @@ class InitSummarizer:
             return summary
 
         except Exception as e:
-            with self._stats_lock:
-                self._stats["errors"] += 1
+            self.record_error()
             if self.verbose:
                 print(f"  Error summarizing (init) {func.name}: {e}")
 
@@ -459,8 +434,7 @@ class InitSummarizer:
                 response = self.llm.complete(
                     prompt, response_format=INIT_BLOCK_RESPONSE_FORMAT,
                 )
-                with self._stats_lock:
-                    self._stats["llm_calls"] += 1
+                self.record_call()
 
                 json_match = re.search(r"```json\s*(.*?)\s*```", response, re.DOTALL)
                 if json_match:
@@ -502,16 +476,10 @@ class InitSummarizer:
                 prompt, system=system, cache_system=cache_system,
                 response_format=INIT_RESPONSE_FORMAT,
             )
-            with self._stats_lock:
-                self._stats["llm_calls"] += 1
-                if llm_response.cached:
-                    self._stats["cache_hits"] += 1
-                self._stats["cache_read_tokens"] += llm_response.cache_read_tokens
-                self._stats["cache_creation_tokens"] += llm_response.cache_creation_tokens
+            self.record_response(llm_response)
             skeleton_summary = self._parse_response(llm_response.content, func.name)
         except Exception as e:
-            with self._stats_lock:
-                self._stats["errors"] += 1
+            self.record_error()
             skeleton_summary = InitSummary(
                 function_name=func.name, description=f"Error summarizing skeleton: {e}",
             )
@@ -621,26 +589,6 @@ class InitSummarizer:
             )
 
         return "\n".join(lines)
-
-    def _log_interaction(self, func_name: str, prompt: str, response: str) -> None:
-        """Log LLM interaction to file."""
-        if not self.log_file:
-            return
-        import datetime
-
-        with open(self.log_file, "a", encoding="utf-8") as f:
-            timestamp = datetime.datetime.now().isoformat()
-            f.write(f"\n{'='*80}\n")
-            f.write(f"Function: {func_name} [init pass]\n")
-            f.write(f"Timestamp: {timestamp}\n")
-            f.write(f"Model: {self.llm.model}\n")
-            f.write(f"{'-'*80}\n")
-            f.write("PROMPT:\n")
-            f.write(prompt)
-            f.write(f"\n{'-'*80}\n")
-            f.write("RESPONSE:\n")
-            f.write(response)
-            f.write(f"\n{'='*80}\n\n")
 
     def _parse_response(self, response: str, func_name: str) -> InitSummary:
         """Parse LLM response into InitSummary."""
