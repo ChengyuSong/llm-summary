@@ -34,6 +34,7 @@ class GeminiBackend(LLMBackend):
         project_id: str | None = None,
         location: str | None = None,
         max_tokens: int = 32768,
+        enable_thinking: bool = True,
     ):
         super().__init__(model)
         self.project_id = (
@@ -44,6 +45,7 @@ class GeminiBackend(LLMBackend):
         )
         self.location = location or os.environ.get("VERTEX_AI_LOCATION", "global")
         self.max_tokens = max_tokens
+        self.enable_thinking = enable_thinking
         self._client: Any = None
 
     @property
@@ -77,7 +79,9 @@ class GeminiBackend(LLMBackend):
         response_format: dict | None = None,
     ) -> str:
         """Generate a completion using Gemini."""
-        response = self.complete_with_metadata(prompt, system)
+        response = self.complete_with_metadata(
+            prompt, system, response_format=response_format,
+        )
         return response.content
 
     def complete_with_metadata(
@@ -89,9 +93,19 @@ class GeminiBackend(LLMBackend):
 
         config = types.GenerateContentConfig(
             max_output_tokens=self.max_tokens,
+            automatic_function_calling=types.AutomaticFunctionCallingConfig(
+                disable=True,
+            ),
         )
+        if not self.enable_thinking:
+            config.thinking_config = types.ThinkingConfig(thinking_budget=0)
         if system:
             config.system_instruction = system
+
+        if response_format and response_format.get("type") == "json_schema":
+            json_schema = response_format.get("json_schema", {})
+            config.response_mime_type = "application/json"
+            config.response_json_schema = json_schema.get("schema")
 
         response = self.client.models.generate_content(
             model=self.model,
@@ -259,7 +273,12 @@ class GeminiBackend(LLMBackend):
 
         config = types.GenerateContentConfig(
             max_output_tokens=self.max_tokens,
+            automatic_function_calling=types.AutomaticFunctionCallingConfig(
+                disable=True,
+            ),
         )
+        if not self.enable_thinking:
+            config.thinking_config = types.ThinkingConfig(thinking_budget=0)
 
         if system:
             config.system_instruction = system
@@ -289,6 +308,7 @@ class _GeminiToolResponse:
         self._response = response
         self.content: list[Any] = []
         self.stop_reason = "end_turn"
+        self.usage = _GeminiUsage(response)
 
         if not response.candidates:
             return
@@ -318,6 +338,15 @@ class _GeminiToolResponse:
 
         if has_function_call:
             self.stop_reason = "tool_use"
+
+
+class _GeminiUsage:
+    """Mimics Anthropic usage object for token tracking."""
+
+    def __init__(self, response: Any):
+        meta = response.usage_metadata if response else None
+        self.input_tokens = (meta.prompt_token_count or 0) if meta else 0
+        self.output_tokens = (meta.candidates_token_count or 0) if meta else 0
 
 
 class _TextBlock:

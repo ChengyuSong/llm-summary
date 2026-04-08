@@ -58,7 +58,7 @@ from llm_summary.free_summarizer import FreeSummarizer
 from llm_summary.init_summarizer import InitSummarizer
 from llm_summary.integer_overflow_summarizer import IntegerOverflowSummarizer
 from llm_summary.leak_summarizer import LeakSummarizer
-from llm_summary.llm import create_backend
+from llm_summary.llm import LLMBackend, create_backend
 from llm_summary.memsafe_summarizer import MemsafeSummarizer
 from llm_summary.summarizer import AllocationSummarizer
 from llm_summary.verification_summarizer import VerificationSummarizer
@@ -304,17 +304,15 @@ def phase_callgraph(
 
 def phase_summarize(
     db: SummaryDB,
-    backend: str,
-    model: str | None,
+    llm: LLMBackend,
     verbose: bool,
     log_llm: str | None,
     force: bool,
     reachable_ids: set[int] | None = None,
     alias_builder: Any | None = None,
+    cache_mode: str = "none",
 ) -> dict[str, int]:
     """Run alloc/free/init/memsafe passes. Returns token stats."""
-    llm = create_backend(backend, model=model)
-    cache_mode = "source" if backend == "claude" else "none"
 
     alloc_s = AllocationSummarizer(
         db, llm, verbose=verbose, cache_mode=cache_mode, log_file=log_llm,
@@ -346,16 +344,15 @@ def phase_summarize(
 
 def phase_leak(
     db: SummaryDB,
-    backend: str,
-    model: str | None,
+    llm: LLMBackend,
     verbose: bool,
     log_llm: str | None,
     force: bool,
     reachable_ids: set[int] | None = None,
     entry_functions: set[str] | None = None,
+    cache_mode: str = "none",
 ) -> dict[str, int]:
     """Run leak detection pass. Returns token stats."""
-    llm = create_backend(backend, model=model)
 
     leak_s = LeakSummarizer(
         db, llm, verbose=verbose, log_file=log_llm,
@@ -376,15 +373,14 @@ def phase_leak(
 
 def phase_overflow(
     db: SummaryDB,
-    backend: str,
-    model: str | None,
+    llm: LLMBackend,
     verbose: bool,
     log_llm: str | None,
     force: bool,
     reachable_ids: set[int] | None = None,
+    cache_mode: str = "none",
 ) -> dict[str, int]:
     """Run integer overflow detection pass. Returns token stats."""
-    llm = create_backend(backend, model=model)
 
     ovf_s = IntegerOverflowSummarizer(
         db, llm, verbose=verbose, log_file=log_llm,
@@ -404,18 +400,16 @@ def phase_overflow(
 
 def phase_verify(
     db: SummaryDB,
-    backend: str,
-    model: str | None,
+    llm: LLMBackend,
     verbose: bool,
     log_llm: str | None,
     force: bool,
     reachable_ids: set[int] | None = None,
     entry_functions: set[str] | None = None,
     alias_builder: Any | None = None,
+    cache_mode: str = "none",
 ) -> dict[str, int]:
     """Run verification pass. Returns token stats."""
-    llm = create_backend(backend, model=model)
-    cache_mode = "source" if backend == "claude" else "none"
 
     verify_s = VerificationSummarizer(
         db, llm, verbose=verbose, cache_mode=cache_mode, log_file=log_llm,
@@ -559,6 +553,7 @@ def run_one_task(
     to_phase: int = 4,
     force: bool = False,
     summary_cache: SummaryCache | None = None,
+    disable_thinking: bool = False,
 ) -> tuple[list[dict[str, Any]], dict[str, int]]:
     """Run pipeline phases on one .i file using persistent work_dir.
 
@@ -568,6 +563,13 @@ def run_one_task(
     db_path = work_dir / "functions.db"
     db = SummaryDB(str(db_path))
     total_stats: dict[str, int] = dict.fromkeys(_TOKEN_KEYS, 0)
+
+    # Create one backend instance for all phases
+    backend_kwargs: dict[str, Any] = {}
+    if disable_thinking:
+        backend_kwargs["enable_thinking"] = False
+    llm = create_backend(backend, model=model, **backend_kwargs)
+    cache_mode = "source" if backend == "claude" else "none"
 
     def _add_stats(phase_stats: dict[str, int]) -> None:
         for k in _TOKEN_KEYS:
@@ -719,31 +721,35 @@ def run_one_task(
         # Phase 2: summarize
         if from_phase <= 2 and to_phase >= 2:
             _add_stats(phase_summarize(
-                db, backend, model, verbose, log_llm,
+                db, llm, verbose, log_llm,
                 force=force,
                 reachable_ids=reachable_ids,
                 alias_builder=alias_builder,
+                cache_mode=cache_mode,
             ))
 
         # Phase 3: leak + overflow + verify
         if from_phase <= 3 and to_phase >= 3:
             _add_stats(phase_leak(
-                db, backend, model, verbose, log_llm,
+                db, llm, verbose, log_llm,
                 force=force,
                 reachable_ids=reachable_ids,
                 entry_functions={"main"} if main_funcs else None,
+                cache_mode=cache_mode,
             ))
             _add_stats(phase_overflow(
-                db, backend, model, verbose, log_llm,
+                db, llm, verbose, log_llm,
                 force=force,
                 reachable_ids=reachable_ids,
+                cache_mode=cache_mode,
             ))
             _add_stats(phase_verify(
-                db, backend, model, verbose, log_llm,
+                db, llm, verbose, log_llm,
                 force=force,
                 reachable_ids=reachable_ids,
                 entry_functions={"main"} if main_funcs else None,
                 alias_builder=alias_builder,
+                cache_mode=cache_mode,
             ))
 
         if to_phase < 4:
@@ -891,6 +897,10 @@ def main() -> None:
     )
     parser.add_argument("--verbose", "-v", action="store_true")
     parser.add_argument(
+        "--disable-thinking", action="store_true",
+        help="Disable thinking/reasoning for thinking models (Gemini, etc.)",
+    )
+    parser.add_argument(
         "--llm-log-dir", default=None,
         help="Directory for per-target LLM interaction logs",
     )
@@ -1003,6 +1013,7 @@ def main() -> None:
                 from_phase=args.from_phase, to_phase=args.to_phase,
                 force=args.force,
                 summary_cache=summary_cache,
+                disable_thinking=args.disable_thinking,
             )
             result.elapsed_s = time.time() - t0
             result.llm_calls = task_stats["llm_calls"]
