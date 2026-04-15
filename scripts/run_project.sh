@@ -16,6 +16,8 @@ LLM_HOST=""
 LLM_PORT=""
 FROM_PHASE=0
 SKIP_VERIFY=0
+SKIP_LEAK=0
+SKIP_INTOVERFLOW=0
 WITH_CONTAINERS=0
 PREPROCESS=1
 FORCE=""
@@ -43,6 +45,8 @@ Optional:
   --from-phase N       Start from phase N (0-6), skip earlier phases (default: 0)
   --skip-build         Shorthand for --from-phase 2 (skip build-learn and discover-link-units)
   --skip-verify        Skip verification phase (phase 5)
+  --skip-leak          Skip leak detection in summarize and verify phases
+  --skip-intoverflow   Skip integer overflow detection in summarize and verify phases
   --with-containers    Run container detection phase (phase 6)
   --no-preprocess      Disable clang -E macro expansion during scan (on by default)
   --force              Force re-summarize even if cached
@@ -86,6 +90,10 @@ while [[ $# -gt 0 ]]; do
             FROM_PHASE=2; shift ;;
         --skip-verify)
             SKIP_VERIFY=1; shift ;;
+        --skip-leak)
+            SKIP_LEAK=1; shift ;;
+        --skip-intoverflow)
+            SKIP_INTOVERFLOW=1; shift ;;
         --with-containers)
             WITH_CONTAINERS=1; shift ;;
         --preprocess)
@@ -156,7 +164,9 @@ echo "Backend:  $BACKEND"
 [[ -n "$LLM_HOST" ]] && echo "LLM host: $LLM_HOST"
 [[ -n "$LLM_PORT" ]] && echo "LLM port: $LLM_PORT"
 echo "From:     phase $FROM_PHASE"
-[[ $SKIP_VERIFY -eq 1 ]] && echo "Verify:   skipped"
+[[ $SKIP_VERIFY -eq 1 ]]     && echo "Verify:      skipped"
+[[ $SKIP_LEAK -eq 1 ]]          && echo "Leak:        skipped"
+[[ $SKIP_INTOVERFLOW -eq 1 ]]   && echo "IntOverflow: skipped"
 [[ $PREPROCESS -eq 0 ]]  && echo "Preproc:  no"
 [[ -n "$FORCE" ]]        && echo "Force:       yes"
 [[ -n "$INCREMENTAL" ]] && echo "Incremental: yes"
@@ -198,9 +208,14 @@ run_phase 4 "summarize" \
 
 # ── Phase 5: verify ──────────────────────────────────────────────────────────
 if [[ $SKIP_VERIFY -eq 0 ]]; then
+    VERIFY_TYPES="--types"
+    [[ $SKIP_LEAK -eq 0 ]]        && VERIFY_TYPES="$VERIFY_TYPES leak"
+    [[ $SKIP_INTOVERFLOW -eq 0 ]] && VERIFY_TYPES="$VERIFY_TYPES intoverflow"
+    VERIFY_TYPES="$VERIFY_TYPES verify"
+
     run_phase 5 "verify" \
         python3 scripts/batch_verify.py \
-            $FILTER_ARGS $LLM_ARGS $FORCE $INCREMENTAL $VERBOSE \
+            $FILTER_ARGS $LLM_ARGS $VERIFY_TYPES $FORCE $INCREMENTAL $VERBOSE \
             "${PASSTHROUGH[@]+"${PASSTHROUGH[@]}"}"
 else
     echo ""

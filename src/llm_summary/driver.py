@@ -78,7 +78,7 @@ PASS_TABLE_MAP: dict[str, str] = {
     "memsafe": "memsafe_summaries",
     "verify": "verification_summaries",
     "leak": "leak_summaries",
-    "overflow": "integer_overflow_summaries",
+    "intoverflow": "integer_overflow_summaries",
 }
 
 
@@ -279,7 +279,7 @@ class LeakPass:
 class IntegerOverflowPass:
     """Adapter that wraps IntegerOverflowSummarizer as a SummaryPass."""
 
-    name = "overflow"
+    name = "intoverflow"
 
     def __init__(self, summarizer: Any, db: SummaryDB, model: str):
         self.summarizer = summarizer

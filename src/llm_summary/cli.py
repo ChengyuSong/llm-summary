@@ -19,6 +19,7 @@ from .driver import (
     BottomUpDriver,
     FreePass,
     InitPass,
+    IntegerOverflowPass,
     LeakPass,
     MemsafePass,
     SummaryPass,
@@ -116,7 +117,7 @@ def main():
 @click.option(
     "--type", "summary_types", multiple=True,
     type=click.Choice(
-        ["allocation", "free", "init", "memsafe", "verify", "leak"]
+        ["allocation", "free", "init", "memsafe", "verify", "leak", "intoverflow"]
     ),
     help="Summary pass(es) to run (default: allocation). "
          "Can be specified multiple times.",
@@ -437,6 +438,24 @@ def summarize(
             ))
 
         verification_summarizer = None
+        leak_summarizer = None
+        if "leak" in summary_types:
+            from .leak_summarizer import LeakSummarizer
+
+            leak_summarizer = LeakSummarizer(
+                db, llm, verbose=verbose, log_file=log_llm,
+                entry_functions=set(entry_functions) if entry_functions else None,
+            )
+            passes.append(LeakPass(leak_summarizer, db, llm.model))
+
+        if "intoverflow" in summary_types:
+            from .integer_overflow_summarizer import IntegerOverflowSummarizer
+
+            intoverflow_summarizer = IntegerOverflowSummarizer(
+                db, llm, verbose=verbose, log_file=log_llm,
+            )
+            passes.append(IntegerOverflowPass(intoverflow_summarizer, db, llm.model))
+
         if "verify" in summary_types:
             from .verification_summarizer import VerificationSummarizer
 
@@ -449,16 +468,6 @@ def summarize(
                 verification_summarizer, db, llm.model,
                 alias_builder=alias_builder,
             ))
-
-        leak_summarizer = None
-        if "leak" in summary_types:
-            from .leak_summarizer import LeakSummarizer
-
-            leak_summarizer = LeakSummarizer(
-                db, llm, verbose=verbose, log_file=log_llm,
-                entry_functions=set(entry_functions) if entry_functions else None,
-            )
-            passes.append(LeakPass(leak_summarizer, db, llm.model))
 
         pass_names = " + ".join(p.name for p in passes)
         console.print(f"\n[bold]Running passes: {pass_names}[/bold]")

@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Batch verification pass across all projects.
 
-Runs `llm-summary summarize --type verify` on each project's DB(s).
-For projects with link_units.json, runs verify on each per-target DB.
+Runs `llm-summary summarize --type verify` (and optionally --type leak,
+--type intoverflow) on each project's DB(s).
+For projects with link_units.json, runs on each per-target DB.
 For legacy projects, runs on func-scans/<project>/functions.db.
 
 Verify requires allocation+free+init+memsafe summaries to be present.
@@ -12,6 +13,7 @@ Usage:
     python scripts/batch_verify.py --backend gemini --verbose
     python scripts/batch_verify.py --filter zlib --backend claude
     python scripts/batch_verify.py --tier 1 --backend gemini --force
+    python scripts/batch_verify.py --types verify leak intoverflow --backend claude
 """
 
 import argparse
@@ -40,6 +42,9 @@ def _load_tier_map() -> dict[str, int]:
     return {p["project_dir"]: p["tier"] for p in projects if "project_dir" in p}
 
 
+ALL_VERIFY_TYPES = ["leak", "intoverflow", "verify"]
+
+
 def run_verify(
     db_path: Path,
     backend: str,
@@ -51,9 +56,13 @@ def run_verify(
     log_llm: Path | None,
     verbose: bool,
     timeout: int,
+    summary_types: list[str] | None = None,
 ) -> tuple[bool, str, float]:
-    """Invoke llm-summary summarize --type verify. Returns (success, error, duration)."""
-    cmd = ["llm-summary", "summarize", "--db", str(db_path), "--backend", backend, "--type", "verify"]
+    """Invoke llm-summary summarize with verify/leak/intoverflow types."""
+    types = summary_types or ["verify"]
+    cmd = ["llm-summary", "summarize", "--db", str(db_path), "--backend", backend]
+    for t in types:
+        cmd += ["--type", t]
     if model:
         cmd += ["--model", model]
     if force:
@@ -99,8 +108,9 @@ def process_project(
     log_llm: Path | None,
     verbose: bool,
     timeout: int,
+    summary_types: list[str] | None = None,
 ) -> dict:
-    """Run verify on a single project. Returns result dict."""
+    """Run verify/leak/intoverflow on a single project. Returns result dict."""
     scan_dir = func_scans_dir / project_name
     result = {
         "project": project_name,
@@ -142,7 +152,8 @@ def process_project(
                 continue
 
             if verbose:
-                print(f"    [{target}] verify...")
+                types_label = ", ".join(summary_types or ["verify"])
+                print(f"    [{target}] {types_label}...")
 
             ok, err, dur = run_verify(
                 db_path=db_path,
@@ -155,6 +166,7 @@ def process_project(
                 log_llm=log_llm,
                 verbose=verbose,
                 timeout=timeout,
+                summary_types=summary_types,
             )
             target_result["success"] = ok
             target_result["error"] = err if not ok else None
@@ -186,6 +198,7 @@ def process_project(
         log_llm=log_llm,
         verbose=verbose,
         timeout=timeout,
+        summary_types=summary_types,
     )
     result["success"] = ok
     result["error"] = err if not ok else None
@@ -240,6 +253,13 @@ def main():
                         help="Append successfully verified project names to this file")
     parser.add_argument("--output", "-o", type=str, default=None, help="Output JSON report path")
     parser.add_argument("--limit", type=int, default=None, help="Limit to at most N projects")
+    parser.add_argument(
+        "--types", nargs="+",
+        choices=ALL_VERIFY_TYPES,
+        default=ALL_VERIFY_TYPES,
+        metavar="TYPE",
+        help=f"Pass types to run (default: verify). Choices: {ALL_VERIFY_TYPES}",
+    )
     args = parser.parse_args()
 
     func_scans_dir = args.func_scans_dir
@@ -281,6 +301,7 @@ def main():
 
     print(f"\nProcessing {len(projects)} projects")
     print(f"Backend: {args.backend}" + (f" ({args.model})" if args.model else ""))
+    print(f"Types: {args.types}")
     print()
 
     all_results = []
@@ -300,6 +321,7 @@ def main():
             log_llm=args.log_llm,
             verbose=args.verbose,
             timeout=args.timeout,
+            summary_types=args.types,
         )
         all_results.append(result)
         print(_format_result(result))

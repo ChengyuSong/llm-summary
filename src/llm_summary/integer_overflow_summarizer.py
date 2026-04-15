@@ -249,7 +249,7 @@ class IntegerOverflowSummarizer(BaseSummarizer):
     ):
         super().__init__(
             db, llm, verbose=verbose, log_file=log_file,
-            pass_label="overflow",
+            pass_label="intoverflow",
         )
 
     def summarize_function(
