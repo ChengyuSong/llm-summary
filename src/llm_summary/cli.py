@@ -3,6 +3,7 @@
 import json
 import subprocess
 import sys
+from collections.abc import Callable
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -277,33 +278,62 @@ def summarize(
                     db.conn.commit()
                 return func
 
+            def _stdlib_upsert(
+                func: Function,
+                new_json: str,
+                table: str,
+                upsert_fn: Callable[..., None],
+                summary: object,
+            ) -> bool:
+                """Upsert only if summary content changed. Returns True if updated."""
+                row = db.conn.execute(
+                    f"SELECT summary_json FROM {table} WHERE function_id = ?",
+                    (func.id,),
+                ).fetchone()
+                if row and row["summary_json"] == new_json:
+                    return False
+                upsert_fn(func, summary, model_used="builtin")
+                return True
+
             # Allocation summaries
             alloc_summaries = get_all_stdlib_summaries()
             for name, summary in alloc_summaries.items():
                 func = _find_stdlib_func(name)
                 if func is not None:
-                    db.upsert_summary(func, summary, model_used="builtin")
+                    _stdlib_upsert(
+                        func, json.dumps(summary.to_dict()),
+                        "allocation_summaries", db.upsert_summary, summary,
+                    )
 
             # Free summaries
             free_summaries = get_all_stdlib_free_summaries()
             for name, fsummary in free_summaries.items():
                 func = _find_stdlib_func(name)
                 if func is not None:
-                    db.upsert_free_summary(func, fsummary, model_used="builtin")
+                    _stdlib_upsert(
+                        func, json.dumps(fsummary.to_dict()),
+                        "free_summaries", db.upsert_free_summary, fsummary,
+                    )
 
             # Init summaries
             init_summaries = get_all_stdlib_init_summaries()
             for name, isummary in init_summaries.items():
                 func = _find_stdlib_func(name)
                 if func is not None:
-                    db.upsert_init_summary(func, isummary, model_used="builtin")
+                    _stdlib_upsert(
+                        func, json.dumps(isummary.to_dict()),
+                        "init_summaries", db.upsert_init_summary, isummary,
+                    )
 
             # Memsafe summaries
             memsafe_summaries = get_all_stdlib_memsafe_summaries()
             for name, msummary in memsafe_summaries.items():
                 func = _find_stdlib_func(name)
                 if func is not None:
-                    db.upsert_memsafe_summary(func, msummary, model_used="builtin")
+                    _stdlib_upsert(
+                        func, json.dumps(msummary.to_dict()),
+                        "memsafe_summaries", db.upsert_memsafe_summary, msummary,
+                    )
 
             # Update attributes for attribute-only functions (e.g., exit, abort) if they exist
             for name in STDLIB_ATTRIBUTES:
@@ -511,15 +541,19 @@ def summarize(
                     f" → {len(reachable)} reachable functions"
                 )
 
-        # Compute dirty_ids for incremental mode
+        # Compute dirty_ids for incremental mode (per-pass)
         dirty_ids = None
+        per_pass_dirty: dict[str, set[int]] | None = None
         if incremental and not function_names:
             from .driver import PASS_TABLE_MAP
+            per_pass_dirty = {}
             dirty_ids = set()
             for p in passes:
                 table = PASS_TABLE_MAP.get(p.name)
                 if table:
-                    dirty_ids |= db.find_dirty_function_ids(table)
+                    pd = db.find_dirty_function_ids(table)
+                    per_pass_dirty[p.name] = pd
+                    dirty_ids |= pd
             console.print(f"  Incremental: {len(dirty_ids)} dirty function(s) detected")
             if not dirty_ids:
                 console.print("  Nothing to do — all summaries up to date.")
@@ -534,7 +568,9 @@ def summarize(
 
         driver = BottomUpDriver(db, verbose=verbose, pool=pool)
         try:
-            results = driver.run(passes, force=force, dirty_ids=dirty_ids, target_ids=target_ids)
+            results = driver.run(passes, force=force, dirty_ids=dirty_ids,
+                                target_ids=target_ids,
+                                per_pass_dirty=per_pass_dirty)
         finally:
             if pool is not None:
                 pool.shutdown()

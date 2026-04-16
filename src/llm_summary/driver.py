@@ -343,6 +343,12 @@ class BottomUpDriver:
         self._orderer = ProcessingOrderer(graph)
         return graph, self._orderer
 
+    @staticmethod
+    def _dirty_size(fd: dict[str, set[int]] | None) -> int:
+        if fd is None:
+            return 0
+        return sum(len(s) for s in fd.values())
+
     def compute_affected(
         self, dirty_ids: set[int], graph: dict[int, list[int]]
     ) -> set[int]:
@@ -399,7 +405,7 @@ class BottomUpDriver:
         affected: set[int] | None,
         current: int,
         total: int,
-        force_dirty: set[int] | None = None,
+        force_dirty: dict[str, set[int]] | None = None,
         scc_iter: int = 0,
     ) -> None:
         """Process a single function through all passes. Thread-safe."""
@@ -423,18 +429,24 @@ class BottomUpDriver:
                         p.summarizer._stats["cache_hits"] += 1
             return
 
-        # Determine whether to force-rerun this function:
-        #  - Directly in the dirty set (callee summary changed), OR
-        #  - Dynamic propagation: any direct callee was force-rerun this pass
-        #    (ensures convergence in one pass rather than one hop per run).
-        local_force = force or (force_dirty is not None and func_id in force_dirty)
-        if not local_force and force_dirty is not None:
-            callee_ids = graph.get(func_id, [])
-            with results_lock:
-                if any(cid in force_dirty for cid in callee_ids):
-                    local_force = True
-
         for p in passes:
+            # Determine per-pass whether to force-rerun this function:
+            #  - Directly in the pass's dirty set, OR
+            #  - Dynamic propagation: any direct callee was force-rerun
+            #    for this pass.
+            pass_dirty = (
+                force_dirty.get(p.name) if force_dirty is not None
+                else None
+            )
+            local_force = force or (
+                pass_dirty is not None and func_id in pass_dirty
+            )
+            if not local_force and pass_dirty is not None:
+                callee_ids = graph.get(func_id, [])
+                with results_lock:
+                    if any(cid in pass_dirty for cid in callee_ids):
+                        local_force = True
+
             # Check cache
             if not local_force:
                 cached = p.get_cached(func_id, func)
@@ -555,7 +567,7 @@ class BottomUpDriver:
                 # pass.  Only propagate when content actually changed.
                 if force_dirty is not None and changed:
                     with results_lock:
-                        force_dirty.add(func_id)
+                        force_dirty.setdefault(p.name, set()).add(func_id)
 
     def run(
         self,
@@ -563,6 +575,7 @@ class BottomUpDriver:
         force: bool = False,
         dirty_ids: set[int] | None = None,
         target_ids: set[int] | None = None,
+        per_pass_dirty: dict[str, set[int]] | None = None,
     ) -> dict[str, dict[int, Any]]:
         """Run all *passes* over the call graph in a single traversal.
 
@@ -573,6 +586,9 @@ class BottomUpDriver:
                 and their transitive callers.  Others load from cache.
             target_ids: If provided, only summarize these exact function IDs.
                 Others load from cache (no transitive expansion).
+            per_pass_dirty: Per-pass dirty sets.  When provided, a function
+                is only force-rerun for passes where it is actually dirty,
+                not for all passes.
 
         Returns:
             ``{pass.name: {func_id: summary}}``
@@ -580,14 +596,21 @@ class BottomUpDriver:
         graph, orderer = self.build_graph()
 
         # Compute affected set if incremental.
-        # force_dirty is a mutable set that grows during traversal: when a function
-        # is actually re-run, it is added so that its callers are also force-rerun
-        # in the same pass (convergence in one pass instead of one hop per run).
+        # force_dirty is a per-pass mutable dict that grows during traversal:
+        # when a function is actually re-run for a pass, it is added so that
+        # its callers are also force-rerun (convergence in one pass).
         affected: set[int] | None = None
-        force_dirty: set[int] | None = None
+        force_dirty: dict[str, set[int]] | None = None
         if dirty_ids is not None:
             affected = self.compute_affected(dirty_ids, graph)
-            force_dirty = set(dirty_ids)  # mutable copy; grows as re-runs propagate up
+            if per_pass_dirty is not None:
+                force_dirty = {
+                    name: set(ids) for name, ids in per_pass_dirty.items()
+                }
+            else:
+                force_dirty = {
+                    p.name: set(dirty_ids) for p in passes
+                }
 
         # target_ids takes precedence over affected
         if target_ids is not None:
@@ -661,8 +684,7 @@ class BottomUpDriver:
                             if func is None:
                                 continue
                             dirty_before = (
-                                len(force_dirty)
-                                if force_dirty is not None else 0
+                                self._dirty_size(force_dirty)
                             )
                             self._process_func(
                                 func_id, func, passes, graph, results,
@@ -671,8 +693,7 @@ class BottomUpDriver:
                                 scc_iter=scc_iter,
                             )
                             dirty_after = (
-                                len(force_dirty)
-                                if force_dirty is not None else 0
+                                self._dirty_size(force_dirty)
                             )
                             if dirty_after > dirty_before:
                                 scc_changed = True
@@ -702,8 +723,7 @@ class BottomUpDriver:
                         if func is None:
                             continue
                         dirty_before = (
-                            len(force_dirty) if force_dirty is not None
-                            else 0
+                            self._dirty_size(force_dirty)
                         )
                         self._process_func(
                             func_id, func, passes, graph, results,
@@ -711,8 +731,7 @@ class BottomUpDriver:
                             force_dirty, scc_iter=scc_iter,
                         )
                         dirty_after = (
-                            len(force_dirty) if force_dirty is not None
-                            else 0
+                            self._dirty_size(force_dirty)
                         )
                         if dirty_after > dirty_before:
                             scc_changed = True

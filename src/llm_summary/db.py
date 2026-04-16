@@ -846,6 +846,7 @@ class SummaryDB:
         valid_tables = {
             "allocation_summaries", "free_summaries", "init_summaries",
             "memsafe_summaries", "verification_summaries",
+            "leak_summaries", "integer_overflow_summaries",
         }
         if pass_table not in valid_tables:
             raise ValueError(f"Invalid pass table: {pass_table}")

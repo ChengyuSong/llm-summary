@@ -248,7 +248,7 @@ def consume_validation_dir(
         vdir = harness_dir / func_name / f"v{idx}_{fp}"
 
         # Find all validation results in this verdict dir
-        for vr_path in sorted(vdir.glob("validation_result.json")):
+        for vr_path in sorted(vdir.glob("validation_result*.json")):
             with open(vr_path) as f:
                 validation = json.load(f)
             outcome = classify_outcome(v, validation)

@@ -43,7 +43,12 @@ Use "escaped_stack" ONLY if a stack-allocated local escapes — this is a bug.
    - Size parameters: Which function parameters affect size
    - Returned: Is the pointer returned?
    - Stored to: Is it stored to a field/global?
-   - May be null: Can it be null? (always false for static/global/parameter)
+   - May be null: Can the returned pointer be null? Set to false when: \
+(a) the function checks for null and calls a noreturn function (e.g., \
+abort, exit, error handler marked ``__attribute__((noreturn))``) on the \
+null path; or (b) the callee summary marks the allocation as \
+``[never null]`` (which means ``may_be_null: false``). \
+Always false for static/global/parameter pointers.
 
    **IMPORTANT**: Enumerate EVERY distinct allocation site individually. \
 Do NOT collapse multiple allocations into a single entry. Each call to \

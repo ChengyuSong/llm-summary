@@ -294,7 +294,10 @@ def run_thoroupy(
         )
         result["timing_seconds"] = round(time.monotonic() - start, 2)
 
-        vr_path = binary.parent / "validation_result.json"
+        raw_vr = binary.parent / "validation_result.json"
+        vr_path = binary.parent / f"validation_result_{binary.stem}.json"
+        if raw_vr.exists():
+            raw_vr.rename(vr_path)
         if vr_path.exists():
             with open(vr_path) as f:
                 validation = json.load(f)
@@ -572,11 +575,15 @@ def process_target(
                 continue
             for binary in sorted(vdir.glob("*.ucsan")):
                 plan = vdir / f"plan_{binary.stem}_validation.json"
+                if not plan.exists() and binary.stem.startswith("seed_"):
+                    # Seeds reuse the main harness plan
+                    main_name = func_name
+                    plan = vdir / f"plan_{main_name}_validation.json"
                 if not plan.exists():
                     continue
 
                 # Reuse existing validation result
-                vr_path = binary.parent / "validation_result.json"
+                vr_path = binary.parent / f"validation_result_{binary.stem}.json"
                 if not args.force and vr_path.exists():
                     if args.verbose:
                         print(f"        reusing {binary.name} result")
@@ -611,11 +618,20 @@ def process_target(
                     )
                     func_result["runs"].append(run_result)
 
-                oc = run_result.get("outcome", {})
-                outcome_type = oc.get("outcome", "")
+            # Reflect once per verdict using the main harness outcome
+            # (all binaries validate the same issue)
+            best_run = None
+            for r in func_result["runs"]:
+                oc = r.get("outcome", {})
+                if oc.get("outcome"):
+                    best_run = r
+                    if not r.get("binary", "").startswith("seed_"):
+                        break  # prefer main harness
 
-                # Reflect on outcomes (agent handles review + summary correction)
-                if not args.skip_reflect and outcome_type:
+            if best_run and not args.skip_reflect:
+                oc = best_run.get("outcome", {})
+                outcome_type = oc.get("outcome", "")
+                if outcome_type:
                     if reflect_llm is None:
                         kwargs = build_backend_kwargs(
                             args.backend, args.llm_host, args.llm_port,
@@ -623,7 +639,8 @@ def process_target(
                         reflect_llm = create_backend(
                             args.backend, model=args.model, **kwargs,
                         )
-                    entry = Path(binary).stem if binary else None
+                    binary_path = best_run.get("binary", "")
+                    entry = Path(binary_path).stem if binary_path else None
                     if args.verbose:
                         print(
                             f"        reflecting on {outcome_type}..."
@@ -639,7 +656,7 @@ def process_target(
                         project_path=project_path,
                     )
                     if refl:
-                        run_result["reflection"] = refl
+                        best_run["reflection"] = refl
                         if args.verbose:
                             hyp = refl.get("hypothesis", "?")
                             conf = refl.get("confidence", "?")

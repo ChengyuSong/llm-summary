@@ -285,6 +285,14 @@ class TriageAgent:
         self.verbose = verbose
         self.project_path = project_path
 
+    def _rel_path(self, abs_path: str) -> str:
+        if self.project_path is None:
+            return abs_path
+        try:
+            return str(Path(abs_path).relative_to(self.project_path))
+        except ValueError:
+            return abs_path
+
     def triage_issue(
         self,
         func: Function,
@@ -429,7 +437,7 @@ class TriageAgent:
             "",
             f"Function: `{func.name}`",
             f"Signature: `{func.signature}`",
-            f"File: {func.file_path}:{func.line_start}",
+            f"File: {self._rel_path(func.file_path)}:{func.line_start}",
             "",
             f"### Issue #{issue_index}",
             f"- **Kind**: {issue.issue_kind}",

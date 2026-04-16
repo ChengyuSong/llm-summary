@@ -8,6 +8,7 @@ Write tools:     upsert_review, update_summary, submit_verdict
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any
 
 from .db import SummaryDB
@@ -436,17 +437,31 @@ class ToolExecutor:
         verbose: bool = False,
         git_tools: GitTools | None = None,
         model_used: str = "",
+        project_path: Path | None = None,
     ) -> None:
         self.db = db
         self.verbose = verbose
         self.git_tools = git_tools
         self.model_used = model_used
+        self._project_path = (
+            project_path.resolve() if project_path
+            else (git_tools.repo if git_tools else None)
+        )
         self._func_cache: dict[str, Function | None] = {}
 
     def _get_func(self, name: str) -> Function | None:
         if name not in self._func_cache:
             self._func_cache[name] = _resolve_function(self.db, name)
         return self._func_cache[name]
+
+    def _rel_path(self, abs_path: str) -> str:
+        """Make a file path relative to the project root."""
+        if self._project_path is None:
+            return abs_path
+        try:
+            return str(Path(abs_path).relative_to(self._project_path))
+        except ValueError:
+            return abs_path
 
     def execute(
         self, tool_name: str, tool_input: dict[str, Any],
@@ -492,7 +507,7 @@ class ToolExecutor:
         return {
             "function": func.name,
             "signature": func.signature or "",
-            "file_path": func.file_path,
+            "file_path": self._rel_path(func.file_path),
             "line_start": func.line_start,
             "line_end": func.line_end,
             "source": func.llm_source[:20000],
@@ -517,7 +532,7 @@ class ToolExecutor:
             info: dict[str, Any] = {
                 "name": caller.name,
                 "signature": caller.signature or "",
-                "file_path": caller.file_path,
+                "file_path": self._rel_path(caller.file_path),
                 "source": caller.llm_source[:8000],
             }
             callers.append(info)
@@ -547,7 +562,7 @@ class ToolExecutor:
             callee = self.db.get_function(cid)
             if callee is None:
                 continue
-            fq = f"{callee.file_path}::{callee.name}"
+            fq = f"{self._rel_path(callee.file_path)}::{callee.name}"
             if callee.signature:
                 fq += f" {callee.signature}"
             if cid in indirect_ids:
