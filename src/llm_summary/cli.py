@@ -5,7 +5,7 @@ import subprocess
 import sys
 from collections.abc import Callable
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import click
 from rich.console import Console
@@ -118,10 +118,19 @@ def main():
 @click.option(
     "--type", "summary_types", multiple=True,
     type=click.Choice(
-        ["allocation", "free", "init", "memsafe", "verify", "leak", "intoverflow"]
+        [
+            "allocation", "free", "init", "memsafe", "verify",
+            "leak", "intoverflow", "code-contract",
+        ]
     ),
     help="Summary pass(es) to run (default: allocation). "
-         "Can be specified multiple times.",
+         "Can be specified multiple times. "
+         "'code-contract' is mutually exclusive with the legacy types.",
+)
+@click.option(
+    "--svcomp", is_flag=True,
+    help="Seed sv-comp __VERIFIER_* helpers and never-NULL malloc model "
+         "(code-contract pass only).",
 )
 @click.option("--deallocator-file", type=click.Path(exists=True), default=None,
               help="JSON file with custom deallocator names (for free pass)")
@@ -152,7 +161,7 @@ def main():
 def summarize(
     db_path, backend, model, llm_host, llm_port,
     disable_thinking, verbose, force, log_llm, init_stdlib,
-    allocator_file, summary_types, deallocator_file, vsnap,
+    allocator_file, summary_types, svcomp, deallocator_file, vsnap,
     jobs, cache_mode, function_names, incremental, entry_functions,
 ):
     """Generate allocation, free, init, memsafe, and/or verify
@@ -178,6 +187,16 @@ def summarize(
     # Default to allocation if no --type given
     if not summary_types:
         summary_types = ("allocation",)
+
+    # code-contract is the new pipeline; mutually exclusive with the
+    # legacy per-property cascade (those gates assume the old tables).
+    if "code-contract" in summary_types and len(summary_types) > 1:
+        console.print(
+            "[red]Error: --type code-contract is mutually exclusive "
+            "with the legacy --type values.[/red]"
+        )
+        sys.exit(1)
+
     db = SummaryDB(db_path)
 
     try:
@@ -486,6 +505,17 @@ def summarize(
             )
             passes.append(IntegerOverflowPass(intoverflow_summarizer, db, llm.model))
 
+        code_contract_pass = None
+        if "code-contract" in summary_types:
+            from .code_contract.pass_ import CodeContractPass
+
+            code_contract_pass = CodeContractPass(
+                db=db, model=llm.model, llm=llm,
+                svcomp=svcomp,
+                cache_system=(cache_mode != "none"),
+            )
+            passes.append(code_contract_pass)
+
         if "verify" in summary_types:
             from .verification_summarizer import VerificationSummarizer
 
@@ -688,6 +718,24 @@ def summarize(
             if high_issues > 0:
                 issue_msg += f" ({high_issues} high severity)"
             console.print(issue_msg)
+
+        if code_contract_pass is not None:
+            cc_results = results["code_contract"]
+            console.print("\nCode-contract pass complete:")
+            console.print(f"  Functions processed: {len(cc_results)}")
+            with_reqs = sum(
+                1 for sm in cc_results.values()
+                if any(sm.has_requires(p) for p in sm.properties)
+            )
+            with_ens = sum(
+                1 for sm in cc_results.values()
+                if any(sm.has_ensures(p) for p in sm.properties)
+            )
+            console.print(f"  Functions with non-trivial requires: {with_reqs}")
+            console.print(f"  Functions with non-trivial ensures:  {with_ens}")
+            noret = sum(1 for sm in cc_results.values() if sm.noreturn)
+            if noret:
+                console.print(f"  Functions marked noreturn: {noret}")
 
     finally:
         db.close()
@@ -915,6 +963,51 @@ def stats(db_path):
             console.print(f"  Recursive SCCs: {cg_stats['recursive_sccs']}")
             console.print(f"  Largest SCC: {cg_stats['largest_scc']}")
 
+    finally:
+        db.close()
+
+
+@main.command()
+@click.option("--db", "db_path", required=True, help="Database file path")
+@click.option(
+    "--entry", "entries", multiple=True,
+    help="Restrict the check to these entry function(s). "
+         "If omitted, every function with no callers is treated as an entry.",
+)
+@click.option(
+    "--output", "output_path", type=click.Path(), default=None,
+    help="Write JSON report to this path instead of stdout.",
+)
+def check(db_path, entries, output_path):
+    """Phase 4 entry-point check (no LLM).
+
+    Reads `code_contract_summaries` for each entry function and surfaces
+    every non-trivial `requires` clause as an obligation, with a witness
+    chain back to the leaf operation that produced it.
+    """
+    from .code_contract.checker import check_entries
+
+    db = SummaryDB(db_path)
+    try:
+        obligations = check_entries(
+            db, entries=list(entries) if entries else None,
+        )
+
+        report: dict[str, Any] = {
+            "db": db_path,
+            "entries": list(entries) if entries else None,
+            "obligation_count": len(obligations),
+            "obligations": [o.to_dict() for o in obligations],
+        }
+        text = json.dumps(report, indent=2)
+
+        if output_path:
+            Path(output_path).write_text(text)
+            console.print(
+                f"Wrote {len(obligations)} obligation(s) to {output_path}"
+            )
+        else:
+            click.echo(text)
     finally:
         db.close()
 

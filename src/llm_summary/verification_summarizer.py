@@ -519,79 +519,15 @@ class VerificationSummarizer(BaseSummarizer):
         return skeleton_summary
 
     def _build_type_defs_section(self, source: str, file_path: str = "") -> str:
-        """Build a section with struct/union/typedef definitions referenced in source,
-        plus file-scope static variable declarations from the same source file.
+        """Delegate to the shared implementation in `code_contract.source_prep`.
 
-
-        Extracts type names from the source text, looks them up in the DB, and
-        returns a formatted section string (empty string if no definitions found).
+        Both this legacy summarizer and the new code-contract pipeline use
+        the same typedef/struct/static-var lookup. Single implementation
+        lives in code_contract.source_prep so the two pipelines stay in
+        lockstep.
         """
-        import re
-
-        # Find all identifiers in source, look up any that match a typedef.
-        # This catches struct/union/enum tags AND plain typedefs (cgc_size_t,
-        # pmeta, uint16_t, etc.).
-        all_identifiers = set(re.findall(r'\b([A-Za-z_]\w*)\b', source))
-        rows = self.db.get_typedefs_by_names(list(all_identifiers)) if all_identifiers else []
-        names = {r["name"] for r in rows}
-
-        # Also include file-scope static variables from the same source file that
-        # are actually referenced by name in the function source.
-        static_rows = [
-            r for r in (self.db.get_static_vars_by_file(file_path) if file_path else [])
-            if r["name"] in all_identifiers
-        ]
-
-        # Resolve types referenced in static var declarations
-        # e.g., "static engine_t *engine;" → look up engine_t typedef
-        static_type_names: set[str] = set()
-        for srow in static_rows:
-            defn = srow.get("definition") or ""
-            # Extract type name: skip 'static', 'const', 'volatile', 'unsigned', etc.
-            for tok in re.findall(r'\b([A-Za-z_]\w*)\b', defn):
-                if tok not in ("static", "const", "volatile", "unsigned",
-                               "signed", "char", "int", "long", "short",
-                               "float", "double", "void", "bool",
-                               srow["name"]):
-                    static_type_names.add(tok)
-        new_names = static_type_names - {r["name"] for r in rows} - names
-        if new_names:
-            extra = self.db.get_typedefs_by_names(list(new_names))
-            rows.extend(extra)
-            names.update(new_names)
-
-        # Deduplicate by name: same-file definition wins; among cross-file,
-        # prefer shortest (least likely to be the wrong variant).
-        # pp_definition stores the annotated macro-expanded form (// (macro) lines)
-        # produced at scan time; use it when available so the LLM sees concrete values.
-        seen: dict[str, str] = {}
-        seen_from_same_file: set[str] = set()
-        for row in rows + static_rows:
-            name = row["name"]
-            defn = row.get("pp_definition") or row.get("definition") or ""
-            if not defn:
-                continue
-            same_file = row.get("file_path") == file_path
-            if same_file:
-                seen[name] = defn
-                seen_from_same_file.add(name)
-            elif name not in seen_from_same_file:
-                if name not in seen or len(defn) < len(seen[name]):
-                    seen[name] = defn
-
-        if not seen:
-            return ""
-
-        # Emit each unique definition block only once (multiple vars may share a block)
-        emitted: set[str] = set()
-        lines = ["## Referenced Type Definitions\n", "```c"]
-        for defn in seen.values():
-            if defn not in emitted:
-                emitted.add(defn)
-                lines.append(defn)
-                lines.append("")
-        lines.append("```\n\n")
-        return "\n".join(lines)
+        from .code_contract.source_prep import build_type_defs_section
+        return build_type_defs_section(self.db, source, file_path)
 
     def _build_own_alloc_free_section(self, func: Function) -> str:
         """Build a section showing this function's own allocations and frees."""

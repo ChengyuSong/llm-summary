@@ -5,7 +5,7 @@ import json
 import sqlite3
 import threading
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from .models import (
     AddressFlow,
@@ -36,6 +36,9 @@ from .models import (
     SafetyIssue,
     VerificationSummary,
 )
+
+if TYPE_CHECKING:
+    from .code_contract.models import CodeContractSummary
 
 SCHEMA = """
 -- Functions table
@@ -132,6 +135,24 @@ CREATE TABLE IF NOT EXISTS integer_overflow_summaries (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     model_used TEXT,
     UNIQUE(function_id)
+);
+
+-- Code-contract summaries table (code-as-summary Hoare-style pipeline).
+-- Holds requires/ensures/modifies/notes/origin per property (memsafe,
+-- memleak, overflow), plus a property-independent noreturn flag. NO
+-- verdict field by design — entry-point check is a separate Phase 4 pass.
+CREATE TABLE IF NOT EXISTS code_contract_summaries (
+    function_id INTEGER PRIMARY KEY REFERENCES functions(id) ON DELETE CASCADE,
+    summary_json TEXT NOT NULL,
+    noreturn INTEGER NOT NULL DEFAULT 0,
+    body_annotated TEXT,
+    model TEXT NOT NULL,
+    tokens_input INTEGER NOT NULL DEFAULT 0,
+    tokens_output INTEGER NOT NULL DEFAULT 0,
+    tokens_cache_read INTEGER NOT NULL DEFAULT 0,
+    tokens_cache_write INTEGER NOT NULL DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Call graph edges (with callsite info)
@@ -1339,6 +1360,97 @@ class SummaryDB:
             issues=issues,
             description=data.get("description", ""),
         )
+
+    # ========== Code-Contract Summary Operations ==========
+
+    def store_code_contract_summary(
+        self,
+        func: Function,
+        summary: "CodeContractSummary",  # noqa: F821 (forward ref)
+        model_used: str = "",
+        tokens_input: int = 0,
+        tokens_output: int = 0,
+        tokens_cache_read: int = 0,
+        tokens_cache_write: int = 0,
+        body_annotated: str | None = None,
+    ) -> None:
+        """Insert or replace a code-contract summary for `func`.
+
+        The summary's full state lives in `summary_json` (round-trips via
+        `CodeContractSummary.{to,from}_dict`). `noreturn` and
+        `body_annotated` are denormalized so callers can grep without
+        deserializing the JSON.
+        """
+        if func.id is None:
+            raise ValueError("Function must have an ID")
+        summary_json = json.dumps(summary.to_dict())
+        self.conn.execute(
+            """
+            INSERT INTO code_contract_summaries (
+                function_id, summary_json, noreturn, body_annotated,
+                model, tokens_input, tokens_output,
+                tokens_cache_read, tokens_cache_write
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(function_id) DO UPDATE SET
+                summary_json = excluded.summary_json,
+                noreturn = excluded.noreturn,
+                body_annotated = excluded.body_annotated,
+                model = excluded.model,
+                tokens_input = excluded.tokens_input,
+                tokens_output = excluded.tokens_output,
+                tokens_cache_read = excluded.tokens_cache_read,
+                tokens_cache_write = excluded.tokens_cache_write,
+                updated_at = CURRENT_TIMESTAMP
+            """,
+            (
+                func.id, summary_json, 1 if summary.noreturn else 0,
+                body_annotated, model_used,
+                tokens_input, tokens_output,
+                tokens_cache_read, tokens_cache_write,
+            ),
+        )
+        self.conn.commit()
+
+    def get_code_contract_summary(
+        self, func_id: int,
+    ) -> "CodeContractSummary | None":  # noqa: F821 (forward ref)
+        """Fetch the code-contract summary for `func_id`, or None."""
+        from .code_contract.models import CodeContractSummary
+
+        row = self.conn.execute(
+            "SELECT summary_json FROM code_contract_summaries"
+            " WHERE function_id = ?",
+            (func_id,),
+        ).fetchone()
+        if not row:
+            return None
+        return CodeContractSummary.from_dict(json.loads(row["summary_json"]))
+
+    def needs_code_contract_update(self, func: Function) -> bool:
+        """Check if `func`'s code-contract summary needs regeneration.
+
+        True iff the function isn't in DB, has no summary yet, or its
+        source hash differs from what was stored.
+        """
+        hash_source = func.pp_source if func.pp_source else func.source
+        current_hash = compute_source_hash(hash_source) if hash_source else None
+        row = self.conn.execute(
+            """
+            SELECT f.source_hash, c.function_id
+            FROM functions f
+            LEFT JOIN code_contract_summaries c ON f.id = c.function_id
+            WHERE f.name = ? AND f.signature = ? AND f.file_path = ?
+            """,
+            (func.name, func.signature, func.file_path),
+        ).fetchone()
+        if not row:
+            return True
+        if row["function_id"] is None:
+            return True
+        if row["source_hash"] != current_hash:
+            return True
+        return False
 
     # ========== Issue Review Operations ==========
 
