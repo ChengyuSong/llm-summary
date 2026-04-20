@@ -15,14 +15,13 @@ with compile_commands.json, this script:
 Usage:
     python scripts/batch_call_graph_gen.py --tier 1 --verbose
     python scripts/batch_call_graph_gen.py --filter libpng --verbose
-    python scripts/batch_call_graph_gen.py --tier 1 --skip-list done_cg.txt --success-list done_cg.txt
+    python scripts/batch_call_graph_gen.py --tier 1 --skip-list done.txt --success-list done.txt
     python scripts/batch_call_graph_gen.py --kamain-bin /path/to/KAMain --verbose
 """
 
 import argparse
 import json
 import shlex
-import shutil
 import subprocess
 import sys
 import time
@@ -31,19 +30,21 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
+from gpr_utils import find_project_dir, get_artifact_name, resolve_compile_commands
+
 from llm_summary.allocator import STDLIB_ALLOCATORS, AllocatorDetector
 from llm_summary.callgraph_import import CallGraphImporter
 from llm_summary.db import SummaryDB
+from llm_summary.extractor import C_EXTENSIONS
+from llm_summary.ir_sidecar import import_sidecar_dir
 from llm_summary.link_units.pipeline import (
     build_output_index,
     detect_bc_alias_relations,
     load_link_units,
     propagate_alias_db_paths,
-    resolve_dep_db_paths,
     topo_sort_link_units,
     update_link_units_file,
 )
-from gpr_utils import find_project_dir, get_artifact_name, resolve_compile_commands
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 SCRIPTS_DIR = REPO_ROOT / "scripts"
@@ -54,8 +55,6 @@ GPR_PROJECTS_PATH = SCRIPTS_DIR / "gpr_projects.json"
 DEFAULT_KAMAIN_BIN = "/home/csong/project/kanalyzer/release/lib/KAMain"
 DEFAULT_SOURCE_DIR = Path("/data/csong/opensource")
 DEFAULT_BUILD_ROOT = Path("/data/csong/build-artifacts")
-
-C_EXTENSIONS = {".c", ".cpp", ".cc", ".cxx", ".c++"}
 
 
 # ---------------------------------------------------------------------------
@@ -137,7 +136,7 @@ def _recompile_to_bc(entry: dict, bc_output: Path, verbose: bool = False) -> boo
     has_emit_llvm = False
     has_c = False
 
-    for i, arg in enumerate(args):
+    for arg in args:
         if skip_next:
             skip_next = False
             continue
@@ -305,9 +304,9 @@ def extract_allocator_candidates(
             db, llm=None, verbose=verbose, min_score=min_score,
             project_name=project_name,
         )
-        scored = detector.heuristic_only()
+        alloc_scored, _ = detector.heuristic_only()
 
-        candidate_names = [func.name for func, _, _ in scored]
+        candidate_names = [func.name for func, _, _ in alloc_scored]
         if include_stdlib:
             for name in sorted(STDLIB_ALLOCATORS):
                 if name not in candidate_names:
@@ -336,6 +335,7 @@ def run_kamain(
     cfl_compressed_output: Path | None = None,
     cfl_compressed_inputs: list[Path] | None = None,
     cfl_compositional: bool = False,
+    ir_sidecar_dir: Path | None = None,
     verbose_level: int = 1,
     timeout: int = 3600,
     verbose: bool = False,
@@ -385,13 +385,26 @@ def run_kamain(
         cmd += ["--container-file", str(container_file)]
     if snapshot_path:
         cmd += ["--v-snapshot", str(snapshot_path)]
+    if ir_sidecar_dir:
+        ir_sidecar_dir.mkdir(parents=True, exist_ok=True)
+        cmd += ["--ir-sidecar-dir", str(ir_sidecar_dir)]
 
     if verbose:
-        label = output_json.name if output_json else (cfl_compressed_output.name if cfl_compressed_output else "?")
+        if output_json:
+            label = output_json.name
+        elif cfl_compressed_output:
+            label = cfl_compressed_output.name
+        else:
+            label = "?"
         print(f"    KAMain: {len(bc_files)} bitcode files -> {label}")
         print(f"    cmd: {shlex.join(cmd)}")
 
-    out_dir = output_json.parent if output_json else (cfl_compressed_output.parent if cfl_compressed_output else None)
+    if output_json:
+        out_dir: Path | None = output_json.parent
+    elif cfl_compressed_output:
+        out_dir = cfl_compressed_output.parent
+    else:
+        out_dir = None
     if out_dir:
         out_dir.mkdir(parents=True, exist_ok=True)
 
@@ -445,21 +458,39 @@ def import_callgraph(
     json_path: Path,
     db_path: str,
     clear_edges: bool = True,
+    ir_sidecar_dir: Path | None = None,
     verbose: bool = False,
 ) -> dict:
-    """Import KAMain call graph JSON into project DB. Returns stats dict."""
+    """Import KAMain call graph JSON into project DB. Returns stats dict.
+
+    When *ir_sidecar_dir* is given and exists, also imports
+    ``*.facts.json`` from it into ``function_ir_facts`` (matched by name).
+    """
     db = SummaryDB(db_path)
     try:
         importer = CallGraphImporter(db, verbose=verbose)
         stats = importer.import_json(json_path, clear_existing=clear_edges)
-        return {
+        result = {
             "functions_in_json": stats.functions_in_json,
             "functions_matched": stats.functions_matched,
             "stubs_created": stats.stubs_created,
             "edges_imported": stats.edges_imported,
             "direct_edges": stats.direct_edges,
             "indirect_edges": stats.indirect_edges,
+            "ir_facts_imported": 0,
+            "ir_facts_unmatched": 0,
         }
+        if ir_sidecar_dir and ir_sidecar_dir.is_dir():
+            ir_stats = import_sidecar_dir(db, ir_sidecar_dir)
+            result["ir_facts_imported"] = ir_stats.functions_imported
+            result["ir_facts_unmatched"] = ir_stats.functions_unmatched
+            if verbose:
+                print(
+                    f"      IR sidecar: {ir_stats.files_read} files, "
+                    f"{ir_stats.functions_imported} imported "
+                    f"({ir_stats.functions_unmatched} unmatched)"
+                )
+        return result
     finally:
         db.close()
 
@@ -477,6 +508,7 @@ def _process_single_link_unit(
     allocator_file: Path | None = None,
     container_file: Path | None = None,
     kamain_timeout: int = 3600,
+    emit_ir_sidecar: bool = True,
     verbose: bool = False,
 ) -> list[dict]:
     """Fast path for projects with a single link unit (no compositional split).
@@ -512,6 +544,7 @@ def _process_single_link_unit(
 
     callgraph_json = target_dir / "callgraph.json"
     vsnapshot_path = target_dir / f"{target}.vsnap"
+    sidecar_dir = target_dir / "sidecar"
 
     if verbose:
         print(
@@ -527,6 +560,7 @@ def _process_single_link_unit(
         snapshot_path=vsnapshot_path,
         allocator_file=allocator_file,
         container_file=container_file,
+        ir_sidecar_dir=sidecar_dir if emit_ir_sidecar else None,
         timeout=kamain_timeout,
         verbose=verbose,
     )
@@ -552,6 +586,7 @@ def _process_single_link_unit(
             json_path=callgraph_json,
             db_path=db_path,
             clear_edges=True,
+            ir_sidecar_dir=sidecar_dir if emit_ir_sidecar else None,
             verbose=verbose,
         )
         result.update(import_stats)
@@ -580,6 +615,7 @@ def process_project_compositional(
     container_file: Path | None = None,
     kamain_timeout: int = 3600,
     skip_existing: bool = False,
+    emit_ir_sidecar: bool = True,
     verbose: bool = False,
 ) -> list[dict]:
     """Compositional CFL analysis for a project with link_units.json.
@@ -620,6 +656,7 @@ def process_project_compositional(
             allocator_file=allocator_file,
             container_file=container_file,
             kamain_timeout=kamain_timeout,
+            emit_ir_sidecar=emit_ir_sidecar,
             verbose=verbose,
         )
         update_link_units_file(link_units_path, lu_data)
@@ -694,7 +731,10 @@ def process_project_compositional(
             result["phase1_success"] = True
         else:
             if verbose:
-                print(f"      [{target}] Phase 1: compress {len(bc_files)} bc files -> {cflcg_path.name}")
+                print(
+                    f"      [{target}] Phase 1: compress {len(bc_files)} bc files "
+                    f"-> {cflcg_path.name}"
+                )
             ok, err, dur = run_kamain(
                 bc_files=bc_files,
                 output_json=None,
@@ -721,7 +761,14 @@ def process_project_compositional(
         all_bc: list[Path] = list(bc_files)
         all_cflcg: list[Path] = [cflcg_path]
 
-        def _collect_deps(lu_name: str, visited_deps: set[str]) -> None:
+        def _collect_deps(
+            lu_name: str,
+            visited_deps: set[str],
+            *,
+            seen_bc: set[Path] = seen_bc,
+            all_bc: list[Path] = all_bc,
+            all_cflcg: list[Path] = all_cflcg,
+        ) -> None:
             lu_entry = by_name.get(lu_name)
             if not lu_entry:
                 return
@@ -742,6 +789,7 @@ def process_project_compositional(
         _collect_deps(target, {target})
 
         vsnapshot_path = target_dir / f"{target}.vsnap"
+        sidecar_dir = target_dir / "sidecar"
 
         # --- Phase 2: Compositional whole-program solve ---
         if skip_existing and callgraph_json.exists():
@@ -763,6 +811,7 @@ def process_project_compositional(
                 snapshot_path=vsnapshot_path,
                 allocator_file=allocator_file,
                 container_file=container_file,
+                ir_sidecar_dir=sidecar_dir if emit_ir_sidecar else None,
                 timeout=kamain_timeout,
                 verbose=verbose,
             )
@@ -788,6 +837,7 @@ def process_project_compositional(
                 json_path=callgraph_json,
                 db_path=db_path,
                 clear_edges=True,
+                ir_sidecar_dir=sidecar_dir if emit_ir_sidecar else None,
                 verbose=verbose,
             )
             result.update(import_stats)
@@ -872,14 +922,16 @@ def _populate_link_unit_bc_files(
         matching_entries = []
         for obj in lu["objects"]:
             resolved = str(Path(obj).resolve())
-            entry = output_to_entry.get(resolved) or output_to_entry.get(Path(obj).name)
-            if entry and entry not in matching_entries:
-                matching_entries.append(entry)
+            match = output_to_entry.get(resolved) or output_to_entry.get(Path(obj).name)
+            if match and match not in matching_entries:
+                matching_entries.append(match)
 
         if not matching_entries:
             continue
 
-        bc_files, stats = collect_bc_files(matching_entries, recompile_dir=recompile_dir, verbose=False)
+        bc_files, stats = collect_bc_files(
+            matching_entries, recompile_dir=recompile_dir, verbose=False,
+        )
         if bc_files:
             lu["bc_files"] = [str(p) for p in bc_files]
             updated = True
@@ -907,6 +959,7 @@ def process_project(
     recompile: bool = True,
     compositional: bool | None = None,  # None = auto-detect from link_units.json
     skip_existing: bool = False,
+    emit_ir_sidecar: bool = True,
     verbose: bool = False,
 ) -> dict:
     """Process a single project end-to-end.
@@ -942,7 +995,7 @@ def process_project(
     link_units_path = scan_dir / "link_units.json"
     if compositional is not False and link_units_path.exists():
         if verbose:
-            print(f"    link_units.json found — using compositional CFL analysis")
+            print("    link_units.json found — using compositional CFL analysis")
 
         # Populate bc_files for link units that have objects but no bc_files
         cc_path = project_scripts_dir / "compile_commands.json"
@@ -954,9 +1007,9 @@ def process_project(
             )
 
         # Extract project-level allocator candidates if a project-level DB exists
-        allocator_json = scan_dir / "allocator_candidates.json"
+        allocator_json: Path | None = scan_dir / "allocator_candidates.json"
         project_db = scan_dir / "functions.db"
-        if project_db.exists() and not allocator_json.exists():
+        if project_db.exists() and allocator_json is not None and not allocator_json.exists():
             try:
                 extract_allocator_candidates(
                     db_path=str(project_db),
@@ -985,6 +1038,7 @@ def process_project(
             container_file=container_file,
             kamain_timeout=kamain_timeout,
             skip_existing=skip_existing,
+            emit_ir_sidecar=emit_ir_sidecar,
             verbose=verbose,
         )
         total_edges = sum(r.get("edges_imported", 0) for r in target_results)
@@ -1097,6 +1151,7 @@ def process_project(
             break
 
     snapshot_path = build_root / f"{project_name}.vsnapt"
+    sidecar_dir = scan_dir / "sidecar"
 
     success, error_msg, duration = run_kamain(
         bc_files=bc_files,
@@ -1105,6 +1160,7 @@ def process_project(
         allocator_file=allocator_json if allocator_json and allocator_json.exists() else None,
         container_file=container_file,
         snapshot_path=snapshot_path,
+        ir_sidecar_dir=sidecar_dir if emit_ir_sidecar else None,
         timeout=kamain_timeout,
         verbose=verbose,
     )
@@ -1125,6 +1181,7 @@ def process_project(
             json_path=callgraph_json,
             db_path=db_path,
             clear_edges=True,
+            ir_sidecar_dir=sidecar_dir if emit_ir_sidecar else None,
             verbose=verbose,
         )
         result.update(import_stats)
@@ -1243,6 +1300,14 @@ def main():
             "Skip KAMain phases for link units that already have artifacts: "
             "phase 1 if .cflcg exists, phase 2 if callgraph.json exists. "
             "Import is still attempted when callgraph.json is present."
+        ),
+    )
+    parser.add_argument(
+        "--no-ir-sidecar", action="store_true",
+        help=(
+            "Disable KAMain IR fact sidecar emission/import. Without "
+            "sidecar facts the code-contract pass falls back to regex "
+            "feature extraction (degraded)."
         ),
     )
     parser.add_argument(
@@ -1365,6 +1430,7 @@ def main():
             recompile=not args.no_recompile,
             compositional=compositional,
             skip_existing=args.skip_existing,
+            emit_ir_sidecar=not args.no_ir_sidecar,
             verbose=args.verbose,
         )
 

@@ -1,18 +1,18 @@
 """Common utilities for GPR project scripts."""
 
 import json
-import os
 import shlex
 import subprocess
-from pathlib import Path
-
 import sys as _sys
+from pathlib import Path
 
 _sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
 from llm_summary.docker_paths import (  # noqa: E402
     is_docker_path,
     remap_path,
+)
+from llm_summary.docker_paths import (
     translate_compiler_arg as translate_arg,
 )
 
@@ -33,7 +33,7 @@ def resolve_compile_commands(
 ) -> list[dict]:
     """Load compile_commands.json and resolve all Docker /workspace/ paths to host paths."""
     with open(cc_path) as f:
-        entries = json.load(f)
+        entries: list[dict] = json.load(f)
 
     needs_translation = any(
         is_docker_path(e.get("directory", "")) or is_docker_path(e.get("file", ""))
@@ -147,13 +147,14 @@ def find_project_dir(project: dict, base_dir: str | Path) -> Path | None:
             return project_dir
 
     # Try lowercase project name with hyphens
-    name_lower = project['name'].lower().replace(' ', '-')
+    name: str = project['name']
+    name_lower = name.lower().replace(' ', '-')
     candidate = base_dir / name_lower
     if candidate.exists() and (candidate / '.git').exists():
         return candidate
 
     # Try project name as-is
-    candidate = base_dir / project['name']
+    candidate = base_dir / name
     if candidate.exists() and (candidate / '.git').exists():
         return candidate
 
@@ -182,7 +183,8 @@ def get_artifact_name(project: dict, project_path: Path) -> str:
     for backwards compatibility.
     """
     if project.get("source_subdir"):
-        return project["name"]
+        name: str = project["name"]
+        return name
     return project_path.name
 
 

@@ -16,26 +16,25 @@ import argparse
 import json
 import re
 import sys
-import tempfile
 import time
 from pathlib import Path
+from typing import Any
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
+from batch_call_graph_gen import collect_bc_files, import_callgraph, run_kamain
+
 from llm_summary.compile_commands import CompileCommandsDB
 from llm_summary.db import SummaryDB
-from llm_summary.extractor import FunctionExtractor
+from llm_summary.extractor import C_EXTENSIONS, FunctionExtractor
 from llm_summary.indirect.callsites import IndirectCallsiteFinder
 from llm_summary.indirect.scanner import AddressTakenScanner
 from llm_summary.models import CallEdge
-
-from batch_call_graph_gen import collect_bc_files, run_kamain, import_callgraph
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
 
 FUNC_SCANS_DIR = REPO_ROOT / "func-scans" / "cgc"
-C_EXTENSIONS = {".c", ".cpp", ".cc", ".cxx", ".c++"}
 
 _PATCHED_START_RE = re.compile(r"#\s*(ifdef|ifndef)\s+PATCHED(?:_\d+)?\s*$")
 _PATCHED_END_RE = re.compile(r"#\s*endif\b")
@@ -178,7 +177,7 @@ def filter_compile_commands(
             continue
 
         # Remap /workspace/ paths
-        remapped = {}
+        remapped: dict = {}
         for key in ("directory", "file", "output"):
             if key in entry:
                 remapped[key] = remap_path(entry[key], cgc_dir)
@@ -314,6 +313,8 @@ def scan_challenge(
                     continue
                 for cs in func.callsites:
                     callee_name = cs.get("callee")
+                    if not callee_name:
+                        continue
                     callee_id = func_name_to_id.get(callee_name)
                     if callee_id is not None:
                         edges.append(CallEdge(
@@ -359,7 +360,7 @@ def patch_rescan(
     patched_db = challenge_dir / "functions_patched.db"
     patched_cc = challenge_dir / "compile_commands_patched.json"
 
-    result = {
+    result: dict[str, Any] = {
         "challenge": name,
         "functions_changed": 0,
         "functions_unchanged": 0,
@@ -686,7 +687,7 @@ def main():
     with open(projects_json_path, "w") as f:
         json.dump(projects, f, indent=2)
 
-    print(f"\nSummary:")
+    print("\nSummary:")
     print(f"  Prepared: {prepared}")
     print(f"  Scanned: {scanned}")
     print(f"  Errors: {errors}")

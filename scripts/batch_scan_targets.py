@@ -28,10 +28,11 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
 from gpr_utils import resolve_compile_commands
 
+from llm_summary.asm_extractor import ASM_EXTENSIONS, extract_asm_functions
 from llm_summary.compile_commands import CompileCommandsDB
 from llm_summary.db import SummaryDB
 from llm_summary.extern_headers import extract_extern_headers
-from llm_summary.extractor import FunctionExtractor
+from llm_summary.extractor import C_EXTENSIONS, FunctionExtractor
 from llm_summary.indirect.callsites import IndirectCallsiteFinder
 from llm_summary.indirect.scanner import AddressTakenScanner
 from llm_summary.link_units.pipeline import (
@@ -41,7 +42,7 @@ from llm_summary.link_units.pipeline import (
 )
 from llm_summary.models import TargetType
 
-C_EXTENSIONS = {".c", ".cpp", ".cc", ".cxx", ".c++"}
+SCAN_EXTENSIONS = C_EXTENSIONS | ASM_EXTENSIONS
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 SCRIPTS_DIR = REPO_ROOT / "scripts"
@@ -111,7 +112,7 @@ def _source_files_for_objects(
     for entry in cc_entries:
         output = entry.get("output", "")
         src = entry.get("file", "")
-        if not (src and Path(src).suffix.lower() in C_EXTENSIONS):
+        if not (src and Path(src).suffix.lower() in SCAN_EXTENSIONS):
             continue
         if output:
             out_path = Path(output)
@@ -149,6 +150,40 @@ def _source_files_for_objects(
     return sources
 
 
+def _build_asm_obj_map(
+    cc_path: str | Path, build_root: Path | None,
+) -> dict[str, str]:
+    """Map resolved asm source path -> compiled object path from compile_commands.
+
+    The asm extractor needs the .o file to enumerate symbols via `nm`.
+    """
+    out: dict[str, str] = {}
+    try:
+        with open(cc_path) as fh:
+            entries = json.load(fh)
+    except (OSError, json.JSONDecodeError):
+        return out
+    for entry in entries:
+        src = entry.get("file", "")
+        obj = entry.get("output", "")
+        if not (src and obj):
+            continue
+        if Path(src).suffix.lower() not in ASM_EXTENSIONS:
+            continue
+        directory = entry.get("directory", "")
+        src_path = Path(src) if Path(src).is_absolute() else Path(directory, src)
+        obj_path = Path(obj)
+        if not obj_path.is_absolute():
+            base = Path(directory) if directory else build_root
+            if base:
+                obj_path = base / obj_path
+        try:
+            out[str(src_path.resolve())] = str(obj_path)
+        except OSError:
+            pass
+    return out
+
+
 def _scan_files(
     source_files: list[str],
     cc: CompileCommandsDB,
@@ -170,12 +205,18 @@ def _scan_files(
         enable_preprocessing=preprocess,
     )
 
-    # Phase 1: parse each file once, extract functions + typedefs
+    # Split sources by kind. Asm files don't go through libclang.
+    c_files = [f for f in source_files
+               if Path(f).suffix.lower() in C_EXTENSIONS]
+    asm_files = [f for f in source_files
+                 if Path(f).suffix.lower() in ASM_EXTENSIONS]
+
+    # Phase 1: parse each C/C++ file once, extract functions + typedefs
     all_functions = []
     all_typedefs = []
     parsed_tus: list[tuple] = []  # (tu, file_path) for reuse
 
-    for f in source_files:
+    for f in c_files:
         try:
             tu = extractor.parse_file(f)
             funcs = extractor.extract_from_tu(tu, f)
@@ -184,6 +225,21 @@ def _scan_files(
             parsed_tus.append((tu, f))
         except Exception:
             pass
+
+    # Phase 1b: extract assembly functions (e.g. musl arch-specific .s/.S).
+    # Symbols come from `nm` on the compiled object; source from label
+    # boundaries in the .s file.
+    if asm_files:
+        asm_obj_map = _build_asm_obj_map(cc_path, build_root) if cc_path else {}
+        for f in asm_files:
+            try:
+                obj = asm_obj_map.get(str(Path(f).resolve()))
+                all_functions.extend(
+                    extract_asm_functions(Path(f),
+                                          Path(obj) if obj else None)
+                )
+            except Exception:
+                pass
 
     db.insert_functions_batch(all_functions)
     db.insert_typedefs_batch(all_typedefs)

@@ -63,6 +63,8 @@ class StdlibCacheEntry:
     init_json: str | None         # serialised InitSummary or None
     memsafe_json: str | None      # serialised MemsafeSummary or None
     model_used: str
+    code_contract_json: str | None = None   # serialised CodeContractSummary or None
+    code_contract_model: str | None = None  # provenance for the code-contract blob
 
 
 # ---------------------------------------------------------------------------
@@ -92,13 +94,15 @@ class StdlibCache:
     def _init_schema(self) -> None:
         self.conn.execute("""
             CREATE TABLE IF NOT EXISTS stdlib_cache (
-                name            TEXT PRIMARY KEY,
-                allocation_json TEXT,
-                free_json       TEXT,
-                init_json       TEXT,
-                memsafe_json    TEXT,
-                model_used      TEXT NOT NULL DEFAULT '',
-                created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                name                 TEXT PRIMARY KEY,
+                allocation_json      TEXT,
+                free_json            TEXT,
+                init_json            TEXT,
+                memsafe_json         TEXT,
+                model_used           TEXT NOT NULL DEFAULT '',
+                created_at           TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                code_contract_json   TEXT,
+                code_contract_model  TEXT
             )
         """)
         self.conn.execute("""
@@ -124,7 +128,8 @@ class StdlibCache:
 
     def get(self, name: str) -> StdlibCacheEntry | None:
         row = self.conn.execute(
-            "SELECT name, allocation_json, free_json, init_json, memsafe_json, model_used "
+            "SELECT name, allocation_json, free_json, init_json, memsafe_json, "
+            "       model_used, code_contract_json, code_contract_model "
             "FROM stdlib_cache WHERE name = ?",
             (name,),
         ).fetchone()
@@ -137,6 +142,8 @@ class StdlibCache:
             init_json=row[3],
             memsafe_json=row[4],
             model_used=row[5],
+            code_contract_json=row[6],
+            code_contract_model=row[7],
         )
 
     def put(
@@ -147,31 +154,39 @@ class StdlibCache:
         init_json: str | None,
         memsafe_json: str | None,
         model_used: str,
+        code_contract_json: str | None = None,
+        code_contract_model: str | None = None,
     ) -> None:
         self.conn.execute(
             """
             INSERT INTO stdlib_cache
-                (name, allocation_json, free_json, init_json, memsafe_json, model_used)
-            VALUES (?, ?, ?, ?, ?, ?)
+                (name, allocation_json, free_json, init_json, memsafe_json,
+                 model_used, code_contract_json, code_contract_model)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(name) DO UPDATE SET
-                allocation_json = excluded.allocation_json,
-                free_json       = excluded.free_json,
-                init_json       = excluded.init_json,
-                memsafe_json    = excluded.memsafe_json,
-                model_used      = excluded.model_used
+                allocation_json     = excluded.allocation_json,
+                free_json           = excluded.free_json,
+                init_json           = excluded.init_json,
+                memsafe_json        = excluded.memsafe_json,
+                model_used          = excluded.model_used,
+                code_contract_json  = excluded.code_contract_json,
+                code_contract_model = excluded.code_contract_model
             """,
-            (name, allocation_json, free_json, init_json, memsafe_json, model_used),
+            (name, allocation_json, free_json, init_json, memsafe_json,
+             model_used, code_contract_json, code_contract_model),
         )
         self.conn.commit()
 
     def seed_builtins(self, force: bool = False) -> int:
-        """Populate cache with hand-crafted entries from stdlib.py.
+        """Populate cache with hand-crafted entries from stdlib.py and
+        code_contract/stdlib.py.
 
         When force=False (default), only inserts rows that do not already
         exist.  When force=True, overwrites any existing DB-seeded entry so
         that hand-crafted builtins always take priority.  Returns the number
         of entries written.
         """
+        from .code_contract.stdlib import STDLIB_CONTRACTS as CC_BUILTINS
         from .stdlib import (
             get_all_stdlib_free_summaries,
             get_all_stdlib_init_summaries,
@@ -184,11 +199,15 @@ class StdlibCache:
         init = get_all_stdlib_init_summaries()
         memsafe = get_all_stdlib_memsafe_summaries()
 
-        all_names = set(alloc) | set(free) | set(init) | set(memsafe)
+        all_names = set(alloc) | set(free) | set(init) | set(memsafe) | set(CC_BUILTINS)
         added = 0
         for name in sorted(all_names):
             if not force and self.has(name):
                 continue
+            cc_json = (
+                json.dumps(CC_BUILTINS[name].to_dict())
+                if name in CC_BUILTINS else None
+            )
             self.put(
                 name=name,
                 allocation_json=json.dumps(alloc[name].to_dict()) if name in alloc else None,
@@ -196,6 +215,8 @@ class StdlibCache:
                 init_json=json.dumps(init[name].to_dict()) if name in init else None,
                 memsafe_json=json.dumps(memsafe[name].to_dict()) if name in memsafe else None,
                 model_used="builtin",
+                code_contract_json=cc_json,
+                code_contract_model="builtin" if cc_json else None,
             )
             added += 1
         return added

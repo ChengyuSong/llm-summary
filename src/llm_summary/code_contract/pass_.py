@@ -93,11 +93,26 @@ def _format_scan_issues(
 def seed_stdlib_summaries(*, svcomp: bool) -> dict[str, CodeContractSummary]:
     """Build the initial per-call-graph summaries dict.
 
-    Always seeds libc / POSIX. When `svcomp` is True, also seeds the
-    sv-comp `__VERIFIER_*` helpers and overrides `malloc` / `calloc` /
-    `realloc` with the never-NULL sv-comp model.
+    Loads from the global stdlib cache (~/.llm-summary/stdlib_cache.db) when
+    available, then overlays hardcoded `STDLIB_CONTRACTS` (always wins) and
+    optionally the sv-comp set. Cache failure is non-fatal — empty cache =
+    legacy behaviour (hardcoded only).
     """
-    out: dict[str, CodeContractSummary] = dict(STDLIB_CONTRACTS)
+    out: dict[str, CodeContractSummary] = {}
+    try:
+        from ..stdlib_cache import StdlibCache
+        cache = StdlibCache()
+        for name in cache.list_names():
+            entry = cache.get(name)
+            if entry and entry.code_contract_json:
+                out[name] = CodeContractSummary.from_dict(
+                    json.loads(entry.code_contract_json)
+                )
+        cache.close()
+    except Exception:
+        pass
+    # Hardcoded contracts always win (mirror seed_builtins force=True).
+    out.update(STDLIB_CONTRACTS)
     if svcomp:
         out.update(SVCOMP_CONTRACTS)
         out.update(svcomp_malloc_overrides())
@@ -123,6 +138,7 @@ class CodeContractPass:
         data_model: str | None = None,
         cache_system: bool = True,
         log_fp: TextIO | None = None,
+        verbose: bool = False,
     ):
         self.db = db
         self.model = model
@@ -131,6 +147,7 @@ class CodeContractPass:
         self.svcomp = svcomp
         self.data_model_note = data_model_note(data_model)
         self.cache_system = cache_system
+        self.verbose = verbose
         # Per-task LLM log fp (mirrors `scripts/contract_pipeline.py`'s
         # `log_fp`). Caller manages open/close; we just write into it.
         self.log_fp = log_fp
@@ -176,6 +193,13 @@ class CodeContractPass:
         the body against it (mirrors contract_pipeline.py's compositional
         loop: bottom-up topo, summarize-then-verify per function). Up to 3
         summarize + 3 verify LLM calls per function."""
+        if self.verbose:
+            cur = self.summarizer._progress_current
+            tot = self.summarizer._progress_total
+            if tot > 0:
+                print(f"  ({cur}/{tot}) code-contract: {func.name}", flush=True)
+            else:
+                print(f"  code-contract: {func.name}", flush=True)
         # Merge stdlib seeds with the per-call-graph callee summaries the
         # driver passes us. Stdlib seeds are static per-process, so the
         # merge is cheap.

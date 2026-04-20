@@ -18,6 +18,8 @@ from .compile_commands import CompileCommandsDB
 from .models import Function, FunctionBlock, _annotate_macro_diff
 from .preprocessor import PreprocessedFile, SourcePreprocessor
 
+C_EXTENSIONS = frozenset({".c", ".cpp", ".cc", ".cxx", ".c++", ".i", ".ii"})
+
 _SYSTEM_HEADER_PREFIXES = (
     "/usr/",
     "/lib/",

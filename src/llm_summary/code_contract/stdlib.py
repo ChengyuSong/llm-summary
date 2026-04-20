@@ -109,6 +109,143 @@ def _build_libc_contracts() -> dict[str, CodeContractSummary]:
               "pthread_exit", "thrd_exit"):
         out[n] = _summary(n, noreturn=True)
 
+    # ── errno / setjmp ──
+    out["__errno_location"] = _summary(
+        "__errno_location",
+        memsafe={"ensures": ["result != NULL",
+                             "result points to thread-local int (errno)"]},
+    )
+    out["_setjmp"] = _summary(
+        "_setjmp",
+        memsafe={"requires": ["env points to a writable jmp_buf"],
+                 "ensures":  ["env may be used by a subsequent longjmp "
+                              "while the enclosing function is live"]},
+        # Modeled as a normal-return call; longjmp is modeled separately as noreturn.
+    )
+
+    # ── string / mem ──
+    out["memcmp"] = _summary(
+        "memcmp",
+        memsafe={"requires": ["s1 readable for n bytes",
+                              "s2 readable for n bytes"]},
+    )
+    out["strerror"] = _summary(
+        "strerror",
+        memsafe={"ensures": ["result != NULL",
+                             "result points to a NUL-terminated static/thread-local "
+                             "buffer; do not free; may be overwritten by next call"]},
+    )
+
+    # ── string -> number ──
+    out["atof"] = _summary(
+        "atof",
+        memsafe={"requires": ["nptr is non-NULL and points to a NUL-terminated string"]},
+    )
+
+    # ── math (write through pointer) ──
+    out["frexp"] = _summary(
+        "frexp",
+        memsafe={"requires": ["exp is non-NULL and writable for sizeof(int)"]},
+    )
+    out["modf"] = _summary(
+        "modf",
+        memsafe={"requires": ["iptr is non-NULL and writable for sizeof(double)"]},
+    )
+    out["pow"] = _summary(
+        "pow",
+        memsafe={"ensures": ["pure: no memory effects"]},
+    )
+
+    # ── time ──
+    out["gmtime"] = _summary(
+        "gmtime",
+        memsafe={"requires": ["timer is non-NULL and readable for sizeof(time_t)"],
+                 "ensures":  ["result is NULL on failure or points to a static struct tm",
+                              "static buffer may be overwritten by subsequent "
+                              "gmtime/localtime calls; do not free"]},
+    )
+
+    # ── stdio ──
+    out["ferror"] = _summary(
+        "ferror",
+        memsafe={"requires": ["stream is non-NULL and refers to an open FILE"]},
+    )
+    out["fflush"] = _summary(
+        "fflush",
+        memsafe={"requires": ["stream is NULL or refers to an open FILE"]},
+    )
+    out["remove"] = _summary(
+        "remove",
+        memsafe={"requires": ["pathname is non-NULL and points to a NUL-terminated string"]},
+    )
+    out["vsnprintf"] = _summary(
+        "vsnprintf",
+        memsafe={"requires": ["str is NULL and size == 0, or str is writable for size bytes",
+                              "format is non-NULL and points to a NUL-terminated string",
+                              "ap matches the conversions in format and points to live arguments"],
+                 "ensures":  ["if size > 0 and str != NULL: str[0..min(size-1, written)] "
+                              "written and str NUL-terminated within size bytes"]},
+    )
+
+    # ── POSIX file I/O ──
+    out["open"] = _summary(
+        "open",
+        memsafe={"requires": ["pathname is non-NULL and points to a NUL-terminated string"],
+                 "ensures":  ["result is -1 on failure or a non-negative file descriptor"]},
+        memleak={"ensures": ["on success: acquires a file descriptor; "
+                             "caller must close result"]},
+    )
+    out["close"] = _summary(
+        "close",
+        memsafe={"requires": ["fd is -1 or an open file descriptor not already closed"]},
+        memleak={"ensures": ["releases fd if it referred to an open descriptor"]},
+    )
+    out["read"] = _summary(
+        "read",
+        memsafe={"requires": ["fd is an open file descriptor opened for reading",
+                              "buf is writable for count bytes"]},
+    )
+    out["write"] = _summary(
+        "write",
+        memsafe={"requires": ["fd is an open file descriptor opened for writing",
+                              "buf is readable for count bytes"]},
+    )
+    out["lseek64"] = _summary(
+        "lseek64",
+        memsafe={"requires": ["fd is an open file descriptor that supports seeking"]},
+    )
+    out["fcntl"] = _summary(
+        "fcntl",
+        memsafe={"requires": ["fd is an open file descriptor",
+                              "varargs match the cmd's expected argument type, if any"]},
+    )
+    out["memchr"] = _summary(
+        "memchr",
+        memsafe={"requires": ["s is readable for n bytes"],
+                 "ensures":  ["result is NULL or points within s[0..n-1]"]},
+    )
+
+    # ── musl internal allocator aliases ──
+    out["__libc_free"] = _summary(
+        "__libc_free",
+        memsafe={"requires": ["p is NULL or a previously allocated pointer not yet freed"]},
+        memleak={"ensures": ["releases the allocation pointed to by p if non-NULL"]},
+    )
+    out["__libc_realloc"] = _summary(
+        "__libc_realloc",
+        memsafe={
+            "requires": ["ptr is NULL or previously allocated and not yet freed"],
+            "ensures":  ["result is NULL or allocated for size bytes",
+                         "ptr ownership transferred to result on success"],
+        },
+        memleak={"ensures": ["on success: acquires heap allocation tied to result; releases ptr"]},
+    )
+
+    # ── compiler-rt complex-arithmetic builtins ──
+    # Emitted by clang for complex multiplication; pure arithmetic, no memory ops.
+    for name in ("__mulsc3", "__muldc3", "__mulxc3"):
+        out[name] = _summary(name, memsafe={})
+
     return out
 
 

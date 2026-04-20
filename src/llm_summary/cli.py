@@ -12,6 +12,7 @@ from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.table import Table
 
+from .asm_extractor import ASM_EXTENSIONS, extract_asm_functions
 from .callgraph import CallGraphBuilder
 from .compile_commands import CompileCommandsDB
 from .db import SummaryDB
@@ -26,7 +27,7 @@ from .driver import (
     SummaryPass,
     VerificationPass,
 )
-from .extractor import FunctionExtractor
+from .extractor import C_EXTENSIONS, FunctionExtractor
 from .indirect import (
     AddressTakenScanner,
     FlowSummarizer,
@@ -513,6 +514,7 @@ def summarize(
                 db=db, model=llm.model, llm=llm,
                 svcomp=svcomp,
                 cache_system=(cache_mode != "none"),
+                verbose=verbose,
             )
             passes.append(code_contract_pass)
 
@@ -1163,8 +1165,16 @@ def init_stdlib(
                 ).fetchone()
                 if row:
                     blobs[col] = row[0]
+            # Code-contract lives in its own table with its own row shape.
+            row = _db.conn.execute(
+                "SELECT summary_json FROM code_contract_summaries "
+                "WHERE function_id = ?",
+                (func_id,),
+            ).fetchone()
+            blobs["code_contract_json"] = row[0] if row else None
             return blobs
 
+        cc_added = 0
         try:
             for src_func in all_src_funcs:
                 if src_func.name not in known_externals:
@@ -1197,14 +1207,19 @@ def init_stdlib(
                     init_json=blobs["init_json"],
                     memsafe_json=blobs["memsafe_json"],
                     model_used=tag,
+                    code_contract_json=blobs["code_contract_json"],
+                    code_contract_model=tag if blobs["code_contract_json"] else None,
                 )
                 added += 1
+                if blobs["code_contract_json"]:
+                    cc_added += 1
                 if verbose:
                     console.print(f"  [seed] {src_func.name} ({tag})")
         finally:
             src_db.close()
         console.print(
             f"Seeded from {src_path}: {added} exported symbols added"
+            + (f" ({cc_added} with code-contract)" if cc_added else "")
             + (f" ({alias_fallbacks} via weak_alias)" if alias_fallbacks else "")
             + (f", {skipped_cached} already cached" if skipped_cached else "")
             + (f", {skipped_internal} internal symbols skipped" if skipped_internal else "")
@@ -1234,6 +1249,7 @@ def init_stdlib(
                 db.get_summary_by_function_id(f.id) is None
                 or db.get_free_summary_by_function_id(f.id) is None
                 or db.get_init_summary_by_function_id(f.id) is None
+                or db.get_code_contract_summary(f.id) is None
             )
 
         needs = [f for f in sourceless if _needs_summary(f)]
@@ -1312,6 +1328,15 @@ def init_stdlib(
                     description=memsafe_obj.description,
                 )
                 db.upsert_verification_summary(func, ver, model_used=model_used)
+
+            if entry.code_contract_json:
+                from .code_contract.models import CodeContractSummary
+                cc = CodeContractSummary.from_dict(json.loads(entry.code_contract_json))
+                cc.function = func.name  # match the project DB stub's name
+                db.store_code_contract_summary(
+                    func, cc,
+                    model_used=entry.code_contract_model or model_used,
+                )
 
         # 8. Apply cache hits
         if cache_hits:
@@ -2692,8 +2717,6 @@ def scan(
         return
 
     # Filter to C/C++ source files and assembly files
-    c_extensions = {".c", ".cpp", ".cc", ".cxx", ".c++", ".i"}
-    asm_extensions = {".s", ".S", ".asm"}
     all_files = compile_commands.get_all_files()
 
     if bc_files_filter is not None:
@@ -2702,19 +2725,19 @@ def scan(
         source_files = [
             f for f in all_files
             if f in scoped
-            and Path(f).suffix.lower() in c_extensions
+            and Path(f).suffix.lower() in C_EXTENSIONS
         ]
         # Assembly files don't produce .bc — use asm_sources_filter from link_units.json
         if asm_sources_filter:
             asm_files = [
                 f for f in all_files
-                if Path(f).suffix in asm_extensions and f in asm_sources_filter
+                if Path(f).suffix in ASM_EXTENSIONS and f in asm_sources_filter
             ]
         else:
             asm_files = []
     else:
-        source_files = [f for f in all_files if Path(f).suffix.lower() in c_extensions]
-        asm_files = [f for f in all_files if Path(f).suffix in asm_extensions]
+        source_files = [f for f in all_files if Path(f).suffix.lower() in C_EXTENSIONS]
+        asm_files = [f for f in all_files if Path(f).suffix in ASM_EXTENSIONS]
 
     file_counts = f"{len(source_files)} C/C++ source files"
     if asm_files:
@@ -2782,8 +2805,6 @@ def scan(
 
         # Phase 1b: Extract assembly functions
         if asm_files:
-            from .asm_extractor import extract_asm_functions
-
             console.print("\n[bold]Phase 1b: Extracting assembly functions[/bold]")
 
             # Build source -> output mapping from raw compile_commands JSON
@@ -3645,7 +3666,17 @@ def import_dep_summaries(db_path, dep_db_paths, force, verbose):
                         if row:
                             src_summaries[table] = (row[0], dep_tag)
 
-                    if not src_summaries:
+                    # Code-contract has a richer row shape; fetch separately.
+                    cc_row = dep_db.conn.execute(
+                        "SELECT summary_json, model FROM code_contract_summaries"
+                        " WHERE function_id = ?",
+                        (src_func.id,),
+                    ).fetchone()
+                    cc_payload: tuple[str, str] | None = (
+                        (cc_row[0], dep_tag) if cc_row else None
+                    )
+
+                    if not src_summaries and cc_payload is None:
                         continue
 
                     # Find or create matching functions in target DB.
@@ -3686,10 +3717,27 @@ def import_dep_summaries(db_path, dep_db_paths, force, verbose):
                             copied_summaries += 1
                             func_imported = True
 
+                        if cc_payload is not None:
+                            assert tgt_func.id is not None
+                            existing_cc = target_db.get_code_contract_summary(tgt_func.id)
+                            if existing_cc is None or force:
+                                from .code_contract.models import CodeContractSummary
+                                cc = CodeContractSummary.from_dict(
+                                    json.loads(cc_payload[0])
+                                )
+                                cc.function = tgt_func.name
+                                target_db.store_code_contract_summary(
+                                    tgt_func, cc, model_used=cc_payload[1],
+                                )
+                                copied_summaries += 1
+                                func_imported = True
+
                     if func_imported:
                         copied_funcs += 1
                         if verbose:
                             kinds = [t.replace("_summaries", "") for t in src_summaries]
+                            if cc_payload is not None:
+                                kinds.append("code_contract")
                             console.print(f"  {src_func.name}: {', '.join(kinds)}")
 
                 target_db.conn.commit()

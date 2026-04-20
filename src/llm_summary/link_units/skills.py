@@ -573,16 +573,17 @@ def _parse_autotools_link_units(
 
 def _build_basename_index(
     compile_commands_path: Path | None,
-) -> dict[str, str]:
-    """Build an index from object basename to full output path.
+) -> dict[str, list[str]]:
+    """Build an index from object basename to all full output paths.
 
-    Maps e.g. "aio.lo" -> "/data/.../obj/src/aio/aio.c.lo"
-    so that flat ar-t member names can be resolved to real paths.
-
-    When multiple entries share a basename, the first one wins (ambiguous
-    members will fall through to bc-mapping later).
+    Maps e.g. "free.lo" -> [".../src/malloc/free.lo",
+                             ".../src/malloc/mallocng/free.lo"]
+    so that flat ar-t member names resolve to every compile_commands entry
+    that produced a same-named output.  Archives like musl's libc.a include
+    multiple .lo files with the same basename; returning all of them ensures
+    none are silently dropped.
     """
-    index: dict[str, str] = {}
+    index: dict[str, list[str]] = {}
     if not compile_commands_path or not compile_commands_path.exists():
         return index
     try:
@@ -593,8 +594,7 @@ def _build_basename_index(
             if not output:
                 continue
             basename = Path(output).name
-            if basename not in index:
-                index[basename] = output
+            index.setdefault(basename, []).append(output)
     except (json.JSONDecodeError, OSError):
         pass
     return index
@@ -666,18 +666,27 @@ def discover_heuristic(
             continue
         seen_archives[archive_filename] = archive_rel
 
-        # Resolve member names to real output paths via compile_commands
+        # Resolve member names to real output paths via compile_commands.
+        # A basename may map to multiple outputs (e.g. musl's free.lo exists in
+        # both src/malloc/ and src/malloc/mallocng/); include all of them so no
+        # TU is silently dropped.
         objects = []
         resolved_count = 0
+        seen_objects: set[str] = set()
         archive_dir = Path(archive_rel).parent
         for m in members:
-            real_path = basename_index.get(m)
-            if real_path:
-                objects.append(real_path)
+            real_paths = basename_index.get(m)
+            if real_paths:
+                for rp in real_paths:
+                    if rp not in seen_objects:
+                        seen_objects.add(rp)
+                        objects.append(rp)
                 resolved_count += 1
             else:
-                # Fallback: make absolute via build_dir / archive_dir / member
-                objects.append(str(build_dir / archive_dir / m))
+                fallback = str(build_dir / archive_dir / m)
+                if fallback not in seen_objects:
+                    seen_objects.add(fallback)
+                    objects.append(fallback)
 
         link_units.append({
             "name": name,
@@ -715,9 +724,9 @@ def discover_heuristic(
             # Resolve objects to absolute paths via compile_commands
             resolved_objects = []
             for obj in objects:
-                real_path = basename_index.get(Path(obj).name)
-                if real_path:
-                    resolved_objects.append(real_path)
+                real_paths = basename_index.get(Path(obj).name)
+                if real_paths:
+                    resolved_objects.extend(real_paths)
                 else:
                     resolved_objects.append(str(build_dir / obj))
             link_units.append({
@@ -749,7 +758,7 @@ def discover_heuristic(
     # Filter out stale executables: if not in any Makefile and no
     # matching objects in compile_commands, it's from a previous build.
     if unresolved and basename_index:
-        cc_basenames = set(basename_index.values())
+        cc_basenames = {p for paths in basename_index.values() for p in paths}
         live = []
         stale_count = 0
         for exe_rel in unresolved:

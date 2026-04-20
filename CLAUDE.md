@@ -10,6 +10,8 @@ A pre-commit hook runs **ruff**, **mypy**, and **pytest** on every commit. All t
 
 **IMPORTANT**: All new code must pass these checks. Add type annotations to all functions, fix lint issues before committing. Do not use `--no-verify` to bypass.
 
+**IMPORTANT**: Do not dismiss lint/type/test failures as "pre-existing" or "unrelated". If a check fails in any file you touched (or in the broader run), fix it. Never report a task as done while any error remains.
+
 ## Development Environment
 
 ### Virtual Environment

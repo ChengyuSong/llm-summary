@@ -104,9 +104,23 @@ class CompileCommandsDB:
                                         "clang", "clang++", "clang++-18"))):
                 continue
 
-            # Skip source file
+            # Skip source file. compile_commands.json may store the source
+            # as the absolute path, the bare basename, or — like musl — a
+            # path relative to ``directory``. Normalise relative args before
+            # comparison so the latter case isn't passed through to libclang
+            # as a stray positional argument.
             if arg == source_file or arg == source_name:
                 continue
+            if (
+                directory
+                and arg.endswith(source_name)
+                and not Path(arg).is_absolute()
+            ):
+                try:
+                    if str(Path(directory, arg).resolve()) == source_file:
+                        continue
+                except (OSError, ValueError):
+                    pass
 
             # Skip output file
             if arg == "-o":
