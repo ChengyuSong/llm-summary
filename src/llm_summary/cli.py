@@ -159,11 +159,17 @@ def main():
     help="Only process functions reachable from the given function(s). "
          "Excludes dead code not in the call graph of these roots.",
 )
+@click.option(
+    "--verify-only", is_flag=True,
+    help="(code-contract only) Skip contract generation; re-run verification "
+         "against cached contracts and persist issues to DB.",
+)
 def summarize(
     db_path, backend, model, llm_host, llm_port,
     disable_thinking, verbose, force, log_llm, init_stdlib,
     allocator_file, summary_types, svcomp, deallocator_file, vsnap,
     jobs, cache_mode, function_names, incremental, entry_functions,
+    verify_only,
 ):
     """Generate allocation, free, init, memsafe, and/or verify
     summaries on a pre-populated database.
@@ -195,6 +201,12 @@ def summarize(
         console.print(
             "[red]Error: --type code-contract is mutually exclusive "
             "with the legacy --type values.[/red]"
+        )
+        sys.exit(1)
+
+    if verify_only and "code-contract" not in summary_types:
+        console.print(
+            "[red]Error: --verify-only requires --type code-contract.[/red]"
         )
         sys.exit(1)
 
@@ -515,6 +527,7 @@ def summarize(
                 svcomp=svcomp,
                 cache_system=(cache_mode != "none"),
                 verbose=verbose,
+                verify_only=verify_only,
             )
             passes.append(code_contract_pass)
 
@@ -3569,6 +3582,13 @@ def discover_link_units(
                     f"  [bc] {lu['name']}: {len(lu['bc_files'])} bc files "
                     f"(tier1={s['tier1']}, tier2={s['tier2']}, missing={s['not_found']})"
                 )
+
+    # Record compile_commands.json mtime for staleness detection
+    cc_path = compile_commands_path or (build_dir / "compile_commands.json")
+    if isinstance(cc_path, str):
+        cc_path = Path(cc_path)
+    if cc_path.exists():
+        result["compile_commands_mtime"] = cc_path.stat().st_mtime
 
     # Write output
     output_path = Path(output)

@@ -15,11 +15,9 @@ MODEL=""
 LLM_HOST=""
 LLM_PORT=""
 FROM_PHASE=0
-SKIP_VERIFY=0
-SKIP_LEAK=0
-SKIP_INTOVERFLOW=0
-WITH_CONTAINERS=0
 PREPROCESS=1
+WITH_CHECK=0
+CHECK_ONLY=0
 FORCE=""
 INCREMENTAL=""
 VERBOSE=""
@@ -30,7 +28,7 @@ usage() {
     cat <<EOF
 Usage: $0 <project-name> --backend <backend> [options] [-- extra-args...]
 
-Run the full analysis pipeline for a single project.
+Run the code-contract analysis pipeline for a single project.
 
 Positional:
   PROJECT              Project name from gpr_projects.json
@@ -42,12 +40,12 @@ Optional:
   --model NAME         Model override
   --llm-host HOST      Host for local backends (ollama, llamacpp)
   --llm-port PORT      Port for local backends
-  --from-phase N       Start from phase N (0-6), skip earlier phases (default: 0)
+  --from-phase N       Start from phase N (0-4), skip earlier phases (default: 0)
   --skip-build         Shorthand for --from-phase 2 (skip build-learn and discover-link-units)
-  --skip-verify        Skip verification phase (phase 5)
-  --skip-leak          Skip leak detection in summarize and verify phases
-  --skip-intoverflow   Skip integer overflow detection in summarize and verify phases
-  --with-containers    Run container detection phase (phase 6)
+  --with-check         After phase 4, run 'llm-summary check' per target and
+                       write check_report.json next to each functions.db.
+  --check-only         Skip phases 0-3; re-run verification against cached
+                       contracts (no contract generation) and persist issues.
   --no-preprocess      Disable clang -E macro expansion during scan (on by default)
   --force              Force re-summarize even if cached
   --incremental        Only re-summarize functions with stale callee summaries
@@ -57,11 +55,10 @@ Optional:
 Phases:
   0  build-learn          (batch_build_learn.py)
   1  discover-link-units  (batch_discover_link_units.py)
-  2  scan targets         (batch_scan_targets.py, incl. extern header extraction)
-  3  call graph           (batch_call_graph_gen.py)
-  4  summarize            (batch_summarize.py, incl. cross-project import-dep)
-  5  verify               (batch_verify.py)
-  6  container detect     (batch_container_detect.py, requires --with-containers)
+  2  scan targets         (batch_scan_targets.py)
+  3  call graph + sidecar (batch_call_graph_gen.py, KAMain --ir-sidecar-dir)
+  4  code-contract        (batch_code_contract.py; per-function summarize +
+                           verify interleaved; optional entry-point check)
 EOF
     exit 1
 }
@@ -88,14 +85,10 @@ while [[ $# -gt 0 ]]; do
             FROM_PHASE="$2"; shift 2 ;;
         --skip-build)
             FROM_PHASE=2; shift ;;
-        --skip-verify)
-            SKIP_VERIFY=1; shift ;;
-        --skip-leak)
-            SKIP_LEAK=1; shift ;;
-        --skip-intoverflow)
-            SKIP_INTOVERFLOW=1; shift ;;
-        --with-containers)
-            WITH_CONTAINERS=1; shift ;;
+        --with-check)
+            WITH_CHECK=1; shift ;;
+        --check-only)
+            CHECK_ONLY=1; FROM_PHASE=4; shift ;;
         --preprocess)
             PREPROCESS=1; shift ;;
         --no-preprocess)
@@ -127,6 +120,9 @@ LLM_ARGS="--backend $BACKEND"
 [[ -n "$LLM_HOST" ]] && LLM_ARGS="$LLM_ARGS --llm-host $LLM_HOST"
 [[ -n "$LLM_PORT" ]] && LLM_ARGS="$LLM_ARGS --llm-port $LLM_PORT"
 
+CHECK_ARG=""
+[[ $WITH_CHECK -eq 1 ]] && CHECK_ARG="--check"
+
 # ── Helpers ───────────────────────────────────────────────────────────────────
 TOTAL_START=$(date +%s)
 
@@ -157,20 +153,19 @@ run_phase() {
 }
 
 # ── Print config ──────────────────────────────────────────────────────────────
-echo "Pipeline: single-project"
+echo "Pipeline: code-contract (single-project)"
 echo "Project:  $PROJECT"
 echo "Backend:  $BACKEND"
 [[ -n "$MODEL" ]]    && echo "Model:    $MODEL"
 [[ -n "$LLM_HOST" ]] && echo "LLM host: $LLM_HOST"
 [[ -n "$LLM_PORT" ]] && echo "LLM port: $LLM_PORT"
 echo "From:     phase $FROM_PHASE"
-[[ $SKIP_VERIFY -eq 1 ]]     && echo "Verify:      skipped"
-[[ $SKIP_LEAK -eq 1 ]]          && echo "Leak:        skipped"
-[[ $SKIP_INTOVERFLOW -eq 1 ]]   && echo "IntOverflow: skipped"
-[[ $PREPROCESS -eq 0 ]]  && echo "Preproc:  no"
+[[ $WITH_CHECK -eq 1 ]]  && echo "Check:       yes (entry-point obligations)"
+[[ $CHECK_ONLY -eq 1 ]]  && echo "Check-only:  yes (verify cached contracts)"
+[[ $PREPROCESS -eq 0 ]]  && echo "Preproc:     no"
 [[ -n "$FORCE" ]]        && echo "Force:       yes"
-[[ -n "$INCREMENTAL" ]] && echo "Incremental: yes"
-[[ -n "$VERBOSE" ]]      && echo "Verbose:  yes"
+[[ -n "$INCREMENTAL" ]]  && echo "Incremental: yes"
+[[ -n "$VERBOSE" ]]      && echo "Verbose:     yes"
 echo ""
 
 # ── Phase 0: build-learn ─────────────────────────────────────────────────────
@@ -191,47 +186,23 @@ PREPROCESS_ARG=""
 
 run_phase 2 "scan targets" \
     python3 scripts/batch_scan_targets.py \
-        $FILTER_ARGS $PREPROCESS_ARG $VERBOSE \
+        $FILTER_ARGS $PREPROCESS_ARG $INCREMENTAL $VERBOSE \
         "${PASSTHROUGH[@]+"${PASSTHROUGH[@]}"}"
 
-# ── Phase 3: call graph generation ───────────────────────────────────────────
+# ── Phase 3: call graph + IR sidecar ─────────────────────────────────────────
 run_phase 3 "call graph" \
     python3 scripts/batch_call_graph_gen.py \
         $FILTER_ARGS --compositional $VERBOSE \
         "${PASSTHROUGH[@]+"${PASSTHROUGH[@]}"}"
 
-# ── Phase 4: summarize ───────────────────────────────────────────────────────
-run_phase 4 "summarize" \
-    python3 scripts/batch_summarize.py \
-        $FILTER_ARGS $LLM_ARGS --init-stdlib $FORCE $INCREMENTAL $VERBOSE \
+CHECK_ONLY_ARG=""
+[[ $CHECK_ONLY -eq 1 ]] && CHECK_ONLY_ARG="--verify-only"
+
+# ── Phase 4: code-contract (summarize + per-function verify) ─────────────────
+run_phase 4 "code-contract" \
+    python3 scripts/batch_code_contract.py \
+        $FILTER_ARGS $LLM_ARGS $CHECK_ARG $FORCE $INCREMENTAL $CHECK_ONLY_ARG $VERBOSE \
         "${PASSTHROUGH[@]+"${PASSTHROUGH[@]}"}"
-
-# ── Phase 5: verify ──────────────────────────────────────────────────────────
-if [[ $SKIP_VERIFY -eq 0 ]]; then
-    VERIFY_TYPES="--types"
-    [[ $SKIP_LEAK -eq 0 ]]        && VERIFY_TYPES="$VERIFY_TYPES leak"
-    [[ $SKIP_INTOVERFLOW -eq 0 ]] && VERIFY_TYPES="$VERIFY_TYPES intoverflow"
-    VERIFY_TYPES="$VERIFY_TYPES verify"
-
-    run_phase 5 "verify" \
-        python3 scripts/batch_verify.py \
-            $FILTER_ARGS $LLM_ARGS $VERIFY_TYPES $FORCE $INCREMENTAL $VERBOSE \
-            "${PASSTHROUGH[@]+"${PASSTHROUGH[@]}"}"
-else
-    echo ""
-    echo "--- Phase 5: verify [SKIPPED] ---"
-fi
-
-# ── Phase 6: container detection (optional) ──────────────────────────────────
-if [[ $WITH_CONTAINERS -eq 1 ]]; then
-    run_phase 6 "container detection" \
-        python3 scripts/batch_container_detect.py \
-            $FILTER_ARGS $LLM_ARGS $FORCE $VERBOSE \
-            "${PASSTHROUGH[@]+"${PASSTHROUGH[@]}"}"
-else
-    echo ""
-    echo "--- Phase 6: container detection [SKIPPED] (use --with-containers) ---"
-fi
 
 # ── Done ──────────────────────────────────────────────────────────────────────
 TOTAL_ELAPSED=$(( $(date +%s) - TOTAL_START ))

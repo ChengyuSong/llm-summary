@@ -262,19 +262,36 @@ def main() -> None:
             })
             continue
 
-        # Skip if already discovered
+        # Skip if already discovered and compile_commands.json hasn't changed
         link_units_path = FUNC_SCANS_DIR / artifact_name / "link_units.json"
         if link_units_path.exists() and not args.force:
-            print(f"  ✅ Already discovered ({link_units_path}) — skipping")
-            results["skipped"] += 1
-            results["projects"].append({
-                "name": project_name,
-                "status": "skipped",
-                "reason": "already_exists",
-                "path": str(project_path),
-                "link_units_path": str(link_units_path),
-            })
-            continue
+            stale = False
+            try:
+                with open(link_units_path) as f:
+                    lu_data = json.load(f)
+                saved_mtime = lu_data.get("compile_commands_mtime")
+                if saved_mtime is not None:
+                    cc_path = build_dir / "compile_commands.json"
+                    if not cc_path.exists():
+                        cc_path = project_path / "compile_commands.json"
+                    if cc_path.exists() and cc_path.stat().st_mtime != saved_mtime:
+                        stale = True
+            except (json.JSONDecodeError, OSError):
+                pass
+
+            if stale:
+                print(f"  🔄 compile_commands.json changed — re-discovering")
+            else:
+                print(f"  ✅ Already discovered ({link_units_path}) — skipping")
+                results["skipped"] += 1
+                results["projects"].append({
+                    "name": project_name,
+                    "status": "skipped",
+                    "reason": "already_exists",
+                    "path": str(project_path),
+                    "link_units_path": str(link_units_path),
+                })
+                continue
 
         success, error_msg, duration = run_discover_link_units(
             project_name=project_name,

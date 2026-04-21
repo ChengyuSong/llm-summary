@@ -28,6 +28,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
 from gpr_utils import resolve_compile_commands
 
+import subprocess
+
 from llm_summary.asm_extractor import ASM_EXTENSIONS, extract_asm_functions
 from llm_summary.compile_commands import CompileCommandsDB
 from llm_summary.db import SummaryDB
@@ -79,6 +81,50 @@ def _load_project_root(project_dir: Path) -> Path | None:
         except Exception:
             pass
     return None
+
+
+def _git_head_commit(repo_path: Path) -> str | None:
+    """Return the short SHA of HEAD in the given repo."""
+    try:
+        r = subprocess.run(
+            ["git", "-C", str(repo_path), "rev-parse", "--short", "HEAD"],
+            capture_output=True, text=True, timeout=10,
+        )
+        return r.stdout.strip() if r.returncode == 0 else None
+    except Exception:
+        return None
+
+
+def _git_changed_files(
+    repo_path: Path, old_commit: str, new_commit: str = "HEAD",
+) -> tuple[set[str], set[str]]:
+    """Return (changed_or_added, deleted) file sets between two commits.
+
+    Paths are relative to repo root.
+    """
+    try:
+        r = subprocess.run(
+            ["git", "-C", str(repo_path), "diff", "--name-status",
+             f"{old_commit}..{new_commit}"],
+            capture_output=True, text=True, timeout=30,
+        )
+        if r.returncode != 0:
+            return set(), set()
+    except Exception:
+        return set(), set()
+
+    changed: set[str] = set()
+    deleted: set[str] = set()
+    for line in r.stdout.strip().splitlines():
+        parts = line.split("\t", 1)
+        if len(parts) < 2:
+            continue
+        status, path = parts[0], parts[1]
+        if status.startswith("D"):
+            deleted.add(path)
+        else:
+            changed.add(path)
+    return changed, deleted
 
 
 def _bare_stem(p: Path) -> str:
@@ -241,6 +287,21 @@ def _scan_files(
             except Exception:
                 pass
 
+    # Relativize file paths before DB insert so paths are portable.
+    if project_root:
+        root_prefix = str(project_root) + "/"
+        # Migrate existing absolute-path entries to relative so ON CONFLICT
+        # matches them on re-scan instead of creating duplicates.
+        db.relativize_file_paths(root_prefix)
+
+        for func in all_functions:
+            if func.file_path.startswith(root_prefix):
+                func.file_path = func.file_path[len(root_prefix):]
+        for td in all_typedefs:
+            fp = td.get("file_path", "")
+            if fp.startswith(root_prefix):
+                td["file_path"] = fp[len(root_prefix):]
+
     db.insert_functions_batch(all_functions)
     db.insert_typedefs_batch(all_typedefs)
 
@@ -347,11 +408,13 @@ def scan_project_link_units(
     verbose: bool = False,
     preprocess: bool = False,
     jobs: int = 0,
+    incremental: bool = False,
 ) -> dict[str, Any]:
     """Scan a project with link_units.json — one DB per target.
 
     Args:
         jobs: Number of parallel target workers. 0 = cpu_count, 1 = sequential.
+        incremental: Only re-scan files that changed since last scan (git diff).
     """
     project_name = project_dir.name
     result: dict[str, Any] = {
@@ -377,6 +440,45 @@ def scan_project_link_units(
     link_units = topo_sort_link_units(raw_units)
     project_scan_dir = func_scans_dir / project_name
     build_dir = Path(lu_data.get("build_dir", f"/data/csong/build-artifacts/{project_name}"))
+
+    # Incremental: compute changed files via git diff
+    incr_changed_rel: set[str] | None = None
+    incr_deleted_rel: set[str] | None = None
+    new_commit: str | None = None
+    if incremental and project_root:
+        new_commit = _git_head_commit(project_root)
+        # Read stored commit from any existing target DB
+        old_commit: str | None = None
+        for lu in link_units:
+            if lu.get("alias_of"):
+                continue
+            candidate_db = project_scan_dir / lu["name"] / "functions.db"
+            if candidate_db.exists():
+                tmp_db = SummaryDB(str(candidate_db))
+                old_commit = tmp_db.get_scan_meta("project_commit")
+                tmp_db.close()
+                break
+
+        if old_commit and new_commit and old_commit != new_commit:
+            changed_rel, deleted_rel = _git_changed_files(
+                project_root, old_commit, new_commit,
+            )
+            incr_changed_rel = {f for f in changed_rel
+                                if Path(f).suffix.lower() in SCAN_EXTENSIONS}
+            incr_deleted_rel = {f for f in deleted_rel
+                                if Path(f).suffix.lower() in SCAN_EXTENSIONS}
+            if verbose:
+                print(f"    Incremental: {old_commit}..{new_commit} — "
+                      f"{len(incr_changed_rel)} changed, "
+                      f"{len(incr_deleted_rel)} deleted source files")
+        elif old_commit and old_commit == new_commit:
+            if verbose:
+                print(f"    Incremental: no changes since {old_commit}")
+            result["timing_seconds"] = round(time.monotonic() - start, 2)
+            return result
+        else:
+            if verbose:
+                print("    Incremental: no stored commit — full scan")
 
     # Write resolved compile_commands to a temp file (shared across workers)
     import tempfile as _tempfile
@@ -411,6 +513,37 @@ def scan_project_link_units(
                 target_dir = project_scan_dir / target
                 target_dir.mkdir(parents=True, exist_ok=True)
                 db_path_str = str(target_dir / "functions.db")
+
+            # Incremental: filter to changed files, delete stale entries
+            if incr_changed_rel is not None and project_root:
+                root_str = str(project_root) + "/"
+                # source_files are absolute; convert to relative for matching
+                def _to_rel(p: str) -> str:
+                    return p[len(root_str):] if p.startswith(root_str) else p
+
+                changed_src = [f for f in source_files
+                               if _to_rel(f) in incr_changed_rel]
+                deleted_rels = [f for f in
+                                (incr_deleted_rel or set())
+                                if _to_rel(f) in (incr_deleted_rel or set())]
+
+                if db_path_str != ":memory:" and Path(db_path_str).exists():
+                    tgt_db = SummaryDB(db_path_str)
+                    # Delete entries for changed/deleted files (both relative
+                    # and absolute forms for backward compat with old DBs)
+                    to_delete = []
+                    for rel in [_to_rel(f) for f in changed_src] + deleted_rels:
+                        to_delete.append(rel)
+                        to_delete.append(str(project_root / rel))
+                    if to_delete:
+                        n_del = tgt_db.delete_functions_by_files(to_delete)
+                        if verbose and n_del:
+                            print(f"    [{target}] Deleted {n_del} stale function(s)")
+                    tgt_db.close()
+
+                source_files = changed_src
+                if verbose:
+                    print(f"    [{target}] Incremental: {len(source_files)} files to re-scan")
 
             work_items.append((
                 target, source_files, match_desc, str(tmp_path),
@@ -482,6 +615,15 @@ def scan_project_link_units(
             preprocess_failed.extend(tr.get("preprocess_failed", []))
         result["preprocess_failed"] = preprocess_failed
 
+        # Update stored commit in all target DBs
+        if new_commit and not dry_run:
+            for item in work_items:
+                db_path_str = item[4]
+                if db_path_str != ":memory:" and Path(db_path_str).exists():
+                    tgt_db = SummaryDB(db_path_str)
+                    tgt_db.set_scan_meta("project_commit", new_commit)
+                    tgt_db.close()
+
     finally:
         tmp_path.unlink(missing_ok=True)
 
@@ -496,6 +638,7 @@ def scan_project(
     verbose: bool = False,
     preprocess: bool = False,
     jobs: int = 0,
+    incremental: bool = False,
 ) -> dict[str, Any]:
     """Scan a single project and return statistics.
 
@@ -546,6 +689,7 @@ def scan_project(
                 verbose=verbose,
                 preprocess=preprocess,
                 jobs=jobs,
+                incremental=incremental,
             )
 
         # --- Legacy single-DB mode ---
@@ -621,9 +765,11 @@ def _scan_worker(args: tuple) -> dict[str, Any]:
     project_dir, func_scans_dir, dry_run, verbose = args[:4]
     preprocess = args[4] if len(args) > 4 else False
     jobs = args[5] if len(args) > 5 else 0
+    incremental = args[6] if len(args) > 6 else False
     return scan_project(
         Path(project_dir), Path(func_scans_dir),
         dry_run=dry_run, verbose=verbose, preprocess=preprocess, jobs=jobs,
+        incremental=incremental,
     )
 
 
@@ -685,6 +831,10 @@ def main():
         help="When --preprocess fails (missing build artifacts), automatically rebuild "
              "the project via batch_rebuild.py and re-scan. Requires --preprocess.",
     )
+    parser.add_argument(
+        "--incremental", action="store_true",
+        help="Only re-scan source files that changed since the last scan (git diff).",
+    )
     args = parser.parse_args()
 
     if not BUILD_SCRIPTS_DIR.exists():
@@ -745,11 +895,12 @@ def main():
         print(f"Parallel workers: {num_workers}")
     print()
 
-    # Build work items: (project_dir, func_scans_dir, dry_run, verbose, preprocess, jobs)
+    # Build work items: (project_dir, func_scans_dir, dry_run, verbose, preprocess, jobs, incremental)
     work_items = [
         (
             str(project_dir), str(FUNC_SCANS_DIR),
             args.dry_run, args.verbose, args.preprocess, args.jobs,
+            args.incremental,
         )
         for project_dir in projects
     ]

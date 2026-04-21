@@ -335,6 +335,12 @@ CREATE TABLE IF NOT EXISTS function_scan_issues (
 );
 CREATE INDEX IF NOT EXISTS idx_scan_issues_function
     ON function_scan_issues(function_id);
+
+-- Scan metadata (tracks project repo state for incremental scanning)
+CREATE TABLE IF NOT EXISTS scan_metadata (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL
+);
 """
 
 
@@ -439,6 +445,24 @@ class SummaryDB:
     def close(self) -> None:
         """Close the database connection."""
         self.conn.close()
+
+    # ========== Scan Metadata ==========
+
+    def get_scan_meta(self, key: str) -> str | None:
+        """Get a scan metadata value by key."""
+        row = self.conn.execute(
+            "SELECT value FROM scan_metadata WHERE key = ?", (key,)
+        ).fetchone()
+        return row["value"] if row else None
+
+    def set_scan_meta(self, key: str, value: str) -> None:
+        """Set a scan metadata value (upsert)."""
+        self.conn.execute(
+            "INSERT INTO scan_metadata (key, value) VALUES (?, ?) "
+            "ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+            (key, value),
+        )
+        self.conn.commit()
 
     # ========== Function Operations ==========
 
@@ -664,6 +688,38 @@ class SummaryDB:
             )
             for row in rows
         ]
+
+    def relativize_file_paths(self, root_prefix: str) -> int:
+        """Strip an absolute root prefix from all file_path entries in-place.
+
+        This migrates old absolute paths to relative without deleting rows,
+        preserving foreign-key-linked summaries. Also updates the typedefs table.
+        """
+        cursor = self.conn.execute(
+            "UPDATE functions SET file_path = SUBSTR(file_path, ?) "
+            "WHERE file_path LIKE ?",
+            (len(root_prefix) + 1, root_prefix + "%"),
+        )
+        n = cursor.rowcount
+        self.conn.execute(
+            "UPDATE typedefs SET file_path = SUBSTR(file_path, ?) "
+            "WHERE file_path LIKE ?",
+            (len(root_prefix) + 1, root_prefix + "%"),
+        )
+        self.conn.commit()
+        return n
+
+    def delete_functions_by_files(self, file_paths: list[str]) -> int:
+        """Delete all functions (and cascade summaries) whose file_path is in the list."""
+        if not file_paths:
+            return 0
+        placeholders = ",".join("?" for _ in file_paths)
+        cursor = self.conn.execute(
+            f"DELETE FROM functions WHERE file_path IN ({placeholders})",
+            file_paths,
+        )
+        self.conn.commit()
+        return cursor.rowcount
 
     def delete_function_blocks(self, function_id: int) -> None:
         """Delete all blocks for a function."""
@@ -896,6 +952,7 @@ class SummaryDB:
             "allocation_summaries", "free_summaries", "init_summaries",
             "memsafe_summaries", "verification_summaries",
             "leak_summaries", "integer_overflow_summaries",
+            "code_contract_summaries",
         }
         if pass_table not in valid_tables:
             raise ValueError(f"Invalid pass table: {pass_table}")
@@ -907,7 +964,7 @@ class SummaryDB:
             f"""
             SELECT f.id FROM functions f
             LEFT JOIN {pass_table} s ON s.function_id = f.id
-            WHERE s.id IS NULL AND f.source IS NOT NULL AND f.source != ''
+            WHERE s.function_id IS NULL AND f.source IS NOT NULL AND f.source != ''
             """,
         ).fetchall()
         dirty.update(row["id"] for row in rows)
@@ -2197,6 +2254,10 @@ class SummaryDB:
         ).fetchall()
         if len(rows) == 1:
             return self._row_to_function(rows[0])
+        if len(rows) > 1:
+            with_source = [r for r in rows if r["source"]]
+            if with_source:
+                return self._row_to_function(with_source[0])
         return None
 
     def clear_call_edges(self) -> int:
