@@ -87,7 +87,8 @@ def _extract_features_regex(source: str) -> Features:
 def _features_from_sidecar(feats: dict[str, Any]) -> Features:
     """Map KAMain `features` block → Features dataclass.
 
-    has_deref ← load_count > 0 OR store_count > 0  (any actual memory op)
+    has_deref ← load_count > 0 OR store_count > 0 OR return_is_ptr
+        (any actual memory op, or returns a pointer that callers will deref)
     has_alloc / has_free ← alloc_count / free_count
     has_index ← ptr_params > 0  (proxy: pointer params imply indexing risk;
         plain loads alone don't, since an indirect call site may load a fn
@@ -97,7 +98,8 @@ def _features_from_sidecar(feats: dict[str, Any]) -> Features:
     """
     return Features(
         has_deref=int(feats.get("load_count") or 0) > 0
-                  or int(feats.get("store_count") or 0) > 0,
+                  or int(feats.get("store_count") or 0) > 0
+                  or bool(feats.get("return_is_ptr")),
         has_alloc=int(feats.get("alloc_count") or 0) > 0,
         has_free=int(feats.get("free_count") or 0) > 0,
         has_index=int(feats.get("ptr_params") or 0) > 0,
@@ -266,13 +268,13 @@ def is_inline_body(func: Function, props: list[str]) -> bool:
     instead of being summarized.
 
     Rule: body line count < `LINES_PER_PROP_FLOOR * len(props)`. Functions
-    with no in-scope properties skip this path (they get an empty summary
-    anyway). Functions inside an SCC of size > 1 are rejected by the
-    caller — driver-level decision.
+    with no in-scope properties are still eligible if they are very small
+    (< LINES_PER_PROP_FLOOR) — inlining gives callers visibility into the
+    body even when the callee itself has nothing to summarize.
     """
-    if not props:
-        return False
     body_lines = max(0, func.line_end - func.line_start + 1)
+    if not props:
+        return body_lines < LINES_PER_PROP_FLOOR
     return body_lines < LINES_PER_PROP_FLOOR * len(props)
 
 

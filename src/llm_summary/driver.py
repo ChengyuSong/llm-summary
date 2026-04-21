@@ -79,6 +79,7 @@ PASS_TABLE_MAP: dict[str, str] = {
     "verify": "verification_summaries",
     "leak": "leak_summaries",
     "intoverflow": "integer_overflow_summaries",
+    "code_contract": "code_contract_summaries",
 }
 
 

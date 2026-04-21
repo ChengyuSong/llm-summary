@@ -75,6 +75,23 @@ def _build_libc_contracts() -> dict[str, CodeContractSummary]:
         memleak={"ensures": ["on success: acquires heap allocation tied to result; releases ptr"]},
     )
 
+    out["aligned_alloc"] = _summary(
+        "aligned_alloc",
+        memsafe={"requires": ["alignment is a power of 2",
+                              "size is a multiple of alignment"],
+                 "ensures":  ["result == NULL || allocated(result, size)"]},
+        memleak={"ensures": ["acquires heap allocation: caller must free(result) if non-NULL"]},
+    )
+    out["asprintf"] = _summary(
+        "asprintf",
+        memsafe={"requires": ["strp != NULL",
+                              "fmt != NULL && fmt is NUL-terminated"],
+                 "ensures":  ["result == -1 || (*strp != NULL "
+                              "&& *strp is NUL-terminated)"]},
+        memleak={"ensures": ["on success: acquires heap allocation via *strp; "
+                             "caller must free(*strp)"]},
+    )
+
     # ── Stack alloc (no leak obligation) ──
     for name in ("alloca", "__builtin_alloca"):
         out[name] = _summary(
@@ -124,10 +141,78 @@ def _build_libc_contracts() -> dict[str, CodeContractSummary]:
     )
 
     # ── string / mem ──
+    out["memcpy"] = _summary(
+        "memcpy",
+        memsafe={"requires": ["dest != NULL && writable(dest, n)",
+                              "src != NULL && readable(src, n)",
+                              "no overlap between [dest, dest+n) and [src, src+n)"],
+                 "ensures":  ["initialized(dest, n)", "result == dest"]},
+    )
+    out["memmove"] = _summary(
+        "memmove",
+        memsafe={"requires": ["dest != NULL && writable(dest, n)",
+                              "src != NULL && readable(src, n)"],
+                 "ensures":  ["initialized(dest, n)", "result == dest"]},
+    )
+    out["memset"] = _summary(
+        "memset",
+        memsafe={"requires": ["s != NULL && writable(s, n)"],
+                 "ensures":  ["initialized(s, n)", "result == s"]},
+    )
     out["memcmp"] = _summary(
         "memcmp",
-        memsafe={"requires": ["s1 readable for n bytes",
-                              "s2 readable for n bytes"]},
+        memsafe={"requires": ["s1 != NULL && readable(s1, n)",
+                              "s2 != NULL && readable(s2, n)"]},
+    )
+    out["strlen"] = _summary(
+        "strlen",
+        memsafe={"requires": ["s != NULL && s is NUL-terminated"]},
+    )
+    out["strcmp"] = _summary(
+        "strcmp",
+        memsafe={"requires": ["s1 != NULL && s1 is NUL-terminated",
+                              "s2 != NULL && s2 is NUL-terminated"]},
+    )
+    out["strncmp"] = _summary(
+        "strncmp",
+        memsafe={"requires": ["s1 != NULL && readable(s1, n)",
+                              "s2 != NULL && readable(s2, n)"]},
+    )
+    out["strcpy"] = _summary(
+        "strcpy",
+        memsafe={"requires": ["dest != NULL",
+                              "src != NULL && src is NUL-terminated",
+                              "writable(dest, strlen(src) + 1)",
+                              "no overlap between dest and src"],
+                 "ensures":  ["dest is NUL-terminated", "result == dest"]},
+    )
+    out["strncpy"] = _summary(
+        "strncpy",
+        memsafe={"requires": ["dest != NULL && writable(dest, n)",
+                              "src != NULL && readable(src, n)"],
+                 "ensures":  ["initialized(dest, n)", "result == dest"]},
+    )
+    out["strdup"] = _summary(
+        "strdup",
+        memsafe={"requires": ["s != NULL && s is NUL-terminated"],
+                 "ensures":  ["result == NULL || (result is NUL-terminated "
+                              "&& allocated(result, strlen(s) + 1))"]},
+        memleak={"ensures": ["acquires heap allocation: caller must free(result) if non-NULL"]},
+    )
+    out["strndup"] = _summary(
+        "strndup",
+        memsafe={"requires": ["s != NULL && readable(s, n)"],
+                 "ensures":  ["result == NULL || (result is NUL-terminated "
+                              "&& allocated(result, min(n, strlen(s)) + 1))"]},
+        memleak={"ensures": ["acquires heap allocation: caller must free(result) if non-NULL"]},
+    )
+    out["strcat"] = _summary(
+        "strcat",
+        memsafe={"requires": ["dest != NULL && dest is NUL-terminated",
+                              "src != NULL && src is NUL-terminated",
+                              "writable(dest, strlen(dest) + strlen(src) + 1)",
+                              "no overlap between dest and src"],
+                 "ensures":  ["dest is NUL-terminated", "result == dest"]},
     )
     out["strerror"] = _summary(
         "strerror",
@@ -166,25 +251,97 @@ def _build_libc_contracts() -> dict[str, CodeContractSummary]:
     )
 
     # ── stdio ──
+    out["fopen"] = _summary(
+        "fopen",
+        memsafe={"requires": ["pathname != NULL && pathname is NUL-terminated",
+                              "mode != NULL && mode is NUL-terminated"],
+                 "ensures":  ["result == NULL || result is a valid open FILE*"]},
+        memleak={"ensures": ["acquires FILE resource: caller must fclose(result) if non-NULL"]},
+    )
+    out["fdopen"] = _summary(
+        "fdopen",
+        memsafe={"requires": ["fd is an open file descriptor",
+                              "mode != NULL && mode is NUL-terminated"],
+                 "ensures":  ["result == NULL || result is a valid open FILE*"]},
+        memleak={"ensures": ["acquires FILE resource: caller must fclose(result) if non-NULL"]},
+    )
+    out["fclose"] = _summary(
+        "fclose",
+        memsafe={"requires": ["stream != NULL && stream is a valid open FILE*"]},
+        memleak={"ensures": ["releases FILE resource and underlying fd"]},
+    )
+    out["tmpfile"] = _summary(
+        "tmpfile",
+        memsafe={"ensures": ["result == NULL || result is a valid open FILE*"]},
+        memleak={"ensures": ["acquires FILE resource: caller must fclose(result) if non-NULL"]},
+    )
+    out["fread"] = _summary(
+        "fread",
+        memsafe={"requires": ["ptr != NULL && writable(ptr, size * nmemb)",
+                              "stream != NULL && stream is a valid open FILE*"],
+                 "ensures":  ["initialized(ptr, size * result)"]},
+    )
+    out["fwrite"] = _summary(
+        "fwrite",
+        memsafe={"requires": ["ptr != NULL && readable(ptr, size * nmemb)",
+                              "stream != NULL && stream is a valid open FILE*"]},
+    )
+    out["fprintf"] = _summary(
+        "fprintf",
+        memsafe={"requires": ["stream != NULL && stream is a valid open FILE*",
+                              "format != NULL && format is NUL-terminated"]},
+    )
+    out["printf"] = _summary(
+        "printf",
+        memsafe={"requires": ["format != NULL && format is NUL-terminated"]},
+    )
+    out["fputs"] = _summary(
+        "fputs",
+        memsafe={"requires": ["s != NULL && s is NUL-terminated",
+                              "stream != NULL && stream is a valid open FILE*"]},
+    )
+    out["getline"] = _summary(
+        "getline",
+        memsafe={"requires": ["lineptr != NULL", "*lineptr == NULL || allocated(*lineptr, *n)",
+                              "n != NULL", "stream != NULL && stream is a valid open FILE*"],
+                 "ensures":  ["result == -1 || (*lineptr != NULL "
+                              "&& *lineptr is NUL-terminated)"]},
+        memleak={"ensures": ["may realloc *lineptr: caller must free(*lineptr)"]},
+    )
     out["ferror"] = _summary(
         "ferror",
-        memsafe={"requires": ["stream is non-NULL and refers to an open FILE"]},
+        memsafe={"requires": ["stream != NULL && stream is a valid open FILE*"]},
     )
     out["fflush"] = _summary(
         "fflush",
-        memsafe={"requires": ["stream is NULL or refers to an open FILE"]},
+        memsafe={"requires": ["stream == NULL || stream is a valid open FILE*"]},
     )
     out["remove"] = _summary(
         "remove",
-        memsafe={"requires": ["pathname is non-NULL and points to a NUL-terminated string"]},
+        memsafe={"requires": ["pathname != NULL && pathname is NUL-terminated"]},
+    )
+    out["perror"] = _summary(
+        "perror",
+        memsafe={"requires": ["s == NULL || s is NUL-terminated"]},
+    )
+    out["unlink"] = _summary(
+        "unlink",
+        memsafe={"requires": ["pathname != NULL && pathname is NUL-terminated"]},
+    )
+    out["snprintf"] = _summary(
+        "snprintf",
+        memsafe={"requires": ["(s == NULL && n == 0) || (s != NULL && writable(s, n))",
+                              "fmt != NULL && fmt is NUL-terminated"],
+                 "ensures":  ["n > 0 && s != NULL => initialized(s, min(n, result+1)) "
+                              "&& s is NUL-terminated within n bytes"]},
     )
     out["vsnprintf"] = _summary(
         "vsnprintf",
-        memsafe={"requires": ["str is NULL and size == 0, or str is writable for size bytes",
-                              "format is non-NULL and points to a NUL-terminated string",
-                              "ap matches the conversions in format and points to live arguments"],
-                 "ensures":  ["if size > 0 and str != NULL: str[0..min(size-1, written)] "
-                              "written and str NUL-terminated within size bytes"]},
+        memsafe={"requires": ["(str == NULL && size == 0) || (str != NULL && writable(str, size))",
+                              "format != NULL && format is NUL-terminated",
+                              "ap matches the conversions in format"],
+                 "ensures":  ["size > 0 && str != NULL => initialized(str, min(size, result+1)) "
+                              "&& str is NUL-terminated within size bytes"]},
     )
 
     # ── POSIX file I/O ──
@@ -224,6 +381,47 @@ def _build_libc_contracts() -> dict[str, CodeContractSummary]:
         memsafe={"requires": ["s is readable for n bytes"],
                  "ensures":  ["result is NULL or points within s[0..n-1]"]},
     )
+
+    # ── mmap / munmap ──
+    out["mmap"] = _summary(
+        "mmap",
+        memsafe={"requires": ["addr == NULL || addr is page-aligned",
+                              "length > 0"],
+                 "ensures":  ["result == MAP_FAILED || writable(result, length)"]},
+        memleak={"ensures": ["on success: acquires mapping; caller must munmap(result, length)"]},
+    )
+    out["munmap"] = _summary(
+        "munmap",
+        memsafe={"requires": ["addr != NULL && addr is page-aligned",
+                              "length > 0"]},
+        memleak={"ensures": ["releases mapping at [addr, addr+length)"]},
+    )
+
+    # ── directory ──
+    out["opendir"] = _summary(
+        "opendir",
+        memsafe={"requires": ["name != NULL && name is NUL-terminated"],
+                 "ensures":  ["result == NULL || result is a valid DIR*"]},
+        memleak={"ensures": ["acquires DIR resource: caller must closedir(result) if non-NULL"]},
+    )
+    out["closedir"] = _summary(
+        "closedir",
+        memsafe={"requires": ["dirp != NULL && dirp is a valid open DIR*"]},
+        memleak={"ensures": ["releases DIR resource"]},
+    )
+
+    # ── err family (noreturn) ──
+    for n in ("err", "errx"):
+        out[n] = _summary(
+            n, noreturn=True,
+            memsafe={"requires": ["fmt != NULL && fmt is NUL-terminated"]},
+        )
+    for n in ("verr", "verrx"):
+        out[n] = _summary(
+            n, noreturn=True,
+            memsafe={"requires": ["fmt != NULL && fmt is NUL-terminated",
+                                  "ap matches the conversions in fmt"]},
+        )
 
     # ── musl internal allocator aliases ──
     out["__libc_free"] = _summary(

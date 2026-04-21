@@ -71,6 +71,15 @@ class StdlibCacheEntry:
 # Cache
 # ---------------------------------------------------------------------------
 
+_SUMMARY_TYPE_TO_COLUMN: dict[str, str] = {
+    "code_contract": "code_contract_json",
+    "allocation": "allocation_json",
+    "free": "free_json",
+    "init": "init_json",
+    "memsafe": "memsafe_json",
+}
+
+
 class StdlibCache:
     """SQLite-backed cache of stdlib/external function summaries.
 
@@ -120,10 +129,31 @@ class StdlibCache:
     # Public API
     # ------------------------------------------------------------------
 
-    def has(self, name: str) -> bool:
-        row = self.conn.execute(
-            "SELECT 1 FROM stdlib_cache WHERE name = ?", (name,)
-        ).fetchone()
+    def has(self, name: str, summary_type: str = "code_contract") -> bool:
+        """Check whether *name* has a cached summary of the given type.
+
+        ``summary_type`` must be one of ``"code_contract"``, ``"allocation"``,
+        ``"free"``, ``"init"``, ``"memsafe"``, or ``"any"`` (any non-NULL blob).
+        """
+        col = _SUMMARY_TYPE_TO_COLUMN.get(summary_type)
+        if col:
+            row = self.conn.execute(
+                f"SELECT 1 FROM stdlib_cache WHERE name = ? AND {col} IS NOT NULL",
+                (name,),
+            ).fetchone()
+        elif summary_type == "any":
+            row = self.conn.execute(
+                "SELECT 1 FROM stdlib_cache WHERE name = ? AND ("
+                "allocation_json IS NOT NULL OR free_json IS NOT NULL OR "
+                "init_json IS NOT NULL OR memsafe_json IS NOT NULL OR "
+                "code_contract_json IS NOT NULL)",
+                (name,),
+            ).fetchone()
+        else:
+            raise ValueError(
+                f"unknown summary_type {summary_type!r}; "
+                "expected one of: code_contract, allocation, free, init, memsafe, any"
+            )
         return row is not None
 
     def get(self, name: str) -> StdlibCacheEntry | None:
@@ -164,13 +194,21 @@ class StdlibCache:
                  model_used, code_contract_json, code_contract_model)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(name) DO UPDATE SET
-                allocation_json     = excluded.allocation_json,
-                free_json           = excluded.free_json,
-                init_json           = excluded.init_json,
-                memsafe_json        = excluded.memsafe_json,
-                model_used          = excluded.model_used,
-                code_contract_json  = excluded.code_contract_json,
-                code_contract_model = excluded.code_contract_model
+                allocation_json = COALESCE(
+                    excluded.allocation_json, stdlib_cache.allocation_json),
+                free_json = COALESCE(
+                    excluded.free_json, stdlib_cache.free_json),
+                init_json = COALESCE(
+                    excluded.init_json, stdlib_cache.init_json),
+                memsafe_json = COALESCE(
+                    excluded.memsafe_json, stdlib_cache.memsafe_json),
+                model_used = excluded.model_used,
+                code_contract_json = COALESCE(
+                    excluded.code_contract_json,
+                    stdlib_cache.code_contract_json),
+                code_contract_model = COALESCE(
+                    excluded.code_contract_model,
+                    stdlib_cache.code_contract_model)
             """,
             (name, allocation_json, free_json, init_json, memsafe_json,
              model_used, code_contract_json, code_contract_model),

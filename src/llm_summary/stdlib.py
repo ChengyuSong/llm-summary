@@ -449,19 +449,6 @@ STDLIB_FREE_SUMMARIES: dict[str, FreeSummary] = {
         ],
         description="Deallocates memory region previously allocated by cgc_allocate.",
     ),
-    "freeaddrinfo": FreeSummary(
-        function_name="freeaddrinfo",
-        frees=[
-            FreeOp(
-                target="res",
-                target_kind="parameter",
-                deallocator="freeaddrinfo",
-                conditional=False,
-                nulled_after=False,
-            )
-        ],
-        description="Frees addrinfo linked list returned by getaddrinfo.",
-    ),
 }
 
 
