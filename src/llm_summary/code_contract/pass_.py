@@ -55,7 +55,11 @@ from .prompts import (
     VERIFY_SYSTEM_PROMPT,
     data_model_note,
 )
-from .source_prep import build_type_defs_section, prepare_source
+from .source_prep import (
+    build_globals_section,
+    build_type_defs_section,
+    prepare_source,
+)
 from .stdlib import STDLIB_CONTRACTS
 from .svcomp_stdlib import SVCOMP_CONTRACTS, svcomp_malloc_overrides
 
@@ -361,11 +365,11 @@ class CodeContractPass:
         response_format = make_json_response_format(
             PROPERTY_SCHEMA, name="property_summary",
         )
-        # Typedef section is property-independent (depends only on identifiers
-        # in func.llm_source). Build once per function.
+        # Typedef + globals sections are property-independent. Build once.
         type_defs = build_type_defs_section(
             self.db, func.llm_source, func.file_path,
         )
+        globals_section = build_globals_section(ir_facts)
 
         for prop in props:
             callee_block = build_callee_block(
@@ -386,10 +390,9 @@ class CodeContractPass:
             warnings_section = _format_scan_issues(scan_issues, prop)
             if warnings_section:
                 source_inlined = warnings_section + source_inlined
-            # Prepend the typedef section so the LLM can resolve struct
-            # field offsets and typedef'd integer widths.
-            if type_defs:
-                source_inlined = type_defs + "=== SOURCE ===\n" + source_inlined
+            preamble = type_defs + globals_section
+            if preamble:
+                source_inlined = preamble + "=== SOURCE ===\n" + source_inlined
 
             fmt_kwargs: dict[str, Any] = {
                 "name": func.name,
@@ -514,6 +517,11 @@ class CodeContractPass:
             VERIFY_SCHEMA, name="verify",
         )
 
+        type_defs = build_type_defs_section(
+            self.db, func.llm_source, func.file_path,
+        )
+        globals_section = build_globals_section(ir_facts)
+
         if self.log_fp:
             self.log_fp.write(f"\n--- VERIFY ({func.name}) ---\n")
 
@@ -534,6 +542,9 @@ class CodeContractPass:
             warnings_section = _format_scan_issues(scan_issues, prop)
             if warnings_section:
                 source_inlined = warnings_section + source_inlined
+            preamble = type_defs + globals_section
+            if preamble:
+                source_inlined = preamble + "=== SOURCE ===\n" + source_inlined
             own_contract = self._format_own_contract(summary, prop)
             fmt_kwargs: dict[str, Any] = {
                 "name": func.name,

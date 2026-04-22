@@ -16,6 +16,7 @@ both pipelines import from here.
 from __future__ import annotations
 
 import re
+from typing import Any
 
 from ..db import SummaryDB
 from ..models import Function
@@ -103,16 +104,38 @@ def build_type_defs_section(
     for name, defn in seen.items():
         if defn not in emitted:
             emitted.add(defn)
+            kind = seen_kind.get(name, "")
             canonical = seen_canonical.get(name, "")
-            if (
-                canonical
+            if kind == "static_var":
+                lines.append(f"{defn}  // global")
+            elif (
+                kind == "typedef"
+                and canonical
                 and canonical not in defn
-                and seen_kind.get(name) == "typedef"
             ):
                 lines.append(f"{defn}  // canonical: {canonical}")
             else:
                 lines.append(defn)
             lines.append("")
+    lines.append("```\n\n")
+    return "\n".join(lines)
+
+
+def build_globals_section(ir_facts: dict[str, Any]) -> str:
+    """Build a '## Accessed Global Variables' section from IR-sidecar facts.
+
+    Each global is annotated ``// global`` so the verifier knows its
+    address is non-NULL.
+    """
+    globals_list = ir_facts.get("globals", [])
+    if not globals_list:
+        return ""
+    lines = ["## Accessed Global Variables\n", "```c"]
+    for g in globals_list:
+        name = g.get("name", "").lstrip("@")
+        ty = g.get("type", "")
+        access = g.get("access", "read")
+        lines.append(f"{ty} {name};  // global, {access}")
     lines.append("```\n\n")
     return "\n".join(lines)
 

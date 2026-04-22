@@ -83,7 +83,10 @@ def import_sidecar_dir(
         for fname, fdata in funcs.items():
             if not isinstance(fdata, dict):
                 continue
-            db_funcs = db.get_function_by_name(fname)
+            # Sidecar keys may be "file:func" (e.g. "/src/foo.c:bar");
+            # strip the file prefix to match the DB function name.
+            bare = fname.rsplit(":", 1)[-1] if ":" in fname else fname
+            db_funcs = db.get_function_by_name(bare)
             if not db_funcs:
                 stats.functions_unmatched += 1
                 continue

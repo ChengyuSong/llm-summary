@@ -585,6 +585,9 @@ the body, given the body, the contract, and each callee's contract.
 
 7. **Empty list is the right answer when the body is safe under its
    published contract.**
+
+8. **Global / static objects are never NULL.** Variables annotated
+   `// global` in the type-definitions section have non-NULL addresses.
 """
 
 
