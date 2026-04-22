@@ -598,12 +598,36 @@ def _process_single_link_unit(
     except Exception as e:
         result["error"] = f"import_failed: {e}"
 
+    # Re-apply extern header map to newly-created stubs.
+    # The map was saved during scan; stubs didn't exist then.
+    _reapply_extern_headers(db_path, target_dir, verbose)
+
     lu["db_path"] = str(target_dir / "functions.db")
     lu["callgraph_json"] = str(callgraph_json)
     lu["vsnapshot"] = str(vsnapshot_path) if vsnapshot_path.exists() else None
 
     result["timing_seconds"] = round(time.monotonic() - start, 2)
     return [result]
+
+
+def _reapply_extern_headers(
+    db_path: str, target_dir: Path, verbose: bool,
+) -> None:
+    """Re-apply the extern_headers.json saved during scan to newly-created
+    stubs (callgraph import creates them after scan completes)."""
+    hm_path = target_dir / "extern_headers.json"
+    if not hm_path.exists():
+        return
+    try:
+        header_map = json.loads(hm_path.read_text())
+        db = SummaryDB(db_path)
+        updated = db.update_decl_headers(header_map)
+        db.close()
+        if verbose and updated:
+            print(f"      Re-applied extern headers: {updated} stubs updated")
+    except Exception as e:
+        if verbose:
+            print(f"      Extern header re-apply failed: {e}")
 
 
 def process_project_compositional(
@@ -848,6 +872,8 @@ def process_project_compositional(
                 )
         except Exception as e:
             result["error"] = f"import_failed: {e}"
+
+        _reapply_extern_headers(db_path, target_dir, verbose)
 
         # Record output paths on the link unit entry (written back to link_units.json below)
         lu["db_path"] = str(target_dir / "functions.db")
@@ -1193,6 +1219,8 @@ def process_project(
             )
     except Exception as e:
         result["error"] = f"import_failed: {e}"
+
+    _reapply_extern_headers(db_path, scan_dir, verbose)
 
     result["timing_seconds"] = round(time.monotonic() - start, 2)
     return result

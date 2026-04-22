@@ -4046,7 +4046,7 @@ def import_dep(db_path, from_db_path, scan_dir, link_units_path, target_name,
                             console.print(f"  [dim]{func_name}: not found in {dep_path}[/dim]")
                         continue
 
-                    # Collect summaries from dep DB
+                    # Collect legacy summaries from dep DB
                     src_summaries: dict[str, str] = {}
                     for table in summary_tables:
                         row = dep_db.conn.execute(
@@ -4056,16 +4056,25 @@ def import_dep(db_path, from_db_path, scan_dir, link_units_path, target_name,
                         if row:
                             src_summaries[table] = row[0]
 
-                    if not src_summaries:
+                    # Code-contract summary (different schema)
+                    cc_row = dep_db.conn.execute(
+                        "SELECT summary_json FROM code_contract_summaries"
+                        " WHERE function_id = ?",
+                        (dep_func.id,),
+                    ).fetchone()
+
+                    if not src_summaries and not cc_row:
                         if verbose:
                             console.print(f"  [dim]{func_name}: no summaries in {dep_path}[/dim]")
                         continue
 
                     if dry_run:
                         kinds = [t.replace("_summaries", "") for t in src_summaries]
+                        if cc_row:
+                            kinds.append("code_contract")
                         console.print(f"  [dry-run] {func_name}: would import {', '.join(kinds)}")
                         copied_funcs += 1
-                        copied_summaries += len(src_summaries)
+                        copied_summaries += len(src_summaries) + (1 if cc_row else 0)
                         continue
 
                     func_imported = False
@@ -4076,7 +4085,6 @@ def import_dep(db_path, from_db_path, scan_dir, link_units_path, target_name,
                         ).fetchone()
                         if existing and not force:
                             continue
-
                         target_db.conn.execute(
                             f"INSERT INTO {table} (function_id, summary_json, model_used)"
                             " VALUES (?, ?, ?)"
@@ -4089,10 +4097,32 @@ def import_dep(db_path, from_db_path, scan_dir, link_units_path, target_name,
                         copied_summaries += 1
                         func_imported = True
 
+                    if cc_row:
+                        existing_cc = target_db.conn.execute(
+                            "SELECT function_id FROM code_contract_summaries"
+                            " WHERE function_id = ?",
+                            (func_id,),
+                        ).fetchone()
+                        if not existing_cc or force:
+                            target_db.conn.execute(
+                                "INSERT INTO code_contract_summaries"
+                                " (function_id, summary_json, model)"
+                                " VALUES (?, ?, ?)"
+                                " ON CONFLICT(function_id) DO UPDATE SET"
+                                "   summary_json = excluded.summary_json,"
+                                "   model = excluded.model,"
+                                "   updated_at = CURRENT_TIMESTAMP",
+                                (func_id, cc_row[0], dep_tag),
+                            )
+                            copied_summaries += 1
+                            func_imported = True
+
                     if func_imported:
                         copied_funcs += 1
                         if verbose:
                             kinds = [t.replace("_summaries", "") for t in src_summaries]
+                            if cc_row:
+                                kinds.append("code_contract")
                             console.print(f"  {func_name}: {', '.join(kinds)}")
 
                 if not dry_run:

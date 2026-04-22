@@ -349,6 +349,11 @@ def _scan_files(
                         f"      Extern headers: {len(header_map)} mapped, "
                         f"{updated} DB rows updated"
                     )
+                # Persist header map so callgraph import can re-apply
+                # it after creating stubs for sourceless functions.
+                hm_path = Path(db.db_path).parent / "extern_headers.json"
+                import json as _json
+                hm_path.write_text(_json.dumps(header_map, sort_keys=True))
         except Exception as e:
             if verbose:
                 print(f"      Extern headers: failed ({e})")
