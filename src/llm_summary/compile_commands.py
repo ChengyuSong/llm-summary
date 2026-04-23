@@ -158,14 +158,24 @@ class CompileCommandsDB:
         """
         Get compile flags for a specific source file.
 
+        Falls back to basename matching when exact path lookup fails
+        (e.g. docker container paths vs host paths).
+
         Args:
             file_path: Path to the source file
 
         Returns:
             List of compiler flags for this file, or empty list if not found
         """
-        file_path = str(Path(file_path).resolve())
-        return self._commands.get(file_path, [])
+        resolved = str(Path(file_path).resolve())
+        result = self._commands.get(resolved)
+        if result is not None:
+            return result
+        basename = Path(resolved).name
+        for key, flags in self._commands.items():
+            if Path(key).name == basename:
+                return flags
+        return []
 
     def get_directory(self, file_path: str | Path) -> str | None:
         """

@@ -255,6 +255,7 @@ class SeedExecutor:
         self.include_flags = include_flags or []
         self.seeds: list[tuple[str, str]] = []  # (code, description)
         self.compile_attempts = 0
+        self._last_compiled: str | None = None
 
     def execute(
         self, tool_name: str, tool_input: dict[str, Any],
@@ -284,17 +285,21 @@ class SeedExecutor:
             }
         ok, errors = self.compile_fn(code, self.ucsan_config, self.file_path)
         if ok:
+            self._last_compiled = code
             return {"success": True, "errors": ""}
         return {"success": False, "errors": errors}
 
     def _tool_submit_seed(self, inp: dict[str, Any]) -> dict[str, Any]:
         code = inp.get("code", "")
-        if not code:
+        if not code and not self._last_compiled:
             return {"error": "No code provided"}
+        if self._last_compiled:
+            code = self._last_compiled
         desc = inp.get("description", f"seed_{len(self.seeds)}")
         self.seeds.append((code, desc))
-        # Reset compile counter for next seed
+        # Reset compile state for next seed
         self.compile_attempts = 0
+        self._last_compiled = None
         return {
             "accepted": True,
             "seed_index": len(self.seeds) - 1,

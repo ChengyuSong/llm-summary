@@ -4769,6 +4769,22 @@ def gen_harness(
 
         # Load compile_commands.json with path remapping
         compile_commands = None
+        if not compile_commands_path:
+            # Auto-detect: build-scripts/<project>/ then build-dir/
+            db_p2 = Path(db_path)
+            proj_name = db_p2.parent.parent.name  # func-scans/<proj>/<unit>/
+            candidates = [
+                Path("build-scripts") / proj_name / "compile_commands.json",
+            ]
+            if build_dir:
+                candidates.append(Path(build_dir) / "compile_commands.json")
+            for cc_candidate in candidates:
+                if cc_candidate.exists():
+                    compile_commands_path = str(cc_candidate)
+                    if verbose:
+                        console.print(
+                            f"Auto-detected compile_commands: {cc_candidate}")
+                    break
         if compile_commands_path:
             compile_commands, tmp_cc_path = _load_compile_commands(
                 compile_commands_path, project_path, build_dir,

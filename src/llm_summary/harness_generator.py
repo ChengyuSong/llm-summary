@@ -192,9 +192,10 @@ Rules:
   - `[when COND]` means the effect is conditional — wrap the assertion in
     `if (COND) {{ ... }}` so it only checks on the relevant path
   - If a post-condition has no brackets, it is unconditional
-- Only check contracts on direct parameters — skip deep field access
-  through forward-declared (opaque) struct pointers (e.g. do NOT access
-  s->l_desc.stat_desc->extra_bits if stat_desc's struct type is opaque)
+- Skip deep field access through forward-declared (opaque) struct
+  pointers UNLESS that field appears in the requires section (e.g. do NOT
+  access s->l_desc.stat_desc->extra_bits if stat_desc's struct type is
+  opaque and it is not mentioned in requires)
 - Use sizeof(*ptr) for allocation sizes, not hardcoded constants
 """
 
@@ -218,6 +219,10 @@ Parameters: {params_json}
 ## Post-conditions
 
 {postconds_section}
+
+## Preconditions (requires)
+
+{requires_section}
 
 ## C Template
 
@@ -246,14 +251,20 @@ Rules:
   - initialized(N) → assert_init(ptr, N, id)
   - freed → assert_freed(ptr, id)
 - In test(): use assert_* to verify post-conditions after the call
+- In test(): establish ALL preconditions from the requires section:
+  - ptr != NULL → assume_allocated(ptr, sizeof(*ptr), 0)
+  - malloc_size(ptr) >= N → ptr = assume_allocated(ptr, N, 0)
+  - initialized(N) → assume_init(ptr, N, 0)
+  - Follow the allocation hints in the template comments
 - Post-condition annotations use brackets for qualifiers:
   - `[may_be_null]` means the pointer may be NULL — do NOT assert non-NULL
   - `[when COND]` means the effect is conditional — wrap the assertion in
     `if (COND) {{ ... }}` so it only checks on the relevant path
   - If a post-condition has no brackets, it is unconditional
-- Only check contracts on direct parameters — skip deep field access
-  through forward-declared (opaque) struct pointers (e.g. do NOT access
-  s->l_desc.stat_desc->extra_bits if stat_desc's struct type is opaque)
+- Skip deep field access through forward-declared (opaque) struct
+  pointers UNLESS that field appears in the requires section (e.g. do NOT
+  access s->l_desc.stat_desc->extra_bits if stat_desc's struct type is
+  opaque and it is not mentioned in requires)
 - Use sizeof(*ptr) for allocation sizes, not hardcoded constants
 """
 
@@ -633,6 +644,12 @@ class HarnessGenerator:
         func = funcs[0]
         assert func.id is not None
 
+        # Resolve relative file_path against project root
+        if (func.file_path
+                and not Path(func.file_path).is_absolute()
+                and self.project_path):
+            func.file_path = str(self.project_path / func.file_path)
+
         # Get memsafe contracts
         row = self.db.conn.execute(
             "SELECT summary_json FROM memsafe_summaries WHERE function_id = ?",
@@ -645,6 +662,16 @@ class HarnessGenerator:
 
         memsafe_data = json.loads(row[0])
         contracts = memsafe_data.get("contracts", [])
+
+        # Get code-contract requires (Hoare-style preconditions)
+        from .code_contract.models import is_nontrivial
+        code_contract = self.db.get_code_contract_summary(func.id)
+        requires_clauses: list[str] = []
+        if code_contract:
+            for prop in code_contract.properties:
+                for r in code_contract.requires.get(prop, []):
+                    if is_nontrivial(r) and r not in requires_clauses:
+                        requires_clauses.append(r)
 
         # Auto-compile bitcode if not provided
         if not bc_file and self.compile_commands and func.file_path:
@@ -664,6 +691,7 @@ class HarnessGenerator:
         contracts_section = self._format_contracts(contracts)
         callee_section = self._format_callee_contracts(callee_contracts)
         postconds_section = self._format_postconditions(postconds)
+        requires_section = self._format_requires(requires_clauses)
 
         # Determine which callees need shim stubs
         # Never shim functions in ucsan's abilist (they have custom handlers)
@@ -710,6 +738,7 @@ class HarnessGenerator:
             callee_contracts, postconds, self._triage_context,
             contracts=contracts, file_path=func.file_path,
             preceding_functions=preceding,
+            requires_clauses=requires_clauses,
         )
 
         # Build prompt
@@ -751,6 +780,7 @@ class HarnessGenerator:
                 contracts_section=contracts_section,
                 callee_section=callee_section,
                 postconds_section=postconds_section,
+                requires_section=requires_section,
                 template=template,
             )
 
@@ -1025,13 +1055,20 @@ class HarnessGenerator:
         funcs = self.db.get_function_by_name(func_name)
         if funcs and funcs[0].file_path:
             file_path = funcs[0].file_path
+            if not Path(file_path).is_absolute() and self.project_path:
+                file_path = str(self.project_path / file_path)
 
         # Build include flags
         include_flags: list[str] = []
         if self.compile_commands and file_path:
+            from .docker_paths import translate_compiler_arg
             for flag in self.compile_commands.get_compile_flags(file_path):
                 if flag.startswith(("-I", "-isystem", "-iquote",
                                     "-D", "-include")):
+                    flag = translate_compiler_arg(
+                        flag, self.project_path or Path("."),
+                        None,
+                    )
                     include_flags.append(flag)
 
         # Git tools for project exploration
@@ -1067,11 +1104,10 @@ class HarnessGenerator:
         # "Entry point" marker into stubs_<func>.c.
         stubs_path = self._extract_stubs(func_name, out)
 
-        # Collect project object files (everything except shim .o)
-        shim_obj = out / f"shim_{func_name}.c.o"
+        # Collect project object files (exclude all shim and seed .o files)
         project_objs = [
             p for p in out.glob("*.o")
-            if p != shim_obj and not p.name.startswith("seed_")
+            if not p.name.startswith(("shim_", "seed_"))
         ]
 
         # Generate build scripts for each seed
@@ -1137,12 +1173,19 @@ class HarnessGenerator:
         funcs = self.db.get_function_by_name(func_name)
         if funcs and funcs[0].file_path:
             file_path = funcs[0].file_path
+            if not Path(file_path).is_absolute() and self.project_path:
+                file_path = str(self.project_path / file_path)
 
         include_flags: list[str] = []
         if self.compile_commands and file_path:
+            from .docker_paths import translate_compiler_arg
             for flag in self.compile_commands.get_compile_flags(file_path):
                 if flag.startswith(("-I", "-isystem", "-iquote",
                                     "-D", "-include")):
+                    flag = translate_compiler_arg(
+                        flag, self.project_path or Path("."),
+                        None,
+                    )
                     include_flags.append(flag)
 
         git = GitTools(self.project_path) if self.project_path else None
@@ -1215,10 +1258,15 @@ class HarnessGenerator:
         # Include flags
         include_flags_str = ""
         if self.compile_commands and file_path:
+            from .docker_paths import translate_compiler_arg
             iflags = []
             for flag in self.compile_commands.get_compile_flags(file_path):
                 if flag.startswith(("-I", "-isystem", "-iquote",
                                     "-D", "-include")):
+                    flag = translate_compiler_arg(
+                        flag, self.project_path or Path("."),
+                        None,
+                    )
                     iflags.append(flag)
             if iflags:
                 include_flags_str = " \\\n    ".join(
@@ -1848,6 +1896,7 @@ echo "Built: $OUT"
             return None
 
         # Filter out flags incompatible with clang-14 or bitcode generation
+        from .docker_paths import translate_compiler_arg
         filtered = []
         for f in flags:
             # Skip LTO flags
@@ -1859,6 +1908,9 @@ echo "Built: $OUT"
             # Skip optimization flags that might cause issues
             if f.startswith("-g"):
                 continue
+            f = translate_compiler_arg(
+                f, self.project_path or Path("."), None,
+            )
             filtered.append(f)
 
         bc_name = source_path.stem + ".bc"
@@ -1934,10 +1986,15 @@ echo "Built: $OUT"
         # Build include flags from compile_commands
         include_flags_str = ""
         if self.compile_commands and file_path:
+            from .docker_paths import translate_compiler_arg
             iflags = []
             for flag in self.compile_commands.get_compile_flags(file_path):
                 if flag.startswith(("-I", "-isystem", "-iquote",
                                     "-D", "-include")):
+                    flag = translate_compiler_arg(
+                        flag, self.project_path or Path("."),
+                        None,
+                    )
                     iflags.append(flag)
             if iflags:
                 include_flags_str = " \\\n    ".join(
@@ -1951,6 +2008,10 @@ echo "Built: $OUT"
             for flag in self.compile_commands.get_compile_flags(file_path):
                 if flag.startswith(("-flto", "-save-temps")):
                     continue
+                flag = translate_compiler_arg(
+                    flag, self.project_path or Path("."),
+                    None,
+                )
                 cflags.append(flag)
             if cflags:
                 compile_flags_str = " \\\n    ".join(
@@ -2109,9 +2170,14 @@ echo "Built: $OUT"
             # Build include flags from compile_commands
             include_flags: list[str] = []
             if self.compile_commands and file_path:
+                from .docker_paths import translate_compiler_arg
                 for flag in self.compile_commands.get_compile_flags(file_path):
                     if flag.startswith(("-I", "-isystem", "-iquote",
                                         "-D", "-include")):
+                        flag = translate_compiler_arg(
+                            flag, self.project_path or Path("."),
+                            None,
+                        )
                         include_flags.append(flag)
 
             cmd = [
@@ -2405,6 +2471,29 @@ echo "Built: $OUT"
                 lines[-1] += f" [when {c['condition']}]"
         return "\n".join(lines)
 
+    @staticmethod
+    def _format_requires(clauses: list[str]) -> str:
+        if not clauses:
+            return "No additional preconditions."
+        lines = ["test() must establish ALL of these before calling the target:"]
+        for c in clauses:
+            lines.append(f"- `{c}`")
+        return "\n".join(lines)
+
+    _MALLOC_SIZE_RE = re.compile(
+        r"malloc_size\(([^)]+)\)\s*(>=|==|<=)\s*(.+)")
+
+    @classmethod
+    def _malloc_size_hint(cls, clause: str) -> str | None:
+        """Parse malloc_size(ptr) >= expr and return an assume_allocated hint."""
+        m = cls._MALLOC_SIZE_RE.match(clause.strip())
+        if not m:
+            return None
+        ptr, op, size_expr = m.group(1).strip(), m.group(2), m.group(3).strip()
+        if op in (">=", "=="):
+            return f"{ptr} = assume_allocated({ptr}, {size_expr}, 0)"
+        return None
+
     def _format_callee_contracts(self, callee_contracts: dict[str, dict]) -> str:
         if not callee_contracts:
             return "No callees with contracts."
@@ -2437,6 +2526,7 @@ echo "Built: $OUT"
         contracts: list[dict[str, Any]] | None = None,
         file_path: str | None = None,
         preceding_functions: list[dict[str, Any]] | None = None,
+        requires_clauses: list[str] | None = None,
     ) -> str:
         """Build a fill-in-the-blank C template for shim generation.
 
@@ -2525,8 +2615,11 @@ echo "Built: $OUT"
         lines.append("")
 
         # --- Include project headers from the source file ---
-        if file_path:
-            src_headers = self._extract_source_includes(file_path)
+        resolved_fp = file_path
+        if resolved_fp and not Path(resolved_fp).is_absolute() and self.project_path:
+            resolved_fp = str(self.project_path / resolved_fp)
+        if resolved_fp:
+            src_headers = self._extract_source_includes(resolved_fp)
             for h in src_headers:
                 lines.append(f'#include "{h}"')
             if src_headers:
@@ -2654,11 +2747,27 @@ echo "Built: $OUT"
                 id_map.append(f"{cid}: {func_name}:post:{pc}")
                 lines.append(f" *   id={cid} {pc}")
 
+        # Requires section in test() comment
+        if requires_clauses:
+            lines.append(" *")
+            lines.append(
+                " * Preconditions — test() MUST establish ALL of these"
+                " via assume_* calls:")
+            for rc in requires_clauses:
+                hint = self._malloc_size_hint(rc)
+                if hint:
+                    lines.append(f" *   - {rc}  →  {hint}")
+                else:
+                    lines.append(f" *   - {rc}")
+
         lines.append(" *")
         lines.append(" * Rules:")
         lines.append(
             " * - Pointer params: use assume_allocated(input_X, "
             "sizeof(*X), ID) to make them symbolic")
+        lines.append(
+            " * - malloc_size(ptr) >= N in requires means: "
+            "ptr = assume_allocated(ptr, N, 0)")
         lines.append(
             " * - Shared params: if multiple functions take the same"
             " struct pointer, use one variable")
@@ -3082,10 +3191,15 @@ echo "Built: $OUT"
                 else:
                     # Try include paths from compile_commands
                     if self.compile_commands:
+                        from .docker_paths import translate_compiler_arg
                         for flag in self.compile_commands.get_compile_flags(
                             file_path,
                         ):
                             if flag.startswith("-I"):
+                                flag = translate_compiler_arg(
+                                    flag, self.project_path or Path("."),
+                                    None,
+                                )
                                 inc_dir = Path(flag[2:])
                                 candidate = inc_dir / hdr
                                 if candidate.exists():
