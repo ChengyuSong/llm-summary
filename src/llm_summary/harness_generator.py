@@ -1104,10 +1104,10 @@ class HarnessGenerator:
         # "Entry point" marker into stubs_<func>.c.
         stubs_path = self._extract_stubs(func_name, out)
 
-        # Collect project object files (exclude all shim and seed .o files)
+        # Collect project object files (exclude shim, seed, and stubs .o files)
         project_objs = [
             p for p in out.glob("*.o")
-            if not p.name.startswith(("shim_", "seed_"))
+            if not p.name.startswith(("shim_", "seed_", "stubs_"))
         ]
 
         # Generate build scripts for each seed
@@ -1213,10 +1213,9 @@ class HarnessGenerator:
 
         stubs_path = self._extract_stubs(func_name, out)
 
-        shim_obj = out / f"shim_{func_name}.c.o"
         project_objs = [
             p for p in out.glob("*.o")
-            if p != shim_obj and not p.name.startswith("seed_")
+            if not p.name.startswith(("shim_", "seed_", "stubs_"))
         ]
 
         results: list[tuple[Path, Path]] = []

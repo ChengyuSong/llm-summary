@@ -4731,11 +4731,16 @@ def triage(
     help="When used with --validate, only process the verdict with this "
          "issue_index. Skips all other verdicts in the file.",
 )
+@click.option(
+    "--seeds-only", is_flag=True, default=False,
+    help="Only generate seeds for an existing harness (skip shim generation). "
+         "Requires --validate and an existing shim + config in the output dir.",
+)
 def gen_harness(
     db_path, backend, model, llm_host, llm_port,
     disable_thinking, verbose, log_llm, output_dir, function_names,
     ko_clang_path, symsan_dir, compile_commands_path, project_path,
-    build_dir, bc_file, plan, plan_only, validate, issue_index,
+    build_dir, bc_file, plan, plan_only, validate, issue_index, seeds_only,
 ):
     """Generate test harnesses for contract-guided symbolic execution.
 
@@ -4804,6 +4809,10 @@ def gen_harness(
             compile_commands=compile_commands,
             project_path=project_path,
         )
+
+        if seeds_only and not validate:
+            console.print("[red]--seeds-only requires --validate[/red]")
+            return
 
         # Validate a triage verdict
         if validate:
@@ -4902,6 +4911,58 @@ def gen_harness(
                                 f"[yellow]  No CFG dump at {cfg_path} — "
                                 f"run without --plan-only first[/yellow]"
                             )
+                        continue
+
+                    if seeds_only:
+                        shim_path = out / f"shim_{harness_name}.c"
+                        if not shim_path.exists():
+                            console.print(
+                                f"[red]No shim at {shim_path} — "
+                                f"run without --seeds-only first[/red]"
+                            )
+                            continue
+                        triage_ctx = {
+                            "hypothesis": v.get("hypothesis", ""),
+                            "reasoning": v.get("reasoning", ""),
+                            "severity": v.get("issue", {}).get("severity", ""),
+                            "issue_kind": v.get("issue", {}).get("issue_kind", ""),
+                            "issue_description": v.get("issue", {}).get("description", ""),
+                            "assumptions": v.get("assumptions", []),
+                            "assertions": v.get("assertions", []),
+                        }
+                        seed_results = generator.generate_seeds(
+                            harness_name, triage_ctx, str(out),
+                        )
+                        if seed_results:
+                            console.print(
+                                f"  [green]Generated "
+                                f"{len(seed_results)} seed(s)[/green]"
+                            )
+                            for seed_path, script_path in seed_results:
+                                seed_build = subprocess.run(
+                                    ["bash", str(script_path)],
+                                    capture_output=True, text=True,
+                                )
+                                if seed_build.returncode == 0:
+                                    console.print(
+                                        f"  [green]Built: "
+                                        f"{seed_path.stem}.ucsan[/green]"
+                                    )
+                                else:
+                                    console.print(
+                                        f"  [yellow]Seed build failed: "
+                                        f"{seed_path.name}[/yellow]"
+                                    )
+                                    if verbose:
+                                        err = (
+                                            seed_build.stderr
+                                            + seed_build.stdout
+                                        ).strip()
+                                        console.print(
+                                            f"  [dim]{err[:300]}[/dim]"
+                                        )
+                        else:
+                            console.print("[yellow]No seeds generated[/yellow]")
                         continue
 
                     triage_ctx = {

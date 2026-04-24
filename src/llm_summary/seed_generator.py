@@ -34,16 +34,22 @@ You are a concolic-execution seed generator. Your job is to craft C test \
 files that provide **smart initial inputs** for the ucsan symbolic executor.
 
 Each seed file defines a ``void test()`` function that:
-1. Initializes local objects with **concrete plausible values** (not zeros).
-2. Calls ``__ucsan_symbolize_input()`` on each object to register it for \
-symbolic tracking.
-3. Calls the target function under test.
+1. Allocates and initializes local objects with **concrete plausible values**.
+2. Calls ``__ucsan_symbolize_input()`` on each object.
+3. Runs the **precondition + target-call block** copied from the shim.
 
-The concrete values you choose serve as the **starting point** for the \
-solver — they should already satisfy structural invariants (valid magic \
-numbers, matching length fields, sorted arrays, valid enum values, \
-non-trivial pointer graphs) so the solver can mutate from a reachable \
-state instead of discovering everything from scratch.
+## CRITICAL: concrete values MUST satisfy preconditions (requires)
+
+The precondition block (assume_* calls from the shim) will **abort** if \
+any precondition is violated. Your concrete values are the starting state \
+for the solver — if they already violate a precondition, the seed is \
+useless because execution terminates immediately.
+
+Read the requires section carefully and ensure every concrete value \
+satisfies every applicable precondition. For example, if the requires say \
+``s->pending + 4 + stored_len <= s->pending_buf_size``, your concrete \
+values for pending, stored_len, and pending_buf_size MUST satisfy that \
+inequality.
 
 ## Git tools
 
@@ -56,11 +62,11 @@ discover:
 ## Workflow
 
 1. Read the verdict and shim code to understand what inputs are needed.
-2. Use git tools to look up struct definitions, constants, and usage patterns.
-3. Generate a seed C file with concrete initialization + symbolize calls.
-4. Call ``compile_seed`` to verify it compiles.
-5. If it compiles, call ``submit_seed`` to accept it.
-6. Optionally generate additional seed variants targeting different paths.
+2. Read the preconditions (requires) and plan concrete values that satisfy them.
+3. Use git tools to look up struct definitions, constants, and usage patterns.
+4. Generate a seed C file with init + symbolize + precondition/call block.
+5. Call ``compile_seed`` to verify it compiles.
+6. If it compiles, call ``submit_seed`` to accept it.
 7. Generate up to 5 seeds total. Each should target a different scenario \
 or path through the code.
 
@@ -83,9 +89,15 @@ description so the harness runner can set the threshold accordingly.
 
 - Each seed must be a **complete, self-contained C file** that compiles \
 with ko-clang.
-- Copy the headers and stub functions from the shim code (everything above \
-the ``test()`` function). Replace only the ``test()`` function body.
-- Do NOT include assert_*/assume_* calls in test() — the stubs handle contracts.
+- Copy the headers and extern declarations from the shim code. \
+Do NOT copy ``__shim_*`` stub functions — they are linked separately.
+- The test() body has three parts in order:
+  1. **Init + symbolize**: your concrete values + __ucsan_symbolize_input calls
+  2. **Precondition block**: the assume_* calls from the shim (copy verbatim)
+  3. **Target call + asserts**: the function call and assert_* from the shim
+- Do NOT remove or modify the assume_*/assert_* calls — they enforce contracts.
+- Variable names in your init block MUST match the shim's test() parameter \
+names so the precondition block can reference them.
 - Always verify with ``compile_seed`` before ``submit_seed``.
 - If compilation fails, fix the errors and retry.
 """
@@ -117,51 +129,54 @@ overwritten.
 - Initialize objects as local variables with designated initializers or \
 memset + field assignment.
 - Call ``__ucsan_symbolize_input()`` **after** all initialization, \
-**before** calling the target.
+**before** the precondition block.
 - Register **leaves first, parents after** — if obj1.next points to obj2, \
 register obj2 before obj1.
 - ``id`` values: sequential integers starting from 1.
 - For buffers/arrays: allocate with malloc, fill with plausible data, \
 then symbolize.
 - Include the same headers as the shim (copy from shim code).
-- Forward-declare the target function and ``__ucsan_symbolize_input``.
+- Forward-declare ``__ucsan_symbolize_input``.
+- Variable names MUST match the shim's test() parameter names exactly \
+(e.g. if the shim has ``deflate_state * s``, your local must be named ``s``).
 
-### Example
+### Seed structure
 
-```c
-#include <stdlib.h>
-#include <string.h>
-
-extern void __ucsan_symbolize_input(void *ptr, unsigned long size, int id);
-
-struct node {
-    unsigned int v;
-    struct node *next;
-};
-
-extern int target(struct node *head);
-
+```
 void test() {
-    struct node obj2 = { .v = 42, .next = NULL };
-    struct node obj1 = { .v = 10, .next = &obj2 };
-
-    __ucsan_symbolize_input(&obj2, sizeof(obj2), 2);
-    __ucsan_symbolize_input(&obj1, sizeof(obj1), 1);
-
-    target(&obj1);
+    // Part 1: YOUR CODE — allocate + init with concrete plausible values
+    // Part 2: YOUR CODE — __ucsan_symbolize_input() calls
+    // Part 3: COPIED FROM SHIM — assume_* preconditions + target call + assert_*
 }
 ```
 
-### Buffer example
+### Example
 
+Given a shim with:
+```c
+void test(struct node *head) {
+    assume_cond(head != NULL, 0);
+    head = assume_allocated(head, sizeof(*head), 0);
+    int r = target(head);
+    assert_cond(r >= 0, 1);
+}
+```
+
+The seed becomes:
 ```c
 void test() {
-    unsigned char *buf = malloc(256);
-    memset(buf, 0, 256);
-    buf[0] = 'P'; buf[1] = 'N'; buf[2] = 'G';  // magic header
-    __ucsan_symbolize_input(buf, 256, 1);
+    struct node obj2 = { .v = 42, .next = NULL };
+    struct node head_obj = { .v = 10, .next = &obj2 };
+    struct node *head = &head_obj;
 
-    process_buffer(buf, 256);
+    __ucsan_symbolize_input(&obj2, sizeof(obj2), 2);
+    __ucsan_symbolize_input(&head_obj, sizeof(head_obj), 1);
+
+    // preconditions + call + postconditions (from shim)
+    assume_cond(head != NULL, 0);
+    head = assume_allocated(head, sizeof(*head), 0);
+    int r = target(head);
+    assert_cond(r >= 0, 1);
 }
 ```
 """
@@ -407,6 +422,51 @@ def _run_seed_agent(
 # Public API
 # ---------------------------------------------------------------------------
 
+def _extract_shim_test_body(shim_code: str) -> str | None:
+    """Extract the body of test() from the shim code.
+
+    Returns the lines between the opening { and closing } of the test()
+    function, which contain assume_* preconditions, the target call,
+    and assert_* postconditions.
+    """
+    lines = shim_code.split("\n")
+    # Find "void test(" definition
+    start = -1
+    for i, line in enumerate(lines):
+        stripped = line.strip()
+        if (stripped.startswith("void test(")
+                and not stripped.startswith("extern ")
+                and not stripped.startswith("/*")):
+            start = i
+            break
+    if start < 0:
+        return None
+
+    # Find opening brace
+    brace_line = -1
+    if "{" in lines[start]:
+        brace_line = start
+    elif start + 1 < len(lines) and "{" in lines[start + 1]:
+        brace_line = start + 1
+    if brace_line < 0:
+        return None
+
+    # Find matching closing brace
+    depth = 0
+    end = -1
+    for j in range(brace_line, len(lines)):
+        depth += lines[j].count("{") - lines[j].count("}")
+        if depth == 0:
+            end = j
+            break
+    if end < 0:
+        return None
+
+    # Extract body lines (between { and })
+    body_lines = lines[brace_line + 1:end]
+    return "\n".join(body_lines)
+
+
 def _format_verdict_context(triage_context: dict[str, Any]) -> str:
     """Format triage verdict for the seed prompt."""
     lines = []
@@ -472,19 +532,37 @@ def generate_seed_tests(
 
     verdict_text = _format_verdict_context(triage_context)
 
+    # Extract precondition + call + postcondition block from the shim
+    shim_test_body = _extract_shim_test_body(shim_code)
+    precond_section = ""
+    if shim_test_body:
+        precond_section = (
+            "## Precondition + Call Block (copy into every seed's test())\n\n"
+            "After your init + symbolize code, include this block verbatim. "
+            "It enforces preconditions (assume_*), calls the target, and "
+            "checks postconditions (assert_*). Do NOT modify it.\n\n"
+            f"```c\n{shim_test_body}\n```\n\n"
+        )
+
     user_prompt = (
         "Generate seed test cases for concolic validation of a triage verdict.\n\n"
         "## Triage Verdict\n\n"
         f"{verdict_text}\n\n"
-        "## Shim Code (reference — copy headers and stubs, replace test())\n\n"
+        "## Shim Code (reference — copy headers, NOT stubs)\n\n"
         f"```c\n{shim_code}\n```\n\n"
+        f"{precond_section}"
         "## Your Task\n\n"
         f"Generate 1-5 seed test files for `{func_name}`. Each seed should:\n"
-        "1. Copy the headers and stub functions from the shim code above.\n"
-        "2. Replace the `test()` function with a new `void test()` that "
-        "initializes objects with concrete plausible values.\n"
-        "3. Call `__ucsan_symbolize_input()` on each input object.\n"
-        "4. Call the target function.\n\n"
+        "1. Copy the headers and extern declarations from the shim code. "
+        "Do NOT copy `__shim_*` stub functions (linked separately).\n"
+        "2. Write a `void test()` with:\n"
+        "   a. Concrete init — allocate and initialize objects with "
+        "plausible values that **satisfy all preconditions**.\n"
+        "   b. Symbolize — call `__ucsan_symbolize_input()` on each object.\n"
+        "   c. Precondition + call block — copy the assume_*/target call/"
+        "assert_* block from the shim's test() body verbatim.\n\n"
+        "**Your variable names MUST match the shim's test() parameter names** "
+        "so the precondition block references work.\n\n"
         "Each seed should target a **different scenario** described in the "
         "verdict (e.g., different input sizes, boundary values, different "
         "code paths).\n\n"
@@ -571,6 +649,16 @@ def refine_seed_tests(
             status = t.get("status", "")
             cov_text += f"  - {goal}: {status}\n"
 
+    # Extract precondition + call block from the shim
+    shim_test_body = _extract_shim_test_body(shim_code)
+    precond_section = ""
+    if shim_test_body:
+        precond_section = (
+            "## Precondition + Call Block (copy into every seed's test())\n\n"
+            "After your init + symbolize code, include this block verbatim.\n\n"
+            f"```c\n{shim_test_body}\n```\n\n"
+        )
+
     user_prompt = (
         "Refine seed test cases based on coverage results.\n\n"
         f"{SEED_REFINE_CONVENTIONS}\n\n"
@@ -580,10 +668,12 @@ def refine_seed_tests(
         f"{prev_text}\n"
         "## Shim Code (reference)\n\n"
         f"```c\n{shim_code}\n```\n\n"
+        f"{precond_section}"
         "## Your Task\n\n"
         f"Generate 1-3 new seed test files for `{func_name}` targeting the "
-        "missed paths. Follow the same format as previous seeds but with "
-        "different concrete values.\n\n"
+        "missed paths. Follow the same format as previous seeds — include "
+        "the precondition + call block from the shim — but with different "
+        "concrete values.\n\n"
         f"{SEED_CONVENTIONS}"
     )
 
