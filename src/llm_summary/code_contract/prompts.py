@@ -280,13 +280,28 @@ verbatim; do NOT invent preconditions a callee did not declare.
 
 Output JSON exactly matching:
 {{
-  "requires": ["<C boolean expression>", ...],
-  "ensures":  ["<C boolean expression or short prose>", ...],
-  "modifies": ["<sym>", ...],
-  "notes":    "<one-line context propagated to YOUR caller alongside contract>"
+  "analysis":   "<2-4 sentences: walk through the key memory ops, loop \
+bounds, and callee assumptions, then state why the contract below is sufficient>",
+  "requires":   ["<C boolean expression>", ...],
+  "ensures":    ["<C boolean expression or short prose>", ...],
+  "modifies":   ["<sym>", ...],
+  "notes":      "<one-line context propagated to YOUR caller alongside contract>",
+  "confidence": "high" | "medium" | "low"
 }}
 
 ## Format rules
+
+**`analysis` comes FIRST and walks through the function's relevant ops** \
+*before* you write the clauses. Cite specific lines or variables you reasoned \
+about; don't restate the body. Explain why the requires/ensures cover every \
+UB-relevant path.
+
+**`confidence` comes LAST and rates the contract you just wrote**:
+- `high`: clear logic, no tricky cases, contract follows directly from the body.
+- `medium`: some reasoning required, may have missed edge cases.
+- `low`: complex paths, ambiguous semantics, callee contracts uncertain, or \
+you are guessing. Be honest — low-confidence summaries are re-checked by \
+other means, so under-rating is cheaper than over-rating.
 
 **`requires` MUST be C boolean expressions** that a caller can evaluate
 at the callsite — `p != NULL`, `n > 0`, `i + k < ctx->size`. Avoid prose
@@ -331,11 +346,22 @@ holds`. Do NOT emit integer-overflow or pointer-validity predicates here.
 
 Output JSON exactly matching:
 {{
-  "requires": ["<expr or short clause>", ...],
-  "ensures":  ["<expr or short clause>", ...],
-  "modifies": ["<sym>", ...],
-  "notes":    "<one-line context propagated to YOUR caller alongside contract>"
+  "analysis":   "<2-4 sentences: which allocations/frees/ownership transfers \
+happen on which paths, then state why the contract below covers every \
+release/leak path>",
+  "requires":   ["<expr or short clause>", ...],
+  "ensures":    ["<expr or short clause>", ...],
+  "modifies":   ["<sym>", ...],
+  "notes":      "<one-line context propagated to YOUR caller alongside contract>",
+  "confidence": "high" | "medium" | "low"
 }}
+
+`analysis` comes FIRST (walk through the body before you write the clauses); \
+`confidence` comes LAST and rates the contract you just wrote. \
+Use `low` if ownership crosses callees with uncertain contracts, branches \
+where you are guessing about release responsibility, or any \
+"I think but cannot verify" situation. Honest under-rating is cheaper than \
+over-rating because low-confidence summaries get re-checked by other means.
 
 Guidance:
 - `requires` examples: `caller releases <sym>` (function acquires resource and
@@ -520,11 +546,23 @@ them verbatim; do NOT invent preconditions a callee did not declare.
 
 Output JSON exactly matching:
 {{
-  "requires": ["<expr or x: [lo, hi]>", ...],
-  "ensures":  ["<expr or x: [lo, hi]>", ...],
-  "modifies": ["<sym>", ...],
-  "notes":    "<one-line context propagated to YOUR caller alongside contract>"
+  "analysis":   "<2-4 sentences: identify the signed arithmetic / shifts / \
+divisions / casts at risk, cite the operands' source ranges, then state why \
+the requires below close every UB case>",
+  "requires":   ["<expr or x: [lo, hi]>", ...],
+  "ensures":    ["<expr or x: [lo, hi]>", ...],
+  "modifies":   ["<sym>", ...],
+  "notes":      "<one-line context propagated to YOUR caller alongside contract>",
+  "confidence": "high" | "medium" | "low"
 }}
+
+`analysis` comes FIRST (walk through the at-risk ops before you write \
+the clauses); `confidence` comes LAST and rates the contract you just wrote. \
+Use `low` when operand ranges are derived from external state you cannot \
+bound precisely, when callee `ensures[overflow]` are weak/missing, or when \
+you widened a bound and might have lost a real UB case. Honest under-rating \
+is cheaper than over-rating because low-confidence summaries get re-checked \
+by other means.
 """
 
 

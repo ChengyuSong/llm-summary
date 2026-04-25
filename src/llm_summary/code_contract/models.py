@@ -21,6 +21,10 @@ PROPERTIES: list[str] = ["memsafe", "memleak", "overflow"]
 PROPERTY_SCHEMA: dict[str, Any] = {
     "type": "object",
     "properties": {
+        # CoT walkthrough produced BEFORE the contract clauses. Forces the
+        # model to reason explicitly; also serves as the input to the
+        # certainty-gated refinement step.
+        "analysis": {"type": "string"},
         "requires": {"type": "array", "items": {"type": "string"}},
         "ensures":  {"type": "array", "items": {"type": "string"}},
         "modifies": {"type": "array", "items": {"type": "string"}},
@@ -29,8 +33,11 @@ PROPERTY_SCHEMA: dict[str, Any] = {
         # path (e.g. body unconditionally aborts/exits/longjmps). The same
         # answer is expected from every per-property call; we OR them.
         "noreturn": {"type": "boolean"},
+        # Self-rated certainty in the contract above. Emitted LAST so the
+        # model rates what it actually wrote, not what it intended to write.
+        "confidence": {"type": "string", "enum": ["high", "medium", "low"]},
     },
-    "required": ["requires", "ensures"],
+    "required": ["analysis", "requires", "ensures", "confidence"],
 }
 
 
@@ -47,9 +54,11 @@ def is_nontrivial(predicate: str) -> bool:
 class CodeContractSummary:
     """Hoare-style per-function summary. NO verdict field by design.
 
-    Per-property maps (`requires`, `ensures`, `modifies`, `notes`) carry the
-    output of the per-property summarization call for each property in
-    `properties`. `noreturn` is OR-ed across property calls.
+    Per-property maps (`requires`, `ensures`, `modifies`, `notes`,
+    `analysis`, `confidence`) carry the output of the per-property
+    summarization call for each property in `properties`. `noreturn` is
+    OR-ed across property calls. `analysis` and `confidence` are
+    LLM-only — hand-crafted seeds leave them empty.
 
     `origin` records, for each requires entry per property, where the clause
     came from — `"local"` for body-derived, `"<callee>:<idx>"` for one
@@ -65,6 +74,13 @@ class CodeContractSummary:
     modifies: dict[str, list[str]] = field(default_factory=dict)
     notes: dict[str, str] = field(default_factory=dict)
     origin: dict[str, list[str]] = field(default_factory=dict)
+    # Per-property CoT walkthrough emitted before the clauses. Empty for
+    # hand-crafted seeds (stdlib / svcomp); populated for LLM-produced
+    # summaries. Not propagated to callers — internal gating signal only.
+    analysis: dict[str, str] = field(default_factory=dict)
+    # Per-property self-rated certainty: "high" / "medium" / "low", or ""
+    # for seeds. Consumed by the symex-refinement gate (separate task).
+    confidence: dict[str, str] = field(default_factory=dict)
     # Property-independent: callsites to a noreturn callee cut the path.
     # Sources: explicit `__attribute__((noreturn))` / `_Noreturn` on the
     # declaration, stdlib seed (abort/exit/...), or LLM-detected
@@ -87,12 +103,14 @@ class CodeContractSummary:
         return {
             "function": self.function,
             "properties": list(self.properties),
-            "requires": {k: list(v) for k, v in self.requires.items()},
-            "ensures":  {k: list(v) for k, v in self.ensures.items()},
-            "modifies": {k: list(v) for k, v in self.modifies.items()},
-            "notes":    dict(self.notes),
-            "origin":   {k: list(v) for k, v in self.origin.items()},
-            "noreturn": bool(self.noreturn),
+            "requires":   {k: list(v) for k, v in self.requires.items()},
+            "ensures":    {k: list(v) for k, v in self.ensures.items()},
+            "modifies":   {k: list(v) for k, v in self.modifies.items()},
+            "notes":      dict(self.notes),
+            "origin":     {k: list(v) for k, v in self.origin.items()},
+            "analysis":   dict(self.analysis),
+            "confidence": dict(self.confidence),
+            "noreturn":   bool(self.noreturn),
             "inline_body": self.inline_body,
         }
 
@@ -106,6 +124,8 @@ class CodeContractSummary:
             modifies={k: list(v) for k, v in (d.get("modifies") or {}).items()},
             notes=dict(d.get("notes") or {}),
             origin={k: list(v) for k, v in (d.get("origin") or {}).items()},
+            analysis=dict(d.get("analysis") or {}),
+            confidence=dict(d.get("confidence") or {}),
             noreturn=bool(d.get("noreturn", False)),
             inline_body=str(d.get("inline_body") or ""),
         )

@@ -30,11 +30,15 @@ class TestCodeContractSummary:
             modifies={"memsafe": ["*p"]},
             notes={"memsafe": "writes one byte"},
             origin={"memsafe": ["local"]},
+            analysis={"memsafe": "p is dereffed at line 3; require p != NULL"},
+            confidence={"memsafe": "high"},
             noreturn=True,
         )
         d = s.to_dict()
         s2 = CodeContractSummary.from_dict(d)
         assert s2.to_dict() == d
+        assert s2.analysis == {"memsafe": "p is dereffed at line 3; require p != NULL"}
+        assert s2.confidence == {"memsafe": "high"}
 
     def test_has_requires_skips_trivial(self) -> None:
         s = CodeContractSummary(
@@ -54,6 +58,8 @@ class TestCodeContractSummary:
             ensures={"memsafe": ["result != NULL"], "memleak": []},
             modifies={"memsafe": ["*p"], "memleak": []},
             notes={"memsafe": "writes one byte", "memleak": ""},
+            analysis={"memsafe": "p is dereffed at line 3"},
+            confidence={"memsafe": "low"},
         )
         body = "void foo(char *p) { *p = 1; }"
         out = s.to_annotated_source(body)
@@ -67,6 +73,11 @@ class TestCodeContractSummary:
         assert out.endswith(body)
         # memleak (no contents) produces no header lines.
         assert "memleak" not in out
+        # analysis/confidence are internal gating signals — never rendered.
+        assert "@analysis" not in out
+        assert "@confidence" not in out
+        assert "p is dereffed" not in out
+        assert "low" not in out.split(body, 1)[0]
 
     def test_to_annotated_source_emits_noreturn(self) -> None:
         s = CodeContractSummary(function="foo", noreturn=True)

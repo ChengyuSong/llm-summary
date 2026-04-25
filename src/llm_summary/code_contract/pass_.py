@@ -23,7 +23,7 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import Any, TextIO
+from typing import Any
 
 from ..builder.json_utils import extract_json
 from ..db import SummaryDB
@@ -147,7 +147,7 @@ class CodeContractPass:
         svcomp: bool = False,
         data_model: str | None = None,
         cache_system: bool = True,
-        log_fp: TextIO | None = None,
+        log_file: str | None = None,
         verbose: bool = False,
         verify_only: bool = False,
     ):
@@ -160,9 +160,10 @@ class CodeContractPass:
         self.cache_system = cache_system
         self.verbose = verbose
         self.verify_only = verify_only
-        # Per-task LLM log fp (mirrors `scripts/contract_pipeline.py`'s
-        # `log_fp`). Caller manages open/close; we just write into it.
-        self.log_fp = log_fp
+        # Path to the LLM log file. Opened lazily in append mode on each
+        # write (matches the legacy summarizer pattern; no fp lifecycle
+        # for the caller to manage). None disables logging.
+        self.log_file = log_file
         # `summarizer` slot satisfies the SummaryPass Protocol (driver
         # touches `p.summarizer._stats_lock`, `p.summarizer._progress_*`).
         self.summarizer: Any = _StatsShim()
@@ -184,6 +185,18 @@ class CodeContractPass:
         self.calls: int = 0
         self.input_tokens: int = 0
         self.output_tokens: int = 0
+
+    def _log(self, text: str) -> None:
+        """Append `text` to the log file, no-op if logging disabled.
+
+        Lazy open per call mirrors the legacy summarizer pattern — the
+        file is created on first write and never held open across calls,
+        so callers don't need to manage an fp lifecycle.
+        """
+        if not self.log_file:
+            return
+        with open(self.log_file, "a", encoding="utf-8") as f:
+            f.write(text)
 
     # ── SummaryPass Protocol ────────────────────────────────────────────
 
@@ -340,26 +353,21 @@ class CodeContractPass:
             if len(expanded.splitlines()) <= MAX_INLINE_BODY_LINES:
                 summary.inline_body = expanded
                 summary.properties = []  # no per-property contract
-                if self.log_fp:
-                    self.log_fp.write(
-                        f"\n\n===== FUNCTION: {func.name} (INLINE BODY) =====\n"
-                        f"--- BODY ({len(expanded.splitlines())} lines) ---\n"
-                        f"{expanded}\n"
-                    )
+                self._log(
+                    f"\n\n===== FUNCTION: {func.name} (INLINE BODY) =====\n"
+                    f"--- BODY ({len(expanded.splitlines())} lines) ---\n"
+                    f"{expanded}\n"
+                )
                 return summary
 
-        if self.log_fp:
-            self.log_fp.write(f"\n\n===== FUNCTION: {func.name} =====\n")
-            self.log_fp.write(
-                f"--- FEATURES ---\n{features}\n"
-                f"--- PROPERTIES ---\n{props}\n"
-            )
+        self._log(
+            f"\n\n===== FUNCTION: {func.name} =====\n"
+            f"--- FEATURES ---\n{features}\n"
+            f"--- PROPERTIES ---\n{props}\n"
+        )
 
         if not props:
-            if self.log_fp:
-                self.log_fp.write(
-                    "(no properties in scope; emitting empty summary)\n"
-                )
+            self._log("(no properties in scope; emitting empty summary)\n")
             return summary
 
         response_format = make_json_response_format(
@@ -403,8 +411,7 @@ class CodeContractPass:
                 fmt_kwargs["data_model_note"] = self.data_model_note
             prompt = PROPERTY_PROMPT[prop].format(**fmt_kwargs)
 
-            if self.log_fp:
-                self.log_fp.write(f"\n--- USER ({prop}) ---\n{prompt}\n")
+            self._log(f"\n--- USER ({prop}) ---\n{prompt}\n")
 
             # Driver-level parallelism uses LLMPool.submit at the function
             # level; per-property calls within one function are serial and
@@ -419,11 +426,7 @@ class CodeContractPass:
             self.input_tokens += resp.input_tokens
             self.output_tokens += resp.output_tokens
 
-            if self.log_fp:
-                self.log_fp.write(
-                    f"--- RESPONSE ({prop}) ---\n{resp.content}\n"
-                )
-                self.log_fp.flush()
+            self._log(f"--- RESPONSE ({prop}) ---\n{resp.content}\n")
 
             try:
                 data = extract_json(resp.content)
@@ -443,11 +446,9 @@ class CodeContractPass:
                 self.calls += 1
                 self.input_tokens += resp.input_tokens
                 self.output_tokens += resp.output_tokens
-                if self.log_fp:
-                    self.log_fp.write(
-                        f"--- RETRY RESPONSE ({prop}) ---\n{resp.content}\n"
-                    )
-                    self.log_fp.flush()
+                self._log(
+                    f"--- RETRY RESPONSE ({prop}) ---\n{resp.content}\n"
+                )
                 try:
                     data = extract_json(resp.content)
                 except (json.JSONDecodeError, ValueError):
@@ -458,6 +459,7 @@ class CodeContractPass:
                     continue
 
             reqs = list(data.get("requires") or [])
+            summary.analysis[prop] = str(data.get("analysis") or "")
             summary.requires[prop] = reqs
             summary.ensures[prop] = list(data.get("ensures") or [])
             summary.modifies[prop] = list(data.get("modifies") or [])
@@ -465,6 +467,10 @@ class CodeContractPass:
             # Default origin: each requires entry is "local". Future work:
             # detect verbatim callee discharge and set origin = "<callee>:<idx>".
             summary.origin[prop] = ["local"] * len(reqs)
+            conf = str(data.get("confidence") or "").strip().lower()
+            summary.confidence[prop] = (
+                conf if conf in ("high", "medium", "low") else ""
+            )
             if bool(data.get("noreturn", False)):
                 summary.noreturn = True
 
@@ -522,8 +528,7 @@ class CodeContractPass:
         )
         globals_section = build_globals_section(ir_facts)
 
-        if self.log_fp:
-            self.log_fp.write(f"\n--- VERIFY ({func.name}) ---\n")
+        self._log(f"\n--- VERIFY ({func.name}) ---\n")
 
         from .source_prep import prepare_source
 
@@ -556,8 +561,7 @@ class CodeContractPass:
                 fmt_kwargs["data_model_note"] = self.data_model_note
             prompt = VERIFY_PROMPT[prop].format(**fmt_kwargs)
 
-            if self.log_fp:
-                self.log_fp.write(f"\n--- VERIFY USER ({prop}) ---\n{prompt}\n")
+            self._log(f"\n--- VERIFY USER ({prop}) ---\n{prompt}\n")
 
             resp = self.llm.complete_with_metadata(
                 prompt,
@@ -569,11 +573,9 @@ class CodeContractPass:
             self.input_tokens += resp.input_tokens
             self.output_tokens += resp.output_tokens
 
-            if self.log_fp:
-                self.log_fp.write(
-                    f"\n--- VERIFY RESPONSE ({prop}) ---\n{resp.content}\n"
-                )
-                self.log_fp.flush()
+            self._log(
+                f"\n--- VERIFY RESPONSE ({prop}) ---\n{resp.content}\n"
+            )
 
             try:
                 data = extract_json(resp.content)
@@ -593,11 +595,9 @@ class CodeContractPass:
                 self.calls += 1
                 self.input_tokens += resp.input_tokens
                 self.output_tokens += resp.output_tokens
-                if self.log_fp:
-                    self.log_fp.write(
-                        f"\n--- VERIFY RETRY RESPONSE ({prop}) ---\n{resp.content}\n"
-                    )
-                    self.log_fp.flush()
+                self._log(
+                    f"\n--- VERIFY RETRY RESPONSE ({prop}) ---\n{resp.content}\n"
+                )
                 try:
                     data = extract_json(resp.content)
                 except (json.JSONDecodeError, ValueError):

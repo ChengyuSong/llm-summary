@@ -529,6 +529,7 @@ def summarize(
                 cache_system=(cache_mode != "none"),
                 verbose=verbose,
                 verify_only=verify_only,
+                log_file=log_llm,
             )
             passes.append(code_contract_pass)
 
