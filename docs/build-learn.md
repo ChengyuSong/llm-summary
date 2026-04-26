@@ -44,7 +44,7 @@ llm-summary build-learn \
 ./build-scripts/<project-name>/build.sh
 
 # Analyze with llm-summary
-llm-summary extract --path /path/to/project --db analysis.db
+llm-summary scan --compile-commands build/compile_commands.json --db analysis.db
 ```
 
 ## Architecture

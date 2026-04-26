@@ -20,10 +20,10 @@ cb-multios challenges
 cgc_run.sh pipeline
   Phase 0: extract ground truth   (cgc_extract_ground_truth.py)
   Phase 1: scan + call graph      (cgc_prepare.py)
-  Phase 3: summarize              (llm-summary summarize)
-  Phase 4: verify                 (llm-summary summarize --type verify)
+  Phase 3: summarize              (llm-summary summarize — code-contract)
+  Phase 4: check                  (llm-summary check — entry-point obligations)
   Phase 5: patch re-scan          (cgc_prepare.py --patch)
-  Phase 6: patched summarize+verify
+  Phase 6: patched summarize+check
   Phase 7: evaluate               (cgc_evaluate.py)
 ```
 

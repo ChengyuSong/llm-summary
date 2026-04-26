@@ -42,34 +42,21 @@ Indirect calls (function pointer calls, virtual method calls) are challenging fo
 ## Workflow
 
 ```bash
-# 1. Generate a script to run KAMain
-llm-summary generate-kanalyzer-script \
-  --project libpng \
-  --artifacts-dir /data/build-artifacts/libpng \
-  --output-json /tmp/libpng_cg.json \
-  -o run_kamain.sh
+# 1. Run KAMain directly (script generation lives in scripts/batch_call_graph_gen.py)
+python scripts/batch_call_graph_gen.py --project libpng -v
 
-# 2. Run KAMain (produces JSON call graph)
-bash run_kamain.sh
-
-# 3. Import into database
+# 2. Import the resulting call graph into the per-target database
 llm-summary import-callgraph \
-  --json /tmp/libpng_cg.json \
-  --db analysis.db \
+  --json func-scans/libpng/libpng16/callgraph.json \
+  --db func-scans/libpng/libpng16/functions.db \
   --clear-edges \
   --verbose
 ```
 
-### CLI Options
+The batch script invokes the KAMain binary directly per target (compress + compose + solve sub-phases) and writes `callgraph.json`, `<target>.cflcg`, `<target>.vsnap`. KAMain's own `--allocator-file` / `--container-file` inputs are passed through by the batch driver from `func-scans/<project>/allocator_candidates.json` and `container_candidates.json` (when present).
 
-`generate-kanalyzer-script`:
-- `--project` (required): project name under `build-scripts/`
-- `--artifacts-dir`: path to `.bc` files (default: `build-scripts/<project>/artifacts`)
-- `--output-json` (required): output path for KAMain JSON
-- `--kamain-bin`: path to KAMain binary
-- `--allocator-file`, `--container-file`: optional JSON inputs for KAMain
+### `import-callgraph` options
 
-`import-callgraph`:
 - `--json` (required): path to KAMain JSON
 - `--db`: database file
 - `--clear-edges`: remove existing `call_edges` before import

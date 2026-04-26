@@ -63,20 +63,9 @@ The LLM returns a JSON response with:
 - `container_type`: hash_table, linked_list, tree, map, cache, queue, etc.
 - `confidence`: high/medium/low
 
-## CLI Usage
+## Usage
 
-```bash
-# Heuristic-only (no LLM, fast)
-llm-summary container-analyze --db summaries.db --heuristic-only -v
-
-# Full analysis with LLM
-llm-summary container-analyze --db summaries.db \
-  --backend llamacpp --llm-host 192.168.1.11 --llm-port 8001 -v
-
-# View results
-llm-summary show-containers --db summaries.db
-llm-summary show-containers --db summaries.db --format json
-```
+The dedicated `container-analyze` / `show-containers` CLI commands have been removed; container detection is now driven only via the batch script (which uses `ContainerDetector` directly from Python).
 
 ## Batch Processing
 

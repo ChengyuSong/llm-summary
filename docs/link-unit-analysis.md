@@ -250,9 +250,9 @@ llm-summary import-dep-summaries \
   --dep-db func-scans/zlib/zlibstatic/functions.db
 ```
 
-`import-dep-summaries` copies function stubs and their summaries
-(allocation, free, init, memsafe, verification) from the dep DB into the
-target DB, tagged with `model_used="dep:<project>/<target>"`.
+`import-dep-summaries` copies function stubs and their code-contract
+summaries from the dep DB into the target DB, tagged with
+`model_used="dep:<project>/<target>"`.
 
 The bottom-up driver's cache check will find these and skip them during
 summarization.
@@ -262,13 +262,13 @@ summarization.
 ```bash
 llm-summary summarize \
   --db func-scans/libpng/libpng16/functions.db \
-  --type allocation --type free --type init \
   --backend gemini
 ```
 
-The driver processes functions in topological order. Functions with
-existing summaries (from stdlib, deps, or prior runs) are cache hits —
-only new target-specific functions get LLM calls.
+The driver processes functions in topological order, running the
+code-contract pass per function. Functions with existing summaries (from
+stdlib, deps, or prior runs) are cache hits — only new target-specific
+functions get LLM calls.
 
 ## Incremental Analysis Flow
 
@@ -285,10 +285,10 @@ Step 1: Analyze zlib (no deps)
                           zlib/zlibstatic/zlibstatic.vsnap
     import-callgraph   → call_edges in functions.db
     (writes db_path, callgraph_json, cflcg, vsnapshot → link_units.json)
-  batch_summarize --init-stdlib
+  batch_code_contract
     import-dep-summaries (no intra-project deps for zlibstatic)
     init-stdlib          → stdlib stubs populated
-    Pass 1 + Pass 2      → all zlibstatic functions summarized
+    summarize            → all zlibstatic functions summarized
 
 Step 2: Analyze libpng (depends on zlib)
   discover-link-units  → libpng/link_units.json
@@ -300,11 +300,11 @@ Step 2: Analyze libpng (depends on zlib)
                        → libpng/libpng16/callgraph.json
                           libpng/libpng16/libpng16.vsnap
     import-callgraph   → call_edges
-  batch_summarize --init-stdlib
-    import-dep-summaries --dep-db zlib/zlibstatic/functions.db
-                         → zlib function summaries copied in
+  batch_code_contract
+    import-dep + import-dep-summaries --dep-db zlib/zlibstatic/functions.db
+                         → zlib function contracts copied in
     init-stdlib          → stdlib stubs
-    Pass 1 + Pass 2      → only libpng-specific functions need LLM calls
+    summarize            → only libpng-specific functions need LLM calls
                            zlib functions → cache hit, skipped
 ```
 

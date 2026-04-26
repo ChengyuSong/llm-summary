@@ -181,7 +181,7 @@ Review statuses:
 ## Workflow Summary
 
 ```
-1. summarize --type verify      # Pass 5: find issues
+1. summarize                    # Code-contract pass: find issues
 2. show-issues                  # Review what was flagged
 3. gen-harness -f <func>        # Generate shim + compile
 4. gen-harness --plan-only      # Generate Thoroupy plan

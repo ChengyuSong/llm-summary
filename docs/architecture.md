@@ -6,7 +6,7 @@ This document describes the architecture of the LLM-based memory safety analysis
 
 The tool performs compositional, bottom-up analysis of C/C++ code to generate Hoare-style safety contracts (requires/ensures) per function. It processes functions in dependency order (callees before callers) so that callee contracts are available when analyzing callers.
 
-The primary summarization pipeline is the **code-contract** pass, which produces per-function, per-property (memsafe/memleak/overflow) contracts in a single unified pass with interleaved verification. A legacy multi-pass pipeline (allocation, free, init, memsafe, verify) still exists but is being phased out.
+The summarization pipeline is the **code-contract** pass, which produces per-function, per-property (memsafe/memleak/overflow) contracts in a single unified pass with interleaved verification. (A legacy multi-pass pipeline of allocation/free/init/memsafe/verify summarizers still ships as Python classes for batch-script use, but is no longer wired into the CLI.)
 
 Analysis is **link-unit aware**: each build target (library, executable) gets its own database, and targets are processed in dependency order so that library contracts are available when analyzing executables that link them.
 
@@ -26,7 +26,7 @@ build-learn ──▶ discover-link- ──▶ scan (per ──▶ call graph
                                    └────────┬────────┘
                                             ▼
                                        Phase 6
-                                       summarize --type code-contract
+                                       summarize
                                        (bottom-up, per-property)
                                             │
                                             ▼
@@ -156,13 +156,13 @@ The primary summarization pipeline. Produces Hoare-style contracts (requires/ens
 - **Inline small functions** — if body < threshold, paste at callsites instead of summarizing
 
 **DB table:** `code_contract_summaries`
-**CLI:** `llm-summary summarize --type code-contract`, `llm-summary check`
+**CLI:** `llm-summary summarize`, `llm-summary check`
 
-### 7-legacy. Summary Generators (legacy, being phased out)
+### 7-legacy. Summary Generators (legacy, no longer wired into CLI)
 
 `summarizer.py`, `free_summarizer.py`, `init_summarizer.py`, `memsafe_summarizer.py`, `verification_summarizer.py`
 
-Per-function LLM summarization logic across five separate passes. Each summarizer builds a prompt from the function source and callee summaries, queries the LLM, and parses the structured response.
+Per-function LLM summarization logic across five separate passes. The classes still ship for batch-script and downstream consumers, but the CLI's `summarize` command no longer drives them.
 
 **Key classes:**
 - `AllocationSummarizer`: Allocation/buffer-size-pair analysis
@@ -202,16 +202,14 @@ Pre-defined summaries for common C standard library functions, seeded before bot
 
 **Code-contract stdlib** (`code_contract/stdlib.py`): Hoare-style requires/ensures/modifies contracts for libc functions (malloc, free, memcpy, memset, strlen, printf, etc.). Used by the primary code-contract pipeline.
 
-**Legacy stdlib** (`stdlib.py`): Per-pass summaries (allocation, free, init, memsafe) for the legacy multi-pass pipeline.
+**Legacy stdlib** (`stdlib.py`): Per-pass summaries (allocation, free, init, memsafe) for the legacy multi-pass pipeline. Still importable, but no longer auto-loaded by `summarize`.
 
 ### 10. V-Snapshot Alias Context (`vsnapshot.py`, `alias_context.py`)
 
-Integrates whole-program pointer aliasing data from external CFL analysis (kanalyzer) into the memsafe and verification passes.
+Integrates whole-program pointer aliasing data from external CFL analysis (kanalyzer). Currently consumed only by the legacy `MemsafePass`/`VerificationPass` via the `alias_builder` parameter. **TODO:** wire alias context into the code-contract pipeline — it's useful precision (groups aliasing pointers, annotates may-alias fields/params) that the contract prompts would benefit from.
 
 - **`VSnapshot`** (`vsnapshot.py`): Loads V-snapshot binary format — per-function alias sets showing which pointers may alias at each program point
 - **`AliasContextBuilder`** (`alias_context.py`): Builds alias context sections for LLM prompts from V-snapshot data. Groups aliasing pointers and annotates which fields/parameters may point to the same memory
-
-Used by `MemsafePass` and `VerificationPass` via the `alias_builder` parameter to improve precision of safety contract analysis.
 
 ### 11. Allocator & Container Detection (`allocator.py`, `container.py`)
 
@@ -263,30 +261,18 @@ See [link-unit-analysis.md](link-unit-analysis.md) for the full design.
 Command-line interface using Click.
 
 **Commands:**
-- `summarize`: Generate summaries (`--type code-contract` for the primary pipeline; legacy types: `allocation|free|init|memsafe|verify`, `-j N` for parallel)
-- `check`: Entry-point obligation check — surfaces non-trivial `requires` at entry functions with witness chains (no LLM)
-- `extract`: Function and call graph extraction only
-- `callgraph`: Export call graph
-- `show`: Display summaries
-- `lookup`: Look up specific function
-- `stats`: Database statistics
-- `export`: Export to JSON
-- `init-stdlib`: Add stdlib summaries
-- `clear`: Clear database
-- `indirect-analyze`: Resolve indirect calls via LLM
-- `show-indirect`: Display indirect call analysis results
-- `container-analyze`: Detect container/collection functions
-- `show-containers`: Display container detection results
-- `find-allocator-candidates`: Identify custom allocator functions
-- `scan`: Comprehensive analysis using `compile_commands.json` (link-unit aware)
 - `build-learn`: Incremental project builder with LLM-driven ReAct loop
-- `generate-kanalyzer-script`: Generate kanalyzer analysis script
-- `import-callgraph`: Import external call graph (e.g., from kanalyzer)
 - `discover-link-units`: Detect build targets/link units
-- `import-dep-summaries`: Import summaries from dependency databases
-- `gen-harness`: Generate C shims for contract-guided concolic execution (SymSan/ucsan)
-- `show-issues`: List verification issues with review status filters
-- `review-issue`: Triage a verification issue (confirmed / false_positive / wontfix)
+- `scan`: Per-target function extraction + indirect-call scan from `compile_commands.json`
+- `import-callgraph`: Import KAMain JSON call graph into a target DB
+- `init-stdlib`: Populate external/stdlib summaries (cache hits for the primary pass)
+- `import-dep`, `import-dep-summaries`: Pull in cross- and intra-project dependency summaries
+- `summarize`: Generate per-function code contracts (`-j N` for parallel)
+- `check`: Entry-point obligation check — surfaces non-trivial `requires` at entry functions with witness chains (no LLM)
+- `lookup`, `export`, `show`, `stats`: Inspect contracts and DB state
+- `callgraph`: Export call graph as tuples / CSV / JSON
+- `triage`, `gen-harness`, `reflect`, `consume-validation`, `bug-report`: Triage and validation pipeline (ucsan / SymSan)
+- `show-issues`, `review-issue`: List and triage verification issues
 
 ## End-to-End Pipeline
 
@@ -350,7 +336,7 @@ Before summarization, populate the target DB with pre-existing summaries so the 
 
 **Output:** stdlib and dependency function stubs + summaries in `functions.db`
 
-### Phase 6: Summarize (`summarize --type code-contract`)
+### Phase 6: Summarize (`summarize`)
 
 Bottom-up LLM summarization via `BottomUpDriver`. Builds the call graph once, computes SCCs via Tarjan's algorithm, and traverses in topological order (callees first).
 
@@ -369,7 +355,7 @@ Functions with existing contracts (stdlib, deps, prior runs) are cache hits. Onl
 **Output:** `code_contract_summaries` in `functions.db`
 
 <details>
-<summary>Legacy multi-pass pipeline (being phased out)</summary>
+<summary>Legacy multi-pass pipeline (no longer in CLI; classes still present)</summary>
 
 | Pass | Type | Direction | What it captures |
 |------|------|-----------|------------------|
@@ -379,9 +365,7 @@ Functions with existing contracts (stdlib, deps, prior runs) are cache hits. Onl
 | 4 | `memsafe` | Pre-condition | Safety contracts (not-null, buffer-size, etc.) |
 | 5 | `verify` | Cross-pass | Issues + simplified contracts |
 
-Passes 1–4 are independent and can run together. Pass 5 requires passes 1–4 to exist. Optional `--vsnap` provides alias context for passes 4–5.
-
-**Output:** `allocation_summaries`, `free_summaries`, `init_summaries`, `memsafe_summaries`, `verification_summaries` in `functions.db`
+The `summarize` CLI no longer drives these passes; the pass classes (`AllocationPass`, `FreePass`, `InitPass`, `MemsafePass`, `VerificationPass`) remain importable for batch-script use. Tables (`allocation_summaries`, etc.) are still in the schema.
 </details>
 
 ### Phase 7: Entry-Point Check (`check`)
@@ -448,7 +432,7 @@ Step 1: Analyze zlib (no deps)
   KAMain phase 2                  → zlib/zlibstatic/callgraph.json, .vsnap
   import-callgraph                → call_edges in functions.db
   init-stdlib                     → stdlib contracts
-  summarize --type code-contract  → per-function Hoare-style contracts
+  summarize                       → per-function Hoare-style contracts
   check                           → entry-point obligations
 
 Step 2: Analyze libpng (depends on zlib)
@@ -460,7 +444,7 @@ Step 2: Analyze libpng (depends on zlib)
   import-callgraph                → call_edges
   import-dep + import-dep-summaries → zlib contracts copied in
   init-stdlib                     → stdlib contracts
-  summarize --type code-contract  → per-function contracts (zlib → cache hit)
+  summarize                       → per-function contracts (zlib → cache hit)
   check                           → entry-point obligations
 ```
 
@@ -545,7 +529,7 @@ The legacy pipeline uses five passes. Post-condition passes (1-3) summarize what
 | Double free | 2 (what's freed) | not-freed contracts |
 | Uninitialized use | 3 (what's initialized) | must-be-initialized contracts |
 
-**CLI:** `llm-summary summarize --type allocation|free|init|memsafe|verify`
+The CLI no longer exposes per-pass `--type`; consumers that still want these summaries instantiate the pass classes directly from Python.
 </details>
 
 ## Design Decisions
