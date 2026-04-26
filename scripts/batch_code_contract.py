@@ -73,13 +73,13 @@ def run_summarize_code_contract(
     verbose: bool,
     timeout: int,
     verify_only: bool = False,
+    vsnap_path: Path | None = None,
 ) -> tuple[bool, str, float]:
-    """Invoke `llm-summary summarize --type code-contract` for one DB."""
+    """Invoke `llm-summary summarize` (code-contract pass) for one DB."""
     cmd = [
         "llm-summary", "summarize",
         "--db", str(db_path),
         "--backend", backend,
-        "--type", "code-contract",
     ]
     if model:
         cmd += ["--model", model]
@@ -97,6 +97,8 @@ def run_summarize_code_contract(
         cmd += ["--log-llm", str(log_llm)]
     if jobs > 1:
         cmd += ["-j", str(jobs)]
+    if vsnap_path and vsnap_path.exists():
+        cmd += ["--vsnap", str(vsnap_path)]
     if verbose:
         cmd.append("--verbose")
 
@@ -279,6 +281,7 @@ def _process_target(
     do_init_stdlib: bool,
     verbose: bool,
     verify_only: bool = False,
+    vsnap_path: Path | None = None,
 ) -> dict:
     """Run summarize (and optional check) for one target DB."""
     target_result: dict = {
@@ -315,6 +318,7 @@ def _process_target(
         verbose=verbose,
         timeout=timeout,
         verify_only=verify_only,
+        vsnap_path=vsnap_path,
     )
     if not ok:
         target_result["error"] = f"summarize failed: {err}"
@@ -457,6 +461,14 @@ def process_project_link_units(
                 target_errors.append(f"{target}: {tr['error']}")
                 continue
 
+        # Per-target V-snapshot from KAMain (alias context for prompts)
+        vsnap_str = lu.get("vsnapshot")
+        target_vsnap = (
+            Path(vsnap_str) if vsnap_str and Path(vsnap_str).exists() else None
+        )
+        if target_vsnap and verbose:
+            print(f"    [{target}] Using V-snapshot: {target_vsnap}")
+
         tr = _process_target(
             target=target,
             target_dir=target_dir,
@@ -466,6 +478,7 @@ def process_project_link_units(
             log_llm=log_llm, jobs=jobs, timeout=timeout,
             do_check=do_check, do_init_stdlib=do_init_stdlib,
             verbose=verbose, verify_only=verify_only,
+            vsnap_path=target_vsnap,
         )
         result["targets"].append(tr)
         if not tr["success"]:
@@ -556,6 +569,12 @@ def process_project(
             result["error"] = f"callgraph_import_failed: {e}"
             return result
 
+    # Single-DB V-snapshot fallback (mirrors batch_summarize.py)
+    legacy_vsnap = scan_dir / f"{project_name}.vsnap"
+    project_vsnap = legacy_vsnap if legacy_vsnap.exists() else None
+    if project_vsnap and verbose:
+        print(f"    Using V-snapshot: {project_vsnap}")
+
     tr = _process_target(
         target=project_name,
         target_dir=scan_dir,
@@ -565,6 +584,7 @@ def process_project(
         log_llm=log_llm, jobs=jobs, timeout=timeout,
         do_check=do_check, do_init_stdlib=do_init_stdlib,
         verbose=verbose, verify_only=verify_only,
+        vsnap_path=project_vsnap,
     )
     result["targets"].append(tr)
     result["success"] = tr["success"]

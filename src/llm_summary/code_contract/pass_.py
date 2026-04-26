@@ -157,6 +157,7 @@ class CodeContractPass:
         log_file: str | None = None,
         verbose: bool = False,
         verify_only: bool = False,
+        alias_builder: Any = None,
     ):
         self.db = db
         self.model = model
@@ -167,6 +168,7 @@ class CodeContractPass:
         self.cache_system = cache_system
         self.verbose = verbose
         self.verify_only = verify_only
+        self.alias_builder = alias_builder
         # Path to the LLM log file. Opened lazily in append mode on each
         # write (matches the legacy summarizer pattern; no fp lifecycle
         # for the caller to manage). None disables logging.
@@ -406,6 +408,16 @@ class CodeContractPass:
         scores_by_prop: dict[str, float] = {}
         retry_model_used: str | None = None
 
+        # Whole-program alias context, built once per function (independent
+        # of the property). `None` if no vsnap is wired in or the function
+        # has no relevant aliases. Renders as a stand-alone section under
+        # the callee block.
+        alias_context_section = ""
+        if self.alias_builder is not None:
+            ctx = self.alias_builder.build_context(func, callee_names)
+            if ctx:
+                alias_context_section = "\n" + ctx + "\n"
+
         for prop in props:
             callee_block = build_callee_block(
                 func, summaries, prop, callee_names,
@@ -432,6 +444,7 @@ class CodeContractPass:
             fmt_kwargs: dict[str, Any] = {
                 "name": func.name,
                 "callee_block": callee_block,
+                "alias_context": alias_context_section,
                 "source": source_inlined,
             }
             if prop == "overflow":
@@ -718,6 +731,14 @@ class CodeContractPass:
 
         from .source_prep import prepare_source
 
+        # Whole-program alias context — same once-per-function build as
+        # the contract pass, shared across all properties for this verify.
+        alias_context_section = ""
+        if self.alias_builder is not None:
+            ctx = self.alias_builder.build_context(func, callee_names)
+            if ctx:
+                alias_context_section = "\n" + ctx + "\n"
+
         for prop in summary.properties:
             callee_block = build_callee_block(
                 func, summaries, prop, callee_names,
@@ -741,6 +762,7 @@ class CodeContractPass:
                 "name": func.name,
                 "own_contract": own_contract,
                 "callee_block": callee_block,
+                "alias_context": alias_context_section,
                 "source": source_inlined,
             }
             if prop == "overflow":

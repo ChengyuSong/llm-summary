@@ -274,7 +274,7 @@ The header block lists each callee's published pre/post for memsafe. Use them \
 verbatim; do NOT invent preconditions a callee did not declare.
 
 {callee_block}
-
+{alias_context}
 === SOURCE ===
 {source}
 
@@ -340,7 +340,7 @@ must close`, `all acquisitions released`, `<callee>.requires[memleak] \
 holds`. Do NOT emit integer-overflow or pointer-validity predicates here.
 
 {callee_block}
-
+{alias_context}
 === SOURCE ===
 {source}
 
@@ -540,7 +540,7 @@ The header block lists each callee's published pre/post for overflow. Use
 them verbatim; do NOT invent preconditions a callee did not declare.
 
 {callee_block}
-
+{alias_context}
 === SOURCE ===
 {source}
 
@@ -688,7 +688,7 @@ entry. Skip warnings that are clearly dead code or already discharged by the \
 contract.
 
 {callee_block}
-
+{alias_context}
 === SOURCE (callsites annotated with `// >>> callee contract for memsafe`) ===
 {source}
 
@@ -729,7 +729,7 @@ treat each warning as a candidate `memory_leak` (or `callee_requires`) when it \
 implies an unreleased acquisition; otherwise leave it alone.
 
 {callee_block}
-
+{alias_context}
 === SOURCE (callsites annotated with `// >>> callee contract for memleak`) ===
 {source}
 
@@ -838,7 +838,7 @@ when no `add` instruction survives in IR. Skip warnings only when the path is \
 provably unreachable.
 
 {callee_block}
-
+{alias_context}
 === SOURCE (callsites annotated with `// >>> callee contract for overflow`) ===
 {source}
 

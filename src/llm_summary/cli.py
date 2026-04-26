@@ -113,11 +113,17 @@ def main():
     help="(code-contract only) Skip contract generation; re-run verification "
          "against cached contracts and persist issues to DB.",
 )
+@click.option(
+    "--vsnap", "vsnap_path", type=click.Path(exists=True, dir_okay=False),
+    default=None,
+    help="V-snapshot file from KAMain. Enables whole-program alias context "
+         "in code-contract prompts.",
+)
 def summarize(
     db_path, backend, model, llm_host, llm_port,
     disable_thinking, verbose, force, log_llm, svcomp,
     jobs, cache_mode, function_names, incremental, entry_functions,
-    verify_only,
+    verify_only, vsnap_path,
 ):
     """Generate per-function code contracts on a pre-populated database.
 
@@ -183,6 +189,12 @@ def summarize(
 
         from .code_contract.pass_ import CodeContractPass
 
+        alias_builder = None
+        if vsnap_path:
+            from .alias_context import AliasContextBuilder
+            alias_builder = AliasContextBuilder(vsnap_path, db)
+            console.print(f"  Alias context: {vsnap_path}")
+
         code_contract_pass = CodeContractPass(
             db=db, model=llm.model, llm=llm,
             svcomp=svcomp,
@@ -190,6 +202,7 @@ def summarize(
             verbose=verbose,
             verify_only=verify_only,
             log_file=log_llm,
+            alias_builder=alias_builder,
         )
         passes: list[SummaryPass] = [code_contract_pass]
 
