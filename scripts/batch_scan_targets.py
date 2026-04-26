@@ -15,6 +15,7 @@ Usage:
 
 import json
 import os
+import sqlite3
 import sys
 import tempfile
 import time
@@ -38,9 +39,13 @@ from llm_summary.extractor import C_EXTENSIONS, FunctionExtractor
 from llm_summary.indirect.callsites import IndirectCallsiteFinder
 from llm_summary.indirect.scanner import AddressTakenScanner
 from llm_summary.link_units.pipeline import (
+    compute_unit_source_files,
     detect_bc_alias_relations,
+    detect_source_set_relations,
     load_link_units,
+    source_files_for_objects,
     topo_sort_link_units,
+    update_link_units_file,
 )
 from llm_summary.models import TargetType
 
@@ -127,73 +132,10 @@ def _git_changed_files(
     return changed, deleted
 
 
-def _bare_stem(p: Path) -> str:
-    """Strip all extensions: adler32.c.o -> adler32, adler32.bc -> adler32."""
-    s = p.stem
-    while "." in s:
-        s = Path(s).stem
-    return s
-
-
-
-def _source_files_for_objects(
-    cc_entries: list[dict],
-    objects: list[str],
-    build_dir: Path,
-) -> list[str]:
-    """Return source files whose compiled output matches an object file path.
-
-    Used as fallback when no .bc files exist (non-LTO builds).
-    Matching strategy (in order):
-    1. Exact absolute output path match
-    2. Resolve relative object against build_dir
-    3. Stem-based fallback: strip mangled prefixes from object name
-       (e.g. libtestutil-lib-opt.o -> opt) and match against source stems
-    """
-    # Build index: absolute output path -> source file
-    idx: dict[str, str] = {}
-    # Stem index for fallback: (parent_dir, bare_stem) -> source file
-    # Use parent dir to disambiguate same-stem files in different directories
-    stem_idx: dict[str, list[str]] = {}  # bare_stem -> [source_files]
-    for entry in cc_entries:
-        output = entry.get("output", "")
-        src = entry.get("file", "")
-        if not (src and Path(src).suffix.lower() in SCAN_EXTENSIONS):
-            continue
-        if output:
-            out_path = Path(output)
-            if not out_path.is_absolute():
-                directory = entry.get("directory", "")
-                if directory:
-                    out_path = Path(directory) / out_path
-                else:
-                    out_path = build_dir / out_path
-            idx[str(out_path)] = src
-        # Build stem index from source file
-        src_stem = Path(src).stem
-        stem_idx.setdefault(src_stem, []).append(src)
-
-    sources: list[str] = []
-    seen: set[str] = set()
-    for obj in objects:
-        # Try as-is first (absolute), then resolve relative against build_dir
-        src = idx.get(obj)
-        if not src and not Path(obj).is_absolute():
-            src = idx.get(str(build_dir / obj))
-        # Stem-based fallback: strip mangled prefixes
-        # e.g. libtestutil-lib-opt.o -> opt, libapps-lib-app_rand.o -> app_rand
-        if not src:
-            obj_stem = _bare_stem(Path(obj))
-            # Strip lib<name>-lib- prefix pattern (common in OpenSSL, autotools)
-            if "-lib-" in obj_stem:
-                obj_stem = obj_stem.split("-lib-", 1)[1]
-            candidates = stem_idx.get(obj_stem, [])
-            if len(candidates) == 1:
-                src = candidates[0]
-        if src and src not in seen:
-            sources.append(src)
-            seen.add(src)
-    return sources
+# Re-export for back-compat: callers used to import _source_files_for_objects
+# from this module. The implementation lives in link_units.pipeline so that
+# the source-set-aware relation detector can share it.
+_source_files_for_objects = source_files_for_objects
 
 
 def _build_asm_obj_map(
@@ -442,9 +384,52 @@ def scan_project_link_units(
         return result
 
     detect_bc_alias_relations(raw_units)
-    link_units = topo_sort_link_units(raw_units)
     project_scan_dir = func_scans_dir / project_name
     build_dir = Path(lu_data.get("build_dir", f"/data/csong/build-artifacts/{project_name}"))
+
+    # Source-set-aware relation detection: after bc-alias, look for units
+    # whose source-file sets are equal (alias_of) or whose source set is a
+    # strict subset of another (imported_from). The latter lets the larger
+    # unit copy the shared portion from the smaller unit's DB instead of
+    # re-analyzing it.
+    # The scan layer relativizes file_path against project_root before insert
+    # (DBs stay portable). For cross-DB import to JOIN on file_path, every
+    # downstream file-path comparison — unit_files, imported_files, the
+    # wave-2 shared list — must use the same relative form.
+    def _relativize(files_by_unit: dict[str, set[str]]) -> dict[str, set[str]]:
+        if not project_root:
+            return files_by_unit
+        root_prefix = str(project_root) + "/"
+        out: dict[str, set[str]] = {}
+        for name, files in files_by_unit.items():
+            out[name] = {
+                p[len(root_prefix):] if p.startswith(root_prefix) else p
+                for p in files
+            }
+        return out
+
+    unit_files = _relativize(
+        compute_unit_source_files(raw_units, cc_entries, build_dir)
+    )
+    n_rel = detect_source_set_relations(raw_units, unit_files)
+    if n_rel > 0:
+        update_link_units_file(link_units_path, lu_data)
+        unit_files = _relativize(
+            compute_unit_source_files(raw_units, cc_entries, build_dir)
+        )
+        if verbose:
+            print(f"    Source-set relations: {n_rel} added/changed")
+
+    # Pre-populate db_path so the importer can resolve its dep DB without
+    # special-casing. Aliased units intentionally get no db_path here —
+    # propagate_alias_db_paths handles that downstream.
+    for lu in raw_units:
+        if not lu.get("alias_of") and not lu.get("db_path"):
+            lu["db_path"] = str(project_scan_dir / lu["name"] / "functions.db")
+    if any(not u.get("alias_of") for u in raw_units):
+        update_link_units_file(link_units_path, lu_data)
+
+    link_units = topo_sort_link_units(raw_units)
 
     # Incremental: compute changed files via git diff
     incr_changed_rel: set[str] | None = None
@@ -495,8 +480,17 @@ def scan_project_link_units(
     tmp.close()
 
     try:
-        # Prepare work items for each target (skip alias units)
-        work_items = []
+        # Prepare work items for each target (skip alias units). Items
+        # whose unit has `imported_from` go into wave 2 — their dep DB must
+        # finish wave-1 scanning first, then we copy the shared portion
+        # before scanning the residual files.
+        work_items_w1: list[tuple] = []
+        work_items_w2: list[tuple] = []
+        # unit_name -> (source_db_path, sorted shared file list)
+        import_directives: dict[str, tuple[str, list[str]]] = {}
+        # unit_name -> full absolute source list (so we can fall back to
+        # scanning everything if validation drops the import directive).
+        full_source_by_target: dict[str, list[str]] = {}
         for lu in link_units:
             target = lu["name"]
             if lu.get("alias_of"):
@@ -518,6 +512,50 @@ def scan_project_link_units(
                 target_dir = project_scan_dir / target
                 target_dir.mkdir(parents=True, exist_ok=True)
                 db_path_str = str(target_dir / "functions.db")
+
+            # Source-set superset: split files into shared (imported from
+            # the smaller unit) and residual (this unit will scan). unit_files
+            # is in *relative* form (relativized above) to match the dep DB's
+            # stored file_path. source_files stays absolute because the scan
+            # layer needs to open them.
+            imported_from = lu.get("imported_from") or []
+            if imported_from and not dry_run:
+                dep_name = imported_from[0]
+                dep_lu = next(
+                    (u for u in link_units if u["name"] == dep_name), None,
+                )
+                if dep_lu:
+                    if project_root:
+                        root_pfx = str(project_root) + "/"
+
+                        def _rel(p: str) -> str:
+                            return p[len(root_pfx):] if p.startswith(root_pfx) else p
+                    else:
+                        def _rel(p: str) -> str:
+                            return p
+                    dep_files = unit_files.get(dep_name, set())
+                    rel_to_abs = {_rel(p): p for p in source_files}
+                    shared_rel = sorted(set(rel_to_abs) & dep_files)
+                    residual = sorted(
+                        rel_to_abs[r]
+                        for r in (set(rel_to_abs) - dep_files)
+                    )
+                    dep_db_str = (
+                        dep_lu.get("db_path")
+                        or str(project_scan_dir / dep_name / "functions.db")
+                    )
+                    import_directives[target] = (dep_db_str, shared_rel)
+                    full_source_by_target[target] = list(rel_to_abs.values())
+                    if verbose:
+                        print(
+                            f"    [{target}] importing {len(shared_rel)} "
+                            f"shared files from {dep_name}, scanning "
+                            f"{len(residual)} residual"
+                        )
+                    source_files = residual
+                    match_desc = (
+                        f"{len(residual)} residual after import from {dep_name}"
+                    )
 
             # Incremental: filter to changed files, delete stale entries
             if incr_changed_rel is not None and project_root:
@@ -550,66 +588,182 @@ def scan_project_link_units(
                 if verbose:
                     print(f"    [{target}] Incremental: {len(source_files)} files to re-scan")
 
-            work_items.append((
+            item = (
                 target, source_files, match_desc, str(tmp_path),
                 db_path_str, project_root, verbose, preprocess, build_dir,
-            ))
+            )
+            if target in import_directives:
+                work_items_w2.append(item)
+            else:
+                work_items_w1.append(item)
 
         num_workers = jobs if jobs > 0 else (os.cpu_count() or 1)
-        # Only parallelise when there are multiple targets worth scanning
-        scannable = [w for w in work_items if w[1]]  # w[1] = source_files
-        use_parallel = num_workers > 1 and len(scannable) > 1
 
-        if use_parallel:
-            if verbose:
-                print(f"    Scanning {len(scannable)} targets with {num_workers} workers")
-            with ProcessPoolExecutor(max_workers=num_workers) as executor:
-                futures = {
-                    executor.submit(_scan_one_target, item): item[0]
-                    for item in work_items
-                }
-                for future in as_completed(futures):
-                    target_name = futures[future]
-                    target_result = future.result()
-                    result["targets"].append(target_result)
-                    if verbose:
-                        tr = target_result
-                        if tr["error"]:
-                            # Find match_desc from work_items
-                            desc = next(
-                                (w[2] for w in work_items if w[0] == target_name),
-                                "",
-                            )
-                            print(f"    [{target_name}] SKIP: no source files matched {desc}")
-                        else:
-                            print(
-                                f"    [{target_name}] {tr['functions']} funcs, "
-                                f"{tr['callsites']} callsites ({tr['timing_seconds']}s)"
-                            )
-        else:
-            for item in work_items:
-                target_name = item[0]
-                source_files = item[1]
-                match_desc = item[2]
-                if not source_files:
-                    target_result = {
-                        "target": target_name,
-                        "source_files": 0,
-                        "functions": 0,
-                        "total_targets": 0,
-                        "callsites": 0,
-                        "error": "no_source_files_matched",
-                        "timing_seconds": 0.0,
-                    }
-                    result["targets"].append(target_result)
-                    if verbose:
-                        print(f"    [{target_name}] SKIP: no source files matched {match_desc}")
-                    continue
-
+        def _process_wave(items: list[tuple]) -> None:
+            if not items:
+                return
+            scannable_now = [w for w in items if w[1]]
+            wave_parallel = num_workers > 1 and len(scannable_now) > 1
+            if wave_parallel:
                 if verbose:
-                    print(f"    [{target_name}] {len(source_files)} source files from {match_desc}")
-                target_result = _scan_one_target(item)
-                result["targets"].append(target_result)
+                    print(
+                        f"    Scanning {len(scannable_now)} targets with "
+                        f"{num_workers} workers"
+                    )
+                with ProcessPoolExecutor(max_workers=num_workers) as executor:
+                    futures = {
+                        executor.submit(_scan_one_target, item): item[0]
+                        for item in items
+                    }
+                    for future in as_completed(futures):
+                        target_name = futures[future]
+                        target_result = future.result()
+                        result["targets"].append(target_result)
+                        if verbose:
+                            tr = target_result
+                            if tr["error"]:
+                                desc = next(
+                                    (w[2] for w in items if w[0] == target_name),
+                                    "",
+                                )
+                                print(
+                                    f"    [{target_name}] SKIP: no source "
+                                    f"files matched {desc}"
+                                )
+                            else:
+                                print(
+                                    f"    [{target_name}] {tr['functions']} funcs, "
+                                    f"{tr['callsites']} callsites "
+                                    f"({tr['timing_seconds']}s)"
+                                )
+            else:
+                for item in items:
+                    target_name = item[0]
+                    src_files = item[1]
+                    desc = item[2]
+                    if not src_files:
+                        target_result = {
+                            "target": target_name,
+                            "source_files": 0,
+                            "functions": 0,
+                            "total_targets": 0,
+                            "callsites": 0,
+                            "error": "no_source_files_matched",
+                            "timing_seconds": 0.0,
+                        }
+                        result["targets"].append(target_result)
+                        if verbose:
+                            print(
+                                f"    [{target_name}] SKIP: no source "
+                                f"files matched {desc}"
+                            )
+                        continue
+                    if verbose:
+                        print(
+                            f"    [{target_name}] {len(src_files)} source "
+                            f"files from {desc}"
+                        )
+                    target_result = _scan_one_target(item)
+                    result["targets"].append(target_result)
+
+        # Wave 1: units with no source-set dep.
+        _process_wave(work_items_w1)
+
+        # Validation: confirm the dep DB's stored file_path representation
+        # matches our shared list before committing to the import. Mismatch
+        # happens when scan stores a clang-resolved path (e.g.
+        # ``src/wrapper/../jcapistd.c``) while compile_commands "file" — the
+        # source of imported_files — is a wrapper TU
+        # (``src/wrapper/jcapistd-12.c``). If the dep DB has substantial
+        # content we wouldn't pick up via the JOIN, drop the import and
+        # scan the full source set instead so functions aren't silently lost.
+        COVERAGE_THRESHOLD = 0.9
+        validated_w2: list[tuple] = []
+        for item in work_items_w2:
+            target_name = item[0]
+            directive = import_directives.get(target_name)
+            if directive is None:
+                validated_w2.append(item)
+                continue
+            dep_db_str, shared_files = directive
+            dep_db_path = Path(dep_db_str)
+            if not dep_db_path.exists():
+                validated_w2.append(item)
+                continue
+            try:
+                with sqlite3.connect(str(dep_db_path)) as dep_conn:
+                    n_total = dep_conn.execute(
+                        "SELECT COUNT(*) FROM functions"
+                    ).fetchone()[0]
+                    if n_total == 0 or not shared_files:
+                        n_match = 0
+                    else:
+                        # Chunk to stay under SQLite's variable limit.
+                        n_match = 0
+                        chunk = 500
+                        for i in range(0, len(shared_files), chunk):
+                            sub = shared_files[i:i + chunk]
+                            placeholders = ",".join("?" for _ in sub)
+                            n_match += dep_conn.execute(
+                                f"SELECT COUNT(*) FROM functions WHERE file_path IN ({placeholders})",
+                                sub,
+                            ).fetchone()[0]
+            except sqlite3.Error as e:
+                if verbose:
+                    print(
+                        f"    [{target_name}] dep-DB probe failed ({e}); "
+                        f"keeping import directive"
+                    )
+                validated_w2.append(item)
+                continue
+
+            coverage = (n_match / n_total) if n_total else 1.0
+            if n_total > 0 and coverage < COVERAGE_THRESHOLD:
+                full_files = full_source_by_target.get(target_name) or []
+                if verbose:
+                    print(
+                        f"    [{target_name}] WARNING: dropping imported_from "
+                        f"({n_match}/{n_total} = {coverage:.0%} of dep DB "
+                        f"matches imported_files; file_path representation "
+                        f"diverges). Falling back to full scan of "
+                        f"{len(full_files)} files."
+                    )
+                import_directives.pop(target_name, None)
+                fallback = (
+                    item[0], full_files,
+                    f"{len(full_files)} files (import skipped)",
+                    item[3], item[4], item[5], item[6], item[7], item[8],
+                )
+                validated_w2.append(fallback)
+            else:
+                validated_w2.append(item)
+        work_items_w2 = validated_w2
+
+        # Wave 2: importer units. Copy shared functions from the dep DB
+        # before scanning the residual files.
+        for item in work_items_w2:
+            target_name = item[0]
+            db_path_str = item[4]
+            directive = import_directives.get(target_name)
+            if directive and db_path_str != ":memory:":
+                dep_db_str, shared_files = directive
+                if shared_files and Path(dep_db_str).exists():
+                    Path(db_path_str).parent.mkdir(parents=True, exist_ok=True)
+                    tgt_db = SummaryDB(db_path_str)
+                    try:
+                        stats_imp = tgt_db.import_unit_data(
+                            dep_db_str, shared_files,
+                        )
+                    finally:
+                        tgt_db.close()
+                    if verbose:
+                        print(
+                            f"    [{target_name}] imported "
+                            f"{stats_imp.functions} functions, "
+                            f"{stats_imp.call_edges} call edges from "
+                            f"{Path(dep_db_str).parent.name}"
+                        )
+        _process_wave(work_items_w2)
 
         preprocess_failed: list[str] = []
         for tr in result["targets"]:
@@ -622,7 +776,7 @@ def scan_project_link_units(
 
         # Update stored commit in all target DBs
         if new_commit and not dry_run:
-            for item in work_items:
+            for item in (*work_items_w1, *work_items_w2):
                 db_path_str = item[4]
                 if db_path_str != ":memory:" and Path(db_path_str).exists():
                     tgt_db = SummaryDB(db_path_str)

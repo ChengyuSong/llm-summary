@@ -404,6 +404,44 @@ def process_project_link_units(
                 target_errors.append(f"{target}: {target_result['error']}")
                 continue
 
+        # Source-set superset: if this unit imports from a smaller unit, copy
+        # that unit's per-function summaries into our DB before summarizing
+        # so the residual functions are all that need new summaries.
+        imported_from = lu.get("imported_from") or []
+        imported_files = lu.get("imported_files") or []
+        if imported_from and imported_files:
+            dep_name = imported_from[0]
+            dep_lu = next(
+                (u for u in raw_units if u["name"] == dep_name), None,
+            )
+            dep_db_str = (
+                (dep_lu and dep_lu.get("db_path"))
+                or str(project_scan_dir / dep_name / "functions.db")
+            )
+            if Path(dep_db_str).exists():
+                try:
+                    tgt_db = SummaryDB(db_path)
+                    stats = tgt_db.import_unit_data(
+                        dep_db_str, imported_files, include_summaries=True,
+                    )
+                    tgt_db.close()
+                    if verbose:
+                        print(
+                            f"    [{target}] Imported {stats.functions} fns + "
+                            f"summaries from {dep_name} "
+                            f"({len(imported_files)} files)"
+                        )
+                except Exception as e:
+                    if verbose:
+                        print(
+                            f"    [{target}] import_unit_data warning: {e}"
+                        )
+            elif verbose:
+                print(
+                    f"    [{target}] Skipping imported_from copy: "
+                    f"dep DB {dep_db_str} not found"
+                )
+
         # Resolve V-snapshot path per target
         vsnap_str = lu.get("vsnapshot")
         target_vsnap = Path(vsnap_str) if vsnap_str and Path(vsnap_str).exists() else None

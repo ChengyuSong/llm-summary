@@ -1878,10 +1878,16 @@ def build_learn(
     console.print("1. Run the build script:")
     console.print(f"   [cyan]{paths['script']}[/cyan]")
     console.print("\n2. Scan functions with llm-summary:")
-    console.print(
-        f"   [cyan]llm-summary scan --compile-commands "
-        f"{paths['build_dir']}/compile_commands.json --db {db_path}[/cyan]"
-    )
+    if compile_commands_path:
+        console.print(
+            f"   [cyan]llm-summary scan --compile-commands "
+            f"{compile_commands_path} --db {db_path}[/cyan]"
+        )
+    else:
+        console.print(
+            f"   [cyan]llm-summary scan --compile-commands "
+            f"<path-to-compile_commands.json> --db {db_path}[/cyan]"
+        )
 
     if generate_ir:
         console.print("\n3. LLVM IR artifacts will be in:")
@@ -2231,12 +2237,17 @@ def import_dep_summaries(db_path, dep_db_paths, force, verbose):
             --db func-scans/libpng/libpng16/functions.db \\
             --dep-db func-scans/zlib/zlibstatic/functions.db
     """
+    # Per-function summary tables that share the (function_id, summary_json,
+    # model_used) row shape. code_contract_summaries is handled separately
+    # below because it has additional columns.
     summary_tables = [
         "allocation_summaries",
         "free_summaries",
         "init_summaries",
         "memsafe_summaries",
         "verification_summaries",
+        "leak_summaries",
+        "integer_overflow_summaries",
     ]
 
     target_db = SummaryDB(db_path)
@@ -2467,6 +2478,8 @@ def import_dep(db_path, from_db_path, scan_dir, link_units_path, target_name,
         "init_summaries",
         "memsafe_summaries",
         "verification_summaries",
+        "leak_summaries",
+        "integer_overflow_summaries",
     ]
 
     target_db = SummaryDB(db_path)

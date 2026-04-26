@@ -4,6 +4,7 @@ import hashlib
 import json
 import sqlite3
 import threading
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -351,6 +352,50 @@ CREATE TABLE IF NOT EXISTS scan_metadata (
 def compute_source_hash(source: str) -> str:
     """Compute a hash of the source code for change detection."""
     return hashlib.sha256(source.encode()).hexdigest()[:16]
+
+
+# Summary tables that share the (function_id, summary_json, model_used)
+# shape and can be copied uniformly when include_summaries=True.
+_SIMPLE_SUMMARY_TABLES = (
+    "allocation_summaries",
+    "free_summaries",
+    "init_summaries",
+    "memsafe_summaries",
+    "verification_summaries",
+    "leak_summaries",
+    "integer_overflow_summaries",
+    "address_flow_summaries",
+)
+
+
+@dataclass
+class ImportStats:
+    """Counts of rows imported per table by import_unit_data()."""
+
+    functions: int = 0
+    typedefs: int = 0
+    address_taken: int = 0
+    address_flows: int = 0
+    call_edges: int = 0
+    indirect_callsites: int = 0
+    indirect_call_targets: int = 0
+    function_blocks: int = 0
+    function_ir_facts: int = 0
+    function_scan_issues: int = 0
+    container_summaries: int = 0
+    code_contract_summaries: int = 0
+    summaries: dict[str, int] = field(default_factory=dict)
+
+    def total(self) -> int:
+        n = (
+            self.functions + self.typedefs + self.address_taken
+            + self.address_flows + self.call_edges
+            + self.indirect_callsites + self.indirect_call_targets
+            + self.function_blocks + self.function_ir_facts
+            + self.function_scan_issues + self.container_summaries
+            + self.code_contract_summaries
+        )
+        return n + sum(self.summaries.values())
 
 
 class SummaryDB:
@@ -2334,6 +2379,338 @@ class SummaryDB:
             updated += cursor.rowcount
         self.conn.commit()
         return updated
+
+    # ========== Cross-DB Import ==========
+
+    def import_unit_data(
+        self,
+        source_db_path: str | Path,
+        file_paths: list[str] | set[str],
+        *,
+        include_summaries: bool = False,
+    ) -> ImportStats:
+        """Copy per-source-file data from another link unit's DB into this one.
+
+        Used by the source-set-aware compositional scan/summarize pipeline:
+        when this unit is a strict superset of another (``imported_from``),
+        the shared source files are copied from the smaller unit's DB
+        instead of being re-analyzed.
+
+        Copies functions and their dependents (typedefs, address_taken,
+        address_flows, call_edges, indirect callsites/targets, function
+        blocks, IR facts, scan issues) restricted to ``file_paths``. With
+        ``include_summaries=True``, also copies all per-function summary
+        tables (allocation, free, init, memsafe, verification, leak,
+        integer_overflow, address_flow, container, code_contract).
+
+        Function FKs are remapped via (name, signature, file_path) join,
+        and indirect_callsite IDs are remapped through their own
+        intermediate table. Idempotent: re-running with the same inputs
+        produces the same target state — INSERT OR IGNORE on tables with
+        a unique key, explicit DELETE+INSERT for ``function_blocks`` and
+        a NOT EXISTS guard for ``call_edges`` (no natural unique key).
+
+        Never copies build_configs, scan_metadata, or issue_reviews. The
+        first two are project-/unit-scoped, the third is human-curated.
+        """
+        stats = ImportStats()
+        if not file_paths:
+            return stats
+
+        src_path_str = str(Path(source_db_path).resolve())
+        file_list = sorted(set(file_paths))
+        cur = self.conn
+
+        cur.execute("ATTACH DATABASE ? AS src", (src_path_str,))
+        try:
+            cur.execute(
+                "CREATE TEMP TABLE _import_files (path TEXT PRIMARY KEY)"
+            )
+            cur.executemany(
+                "INSERT OR IGNORE INTO _import_files(path) VALUES (?)",
+                [(p,) for p in file_list],
+            )
+
+            # 1) Functions. ON CONFLICT preserves existing target IDs so
+            # downstream FKs stay stable across re-imports.
+            before = cur.execute(
+                "SELECT COUNT(*) FROM functions"
+            ).fetchone()[0]
+            cur.execute(
+                """
+                INSERT INTO functions
+                  (name, signature, canonical_signature, file_path,
+                   line_start, line_end, source, pp_source, source_hash,
+                   params_json, callsites_json, attributes, decl_header)
+                SELECT s.name, s.signature, s.canonical_signature,
+                       s.file_path, s.line_start, s.line_end, s.source,
+                       s.pp_source, s.source_hash, s.params_json,
+                       s.callsites_json, COALESCE(s.attributes, ''),
+                       s.decl_header
+                  FROM src.functions s
+                  JOIN _import_files f ON f.path = s.file_path
+                ON CONFLICT(name, signature, file_path) DO NOTHING
+                """,
+            )
+            after = cur.execute(
+                "SELECT COUNT(*) FROM functions"
+            ).fetchone()[0]
+            stats.functions = after - before
+
+            # 2) src_id -> tgt_id remap, materialized for downstream JOINs.
+            cur.execute(
+                """
+                CREATE TEMP TABLE _fid_map AS
+                SELECT s.id AS src_id, t.id AS tgt_id
+                  FROM src.functions s
+                  JOIN _import_files f ON f.path = s.file_path
+                  JOIN main.functions t
+                    ON t.name = s.name
+                   AND t.signature = s.signature
+                   AND t.file_path = s.file_path
+                """,
+            )
+            cur.execute("CREATE INDEX _fid_map_src ON _fid_map(src_id)")
+            cur.execute("CREATE INDEX _fid_map_tgt ON _fid_map(tgt_id)")
+
+            # 3) Typedefs (no FK; restrict by file_path).
+            n = cur.execute(
+                """
+                INSERT OR IGNORE INTO typedefs
+                  (name, kind, underlying_type, canonical_type, file_path,
+                   line_number, definition, pp_definition)
+                SELECT s.name, s.kind, s.underlying_type, s.canonical_type,
+                       s.file_path, s.line_number, s.definition,
+                       s.pp_definition
+                  FROM src.typedefs s
+                  JOIN _import_files f ON f.path = s.file_path
+                """,
+            ).rowcount
+            stats.typedefs = max(n, 0)
+
+            # 4) Address-taken functions.
+            n = cur.execute(
+                """
+                INSERT OR IGNORE INTO address_taken_functions
+                  (function_id, signature, target_type)
+                SELECT m.tgt_id, s.signature, s.target_type
+                  FROM src.address_taken_functions s
+                  JOIN _fid_map m ON m.src_id = s.function_id
+                """,
+            ).rowcount
+            stats.address_taken = max(n, 0)
+
+            # 5) Address flows.
+            n = cur.execute(
+                """
+                INSERT OR IGNORE INTO address_flows
+                  (function_id, flow_target, file_path, line_number,
+                   context_snippet)
+                SELECT m.tgt_id, s.flow_target, s.file_path, s.line_number,
+                       s.context_snippet
+                  FROM src.address_flows s
+                  JOIN _fid_map m ON m.src_id = s.function_id
+                """,
+            ).rowcount
+            stats.address_flows = max(n, 0)
+
+            # 6) Call edges. Both endpoints remap; no UNIQUE in schema, so
+            # dedup explicitly to keep the import idempotent.
+            n = cur.execute(
+                """
+                INSERT INTO call_edges
+                  (caller_id, callee_id, is_indirect, file_path, line,
+                   "column")
+                SELECT mc.tgt_id, mk.tgt_id, s.is_indirect, s.file_path,
+                       s.line, s."column"
+                  FROM src.call_edges s
+                  JOIN _fid_map mc ON mc.src_id = s.caller_id
+                  JOIN _fid_map mk ON mk.src_id = s.callee_id
+                 WHERE NOT EXISTS (
+                   SELECT 1 FROM call_edges e
+                    WHERE e.caller_id = mc.tgt_id
+                      AND e.callee_id = mk.tgt_id
+                      AND COALESCE(e.file_path, '') = COALESCE(s.file_path, '')
+                      AND COALESCE(e.line, -1) = COALESCE(s.line, -1)
+                      AND COALESCE(e."column", -1) = COALESCE(s."column", -1)
+                 )
+                """,
+            ).rowcount
+            stats.call_edges = max(n, 0)
+
+            # 7) Indirect callsites (capture src->tgt id remap for step 8).
+            before_cs = cur.execute(
+                "SELECT COUNT(*) FROM indirect_callsites"
+            ).fetchone()[0]
+            cur.execute(
+                """
+                INSERT OR IGNORE INTO indirect_callsites
+                  (caller_function_id, file_path, line_number, callee_expr,
+                   signature, context_snippet)
+                SELECT m.tgt_id, s.file_path, s.line_number, s.callee_expr,
+                       s.signature, s.context_snippet
+                  FROM src.indirect_callsites s
+                  JOIN _fid_map m ON m.src_id = s.caller_function_id
+                """,
+            )
+            after_cs = cur.execute(
+                "SELECT COUNT(*) FROM indirect_callsites"
+            ).fetchone()[0]
+            stats.indirect_callsites = after_cs - before_cs
+
+            cur.execute(
+                """
+                CREATE TEMP TABLE _csid_map AS
+                SELECT s.id AS src_id, t.id AS tgt_id
+                  FROM src.indirect_callsites s
+                  JOIN _fid_map m ON m.src_id = s.caller_function_id
+                  JOIN main.indirect_callsites t
+                    ON t.caller_function_id = m.tgt_id
+                   AND t.file_path = s.file_path
+                   AND t.line_number = s.line_number
+                   AND t.callee_expr = s.callee_expr
+                """,
+            )
+            cur.execute("CREATE INDEX _csid_map_src ON _csid_map(src_id)")
+
+            # 8) Indirect call targets — double remap.
+            n = cur.execute(
+                """
+                INSERT OR IGNORE INTO indirect_call_targets
+                  (callsite_id, target_function_id, confidence, llm_reasoning)
+                SELECT cm.tgt_id, fm.tgt_id, s.confidence, s.llm_reasoning
+                  FROM src.indirect_call_targets s
+                  JOIN _csid_map cm ON cm.src_id = s.callsite_id
+                  JOIN _fid_map fm ON fm.src_id = s.target_function_id
+                """,
+            ).rowcount
+            stats.indirect_call_targets = max(n, 0)
+
+            # 9) Function blocks (no UNIQUE; clear stale rows for affected
+            # function_ids so re-import doesn't multiply).
+            cur.execute(
+                """
+                DELETE FROM function_blocks
+                 WHERE function_id IN (
+                   SELECT m.tgt_id FROM _fid_map m
+                    WHERE m.src_id IN (
+                      SELECT function_id FROM src.function_blocks
+                    )
+                 )
+                """,
+            )
+            n = cur.execute(
+                """
+                INSERT INTO function_blocks
+                  (function_id, kind, label, line_start, line_end, source,
+                   suggested_name, suggested_signature, summary_json)
+                SELECT m.tgt_id, s.kind, s.label, s.line_start, s.line_end,
+                       s.source, s.suggested_name, s.suggested_signature,
+                       s.summary_json
+                  FROM src.function_blocks s
+                  JOIN _fid_map m ON m.src_id = s.function_id
+                """,
+            ).rowcount
+            stats.function_blocks = max(n, 0)
+
+            # 10) Function IR facts (one row per function).
+            n = cur.execute(
+                """
+                INSERT OR IGNORE INTO function_ir_facts
+                  (function_id, ir_hash, cg_hash, facts_json)
+                SELECT m.tgt_id, s.ir_hash, s.cg_hash, s.facts_json
+                  FROM src.function_ir_facts s
+                  JOIN _fid_map m ON m.src_id = s.function_id
+                """,
+            ).rowcount
+            stats.function_ir_facts = max(n, 0)
+
+            # 11) Function scan issues (PK includes line + kind).
+            n = cur.execute(
+                """
+                INSERT OR IGNORE INTO function_scan_issues
+                  (function_id, line, "column", kind, message)
+                SELECT m.tgt_id, s.line, s."column", s.kind, s.message
+                  FROM src.function_scan_issues s
+                  JOIN _fid_map m ON m.src_id = s.function_id
+                """,
+            ).rowcount
+            stats.function_scan_issues = max(n, 0)
+
+            # 12) Summaries (only when requested).
+            if include_summaries:
+                for table in _SIMPLE_SUMMARY_TABLES:
+                    if table == "address_flow_summaries":
+                        continue
+                    n = cur.execute(
+                        f"""
+                        INSERT OR IGNORE INTO {table}
+                          (function_id, summary_json, model_used)
+                        SELECT m.tgt_id, s.summary_json, s.model_used
+                          FROM src.{table} s
+                          JOIN _fid_map m ON m.src_id = s.function_id
+                        """,
+                    ).rowcount
+                    stats.summaries[table] = max(n, 0)
+
+                # address_flow_summaries: extra columns
+                n = cur.execute(
+                    """
+                    INSERT OR IGNORE INTO address_flow_summaries
+                      (function_id, flow_destinations_json, semantic_role,
+                       likely_callers_json, model_used)
+                    SELECT m.tgt_id, s.flow_destinations_json,
+                           s.semantic_role, s.likely_callers_json,
+                           s.model_used
+                      FROM src.address_flow_summaries s
+                      JOIN _fid_map m ON m.src_id = s.function_id
+                    """,
+                ).rowcount
+                stats.summaries["address_flow_summaries"] = max(n, 0)
+
+                # container_summaries: extra columns
+                n = cur.execute(
+                    """
+                    INSERT OR IGNORE INTO container_summaries
+                      (function_id, container_arg, store_args_json,
+                       load_return, container_type, confidence,
+                       heuristic_score, heuristic_signals_json, model_used)
+                    SELECT m.tgt_id, s.container_arg, s.store_args_json,
+                           s.load_return, s.container_type, s.confidence,
+                           s.heuristic_score, s.heuristic_signals_json,
+                           s.model_used
+                      FROM src.container_summaries s
+                      JOIN _fid_map m ON m.src_id = s.function_id
+                    """,
+                ).rowcount
+                stats.container_summaries = max(n, 0)
+
+                # code_contract_summaries: many extra columns
+                n = cur.execute(
+                    """
+                    INSERT OR IGNORE INTO code_contract_summaries
+                      (function_id, summary_json, noreturn, body_annotated,
+                       model, tokens_input, tokens_output,
+                       tokens_cache_read, tokens_cache_write, struggle_max,
+                       struggle_scores, retried, retry_model)
+                    SELECT m.tgt_id, s.summary_json, s.noreturn,
+                           s.body_annotated, s.model, s.tokens_input,
+                           s.tokens_output, s.tokens_cache_read,
+                           s.tokens_cache_write, s.struggle_max,
+                           s.struggle_scores, s.retried, s.retry_model
+                      FROM src.code_contract_summaries s
+                      JOIN _fid_map m ON m.src_id = s.function_id
+                    """,
+                ).rowcount
+                stats.code_contract_summaries = max(n, 0)
+
+            self.conn.commit()
+        finally:
+            for tmp in ("_csid_map", "_fid_map", "_import_files"):
+                cur.execute(f"DROP TABLE IF EXISTS {tmp}")
+            cur.execute("DETACH DATABASE src")
+
+        return stats
 
 
     # ========== Utility Operations ==========

@@ -4,11 +4,15 @@ import pytest
 
 from llm_summary.db import SummaryDB, compute_source_hash
 from llm_summary.models import (
+    AddressFlow,
+    AddressTakenFunction,
     Allocation,
     AllocationSummary,
     AllocationType,
     CallEdge,
     Function,
+    IndirectCallsite,
+    IndirectCallTarget,
     ParameterInfo,
 )
 
@@ -260,3 +264,248 @@ class TestSourceHash:
         source1 = "void foo() {}"
         source2 = "void bar() {}"
         assert compute_source_hash(source1) != compute_source_hash(source2)
+
+
+class TestImportUnitData:
+    """Tests for cross-DB compositional import (`import_unit_data`)."""
+
+    def _make_func(
+        self, name: str, file_path: str, line_start: int = 1
+    ) -> Function:
+        return Function(
+            name=name,
+            file_path=file_path,
+            line_start=line_start,
+            line_end=line_start + 5,
+            source=f"void {name}() {{}}",
+            signature="void()",
+        )
+
+    def test_imports_functions_and_typedefs(self, tmp_path):
+        """Functions + typedefs from a source DB land in the target DB."""
+        src_path = tmp_path / "src.db"
+        tgt_path = tmp_path / "tgt.db"
+        src = SummaryDB(src_path)
+        try:
+            f_a = self._make_func("a", "/proj/shared.c")
+            f_b = self._make_func("b", "/proj/other.c")
+            src.insert_function(f_a)
+            src.insert_function(f_b)
+            src.insert_typedef(
+                name="my_t",
+                kind="typedef",
+                underlying_type="int",
+                canonical_type="int",
+                file_path="/proj/shared.c",
+            )
+        finally:
+            src.close()
+
+        tgt = SummaryDB(tgt_path)
+        try:
+            stats = tgt.import_unit_data(src_path, ["/proj/shared.c"])
+            assert stats.functions == 1
+            assert stats.typedefs == 1
+
+            assert tgt.get_function_by_name("a")
+            assert not tgt.get_function_by_name("b")
+            assert tgt.get_typedef("my_t") is not None
+        finally:
+            tgt.close()
+
+    def test_remaps_call_edges_across_dbs(self, tmp_path):
+        """Call edges are remapped onto the target DB's function IDs.
+
+        The target gets a pre-existing function so its IDs differ from
+        the source — exercises the (name, signature, file_path) join.
+        """
+        src_path = tmp_path / "src.db"
+        tgt_path = tmp_path / "tgt.db"
+        src = SummaryDB(src_path)
+        try:
+            f_a = self._make_func("a", "/proj/shared.c", line_start=1)
+            f_b = self._make_func("b", "/proj/shared.c", line_start=10)
+            a_id = src.insert_function(f_a)
+            b_id = src.insert_function(f_b)
+            src.add_call_edge(
+                CallEdge(
+                    caller_id=a_id,
+                    callee_id=b_id,
+                    is_indirect=0,
+                    file_path="/proj/shared.c",
+                    line=2,
+                    column=0,
+                )
+            )
+        finally:
+            src.close()
+
+        tgt = SummaryDB(tgt_path)
+        try:
+            # Insert a placeholder function so the target's id sequence
+            # is offset from the source's.
+            tgt.insert_function(self._make_func("placeholder", "/proj/x.c"))
+
+            stats = tgt.import_unit_data(src_path, ["/proj/shared.c"])
+            assert stats.functions == 2
+            assert stats.call_edges == 1
+
+            a_tgt = tgt.get_function_by_name("a")[0]
+            b_tgt = tgt.get_function_by_name("b")[0]
+            edges = tgt.get_call_edges_by_caller(a_tgt.id)
+            assert len(edges) == 1
+            assert edges[0].callee_id == b_tgt.id
+        finally:
+            tgt.close()
+
+    def test_remaps_indirect_callsite_targets(self, tmp_path):
+        """Both callsite_id and target_function_id remap correctly."""
+        src_path = tmp_path / "src.db"
+        tgt_path = tmp_path / "tgt.db"
+        src = SummaryDB(src_path)
+        try:
+            caller = self._make_func("caller", "/proj/shared.c")
+            tgt_fn = self._make_func("tgt_fn", "/proj/shared.c", line_start=20)
+            caller_id = src.insert_function(caller)
+            tgt_id = src.insert_function(tgt_fn)
+            cs_id = src.add_indirect_callsite(
+                IndirectCallsite(
+                    caller_function_id=caller_id,
+                    file_path="/proj/shared.c",
+                    line_number=3,
+                    callee_expr="ctx->h",
+                    signature="void()",
+                    context_snippet="ctx->h();",
+                )
+            )
+            src.add_indirect_call_target(
+                IndirectCallTarget(
+                    callsite_id=cs_id,
+                    target_function_id=tgt_id,
+                    confidence="high",
+                    llm_reasoning="",
+                )
+            )
+        finally:
+            src.close()
+
+        tgt = SummaryDB(tgt_path)
+        try:
+            tgt.insert_function(self._make_func("placeholder", "/proj/x.c"))
+
+            stats = tgt.import_unit_data(src_path, ["/proj/shared.c"])
+            assert stats.indirect_callsites == 1
+            assert stats.indirect_call_targets == 1
+
+            caller_tgt = tgt.get_function_by_name("caller")[0]
+            cs_list = tgt.get_indirect_callsites(caller_tgt.id)
+            assert len(cs_list) == 1
+            targets = tgt.get_indirect_call_targets(cs_list[0].id)
+            assert len(targets) == 1
+            tgt_fn_tgt = tgt.get_function_by_name("tgt_fn")[0]
+            assert targets[0].target_function_id == tgt_fn_tgt.id
+        finally:
+            tgt.close()
+
+    def test_idempotent_on_repeat_import(self, tmp_path):
+        """Re-running with the same inputs leaves the target unchanged."""
+        src_path = tmp_path / "src.db"
+        tgt_path = tmp_path / "tgt.db"
+        src = SummaryDB(src_path)
+        try:
+            a_id = src.insert_function(self._make_func("a", "/proj/shared.c"))
+            b_id = src.insert_function(
+                self._make_func("b", "/proj/shared.c", line_start=10)
+            )
+            src.add_call_edge(
+                CallEdge(
+                    caller_id=a_id, callee_id=b_id, is_indirect=0,
+                    file_path="/proj/shared.c", line=2, column=0,
+                )
+            )
+            src.add_address_flow(
+                AddressFlow(
+                    function_id=a_id,
+                    flow_target="g_handler",
+                    file_path="/proj/shared.c",
+                    line_number=1,
+                )
+            )
+            src.add_address_taken_function(
+                AddressTakenFunction(function_id=a_id, signature="void()")
+            )
+        finally:
+            src.close()
+
+        tgt = SummaryDB(tgt_path)
+        try:
+            stats1 = tgt.import_unit_data(src_path, ["/proj/shared.c"])
+            stats2 = tgt.import_unit_data(src_path, ["/proj/shared.c"])
+            assert stats1.functions == 2
+            assert stats1.call_edges == 1
+            assert stats1.address_flows == 1
+            assert stats1.address_taken == 1
+
+            assert stats2.functions == 0
+            assert stats2.call_edges == 0
+            assert stats2.address_flows == 0
+            assert stats2.address_taken == 0
+
+            stats_db = tgt.get_stats()
+            assert stats_db["functions"] == 2
+            assert stats_db["call_edges"] == 1
+            assert stats_db["address_flows"] == 1
+            assert stats_db["address_taken_functions"] == 1
+        finally:
+            tgt.close()
+
+    def test_empty_file_paths_is_noop(self, tmp_path):
+        """Empty file_paths returns an empty stats record without error."""
+        src_path = tmp_path / "src.db"
+        tgt_path = tmp_path / "tgt.db"
+        SummaryDB(src_path).close()
+        tgt = SummaryDB(tgt_path)
+        try:
+            stats = tgt.import_unit_data(src_path, [])
+            assert stats.total() == 0
+        finally:
+            tgt.close()
+
+    def test_summaries_only_when_requested(self, tmp_path):
+        """Summary tables copy only when include_summaries=True."""
+        src_path = tmp_path / "src.db"
+        tgt_path = tmp_path / "tgt.db"
+        src = SummaryDB(src_path)
+        try:
+            func = self._make_func("a", "/proj/shared.c")
+            func.id = src.insert_function(func)
+            summary = AllocationSummary(
+                function_name="a", allocations=[], parameters={},
+                description="noop",
+            )
+            src.upsert_summary(func, summary)
+        finally:
+            src.close()
+
+        # Without include_summaries: only function lands.
+        tgt = SummaryDB(tgt_path)
+        try:
+            stats = tgt.import_unit_data(src_path, ["/proj/shared.c"])
+            assert stats.functions == 1
+            assert "allocation_summaries" not in stats.summaries
+            assert tgt.get_stats()["allocation_summaries"] == 0
+        finally:
+            tgt.close()
+
+        # With include_summaries: summary table populated and remapped.
+        tgt2_path = tmp_path / "tgt2.db"
+        tgt2 = SummaryDB(tgt2_path)
+        try:
+            stats = tgt2.import_unit_data(
+                src_path, ["/proj/shared.c"], include_summaries=True,
+            )
+            assert stats.functions == 1
+            assert stats.summaries.get("allocation_summaries") == 1
+            assert tgt2.get_stats()["allocation_summaries"] == 1
+        finally:
+            tgt2.close()

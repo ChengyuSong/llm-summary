@@ -125,6 +125,11 @@ Cross-project dependencies (e.g. libpng → zlib) are **not yet recorded** in
 `link_units.json`. They are tracked separately in the top-level
 `project_deps.json` registry (see Batch Processing).
 
+Source-set relations (Phase 1.5) populate two additional optional fields:
+`alias_of: <name>` for equal source sets, and `imported_from: [<name>]` +
+`imported_files: [<abs paths>]` when this unit is a strict superset of the
+named one.
+
 ## Pipeline
 
 ### Phase 0: Build (existing)
@@ -160,6 +165,31 @@ units and their dependency relationships.
 The agent uses build-system knowledge to call the right skills. For unknown
 build systems, it falls back to artifact inspection (archives, ELF headers,
 `nm` for `main`-defining translation units).
+
+### Phase 1.5: Source-Set Relation Detection
+
+After discovery, `batch_scan_targets.py` and `batch_summarize.py` run
+`detect_source_set_relations` (`link_units/pipeline.py`) to find units that
+share source files — common when CMake builds static + shared variants of
+the same library, or when one library is a strict superset of another
+(libjpeg-turbo: `libturbojpeg` is `libjpeg` + ~28 extra files). Two
+relationships are recorded back into `link_units.json`:
+
+- **`alias_of: <other>`** — the unit's source set equals another unit's
+  (and neither has `link_deps`). Pipeline steps skip aliased units; they
+  share the canonical unit's DB. Canonical pick: `static_library` >
+  `shared_library` > `executable`, ties by name.
+- **`imported_from: [<smaller>]` + `imported_files: [...]`** — the unit's
+  source set is a strict superset of another's. The smaller unit is
+  scanned/summarized first; this unit copies its functions and (at
+  summarize time) its summaries via `SummaryDB.import_unit_data`, then
+  scans/summarizes only the residual files. The largest proper subset is
+  picked so import chains compound (A ⊂ B ⊂ C → C imports from B).
+
+Both relations are derived from the resolved per-unit source-file sets, so
+they handle the static/shared CMake case where `.bc`/`.o` paths differ even
+though sources match (the older `detect_bc_alias_relations` cannot).
+Detection is idempotent and clears stale fields when source sets change.
 
 ### Phase 2: Scan Functions (existing, scoped per target)
 
