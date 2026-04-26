@@ -3,7 +3,6 @@
 import json
 import subprocess
 import sys
-from collections.abc import Callable
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -13,37 +12,13 @@ from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.table import Table
 
 from .asm_extractor import ASM_EXTENSIONS, extract_asm_functions
-from .callgraph import CallGraphBuilder
 from .compile_commands import CompileCommandsDB
 from .db import SummaryDB
-from .driver import (
-    AllocationPass,
-    BottomUpDriver,
-    FreePass,
-    InitPass,
-    IntegerOverflowPass,
-    LeakPass,
-    MemsafePass,
-    SummaryPass,
-    VerificationPass,
-)
+from .driver import BottomUpDriver, SummaryPass
 from .extractor import C_EXTENSIONS, FunctionExtractor
-from .indirect import (
-    AddressTakenScanner,
-    FlowSummarizer,
-    IndirectCallResolver,
-    IndirectCallsiteFinder,
-)
+from .indirect import AddressTakenScanner, IndirectCallsiteFinder
 from .llm import create_backend
 from .ordering import ProcessingOrderer
-from .stdlib import (
-    STDLIB_ATTRIBUTES,
-    get_all_stdlib_free_summaries,
-    get_all_stdlib_init_summaries,
-    get_all_stdlib_memsafe_summaries,
-    get_all_stdlib_summaries,
-)
-from .summarizer import AllocationSummarizer
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -108,35 +83,9 @@ def main():
     help="Log all LLM prompts and responses to file",
 )
 @click.option(
-    "--init-stdlib", is_flag=True,
-    help="Auto-populate stdlib summaries before starting",
-)
-@click.option(
-    "--allocator-file", type=click.Path(exists=True), default=None,
-    help="JSON file with custom allocator names "
-         "(e.g. from find-allocator-candidates)",
-)
-@click.option(
-    "--type", "summary_types", multiple=True,
-    type=click.Choice(
-        [
-            "allocation", "free", "init", "memsafe", "verify",
-            "leak", "intoverflow", "code-contract",
-        ]
-    ),
-    help="Summary pass to run (default: code-contract). "
-         "Legacy types (allocation, free, init, memsafe, verify, leak, "
-         "intoverflow) are deprecated; use code-contract instead.",
-)
-@click.option(
     "--svcomp", is_flag=True,
-    help="Seed sv-comp __VERIFIER_* helpers and never-NULL malloc model "
-         "(code-contract pass only).",
+    help="Seed sv-comp __VERIFIER_* helpers and never-NULL malloc model.",
 )
-@click.option("--deallocator-file", type=click.Path(exists=True), default=None,
-              help="JSON file with custom deallocator names (for free pass)")
-@click.option("--vsnap", type=click.Path(exists=True), default=None,
-              help="V-snapshot (.vsnap) file for alias context in memsafe/verify passes")
 @click.option("-j", "jobs", default=1, type=int, help="Parallel LLM queries (default: 1)")
 @click.option(
     "--cache-mode",
@@ -166,51 +115,21 @@ def main():
 )
 def summarize(
     db_path, backend, model, llm_host, llm_port,
-    disable_thinking, verbose, force, log_llm, init_stdlib,
-    allocator_file, summary_types, svcomp, deallocator_file, vsnap,
+    disable_thinking, verbose, force, log_llm, svcomp,
     jobs, cache_mode, function_names, incremental, entry_functions,
     verify_only,
 ):
-    """Generate per-function safety contracts on a pre-populated database.
+    """Generate per-function code contracts on a pre-populated database.
 
     Requires a database that already has functions and call_edges
-    (populated via 'extract', 'scan', and/or 'import-callgraph').
+    (populated via 'scan' and/or 'import-callgraph').
 
-    The default pass is code-contract, which produces Hoare-style
-    requires/ensures contracts per function.  Legacy passes (allocation,
-    free, init, memsafe, verify, leak, intoverflow) are deprecated.
+    Runs the code-contract pass, producing Hoare-style requires/ensures
+    contracts per function.
 
     Example:
         llm-summary summarize --db functions.db --backend claude -v
-        llm-summary summarize --db functions.db --type code-contract --backend ollama -v
     """
-    # Default to code-contract if no --type given
-    if not summary_types:
-        summary_types = ("code-contract",)
-
-    legacy_types = {"allocation", "free", "init", "memsafe", "verify", "leak", "intoverflow"}
-    if legacy_types & set(summary_types):
-        console.print(
-            "[yellow]Warning: legacy summary types "
-            f"({', '.join(t for t in summary_types if t in legacy_types)}) "
-            "are deprecated. Use --type code-contract instead.[/yellow]"
-        )
-
-    # code-contract is the primary pipeline; mutually exclusive with the
-    # legacy per-property cascade (those gates assume the old tables).
-    if "code-contract" in summary_types and len(summary_types) > 1:
-        console.print(
-            "[red]Error: --type code-contract is mutually exclusive "
-            "with the legacy --type values.[/red]"
-        )
-        sys.exit(1)
-
-    if verify_only and "code-contract" not in summary_types:
-        console.print(
-            "[red]Error: --verify-only requires --type code-contract.[/red]"
-        )
-        sys.exit(1)
-
     db = SummaryDB(db_path)
 
     try:
@@ -220,7 +139,7 @@ def summarize(
         edge_count = stats["call_edges"]
 
         if func_count == 0:
-            console.print("[red]No functions in database. Run 'extract' or 'scan' first.[/red]")
+            console.print("[red]No functions in database. Run 'scan' first.[/red]")
             return
 
         if edge_count == 0:
@@ -229,41 +148,6 @@ def summarize(
                 " Run call graph import first.[/red]"
             )
             sys.exit(1)
-
-        # Prerequisite check for leak pass
-        if "leak" in summary_types:
-            missing = []
-            for req in ["allocation_summaries", "free_summaries"]:
-                if stats.get(req, 0) == 0:
-                    missing.append(req.replace("_summaries", ""))
-            if missing:
-                console.print(
-                    f"[red]Error: --type leak requires allocation and free passes. "
-                    f"Missing: {', '.join(missing)}. "
-                    f"Run --type allocation --type free first.[/red]"
-                )
-                return
-
-        # Prerequisite check for verify pass
-        if "verify" in summary_types:
-            missing = []
-            req_tables = [
-                "allocation_summaries", "free_summaries",
-                "init_summaries", "memsafe_summaries",
-            ]
-            for req_table in req_tables:
-                if stats.get(req_table, 0) == 0:
-                    missing.append(req_table.replace("_summaries", "").replace("_", " "))
-            if missing:
-                console.print(
-                    f"[red]Error: --type verify requires "
-                    f"all four prior passes. "
-                    f"Missing: {', '.join(missing)}. "
-                    f"Run --type allocation --type free "
-                    f"--type init --type memsafe "
-                    f"first.[/red]"
-                )
-                return
 
         console.print(f"Database: {db_path}")
         console.print(f"  Functions: {func_count}")
@@ -286,99 +170,6 @@ def summarize(
                 f"largest: {cg_stats['largest_scc']})"
             )
 
-        # Init stdlib if requested
-        if init_stdlib:
-            from .models import Function
-
-            def _find_stdlib_func(name: str) -> Function | None:
-                """Find an existing stdlib stub in the DB (created by callgraph import).
-
-                Never creates new stubs — only functions already referenced in the
-                call graph (and thus already present as stubs) should receive summaries.
-                """
-                existing = db.get_function_by_name(name)
-                if not existing:
-                    return None
-                func: Function = existing[0]
-                # Update attributes if not already set (callgraph import may have missed them)
-                attrs = STDLIB_ATTRIBUTES.get(name, "")
-                if attrs and not func.attributes:
-                    func.attributes = attrs
-                    db.conn.execute(
-                        "UPDATE functions SET attributes = ? WHERE id = ?",
-                        (attrs, func.id),
-                    )
-                    db.conn.commit()
-                return func
-
-            def _stdlib_upsert(
-                func: Function,
-                new_json: str,
-                table: str,
-                upsert_fn: Callable[..., None],
-                summary: object,
-            ) -> bool:
-                """Upsert only if summary content changed. Returns True if updated."""
-                row = db.conn.execute(
-                    f"SELECT summary_json FROM {table} WHERE function_id = ?",
-                    (func.id,),
-                ).fetchone()
-                if row and row["summary_json"] == new_json:
-                    return False
-                upsert_fn(func, summary, model_used="builtin")
-                return True
-
-            # Allocation summaries
-            alloc_summaries = get_all_stdlib_summaries()
-            for name, summary in alloc_summaries.items():
-                func = _find_stdlib_func(name)
-                if func is not None:
-                    _stdlib_upsert(
-                        func, json.dumps(summary.to_dict()),
-                        "allocation_summaries", db.upsert_summary, summary,
-                    )
-
-            # Free summaries
-            free_summaries = get_all_stdlib_free_summaries()
-            for name, fsummary in free_summaries.items():
-                func = _find_stdlib_func(name)
-                if func is not None:
-                    _stdlib_upsert(
-                        func, json.dumps(fsummary.to_dict()),
-                        "free_summaries", db.upsert_free_summary, fsummary,
-                    )
-
-            # Init summaries
-            init_summaries = get_all_stdlib_init_summaries()
-            for name, isummary in init_summaries.items():
-                func = _find_stdlib_func(name)
-                if func is not None:
-                    _stdlib_upsert(
-                        func, json.dumps(isummary.to_dict()),
-                        "init_summaries", db.upsert_init_summary, isummary,
-                    )
-
-            # Memsafe summaries
-            memsafe_summaries = get_all_stdlib_memsafe_summaries()
-            for name, msummary in memsafe_summaries.items():
-                func = _find_stdlib_func(name)
-                if func is not None:
-                    _stdlib_upsert(
-                        func, json.dumps(msummary.to_dict()),
-                        "memsafe_summaries", db.upsert_memsafe_summary, msummary,
-                    )
-
-            # Update attributes for attribute-only functions (e.g., exit, abort) if they exist
-            for name in STDLIB_ATTRIBUTES:
-                _find_stdlib_func(name)
-
-            total = len(set(
-                list(alloc_summaries) + list(free_summaries) +
-                list(init_summaries) + list(memsafe_summaries) +
-                list(STDLIB_ATTRIBUTES)
-            ))
-            console.print(f"  Stdlib functions initialized: {total}")
-
         # Create LLM backend
         backend_kwargs = _build_backend_kwargs(backend, llm_host, llm_port, disable_thinking)
         llm = create_backend(backend, model=model, **backend_kwargs)
@@ -390,164 +181,19 @@ def summarize(
         if cache_mode != "none":
             console.print(f"  Prompt cache mode: {cache_mode}")
 
-        # Load alias context builder early (needed for candidate confirmation + memsafe/verify)
-        alias_builder = None
-        if vsnap:
-            from .alias_context import AliasContextBuilder
-            alias_builder = AliasContextBuilder(vsnap, db)
-            if verbose:
-                console.print(f"  V-snapshot loaded: {vsnap} "
-                              f"(nodes={alias_builder.snap.node_count}, "
-                              f"reps={alias_builder.snap.rep_count}, "
-                              f"named={len(alias_builder.snap.named_entries)})")
+        from .code_contract.pass_ import CodeContractPass
 
-        # Build passes list
-        passes: list[SummaryPass] = []
-        alloc_summarizer = None
-        free_summarizer = None
+        code_contract_pass = CodeContractPass(
+            db=db, model=llm.model, llm=llm,
+            svcomp=svcomp,
+            cache_system=(cache_mode != "none"),
+            verbose=verbose,
+            verify_only=verify_only,
+            log_file=log_llm,
+        )
+        passes: list[SummaryPass] = [code_contract_pass]
 
-        if "allocation" in summary_types:
-            # Load custom allocators if provided
-            allocators = []
-            if allocator_file:
-                with open(allocator_file) as f:
-                    alloc_data = json.load(f)
-                allocators = alloc_data.get("confirmed", [])
-                if not allocators:
-                    allocators = alloc_data.get("candidates", [])
-                if allocators:
-                    console.print(
-                        f"Custom allocators: "
-                        f"{len(allocators)} loaded "
-                        f"from {allocator_file}"
-                    )
-
-                # Confirm candidates via vsnapshot alias analysis
-                if allocators and alias_builder:
-                    from .allocator import vsnapshot_confirm_allocators
-                    confirmed, remaining = (
-                        vsnapshot_confirm_allocators(
-                            alias_builder.snap, allocators
-                        )
-                    )
-                    console.print(f"  Vsnapshot alloc confirmation: {len(confirmed)} confirmed, "
-                                  f"{len(remaining)} unconfirmed (dropped)")
-                    allocators = confirmed
-
-            alloc_summarizer = AllocationSummarizer(
-                db, llm, verbose=verbose, log_file=log_llm,
-                allocators=allocators, cache_mode=cache_mode,
-            )
-            passes.append(AllocationPass(alloc_summarizer, db, llm.model))
-
-        if "free" in summary_types:
-            from .free_summarizer import FreeSummarizer
-
-            # Load custom deallocators if provided
-            deallocators = []
-            if deallocator_file:
-                with open(deallocator_file) as f:
-                    dealloc_data = json.load(f)
-                deallocators = dealloc_data.get("confirmed", [])
-                if not deallocators:
-                    deallocators = dealloc_data.get("candidates", [])
-                if deallocators:
-                    console.print(
-                        f"Custom deallocators: "
-                        f"{len(deallocators)} loaded "
-                        f"from {deallocator_file}"
-                    )
-
-                # Confirm candidates via vsnapshot alias analysis
-                if deallocators and alias_builder:
-                    from .allocator import vsnapshot_confirm_deallocators
-                    dconfirmed, dremaining = (
-                        vsnapshot_confirm_deallocators(
-                            alias_builder.snap, deallocators
-                        )
-                    )
-                    console.print(f"  Vsnapshot dealloc confirmation: {len(dconfirmed)} confirmed, "
-                                  f"{len(dremaining)} unconfirmed (dropped)")
-                    deallocators = dconfirmed
-
-            free_summarizer = FreeSummarizer(
-                db, llm, verbose=verbose, log_file=log_llm,
-                deallocators=deallocators,
-                cache_mode=cache_mode,
-            )
-            passes.append(FreePass(free_summarizer, db, llm.model))
-
-        init_summarizer = None
-        if "init" in summary_types:
-            from .init_summarizer import InitSummarizer
-
-            init_summarizer = InitSummarizer(
-                db, llm, verbose=verbose, log_file=log_llm,
-                cache_mode=cache_mode,
-            )
-            passes.append(InitPass(init_summarizer, db, llm.model))
-
-        memsafe_summarizer = None
-        if "memsafe" in summary_types:
-            from .memsafe_summarizer import MemsafeSummarizer
-
-            memsafe_summarizer = MemsafeSummarizer(
-                db, llm, verbose=verbose, log_file=log_llm,
-                cache_mode=cache_mode,
-            )
-            passes.append(MemsafePass(
-                memsafe_summarizer, db, llm.model,
-                alias_builder=alias_builder,
-            ))
-
-        verification_summarizer = None
-        leak_summarizer = None
-        if "leak" in summary_types:
-            from .leak_summarizer import LeakSummarizer
-
-            leak_summarizer = LeakSummarizer(
-                db, llm, verbose=verbose, log_file=log_llm,
-                entry_functions=set(entry_functions) if entry_functions else None,
-            )
-            passes.append(LeakPass(leak_summarizer, db, llm.model))
-
-        if "intoverflow" in summary_types:
-            from .integer_overflow_summarizer import IntegerOverflowSummarizer
-
-            intoverflow_summarizer = IntegerOverflowSummarizer(
-                db, llm, verbose=verbose, log_file=log_llm,
-            )
-            passes.append(IntegerOverflowPass(intoverflow_summarizer, db, llm.model))
-
-        code_contract_pass = None
-        if "code-contract" in summary_types:
-            from .code_contract.pass_ import CodeContractPass
-
-            code_contract_pass = CodeContractPass(
-                db=db, model=llm.model, llm=llm,
-                svcomp=svcomp,
-                cache_system=(cache_mode != "none"),
-                verbose=verbose,
-                verify_only=verify_only,
-                log_file=log_llm,
-            )
-            passes.append(code_contract_pass)
-
-        if "verify" in summary_types:
-            from .verification_summarizer import VerificationSummarizer
-
-            verification_summarizer = VerificationSummarizer(
-                db, llm, verbose=verbose, log_file=log_llm,
-                cache_mode=cache_mode,
-                entry_functions=set(entry_functions) if entry_functions else None,
-            )
-            passes.append(VerificationPass(
-                verification_summarizer, db, llm.model,
-                alias_builder=alias_builder,
-            ))
-
-        pass_names = " + ".join(p.name for p in passes)
-        console.print(f"\n[bold]Running passes: {pass_names}[/bold]")
+        console.print(f"\n[bold]Running pass: {code_contract_pass.name}[/bold]")
 
         # Resolve --function names to IDs
         target_ids = None
@@ -622,258 +268,30 @@ def summarize(
             if pool is not None:
                 pool.shutdown()
 
-        # Print stats per pass
-        if alloc_summarizer is not None:
-            summaries = results["allocation"]
-            s = alloc_summarizer.stats
-            console.print("\nAllocation summary generation complete:")
-            console.print(f"  Functions processed: {s['functions_processed']}")
-            console.print(f"  LLM calls: {s['llm_calls']}")
-            console.print(f"  Cache hits: {s['cache_hits']}")
-            has_cache_tok = (
-                s.get("cache_read_tokens")
-                or s.get("cache_creation_tokens")
-            )
-            if cache_mode != "none" and has_cache_tok:
-                console.print(f"  Cache read tokens: {s['cache_read_tokens']:,}")
-                console.print(f"  Cache creation tokens: {s['cache_creation_tokens']:,}")
-            if s["errors"] > 0:
-                console.print(f"  [yellow]Errors: {s['errors']}[/yellow]")
-
-            allocating = sum(1 for sm in summaries.values() if sm.allocations)
-            console.print(f"\nFunctions with allocations: {allocating}")
-
-        if free_summarizer is not None:
-            free_results = results["free"]
-            s = free_summarizer.stats
-            console.print("\nFree summary generation complete:")
-            console.print(f"  Functions processed: {s['functions_processed']}")
-            console.print(f"  LLM calls: {s['llm_calls']}")
-            console.print(f"  Cache hits: {s['cache_hits']}")
-            has_cache_tok = (
-                s.get("cache_read_tokens")
-                or s.get("cache_creation_tokens")
-            )
-            if cache_mode != "none" and has_cache_tok:
-                console.print(f"  Cache read tokens: {s['cache_read_tokens']:,}")
-                console.print(f"  Cache creation tokens: {s['cache_creation_tokens']:,}")
-            if s["errors"] > 0:
-                console.print(f"  [yellow]Errors: {s['errors']}[/yellow]")
-
-            freeing = sum(1 for sm in free_results.values() if sm.frees)
-            releasing = sum(1 for sm in free_results.values() if sm.resource_releases)
-            console.print(f"\nFunctions with frees: {freeing}")
-            if releasing:
-                console.print(f"Functions with resource releases: {releasing}")
-
-        if init_summarizer is not None:
-            init_results = results["init"]
-            s = init_summarizer.stats
-            console.print("\nInit summary generation complete:")
-            console.print(f"  Functions processed: {s['functions_processed']}")
-            console.print(f"  LLM calls: {s['llm_calls']}")
-            console.print(f"  Cache hits: {s['cache_hits']}")
-            has_cache_tok = (
-                s.get("cache_read_tokens")
-                or s.get("cache_creation_tokens")
-            )
-            if cache_mode != "none" and has_cache_tok:
-                console.print(f"  Cache read tokens: {s['cache_read_tokens']:,}")
-                console.print(f"  Cache creation tokens: {s['cache_creation_tokens']:,}")
-            if s["errors"] > 0:
-                console.print(f"  [yellow]Errors: {s['errors']}[/yellow]")
-
-            initializing = sum(1 for sm in init_results.values() if sm.inits)
-            console.print(f"\nFunctions with inits: {initializing}")
-
-        if memsafe_summarizer is not None:
-            memsafe_results = results["memsafe"]
-            s = memsafe_summarizer.stats
-            console.print("\nMemsafe summary generation complete:")
-            console.print(f"  Functions processed: {s['functions_processed']}")
-            console.print(f"  LLM calls: {s['llm_calls']}")
-            console.print(f"  Cache hits: {s['cache_hits']}")
-            has_cache_tok = (
-                s.get("cache_read_tokens")
-                or s.get("cache_creation_tokens")
-            )
-            if cache_mode != "none" and has_cache_tok:
-                console.print(f"  Cache read tokens: {s['cache_read_tokens']:,}")
-                console.print(f"  Cache creation tokens: {s['cache_creation_tokens']:,}")
-            if s["errors"] > 0:
-                console.print(f"  [yellow]Errors: {s['errors']}[/yellow]")
-
-            with_contracts = sum(1 for sm in memsafe_results.values() if sm.contracts)
-            console.print(f"\nFunctions with safety contracts: {with_contracts}")
-
-        if verification_summarizer is not None:
-            verify_summaries = results["verify"]
-            s = verification_summarizer.stats
-            console.print("\nVerification complete:")
-            console.print(f"  Functions processed: {s['functions_processed']}")
-            console.print(f"  LLM calls: {s['llm_calls']}")
-            console.print(f"  Cache hits: {s['cache_hits']}")
-            has_cache_tok = (
-                s.get("cache_read_tokens")
-                or s.get("cache_creation_tokens")
-            )
-            if cache_mode != "none" and has_cache_tok:
-                console.print(f"  Cache read tokens: {s['cache_read_tokens']:,}")
-                console.print(f"  Cache creation tokens: {s['cache_creation_tokens']:,}")
-            console.print(f"  Contracts simplified: {s['contracts_simplified']}")
-            if s["errors"] > 0:
-                console.print(f"  [yellow]Errors: {s['errors']}[/yellow]")
-
-            with_issues = sum(1 for sm in verify_summaries.values() if sm.issues)
-            total_issues = sum(len(sm.issues) for sm in verify_summaries.values())
-            high_issues = sum(
-                1 for sm in verify_summaries.values()
-                for issue in sm.issues if issue.severity == "high"
-            )
-            console.print(f"\nFunctions with issues: {with_issues}")
-            issue_msg = f"Total issues: {total_issues}"
-            if high_issues > 0:
-                issue_msg += f" ({high_issues} high severity)"
-            console.print(issue_msg)
-
-        if code_contract_pass is not None:
-            cc_results = results["code_contract"]
-            console.print("\nCode-contract pass complete:")
-            console.print(f"  Functions processed: {len(cc_results)}")
-            with_reqs = sum(
-                1 for sm in cc_results.values()
-                if any(sm.has_requires(p) for p in sm.properties)
-            )
-            with_ens = sum(
-                1 for sm in cc_results.values()
-                if any(sm.has_ensures(p) for p in sm.properties)
-            )
-            console.print(f"  Functions with non-trivial requires: {with_reqs}")
-            console.print(f"  Functions with non-trivial ensures:  {with_ens}")
-            noret = sum(1 for sm in cc_results.values() if sm.noreturn)
-            if noret:
-                console.print(f"  Functions marked noreturn: {noret}")
-            if code_contract_pass.struggle_retries:
-                console.print(
-                    f"  Struggle retries accepted: "
-                    f"{code_contract_pass.struggle_retries}"
-                )
-
-    finally:
-        db.close()
-
-
-@main.command()
-@click.argument("path_arg", type=click.Path(exists=True), required=False, default=None)
-@click.option(
-    "--path", "path_opt", type=click.Path(exists=True),
-    default=None, help="Path to extract from",
-)
-@click.option(
-    "--db", "db_path", default="summaries.db",
-    help="Database file path",
-)
-@click.option(
-    "--compile-commands", "compile_commands_path",
-    type=click.Path(exists=True), default=None,
-    help="Path to compile_commands.json for proper "
-         "macro/include handling",
-)
-@click.option(
-    "--project-path", "project_path",
-    type=click.Path(), default=None,
-    help="Host path to project source root. Required when "
-         "compile_commands.json uses Docker "
-         "container paths (/workspace/src/...).",
-)
-@click.option("--recursive/--no-recursive", default=True)
-@click.option(
-    "--preprocess", is_flag=True,
-    help="Run clang -E to expand macros and store "
-         "preprocessed source",
-)
-def extract(
-    path_arg, path_opt, db_path,
-    compile_commands_path, project_path,
-    recursive, preprocess,
-):
-    """Extract functions and build call graph (no LLM)."""
-    # Accept path as either positional argument or --path option
-    path = path_opt or path_arg
-    if not path:
-        raise click.UsageError("PATH is required (provide as argument or use --path)")
-
-    path = Path(path).resolve()
-
-    # Load compile_commands.json if provided
-    compile_commands = None
-    _tmp_cc = None
-    if compile_commands_path:
-        try:
-            compile_commands, _tmp_cc = _load_compile_commands(compile_commands_path, project_path)
-            console.print(f"Loaded compile_commands.json ({len(compile_commands)} entries)")
-        except click.UsageError:
-            raise
-        except Exception as e:
-            console.print(f"[yellow]Warning: Failed to load compile_commands.json: {e}[/yellow]")
-
-    # Determine file extensions based on whether compile_commands is available
-    # Without compile_commands, include headers to get more complete coverage
-    if compile_commands:
-        extensions = [".c", ".cpp", ".cc", ".cxx"]
-    else:
-        extensions = [".c", ".cpp", ".cc", ".cxx", ".h", ".hpp", ".hxx"]
-        console.print("[dim]No compile_commands.json - including header files[/dim]")
-
-    if path.is_file():
-        files = [path]
-    else:
-        if recursive:
-            files = [f for f in path.rglob("*") if f.suffix.lower() in extensions]
-        else:
-            files = [f for f in path.glob("*") if f.suffix.lower() in extensions]
-
-    if not files:
-        console.print("[red]No source files found[/red]")
-        return
-
-    console.print(f"Found {len(files)} source file(s)")
-
-    db = SummaryDB(db_path)
-
-    try:
-        extractor = FunctionExtractor(
-            compile_commands=compile_commands,
-            enable_preprocessing=preprocess,
+        cc_results = results["code_contract"]
+        console.print("\nCode-contract pass complete:")
+        console.print(f"  Functions processed: {len(cc_results)}")
+        with_reqs = sum(
+            1 for sm in cc_results.values()
+            if any(sm.has_requires(p) for p in sm.properties)
         )
-        all_functions = []
-
-        for f in files:
-            try:
-                functions = extractor.extract_from_file(f)
-                all_functions.extend(functions)
-                console.print(f"  {f.name}: {len(functions)} functions")
-            except Exception as e:
-                console.print(f"  [yellow]Warning: {f.name}: {e}[/yellow]")
-
-        db.insert_functions_batch(all_functions)
-        console.print(f"\nExtracted {len(all_functions)} functions")
-
-        # Build call graph
-        cg_builder = CallGraphBuilder(db, compile_commands=compile_commands)
-        edges = cg_builder.build_from_files(files)
-        console.print(f"Found {len(edges)} call edges")
-
-        # Show stats
-        stats = db.get_stats()
-        console.print("\nDatabase statistics:")
-        for key, value in stats.items():
-            console.print(f"  {key}: {value}")
+        with_ens = sum(
+            1 for sm in cc_results.values()
+            if any(sm.has_ensures(p) for p in sm.properties)
+        )
+        console.print(f"  Functions with non-trivial requires: {with_reqs}")
+        console.print(f"  Functions with non-trivial ensures:  {with_ens}")
+        noret = sum(1 for sm in cc_results.values() if sm.noreturn)
+        if noret:
+            console.print(f"  Functions marked noreturn: {noret}")
+        if code_contract_pass.struggle_retries:
+            console.print(
+                f"  Struggle retries accepted: "
+                f"{code_contract_pass.struggle_retries}"
+            )
 
     finally:
         db.close()
-        if _tmp_cc:
-            Path(_tmp_cc).unlink(missing_ok=True)
 
 
 @main.command()
@@ -1096,39 +514,41 @@ def check(db_path, entries, output_path):
 @click.option("--db", "db_path", default="summaries.db", help="Database file path")
 @click.option("--signature", help="Function signature for disambiguation")
 def lookup(name, db_path, signature):
-    """Look up summary for a specific function."""
+    """Look up the code-contract summary for a specific function."""
     db = SummaryDB(db_path)
 
     try:
-        summary = db.get_summary(name, signature)
+        functions = db.get_function_by_name(name)
+        if signature:
+            functions = [f for f in functions if f.signature == signature]
 
-        if summary:
-            console.print(json.dumps(summary.to_dict(), indent=2))
+        if not functions:
+            console.print(f"[yellow]Function '{name}' not found in database.[/yellow]")
+            return
+
+        results: list[dict[str, Any]] = []
+        for func in functions:
+            assert func.id is not None
+            cc = db.get_code_contract_summary(func.id)
+            if cc is None:
+                continue
+            results.append({
+                "name": func.name,
+                "signature": func.signature,
+                "file": func.file_path,
+                "line_start": func.line_start,
+                "line_end": func.line_end,
+                "code_contract": cc.to_dict(),
+            })
+
+        if results:
+            console.print(json.dumps(results, indent=2))
         else:
-            console.print(f"[yellow]No summary found for {name}[/yellow]")
+            console.print(
+                f"[yellow]No code-contract summary found for {name}. "
+                f"Run 'summarize' to generate.[/yellow]"
+            )
 
-            # Check if function exists
-            functions = db.get_function_by_name(name)
-            if functions:
-                console.print("Function exists but has no summary. Run 'analyze' to generate.")
-            else:
-                console.print("Function not found in database.")
-
-    finally:
-        db.close()
-
-
-@main.command()
-@click.option("--db", "db_path", default="summaries.db", help="Database file path")
-def clear(db_path):
-    """Clear all data from the database."""
-    if not click.confirm("This will delete all data. Continue?"):
-        return
-
-    db = SummaryDB(db_path)
-    try:
-        db.clear_all()
-        console.print("Database cleared.")
     finally:
         db.close()
 
@@ -1481,7 +901,7 @@ def init_stdlib(
 @click.option("--db", "db_path", default="summaries.db", help="Database file path")
 @click.option("--output", "-o", type=click.Path(), help="Output file (default: stdout)")
 def export(db_path, output):
-    """Export all summaries to JSON."""
+    """Export all code-contract summaries to JSON."""
     db = SummaryDB(db_path)
 
     try:
@@ -1490,15 +910,15 @@ def export(db_path, output):
 
         for func in functions:
             assert func.id is not None
-            summary = db.get_summary_by_function_id(func.id)
-            if summary:
+            cc = db.get_code_contract_summary(func.id)
+            if cc:
                 output_data.append({
                     "name": func.name,
                     "signature": func.signature,
                     "file": func.file_path,
                     "line_start": func.line_start,
                     "line_end": func.line_end,
-                    "summary": summary.to_dict(),
+                    "code_contract": cc.to_dict(),
                 })
 
         json_str = json.dumps(output_data, indent=2)
@@ -1575,819 +995,6 @@ def callgraph(db_path, output, fmt, no_header):
             console.print(f"Exported {len(edges)} call edges to {output}")
         else:
             console.print(result)
-
-    finally:
-        db.close()
-
-
-@main.command("indirect-analyze")
-@click.argument("path_arg", type=click.Path(exists=True), required=False, default=None)
-@click.option(
-    "--path", "path_opt", type=click.Path(exists=True),
-    default=None, help="Path to analyze",
-)
-@click.option(
-    "--db", "db_path", default="summaries.db",
-    help="Database file path",
-)
-@click.option(
-    "--compile-commands", "compile_commands_path",
-    type=click.Path(exists=True), default=None,
-    help="Path to compile_commands.json for proper "
-         "macro/include handling",
-)
-@click.option(
-    "--project-path", "project_path",
-    type=click.Path(), default=None,
-    help="Host path to project source root. Required "
-         "when compile_commands.json uses Docker "
-         "container paths (/workspace/src/...).",
-)
-@click.option(
-    "--backend",
-    type=click.Choice(
-        ["claude", "openai", "ollama", "llamacpp", "gemini"]
-    ),
-    default="claude",
-)
-@click.option("--model", default=None, help="Model name to use")
-@click.option(
-    "--llm-host", default="localhost",
-    help="Hostname for local LLM backends "
-         "(llamacpp, ollama)",
-)
-@click.option(
-    "--llm-port", default=None, type=int,
-    help="Port for local LLM backends "
-         "(llamacpp: 8080, ollama: 11434)",
-)
-@click.option(
-    "--disable-thinking", is_flag=True,
-    help="Disable thinking/reasoning mode for llamacpp "
-         "(useful for structured output)",
-)
-@click.option(
-    "--recursive/--no-recursive", default=True,
-    help="Scan directories recursively",
-)
-@click.option("--verbose", "-v", is_flag=True, help="Verbose output")
-@click.option(
-    "--force", "-f", is_flag=True,
-    help="Force re-analysis (ignore cache)",
-)
-@click.option(
-    "--log-llm", type=click.Path(), default=None,
-    help="Log all LLM prompts and responses to file",
-)
-@click.option(
-    "--pass1-only", is_flag=True,
-    help="Only run Pass 1 (flow summarization)",
-)
-@click.option(
-    "--pass2-only", is_flag=True,
-    help="Only run Pass 2 (resolution), "
-         "requires Pass 1 already done",
-)
-def indirect_analyze(
-    path_arg, path_opt, db_path,
-    compile_commands_path, project_path, backend,
-    model, llm_host, llm_port, disable_thinking,
-    recursive, verbose, force, log_llm,
-    pass1_only, pass2_only,
-):
-    """
-    Analyze indirect calls using LLM-based two-pass approach.
-
-    Pass 1: Summarize where address-taken function pointers flow.
-    Pass 2: Resolve indirect callsites using flow summaries.
-
-    Example:
-        llm-summary indirect-analyze --path src/ --db out.db \\
-            --compile-commands compile_commands.json
-    """
-    # Accept path as either positional argument or --path option
-    path = path_opt or path_arg
-    if not path:
-        raise click.UsageError("PATH is required (provide as argument or use --path)")
-
-    path = Path(path).resolve()
-
-    # Load compile_commands.json if provided
-    compile_commands = None
-    _tmp_cc = None
-    if compile_commands_path:
-        try:
-            compile_commands, _tmp_cc = _load_compile_commands(compile_commands_path, project_path)
-            console.print(f"Loaded compile_commands.json ({len(compile_commands)} entries)")
-        except click.UsageError:
-            raise
-        except Exception as e:
-            console.print(f"[yellow]Warning: Failed to load compile_commands.json: {e}[/yellow]")
-
-    # Determine file extensions based on whether compile_commands is available
-    # Without compile_commands, include headers to get more complete coverage
-    if compile_commands:
-        extensions = [".c", ".cpp", ".cc", ".cxx"]
-    else:
-        extensions = [".c", ".cpp", ".cc", ".cxx", ".h", ".hpp", ".hxx"]
-        console.print("[dim]No compile_commands.json - including header files[/dim]")
-
-    # Collect files
-    if path.is_file():
-        files = [path]
-    else:
-        if recursive:
-            files = [f for f in path.rglob("*") if f.suffix.lower() in extensions]
-        else:
-            files = [f for f in path.glob("*") if f.suffix.lower() in extensions]
-
-    if not files:
-        console.print("[red]No source files found[/red]")
-        return
-
-    console.print(f"Found {len(files)} source file(s)")
-
-    # Initialize database
-    db = SummaryDB(db_path)
-
-    try:
-        # Check if we need to extract functions first
-        existing_funcs = db.get_all_functions()
-        if not existing_funcs:
-            console.print("No functions in database. Running extraction first...")
-
-            with Progress(
-                SpinnerColumn(),
-                TextColumn("[progress.description]{task.description}"),
-                console=console,
-            ) as progress:
-                task = progress.add_task("Extracting functions...", total=None)
-
-                extractor = FunctionExtractor(compile_commands=compile_commands)
-                all_functions = []
-
-                for f in files:
-                    try:
-                        functions = extractor.extract_from_file(f)
-                        all_functions.extend(functions)
-                        if verbose:
-                            progress.console.print(f"  {f.name}: {len(functions)} functions")
-                    except Exception as e:
-                        progress.console.print(f"  [yellow]Warning: {f.name}: {e}[/yellow]")
-
-                progress.update(task, completed=True)
-
-            db.insert_functions_batch(all_functions)
-            console.print(f"Extracted {len(all_functions)} functions")
-
-        # Scan for address-taken functions and indirect callsites
-        # Skip scanning if --pass2-only (use existing data from DB)
-        if pass2_only:
-            atf_count = len(db.get_address_taken_functions())
-            callsite_count = len(db.get_indirect_callsites())
-            console.print(
-                f"Using existing data: "
-                f"{atf_count} address-taken functions, "
-                f"{callsite_count} indirect callsites"
-            )
-
-            if atf_count == 0:
-                console.print(
-                    "[red]No address-taken functions in "
-                    "database. Run without --pass2-only "
-                    "first.[/red]"
-                )
-                return
-
-            if callsite_count == 0:
-                console.print(
-                    "[red]No indirect callsites in database."
-                    " Run without --pass2-only first.[/red]"
-                )
-                return
-        else:
-            with Progress(
-                SpinnerColumn(),
-                TextColumn("[progress.description]{task.description}"),
-                console=console,
-            ) as progress:
-                task = progress.add_task("Scanning for address-taken functions...", total=None)
-
-                scanner = AddressTakenScanner(db, compile_commands=compile_commands)
-                scanner.scan_files(files)
-
-                progress.update(task, completed=True)
-
-            atf_count = len(db.get_address_taken_functions())
-            console.print(f"Found {atf_count} address-taken functions")
-
-            with Progress(
-                SpinnerColumn(),
-                TextColumn("[progress.description]{task.description}"),
-                console=console,
-            ) as progress:
-                task = progress.add_task("Finding indirect call sites...", total=None)
-
-                finder = IndirectCallsiteFinder(db, compile_commands=compile_commands)
-                callsites = finder.find_in_files(files)
-
-                progress.update(task, completed=True)
-
-            console.print(f"Found {len(callsites)} indirect call sites")
-
-            if atf_count == 0:
-                console.print(
-                    "[yellow]No address-taken functions "
-                    "found. Nothing to analyze.[/yellow]"
-                )
-                return
-
-            if len(callsites) == 0:
-                console.print("[yellow]No indirect call sites found. Nothing to resolve.[/yellow]")
-                return
-
-        # Initialize LLM backend
-        backend_kwargs = _build_backend_kwargs(backend, llm_host, llm_port, disable_thinking)
-        llm = create_backend(backend, model=model, **backend_kwargs)
-        console.print(f"Using {backend} backend ({llm.model})")
-
-        # Pass 1: Flow summarization
-        if not pass2_only:
-            console.print("\n[bold]Pass 1: Flow Summarization[/bold]")
-
-            flow_summarizer = FlowSummarizer(db, llm, verbose=verbose, log_file=log_llm)
-
-            with Progress(
-                SpinnerColumn(),
-                TextColumn("[progress.description]{task.description}"),
-                console=console,
-            ) as progress:
-                task = progress.add_task("Summarizing function pointer flows...", total=None)
-
-                flow_summarizer.summarize_all(force=force)
-
-                progress.update(task, completed=True)
-
-            stats1 = flow_summarizer.stats
-            console.print("Pass 1 complete:")
-            console.print(f"  Functions processed: {stats1['functions_processed']}")
-            console.print(f"  LLM calls: {stats1['llm_calls']}")
-            console.print(f"  Cache hits: {stats1['cache_hits']}")
-            if stats1["errors"] > 0:
-                console.print(f"  [yellow]Errors: {stats1['errors']}[/yellow]")
-
-        if pass1_only:
-            console.print("\n[green]Pass 1 complete. Use --pass2-only to run resolution.[/green]")
-            return
-
-        # Pass 2: Indirect call resolution
-        console.print("\n[bold]Pass 2: Indirect Call Resolution[/bold]")
-
-        resolver = IndirectCallResolver(db, llm, verbose=verbose, log_file=log_llm)
-
-        with Progress(
-            SpinnerColumn(),
-            TextColumn("[progress.description]{task.description}"),
-            console=console,
-        ) as progress:
-            task = progress.add_task("Resolving indirect calls...", total=None)
-
-            resolutions = resolver.resolve_all_callsites(force=force)
-
-            progress.update(task, completed=True)
-
-        stats2 = resolver.stats
-        console.print("Pass 2 complete:")
-        console.print(f"  Callsites processed: {stats2['callsites_processed']}")
-        console.print(f"  LLM calls: {stats2['llm_calls']}")
-        console.print(f"  Cache hits: {stats2['cache_hits']}")
-        if stats2["errors"] > 0:
-            console.print(f"  [yellow]Errors: {stats2['errors']}[/yellow]")
-
-        # Summary
-        total_targets = sum(len(targets) for targets in resolutions.values())
-        high_conf = sum(
-            1 for targets in resolutions.values()
-            for t in targets if t.confidence == "high"
-        )
-        console.print("\n[green]Analysis complete![/green]")
-        console.print(f"  Total resolved targets: {total_targets}")
-        console.print(f"  High confidence matches: {high_conf}")
-
-        # Show database stats
-        stats = db.get_stats()
-        console.print("\nDatabase statistics:")
-        console.print(f"  Address-taken functions: {stats['address_taken_functions']}")
-        console.print(f"  Address flow summaries: {stats['address_flow_summaries']}")
-        console.print(f"  Indirect callsites: {stats['indirect_callsites']}")
-        console.print(f"  Resolved targets: {stats['indirect_call_targets']}")
-
-    finally:
-        db.close()
-        if _tmp_cc:
-            Path(_tmp_cc).unlink(missing_ok=True)
-
-
-@main.command("show-indirect")
-@click.option("--db", "db_path", default="summaries.db", help="Database file path")
-@click.option("--format", "fmt", type=click.Choice(["table", "json"]), default="table")
-def show_indirect(db_path, fmt):
-    """Show indirect call resolution results."""
-    db = SummaryDB(db_path)
-
-    try:
-        callsites = db.get_indirect_callsites()
-        functions = {f.id: f for f in db.get_all_functions()}
-
-        if fmt == "json":
-            output = []
-            for cs in callsites:
-                assert cs.id is not None
-                targets = db.get_indirect_call_targets(cs.id)
-                caller = functions.get(cs.caller_function_id)
-
-                target_list = []
-                for t in targets:
-                    target_func = functions.get(t.target_function_id)
-                    target_list.append({
-                        "function": (
-                            target_func.name
-                            if target_func
-                            else f"ID:{t.target_function_id}"
-                        ),
-                        "confidence": t.confidence,
-                        "reasoning": t.llm_reasoning,
-                    })
-
-                output.append({
-                    "callsite": {
-                        "caller": caller.name if caller else "unknown",
-                        "expression": cs.callee_expr,
-                        "file": cs.file_path,
-                        "line": cs.line_number,
-                        "signature": cs.signature,
-                    },
-                    "targets": target_list,
-                })
-
-            console.print(json.dumps(output, indent=2))
-
-        else:
-            table = Table(title="Indirect Call Resolutions")
-            table.add_column("Caller", style="cyan")
-            table.add_column("Expression", style="yellow")
-            table.add_column("Location", style="dim")
-            table.add_column("Targets", style="green")
-            table.add_column("Confidence", style="magenta")
-
-            for cs in callsites:
-                assert cs.id is not None
-                targets = db.get_indirect_call_targets(cs.id)
-                caller = functions.get(cs.caller_function_id)
-
-                if not targets:
-                    table.add_row(
-                        caller.name if caller else "?",
-                        cs.callee_expr,
-                        f"{Path(cs.file_path).name}:{cs.line_number}",
-                        "[dim]unresolved[/dim]",
-                        "-",
-                    )
-                else:
-                    for i, t in enumerate(targets):
-                        target_func = functions.get(t.target_function_id)
-                        table.add_row(
-                            caller.name if caller and i == 0 else "",
-                            cs.callee_expr if i == 0 else "",
-                            f"{Path(cs.file_path).name}:{cs.line_number}" if i == 0 else "",
-                            target_func.name if target_func else f"ID:{t.target_function_id}",
-                            t.confidence,
-                        )
-
-            console.print(table)
-
-    finally:
-        db.close()
-
-
-@main.command("container-analyze")
-@click.option("--db", "db_path", default="summaries.db", help="Database file path")
-@click.option(
-    "--backend",
-    type=click.Choice(
-        ["claude", "openai", "ollama", "llamacpp", "gemini"]
-    ),
-    default="ollama",
-)
-@click.option("--model", default=None, help="Model name to use")
-@click.option(
-    "--llm-host", default="localhost",
-    help="Hostname for local LLM backends "
-         "(llamacpp, ollama)",
-)
-@click.option(
-    "--llm-port", default=None, type=int,
-    help="Port for local LLM backends "
-         "(llamacpp: 8080, ollama: 11434)",
-)
-@click.option("--disable-thinking", is_flag=True, help="Disable thinking/reasoning mode")
-@click.option("--verbose", "-v", is_flag=True, help="Verbose output")
-@click.option("--force", "-f", is_flag=True, help="Force re-analysis (ignore cache)")
-@click.option(
-    "--min-score", default=5, type=int,
-    help="Minimum heuristic score for LLM confirmation "
-         "(default: 5)",
-)
-@click.option(
-    "--log-llm", type=click.Path(), default=None,
-    help="Log all LLM prompts and responses to file",
-)
-@click.option("--heuristic-only", is_flag=True, help="Only run heuristic scoring, skip LLM")
-@click.option("--project-name", default=None, help="Project name (default: inferred from DB path)")
-def container_analyze(
-    db_path, backend, model, llm_host, llm_port, disable_thinking,
-    verbose, force, min_score, log_llm, heuristic_only, project_name
-):
-    """Detect container/collection functions (hash tables, lists, trees, etc.).
-
-    Uses a heuristic pre-filter to find candidates, then confirms with LLM.
-    Results are stored in the database for downstream analysis.
-
-    Example:
-        llm-summary container-analyze --db summaries.db --backend ollama --model qwen3 -v
-        llm-summary container-analyze --db summaries.db --heuristic-only -v
-    """
-    from .container import ContainerDetector
-
-    # Infer project name from DB path: func-scans/<project>/functions.db -> <project>
-    if not project_name:
-        db_dir = Path(db_path).resolve().parent
-        project_name = db_dir.name if db_dir.name != "." else Path(db_path).stem
-
-    db = SummaryDB(db_path)
-
-    try:
-        # Check for functions in DB
-        functions = db.get_all_functions()
-        if not functions:
-            console.print("[red]No functions in database. Run 'extract' or 'scan' first.[/red]")
-            return
-
-        console.print(f"Database: {db_path} ({len(functions)} functions, project: {project_name})")
-
-        if heuristic_only:
-            # Heuristic-only mode: no LLM
-            detector = ContainerDetector(
-                db, llm=None, verbose=verbose, min_score=min_score
-            )
-            candidates = detector.heuristic_only()
-
-            if not candidates:
-                console.print("[yellow]No candidates found above threshold.[/yellow]")
-                return
-
-            # Display results as a table
-            table = Table(title=f"Container Candidates (score >= {min_score})")
-            table.add_column("Score", justify="right", style="green")
-            table.add_column("Function", style="cyan")
-            table.add_column("File", style="dim")
-            table.add_column("Signals")
-
-            # Sort by score descending
-            candidates.sort(key=lambda x: x[1], reverse=True)
-
-            for func, score, signals in candidates:
-                signal_strs = []
-                for s in signals:
-                    # Shorten signal display
-                    tag = s.split(": ", 1)[0] if ": " in s else s
-                    signal_strs.append(tag)
-                table.add_row(
-                    str(score),
-                    func.name,
-                    Path(func.file_path).name,
-                    ", ".join(signal_strs),
-                )
-
-            console.print(table)
-            console.print(f"\nTotal candidates: {len(candidates)}")
-
-            stats = detector.stats
-            console.print(f"Functions scanned: {stats['functions_scanned']}")
-            return
-
-        # Full mode: heuristic + LLM
-        backend_kwargs = _build_backend_kwargs(backend, llm_host, llm_port, disable_thinking)
-        llm = create_backend(backend, model=model, **backend_kwargs)
-        console.print(f"Using {backend} backend ({llm.model})")
-
-        detector = ContainerDetector(
-            db, llm=llm, verbose=verbose, log_file=log_llm,
-            min_score=min_score, project_name=project_name,
-        )
-
-        with Progress(
-            SpinnerColumn(),
-            TextColumn("[progress.description]{task.description}"),
-            console=console,
-        ) as progress:
-            task = progress.add_task("Detecting container functions...", total=None)
-            detector.detect_all(force=force)
-            progress.update(task, completed=True)
-
-        stats = detector.stats
-        console.print("\nContainer detection complete:")
-        console.print(f"  Functions scanned: {stats['functions_scanned']}")
-        console.print(f"  Candidates (score >= {min_score}): {stats['candidates']}")
-        console.print(f"  LLM calls: {stats['llm_calls']}")
-        console.print(f"  Cache hits: {stats['cache_hits']}")
-        console.print(f"  Containers found: {stats['containers_found']}")
-        if stats["input_tokens"] > 0 or stats["output_tokens"] > 0:
-            total_tok = stats['input_tokens'] + stats['output_tokens']
-            console.print(
-                f"  Tokens: {total_tok:,} "
-                f"({stats['input_tokens']:,} in + "
-                f"{stats['output_tokens']:,} out)"
-            )
-        if stats["errors"] > 0:
-            console.print(f"  [yellow]Errors: {stats['errors']}[/yellow]")
-
-    finally:
-        db.close()
-
-
-@main.command("show-containers")
-@click.option("--db", "db_path", default="summaries.db", help="Database file path")
-@click.option("--format", "fmt", type=click.Choice(["table", "json"]), default="table")
-def show_containers(db_path, fmt):
-    """Show detected container/collection functions."""
-    db = SummaryDB(db_path)
-
-    try:
-        summaries = db.get_all_container_summaries()
-        functions = {f.id: f for f in db.get_all_functions()}
-
-        if not summaries:
-            console.print(
-                "[yellow]No container summaries found. "
-                "Run 'container-analyze' first.[/yellow]"
-            )
-            return
-
-        if fmt == "json":
-            output = []
-            for cs in summaries:
-                func = functions.get(cs.function_id)
-                entry = cs.to_dict()
-                if func:
-                    entry["function_name"] = func.name
-                    entry["file_path"] = func.file_path
-                    entry["signature"] = func.signature
-                output.append(entry)
-            console.print(json.dumps(output, indent=2))
-
-        else:
-            table = Table(title="Container Functions")
-            table.add_column("Function", style="cyan")
-            table.add_column("File", style="dim")
-            table.add_column("Type", style="green")
-            table.add_column("Container", justify="center")
-            table.add_column("Store", justify="center")
-            table.add_column("Load", justify="center")
-            table.add_column("Conf.", style="magenta")
-            table.add_column("Score", justify="right")
-
-            for cs in summaries:
-                func = functions.get(cs.function_id)
-                table.add_row(
-                    func.name if func else f"ID:{cs.function_id}",
-                    Path(func.file_path).name if func else "?",
-                    cs.container_type,
-                    f"arg[{cs.container_arg}]",
-                    ",".join(str(a) for a in cs.store_args) if cs.store_args else "-",
-                    "ret" if cs.load_return else "-",
-                    cs.confidence,
-                    str(cs.heuristic_score),
-                )
-
-            console.print(table)
-            console.print(f"\nTotal: {len(summaries)} container functions")
-
-    finally:
-        db.close()
-
-
-@main.command("find-allocator-candidates")
-@click.option("--db", "db_path", default="summaries.db", help="Database file path")
-@click.option(
-    "--output", "-o", "output_path", required=True,
-    type=click.Path(), help="Output JSON path",
-)
-@click.option(
-    "--backend",
-    type=click.Choice(
-        ["claude", "openai", "ollama", "llamacpp", "gemini"]
-    ),
-    default="ollama",
-)
-@click.option("--model", default=None, help="Model name to use")
-@click.option(
-    "--llm-host", default="localhost",
-    help="Hostname for local LLM backends "
-         "(llamacpp, ollama)",
-)
-@click.option(
-    "--llm-port", default=None, type=int,
-    help="Port for local LLM backends "
-         "(llamacpp: 8080, ollama: 11434)",
-)
-@click.option("--disable-thinking", is_flag=True, help="Disable thinking/reasoning mode")
-@click.option("--min-score", default=5, type=int, help="Minimum heuristic score (default: 5)")
-@click.option(
-    "--heuristic-only", is_flag=True,
-    help="Skip LLM, output all candidates above threshold",
-)
-@click.option(
-    "--include-stdlib", is_flag=True,
-    help="Include well-known stdlib allocators in "
-         "confirmed list",
-)
-@click.option("--verbose", "-v", is_flag=True, help="Verbose output")
-@click.option(
-    "--log-llm", type=click.Path(), default=None,
-    help="Log all LLM prompts and responses to file",
-)
-def find_allocator_candidates(
-    db_path, output_path, backend, model, llm_host, llm_port, disable_thinking,
-    min_score, heuristic_only, include_stdlib, verbose, log_llm
-):
-    """Find allocator function candidates for KAMain's --allocator-file.
-
-    Uses heuristic scoring to find candidates, optionally confirms with LLM.
-    Outputs JSON with {candidates: [...], confirmed: [...]}.
-
-    Example:
-        llm-summary find-allocator-candidates \\
-            --db functions.db -o alloc.json \\
-            --heuristic-only -v
-        llm-summary find-allocator-candidates \\
-            --db functions.db -o alloc.json \\
-            --backend ollama --model qwen3
-    """
-    from .allocator import STDLIB_ALLOCATORS, STDLIB_DEALLOCATORS, AllocatorDetector
-
-    # Infer project name from DB path
-    db_dir = Path(db_path).resolve().parent
-    project_name = db_dir.name if db_dir.name != "." else Path(db_path).stem
-
-    db = SummaryDB(db_path)
-
-    try:
-        functions = db.get_all_functions()
-        if not functions:
-            console.print("[red]No functions in database. Run 'extract' or 'scan' first.[/red]")
-            return
-
-        console.print(f"Database: {db_path} ({len(functions)} functions, project: {project_name})")
-
-        if heuristic_only:
-            detector = AllocatorDetector(
-                db, llm=None, verbose=verbose, min_score=min_score,
-                project_name=project_name,
-            )
-            alloc_scored, dealloc_scored = detector.heuristic_only()
-
-            if not alloc_scored and not dealloc_scored:
-                console.print("[yellow]No candidates found above threshold.[/yellow]")
-                output: dict[str, list] = {
-                    "candidates": [], "confirmed": [],
-                    "dealloc_candidates": [], "dealloc_confirmed": [],
-                }
-                with open(output_path, "w") as f:
-                    json.dump(output, f, indent=2)
-                console.print(f"Wrote empty result to {output_path}")
-                return
-
-            # Display allocator results
-            if alloc_scored:
-                table = Table(title=f"Allocator Candidates (score >= {min_score})")
-                table.add_column("Score", justify="right", style="green")
-                table.add_column("Function", style="cyan")
-                table.add_column("File", style="dim")
-                table.add_column("Signals")
-
-                alloc_scored.sort(key=lambda x: x[1], reverse=True)
-
-                for func, score, signals in alloc_scored:
-                    signal_strs = [s.split(": ", 1)[0] if ": " in s else s for s in signals]
-                    table.add_row(
-                        str(score),
-                        func.name,
-                        Path(func.file_path).name if func.file_path else "?",
-                        ", ".join(signal_strs),
-                    )
-
-                console.print(table)
-
-            # Display deallocator results
-            if dealloc_scored:
-                dtable = Table(title=f"Deallocator Candidates (score >= {min_score})")
-                dtable.add_column("Score", justify="right", style="green")
-                dtable.add_column("Function", style="cyan")
-                dtable.add_column("File", style="dim")
-                dtable.add_column("Signals")
-
-                dealloc_scored.sort(key=lambda x: x[1], reverse=True)
-
-                for func, score, signals in dealloc_scored:
-                    signal_strs = [s.split(": ", 1)[0] if ": " in s else s for s in signals]
-                    dtable.add_row(
-                        str(score),
-                        func.name,
-                        Path(func.file_path).name if func.file_path else "?",
-                        ", ".join(signal_strs),
-                    )
-
-                console.print(dtable)
-
-            candidate_names = [func.name for func, _, _ in alloc_scored]
-            dealloc_candidate_names = [func.name for func, _, _ in dealloc_scored]
-            if include_stdlib:
-                for name in sorted(STDLIB_ALLOCATORS):
-                    if name not in candidate_names:
-                        candidate_names.append(name)
-                for name in sorted(STDLIB_DEALLOCATORS):
-                    if name not in dealloc_candidate_names:
-                        dealloc_candidate_names.append(name)
-
-            output = {
-                "candidates": candidate_names,
-                "confirmed": [],
-                "dealloc_candidates": dealloc_candidate_names,
-                "dealloc_confirmed": [],
-            }
-            with open(output_path, "w") as f:
-                json.dump(output, f, indent=2)
-
-            stats = detector.stats
-            console.print(f"\nAlloc candidates: {len(candidate_names)}")
-            console.print(f"Dealloc candidates: {len(dealloc_candidate_names)}")
-            console.print(f"Functions scanned: {stats['functions_scanned']}")
-            console.print(f"Wrote {output_path}")
-            return
-
-        # Full mode: heuristic + LLM
-        backend_kwargs = _build_backend_kwargs(backend, llm_host, llm_port, disable_thinking)
-        llm = create_backend(backend, model=model, **backend_kwargs)
-        console.print(f"Using {backend} backend ({llm.model})")
-
-        detector = AllocatorDetector(
-            db, llm=llm, verbose=verbose, log_file=log_llm,
-            min_score=min_score, project_name=project_name,
-        )
-
-        with Progress(
-            SpinnerColumn(),
-            TextColumn("[progress.description]{task.description}"),
-            console=console,
-        ) as progress:
-            task = progress.add_task("Detecting allocator/deallocator functions...", total=None)
-            candidates, confirmed, dealloc_candidates, dealloc_confirmed = detector.detect_all(
-                include_stdlib=include_stdlib
-            )
-            progress.update(task, completed=True)
-
-        # All go into candidates for KAMain to verify;
-        # confirmed is left empty for KAMain to populate
-        all_candidates = confirmed + candidates
-        all_dealloc = dealloc_confirmed + dealloc_candidates
-        output = {
-            "candidates": all_candidates,
-            "confirmed": [],
-            "dealloc_candidates": all_dealloc,
-            "dealloc_confirmed": [],
-        }
-        with open(output_path, "w") as f:
-            json.dump(output, f, indent=2)
-
-        stats = detector.stats
-        console.print("\nAllocator/deallocator detection complete:")
-        console.print(f"  Functions scanned: {stats['functions_scanned']}")
-        console.print(f"  Alloc candidates (score >= {min_score}): {stats['candidates']}")
-        console.print(f"  Confirmed allocators: {stats['confirmed']}")
-        console.print(f"  Dealloc candidates (score >= {min_score}): {stats['dealloc_candidates']}")
-        console.print(f"  Confirmed deallocators: {stats['dealloc_confirmed']}")
-        console.print(f"  LLM calls: {stats['llm_calls']}")
-        if stats["input_tokens"] > 0 or stats["output_tokens"] > 0:
-            total_tok = stats['input_tokens'] + stats['output_tokens']
-            console.print(
-                f"  Tokens: {total_tok:,} "
-                f"({stats['input_tokens']:,} in + "
-                f"{stats['output_tokens']:,} out)"
-            )
-        if stats["errors"] > 0:
-            console.print(f"  [yellow]Errors: {stats['errors']}[/yellow]")
-        console.print(f"  Wrote {output_path}")
 
     finally:
         db.close()
@@ -3257,114 +1864,15 @@ def build_learn(
     console.print("\nNext steps:")
     console.print("1. Run the build script:")
     console.print(f"   [cyan]{paths['script']}[/cyan]")
-    console.print("\n2. Analyze with llm-summary:")
-    console.print(f"   [cyan]llm-summary extract --path {project_path} --db {db_path}[/cyan]")
+    console.print("\n2. Scan functions with llm-summary:")
+    console.print(
+        f"   [cyan]llm-summary scan --compile-commands "
+        f"{paths['build_dir']}/compile_commands.json --db {db_path}[/cyan]"
+    )
 
     if generate_ir:
         console.print("\n3. LLVM IR artifacts will be in:")
         console.print(f"   [cyan]{paths['artifacts_dir']}[/cyan]")
-
-
-@main.command("generate-kanalyzer-script")
-@click.option("--project", required=True, help="Project name (looks up build-scripts/<project>/)")
-@click.option(
-    "--artifacts-dir", default=None,
-    help="Artifacts directory "
-         "(default: build-scripts/<project>/artifacts)",
-)
-@click.option(
-    "--output-json", required=True,
-    help="Output path for KAMain JSON call graph",
-)
-@click.option(
-    "--kamain-bin",
-    default="/home/csong/project/kanalyzer/release"
-            "/lib/KAMain",
-    help="Path to KAMain binary",
-)
-@click.option(
-    "--allocator-file", default=None,
-    help="Path to allocator candidates JSON",
-)
-@click.option(
-    "--container-file", default=None,
-    help="Path to container functions JSON",
-)
-@click.option(
-    "--verbose-level", default=1, type=int,
-    help="KAMain verbose level (default: 1)",
-)
-@click.option(
-    "--output", "-o", default=None,
-    help="Output script path (default: stdout)",
-)
-def generate_kanalyzer_script(
-    project, artifacts_dir, output_json, kamain_bin,
-    allocator_file, container_file, verbose_level,
-    output,
-):
-    """Generate a shell script to run KAMain on a project's .bc files."""
-    scripts_dir = Path("build-scripts") / project
-
-    if not scripts_dir.exists():
-        console.print(f"[red]Project directory not found: {scripts_dir}[/red]")
-        return
-
-    if artifacts_dir is None:
-        artifacts_dir = str(scripts_dir / "artifacts")
-
-    lines = [
-        "#!/bin/bash",
-        f"# KAMain call graph analysis for {project}",
-        "# Generated by llm-summary generate-kanalyzer-script",
-        "",
-        "set -e",
-        "",
-        f'ARTIFACTS_DIR="{artifacts_dir}"',
-        f'OUTPUT_JSON="{output_json}"',
-        f'KAMAIN="{kamain_bin}"',
-        "",
-        'if [ ! -x "$KAMAIN" ]; then',
-        '    echo "Error: KAMain not found at $KAMAIN"',
-        '    exit 1',
-        'fi',
-        "",
-        '# Find all .bc files',
-        'BC_FILES=$(find "$ARTIFACTS_DIR" -name "*.bc" -type f)',
-        "",
-        'if [ -z "$BC_FILES" ]; then',
-        '    echo "Error: No .bc files found in $ARTIFACTS_DIR"',
-        '    exit 1',
-        'fi',
-        "",
-        'BC_COUNT=$(echo "$BC_FILES" | wc -l)',
-        'echo "Found $BC_COUNT .bc files in $ARTIFACTS_DIR"',
-        "",
-        '# Run KAMain',
-        '"$KAMAIN" \\',
-        '    $BC_FILES \\',
-        '    --callgraph-json "$OUTPUT_JSON" \\',
-    ]
-
-    if allocator_file:
-        lines.append(f'    --allocator-file "{allocator_file}" \\')
-    if container_file:
-        lines.append(f'    --container-file "{container_file}" \\')
-
-    lines.append(f'    --verbose {verbose_level}')
-    lines.append("")
-    lines.append('echo "Call graph written to $OUTPUT_JSON"')
-    lines.append("")
-
-    script_content = "\n".join(lines)
-
-    if output:
-        output_path = Path(output)
-        output_path.write_text(script_content)
-        output_path.chmod(0o755)
-        console.print(f"Script written to: {output_path}")
-    else:
-        console.print(script_content)
 
 
 @main.command("import-callgraph")
