@@ -344,6 +344,62 @@ def _build_libc_contracts() -> dict[str, CodeContractSummary]:
                               "&& str is NUL-terminated within size bytes"]},
     )
 
+    # ── scanf family ──
+    # glibc emits __isoc99_<name> aliases when compiled with -D_GNU_SOURCE; both
+    # the plain and __isoc99_* names need contracts so callers see them.
+    for name in ("sscanf", "__isoc99_sscanf"):
+        out[name] = _summary(
+            name,
+            memsafe={"requires": ["str != NULL && str is NUL-terminated",
+                                  "format != NULL && format is NUL-terminated",
+                                  "each varargs pointer is non-NULL and writable for "
+                                  "its corresponding conversion"],
+                     "ensures":  ["assigned varargs targets are initialized for "
+                                  "successful conversions (count = result, "
+                                  "or result==EOF on input failure)"]},
+        )
+    for name in ("fscanf", "__isoc99_fscanf"):
+        out[name] = _summary(
+            name,
+            memsafe={"requires": ["stream != NULL && stream is a valid open FILE*",
+                                  "format != NULL && format is NUL-terminated",
+                                  "each varargs pointer is non-NULL and writable for "
+                                  "its corresponding conversion"],
+                     "ensures":  ["assigned varargs targets are initialized for "
+                                  "successful conversions (count = result, "
+                                  "or result==EOF on input failure)"]},
+        )
+    for name in ("scanf", "__isoc99_scanf"):
+        out[name] = _summary(
+            name,
+            memsafe={"requires": ["format != NULL && format is NUL-terminated",
+                                  "each varargs pointer is non-NULL and writable for "
+                                  "its corresponding conversion"],
+                     "ensures":  ["assigned varargs targets are initialized for "
+                                  "successful conversions (count = result, "
+                                  "or result==EOF on input failure)"]},
+        )
+    for name in ("vsscanf", "__isoc99_vsscanf"):
+        out[name] = _summary(
+            name,
+            memsafe={"requires": ["str != NULL && str is NUL-terminated",
+                                  "format != NULL && format is NUL-terminated",
+                                  "ap matches the conversions in format"]},
+        )
+    for name in ("vfscanf", "__isoc99_vfscanf"):
+        out[name] = _summary(
+            name,
+            memsafe={"requires": ["stream != NULL && stream is a valid open FILE*",
+                                  "format != NULL && format is NUL-terminated",
+                                  "ap matches the conversions in format"]},
+        )
+    for name in ("vscanf", "__isoc99_vscanf"):
+        out[name] = _summary(
+            name,
+            memsafe={"requires": ["format != NULL && format is NUL-terminated",
+                                  "ap matches the conversions in format"]},
+        )
+
     # ── POSIX file I/O ──
     out["open"] = _summary(
         "open",
