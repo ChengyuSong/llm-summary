@@ -30,7 +30,14 @@ from ..db import SummaryDB
 from ..ir_sidecar import annotate_source_with_ir_facts
 from ..llm.base import LLMBackend, make_json_response_format
 from ..llm.pool import LLMPool
-from ..models import Function, SafetyIssue, VerificationSummary
+from ..models import (
+    Function,
+    FunctionBlock,
+    SafetyIssue,
+    VerificationSummary,
+    build_skeleton,
+    build_skeleton_line_map,
+)
 from .features import (
     MAX_INLINE_BODY_LINES,
     attrs_drops,
@@ -40,7 +47,13 @@ from .features import (
     property_set,
     relevant_warnings_for,
 )
-from .inliner import build_callee_block, build_inline_body, ordered_callee_names
+from .inliner import (
+    build_callee_block,
+    build_inline_body,
+    inline_callee_contracts_for_block,
+    inline_callee_contracts_in_skeleton,
+    ordered_callee_names,
+)
 from .models import (
     PROPERTIES,
     PROPERTY_SCHEMA,
@@ -48,6 +61,8 @@ from .models import (
     is_nontrivial,
 )
 from .prompts import (
+    BLOCK_PROMPT,
+    BLOCK_RESPONSE_SCHEMA,
     PROPERTY_PROMPT,
     SYSTEM_PROMPT,
     VERIFY_PROMPT,
@@ -77,6 +92,12 @@ _MALFORMED_JSON_MSG = (
 # orchestrators (deflate_slow, inflate_fast, gz_*) land at ~6+ while clean
 # leaves stay <2.
 _RETRY_THRESHOLD: float = 5.0
+
+# Chars of `func.llm_source` above which we switch to chunked summarization
+# (Phase A per-block summaries → skeleton). Matches the legacy summarizer
+# threshold (`summarizer.py:376`) so the same `function_blocks` rows produced
+# at scan time are reused.
+_CHUNK_THRESHOLD: int = 40000
 
 
 def _format_scan_issues(
@@ -206,6 +227,9 @@ class CodeContractPass:
         self._retry_llm: LLMBackend | None = None
         self._retry_llm_disabled: bool = False
         self.struggle_retries: int = 0
+        # Count of functions that took the chunked (large-function) path.
+        # Reported in the final pass summary alongside `calls`/tokens.
+        self.chunked_functions: int = 0
 
     def _log(self, text: str) -> None:
         """Append `text` to the log file, no-op if logging disabled.
@@ -396,8 +420,28 @@ class CodeContractPass:
             self._log("(no properties in scope; emitting empty summary)\n")
             return summary
 
+        # Chunking decision: huge functions exceed the LLM context window
+        # when the full source is sent. Switch to a per-property Phase A
+        # (block summaries) → skeleton view. Blocks are pre-extracted at
+        # scan time (`function_blocks` table); we only need the execution
+        # loop here. Mirrors `summarizer.py:_summarize_large_function`.
+        blocks: list[FunctionBlock] = (
+            self.db.get_function_blocks(func.id)
+            if func.id is not None else []
+        )
+        use_chunked = bool(blocks) and len(func.llm_source) > _CHUNK_THRESHOLD
+        if use_chunked:
+            self.chunked_functions += 1
+            self._log(
+                f"--- CHUNKED MODE: {len(blocks)} blocks,"
+                f" {len(func.llm_source)} chars ---\n"
+            )
+
         response_format = make_json_response_format(
             PROPERTY_SCHEMA, name="property_summary",
+        )
+        block_response_format = make_json_response_format(
+            BLOCK_RESPONSE_SCHEMA, name="block_summary",
         )
         # Typedef + globals sections are property-independent. Build once.
         type_defs = build_type_defs_section(
@@ -422,7 +466,12 @@ class CodeContractPass:
             callee_block = build_callee_block(
                 func, summaries, prop, callee_names,
             )
-            source_inlined = prepare_source(func, summaries, edges, prop)
+            if use_chunked:
+                source_inlined = self._build_chunked_source(
+                    func, summaries, blocks, prop, block_response_format,
+                )
+            else:
+                source_inlined = prepare_source(func, summaries, edges, prop)
             # Overlay KAMain IR facts: int_ops only for overflow (no signal
             # for the others), but effects + attrs preamble apply to every
             # pass — pointer attrs (nonnull/dereferenceable) tighten the
@@ -577,6 +626,146 @@ class CodeContractPass:
             log.warning(
                 "%s/%s: malformed JSON after retry, skipping property",
                 func_name, tag,
+            )
+            return None
+
+    def _build_chunked_source(
+        self,
+        func: Function,
+        summaries: dict[str, CodeContractSummary],
+        blocks: list[FunctionBlock],
+        prop: str,
+        block_response_format: dict[str, Any],
+    ) -> str:
+        """Phase A → skeleton → skeleton-level callee inlining.
+
+        Returns the per-property `{source}` string for `PROPERTY_PROMPT[prop]`
+        when `func` is too big for a single LLM call. Mirrors the legacy
+        flow in `summarizer.py:_summarize_large_function` (lines 441–578),
+        adapted to code-contract's per-property structure.
+        """
+        # Phase A: per-block summaries, cached in `contract_summary_json`.
+        block_summaries: dict[int, str] = {}
+        for i, block in enumerate(blocks):
+            if block.id is None:
+                continue
+            cached = self.db.get_function_block_contract_summary(
+                block.id, prop,
+            )
+            if cached is not None:
+                block_summaries[block.id] = cached
+                continue
+            block_src = inline_callee_contracts_for_block(
+                func, summaries, block, prop,
+            )
+            block_prompt = BLOCK_PROMPT[prop].format(
+                name=func.name,
+                signature=func.signature,
+                block_label=block.label,
+                block_source=block_src,
+            )
+            self._log(
+                f"\n--- BLOCK {i+1}/{len(blocks)} "
+                f"({prop}, {block.label[:60]}) ---\n{block_prompt}\n"
+            )
+            data = self._call_block_llm(
+                self.llm, func.name, block.label, prop,
+                block_prompt, block_response_format,
+            )
+            if data is None:
+                summary_text = f"(block {block.label}: summary unavailable)"
+            else:
+                summary_text = str(data.get("summary") or "").strip()
+                if not summary_text:
+                    summary_text = f"(block {block.label}: empty summary)"
+            block_summaries[block.id] = summary_text
+            try:
+                self.db.update_function_block_contract_summary(
+                    block.id, prop, summary_text,
+                )
+            except Exception as e:
+                log.warning(
+                    "%s/%s: block %d cache write failed: %s",
+                    func.name, prop, block.id, e,
+                )
+
+        # Phase B: collapse blocks into one-line summaries.
+        skeleton = build_skeleton(
+            func.llm_source, func.line_start, blocks, block_summaries,
+        )
+        # Skeleton-level callee inlining: only callsites OUTSIDE any block
+        # survive (those inside were already inlined in Phase A).
+        line_map = build_skeleton_line_map(
+            func.line_start,
+            len(func.source.splitlines()),
+            blocks,
+        )
+        return inline_callee_contracts_in_skeleton(
+            func, summaries, skeleton, line_map, prop,
+        )
+
+    def _call_block_llm(
+        self,
+        llm: LLMBackend,
+        func_name: str,
+        block_label: str,
+        prop: str,
+        prompt: str,
+        response_format: dict[str, Any],
+    ) -> dict[str, Any] | None:
+        """One Phase-A block-summary call with one malformed-JSON retry.
+
+        Same shape as `_call_property_llm` but with a tag that surfaces the
+        block label in logs. Tokens accumulate into the same counters so
+        chunked-mode cost shows up in the pass total.
+        """
+        tag = f"{prop}/block:{block_label[:40]}"
+        try:
+            resp = llm.complete_with_metadata(
+                prompt,
+                system=SYSTEM_PROMPT,
+                cache_system=self.cache_system,
+                response_format=response_format,
+            )
+        except Exception as e:
+            log.warning("%s/%s: block LLM call failed: %s", func_name, tag, e)
+            return None
+        self.calls += 1
+        self.input_tokens += resp.input_tokens
+        self.output_tokens += resp.output_tokens
+        self._log(f"--- BLOCK RESPONSE ({tag}) ---\n{resp.content}\n")
+
+        try:
+            return extract_json(resp.content)
+        except (json.JSONDecodeError, ValueError):
+            log.warning("%s/%s: malformed block JSON, retrying", func_name, tag)
+
+        retry_messages = [
+            {"role": "user", "content": prompt},
+            {"role": "assistant", "content": resp.content},
+            {"role": "user", "content": _MALFORMED_JSON_MSG},
+        ]
+        try:
+            resp2 = llm.complete_messages_with_metadata(
+                retry_messages,
+                system=SYSTEM_PROMPT,
+                cache_system=self.cache_system,
+                response_format=response_format,
+            )
+        except Exception as e:
+            log.warning(
+                "%s/%s: block retry failed: %s", func_name, tag, e,
+            )
+            return None
+        self.calls += 1
+        self.input_tokens += resp2.input_tokens
+        self.output_tokens += resp2.output_tokens
+        self._log(f"--- BLOCK RETRY RESPONSE ({tag}) ---\n{resp2.content}\n")
+        try:
+            return extract_json(resp2.content)
+        except (json.JSONDecodeError, ValueError):
+            log.warning(
+                "%s/%s: malformed block JSON after retry", func_name, tag,
             )
             return None
 

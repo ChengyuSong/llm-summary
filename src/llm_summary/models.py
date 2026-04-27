@@ -171,6 +171,44 @@ def build_skeleton(
     return "\n".join(result)
 
 
+def build_skeleton_line_map(
+    func_line_start: int,
+    n_func_lines: int,
+    blocks: list[FunctionBlock],
+) -> dict[int, int]:
+    """Map original 0-based line indices in ``func.source`` to 0-based line
+    indices in the skeleton produced by :func:`build_skeleton`.
+
+    Lines suppressed inside a block body are absent from the map — callers
+    treat ``key not in result`` as "this line was collapsed into a block
+    summary." Mirrors the ``suppress`` / ``insertions`` logic in
+    :func:`build_skeleton` so they stay in lockstep.
+    """
+    sorted_blocks = sorted(blocks, key=lambda b: b.line_start)
+    suppress: set[int] = set()
+    insertions: set[int] = set()  # 0-based original index *before* which a summary is inserted
+
+    for block in sorted_blocks:
+        rel_start = block.line_start - func_line_start
+        rel_end = block.line_end - func_line_start
+        if rel_start < 0 or rel_end >= n_func_lines:
+            continue
+        if rel_start + 1 <= rel_end:
+            for i in range(rel_start + 1, rel_end + 1):
+                suppress.add(i)
+        insertions.add(rel_start + 1)
+
+    line_map: dict[int, int] = {}
+    skel_idx = 0
+    for i in range(n_func_lines):
+        if i in insertions:
+            skel_idx += 1  # the summary comment line
+        if i not in suppress:
+            line_map[i] = skel_idx
+            skel_idx += 1
+    return line_map
+
+
 class TargetType(str, Enum):
     """Type of indirect call target."""
 

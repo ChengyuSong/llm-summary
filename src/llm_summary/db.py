@@ -309,7 +309,8 @@ CREATE TABLE IF NOT EXISTS function_blocks (
     source TEXT,
     suggested_name TEXT,
     suggested_signature TEXT,
-    summary_json TEXT
+    summary_json TEXT,
+    contract_summary_json TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_blocks_function ON function_blocks(function_id);
 
@@ -489,6 +490,16 @@ class SummaryDB:
             self.conn.commit()
         if "decl_header" not in columns:
             self.conn.execute("ALTER TABLE functions ADD COLUMN decl_header TEXT")
+            self.conn.commit()
+
+        # Add contract_summary_json to function_blocks for code-contract chunking
+        cursor = self.conn.execute("PRAGMA table_info(function_blocks)")
+        block_columns = {row[1] for row in cursor.fetchall()}
+        if block_columns and "contract_summary_json" not in block_columns:
+            self.conn.execute(
+                "ALTER TABLE function_blocks "
+                "ADD COLUMN contract_summary_json TEXT"
+            )
             self.conn.commit()
 
     def close(self) -> None:
@@ -793,6 +804,58 @@ class SummaryDB:
             WHERE id = ?
             """,
             (summary_json, suggested_name, suggested_signature, block_id),
+        )
+        self.conn.commit()
+
+    def get_function_block_contract_summary(
+        self, block_id: int, prop: str,
+    ) -> str | None:
+        """Cached per-property block summary for code-contract chunking.
+
+        Returns ``None`` if the column is empty or the property has not been
+        summarized yet.
+        """
+        row = self.conn.execute(
+            "SELECT contract_summary_json FROM function_blocks WHERE id = ?",
+            (block_id,),
+        ).fetchone()
+        if not row or not row["contract_summary_json"]:
+            return None
+        try:
+            data = json.loads(row["contract_summary_json"])
+        except (json.JSONDecodeError, TypeError):
+            return None
+        if not isinstance(data, dict):
+            return None
+        value = data.get(prop)
+        return value if isinstance(value, str) else None
+
+    def update_function_block_contract_summary(
+        self, block_id: int, prop: str, summary_text: str,
+    ) -> None:
+        """Merge a per-property summary into ``contract_summary_json``.
+
+        Read-modify-write on a single row; concurrent writers in different
+        threads serialize on the connection lock.
+        """
+        row = self.conn.execute(
+            "SELECT contract_summary_json FROM function_blocks WHERE id = ?",
+            (block_id,),
+        ).fetchone()
+        existing: dict[str, str] = {}
+        if row and row["contract_summary_json"]:
+            try:
+                parsed = json.loads(row["contract_summary_json"])
+                if isinstance(parsed, dict):
+                    existing = {
+                        k: v for k, v in parsed.items() if isinstance(v, str)
+                    }
+            except (json.JSONDecodeError, TypeError):
+                existing = {}
+        existing[prop] = summary_text
+        self.conn.execute(
+            "UPDATE function_blocks SET contract_summary_json = ? WHERE id = ?",
+            (json.dumps(existing), block_id),
         )
         self.conn.commit()
 

@@ -11,7 +11,7 @@ Both lifted from `scripts/contract_pipeline.py:703-840`.
 
 from __future__ import annotations
 
-from ..models import Function, _annotate_macro_diff
+from ..models import Function, FunctionBlock, _annotate_macro_diff
 from .models import CodeContractSummary, is_nontrivial
 
 
@@ -146,6 +146,43 @@ def ordered_callee_names(
     return out
 
 
+def _format_callee_hint(
+    callee_name: str,
+    s: CodeContractSummary,
+    prop: str,
+    indent: str,
+) -> list[str]:
+    """Render the ``// >>> callee contract for P:`` hint block, or the
+    inline-body paste, for one callsite.
+
+    Returns ``[]`` when the callee has nothing to say about this property
+    and is not noreturn — keeps boilerplate callsites quiet.
+    """
+    if s.inline_body:
+        block = [f"{indent}// >>> body of {callee_name}:"]
+        for src_line in s.inline_body.splitlines():
+            block.append(f"{indent}// >>>   {src_line}")
+        return block
+    reqs = [r for r in s.requires.get(prop, []) if is_nontrivial(r)]
+    ens = [e for e in s.ensures.get(prop, []) if is_nontrivial(e)]
+    mods = s.modifies.get(prop, [])
+    note = s.notes.get(prop, "").strip()
+    if not reqs and not ens and not mods and not note and not s.noreturn:
+        return []
+    hint = [f"{indent}// >>> {callee_name} contract for {prop}:"]
+    if s.noreturn:
+        hint.append(f"{indent}// >>>   noreturn: true")
+    if reqs:
+        hint.append(f"{indent}// >>>   requires: " + "; ".join(reqs))
+    if ens:
+        hint.append(f"{indent}// >>>   ensures:  " + "; ".join(ens))
+    if mods:
+        hint.append(f"{indent}// >>>   modifies: " + ", ".join(mods))
+    if note:
+        hint.append(f"{indent}// >>>   notes:    " + note)
+    return hint
+
+
 def inline_callee_contracts(
     func: Function,
     summaries: dict[str, CodeContractSummary],
@@ -174,37 +211,13 @@ def inline_callee_contracts(
         line_in_body = cs.get("line_in_body")
         if line_in_body is None or line_in_body < 0 or line_in_body >= len(raw_lines):
             continue
-        s = summaries[callee_name]
         body_line = raw_lines[line_in_body]
         indent = " " * (len(body_line) - len(body_line.lstrip()))
-        # Inline-body callees: paste the (already-expanded) source above
-        # the callsite instead of the contract.
-        if s.inline_body:
-            block = [f"{indent}// >>> body of {callee_name}:"]
-            for src_line in s.inline_body.splitlines():
-                block.append(f"{indent}// >>>   {src_line}")
-            insertions.setdefault(line_in_body, []).extend(block)
-            continue
-        reqs = [r for r in s.requires.get(prop, []) if is_nontrivial(r)]
-        ens = [e for e in s.ensures.get(prop, []) if is_nontrivial(e)]
-        mods = s.modifies.get(prop, [])
-        note = s.notes.get(prop, "").strip()
-        if not reqs and not ens and not mods and not note and not s.noreturn:
-            continue
-        hint: list[str] = [
-            f"{indent}// >>> {callee_name} contract for {prop}:"
-        ]
-        if s.noreturn:
-            hint.append(f"{indent}// >>>   noreturn: true")
-        if reqs:
-            hint.append(f"{indent}// >>>   requires: " + "; ".join(reqs))
-        if ens:
-            hint.append(f"{indent}// >>>   ensures:  " + "; ".join(ens))
-        if mods:
-            hint.append(f"{indent}// >>>   modifies: " + ", ".join(mods))
-        if note:
-            hint.append(f"{indent}// >>>   notes:    " + note)
-        insertions.setdefault(line_in_body, []).extend(hint)
+        hint = _format_callee_hint(
+            callee_name, summaries[callee_name], prop, indent,
+        )
+        if hint:
+            insertions.setdefault(line_in_body, []).extend(hint)
 
     if not insertions:
         return func.llm_source
@@ -218,3 +231,94 @@ def inline_callee_contracts(
     if func.pp_source and func.pp_source != func.source:
         return _annotate_macro_diff(annotated, func.pp_source)
     return annotated
+
+
+def inline_callee_contracts_for_block(
+    func: Function,
+    summaries: dict[str, CodeContractSummary],
+    block: FunctionBlock,
+    prop: str,
+) -> str:
+    """Render ``block.source`` with callee-contract hints inserted only at
+    callsites that fall inside the block.
+
+    Used by the chunked code-contract path (Phase A): each block sees its
+    own callee context so its summary already encodes post-callee state.
+    Skips macro annotation — block source is raw.
+    """
+    block_lines = block.source.splitlines()
+    bs = block.line_start - func.line_start  # 0-based start in func.source
+    be = block.line_end - func.line_start    # 0-based end (inclusive)
+    insertions: dict[int, list[str]] = {}
+    for cs in func.callsites:
+        callee_name = cs.get("callee")
+        if not callee_name or callee_name not in summaries:
+            continue
+        line_in_body = cs.get("line_in_body")
+        if line_in_body is None or line_in_body < bs or line_in_body > be:
+            continue
+        rel = line_in_body - bs
+        if rel < 0 or rel >= len(block_lines):
+            continue
+        body_line = block_lines[rel]
+        indent = " " * (len(body_line) - len(body_line.lstrip()))
+        hint = _format_callee_hint(
+            callee_name, summaries[callee_name], prop, indent,
+        )
+        if hint:
+            insertions.setdefault(rel, []).extend(hint)
+
+    if not insertions:
+        return block.source
+
+    out: list[str] = []
+    for i, line in enumerate(block_lines):
+        if i in insertions:
+            out.extend(insertions[i])
+        out.append(line)
+    return "\n".join(out)
+
+
+def inline_callee_contracts_in_skeleton(
+    func: Function,
+    summaries: dict[str, CodeContractSummary],
+    skeleton: str,
+    line_map: dict[int, int],
+    prop: str,
+) -> str:
+    """Render a skeleton with callee hints inserted only for callsites that
+    survived skeleton construction (i.e. lie outside any collapsed block).
+
+    Callsites inside a block were already inlined into that block's Phase A
+    source — their effects show up in the block's one-line summary.
+    Skips macro annotation — skeleton is a synthesized text.
+    """
+    skel_lines = skeleton.splitlines()
+    insertions: dict[int, list[str]] = {}
+    for cs in func.callsites:
+        callee_name = cs.get("callee")
+        if not callee_name or callee_name not in summaries:
+            continue
+        line_in_body = cs.get("line_in_body")
+        if line_in_body is None:
+            continue
+        skel_idx = line_map.get(line_in_body)
+        if skel_idx is None or skel_idx < 0 or skel_idx >= len(skel_lines):
+            continue
+        body_line = skel_lines[skel_idx]
+        indent = " " * (len(body_line) - len(body_line.lstrip()))
+        hint = _format_callee_hint(
+            callee_name, summaries[callee_name], prop, indent,
+        )
+        if hint:
+            insertions.setdefault(skel_idx, []).extend(hint)
+
+    if not insertions:
+        return skeleton
+
+    out: list[str] = []
+    for i, line in enumerate(skel_lines):
+        if i in insertions:
+            out.extend(insertions[i])
+        out.append(line)
+    return "\n".join(out)

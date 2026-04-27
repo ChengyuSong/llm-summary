@@ -19,6 +19,9 @@ primary target — keep the verbose form everywhere. Backend-aware short
 tails are deferred (see plan Open Items).
 """
 
+from __future__ import annotations
+
+from typing import Any
 
 SYSTEM_PROMPT = """\
 You produce Hoare-style pre/post summaries for C functions, ONE PROPERTY AT A TIME.
@@ -984,3 +987,80 @@ def data_model_note(model: str | None) -> str:
     LP64 when the task didn't declare one."""
     key = (model or "LP64").upper()
     return _DATA_MODEL_NOTES.get(key, _DATA_MODEL_NOTES["LP64"])
+
+
+# ── Block prompts (chunked path).
+#    Used when a function exceeds the chunk threshold and we need a
+#    one-line per-property description of each pre-extracted block. The
+#    skeleton built from these summaries is then sent to the normal
+#    PROPERTY_PROMPT[prop] for whole-function reasoning.
+
+_BLOCK_PROMPT_TEMPLATE = """\
+You are summarizing one code block from a large C/C++ function. The block \
+will be replaced by your one-line summary in a skeleton view that the next \
+pass will read to publish the function's {prop} contract.
+
+## Context
+Function: `{{name}}`
+Signature: `{{signature}}`
+Block label: `{{block_label}}`
+
+## Block source
+
+```c
+{{block_source}}
+```
+
+## Task
+
+Write a single sentence (≤30 words) describing what this block does that is \
+relevant to **{prop}**. Focus on:
+{focus}
+
+Mention concrete identifiers (parameters, fields, indices). Do NOT publish \
+caller-facing `requires` / `ensures` clauses — those are produced later, on \
+the skeleton, by another pass. Inlined `// >>>` callee hints in the source \
+above already encode callee effects; fold them into the sentence rather than \
+restating them.
+
+If the block has no {prop}-relevant operation, say so in one sentence \
+(e.g. "computes a new local index from `i` and `len`; no memory ops").
+
+Respond as JSON, matching this shape exactly:
+```json
+{{{{"summary": "..."}}}}
+```
+"""
+
+
+_BLOCK_FOCUS: dict[str, str] = {
+    "memsafe": (
+        "  - pointer dereferences and the guards that make them safe\n"
+        "  - buffer / array indexing and the bounds that make it safe\n"
+        "  - calls that may free, realloc, or initialize memory\n"
+        "  - paths that store or return pointers"
+    ),
+    "memleak": (
+        "  - allocations performed (callee, what is stored where)\n"
+        "  - frees / ownership transfers / escapes via return or out-params\n"
+        "  - early returns or error paths that drop a live allocation"
+    ),
+    "overflow": (
+        "  - integer arithmetic on parameters / fields / sizes\n"
+        "  - signed/unsigned conversions and narrowing assignments\n"
+        "  - comparisons or guards that constrain operand ranges"
+    ),
+}
+
+
+BLOCK_PROMPT: dict[str, str] = {
+    prop: _BLOCK_PROMPT_TEMPLATE.format(prop=prop, focus=focus)
+    for prop, focus in _BLOCK_FOCUS.items()
+}
+
+
+BLOCK_RESPONSE_SCHEMA: dict[str, Any] = {
+    "type": "object",
+    "properties": {"summary": {"type": "string"}},
+    "required": ["summary"],
+}
