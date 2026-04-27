@@ -1899,17 +1899,42 @@ def build_learn(
               help="Path to KAMain callgraph JSON")
 @click.option("--db", "db_path", default="summaries.db", help="Database file path")
 @click.option("--clear-edges", is_flag=True, help="Clear existing call_edges before import")
+@click.option(
+    "--link-units", "link_units_path",
+    type=click.Path(exists=True), default=None,
+    help="Path to link_units.json. With --target, copies shared "
+         "functions/edges from each unit named in the target's "
+         "imported_from and from each .a entry in its link_deps "
+         "before importing the callgraph (avoids creating stubs for "
+         "code that lives in linked-in static archives or subset units).",
+)
+@click.option(
+    "--target", "target_name", default=None,
+    help="Link-unit target name (required when --link-units is given).",
+)
 @click.option("--verbose", "-v", is_flag=True, help="Verbose output")
-def import_callgraph(json_path, db_path, clear_edges, verbose):
+def import_callgraph(json_path, db_path, clear_edges, link_units_path,
+                     target_name, verbose):
     """Import a KAMain call graph JSON into the database.
 
     Parses the call graph, matches functions to existing DB entries,
     creates stubs for unmatched functions, and populates call_edges.
 
-    Example:
-        llm-summary import-callgraph --json /tmp/libpng_cg.json --db analysis.db --clear-edges -v
+    With --link-units / --target, dependency function rows are imported
+    from each dep DB first so that calls into linked-in static archives
+    or smaller subset units don't materialize as stubs. Both
+    ``imported_from`` (subset deps; uses the unit's ``imported_files``
+    file scope) and ``link_deps`` ending in ``.a`` (statically linked
+    archives; uses every file_path present in the dep DB) are handled.
     """
     from .callgraph_import import CallGraphImporter
+
+    if link_units_path and not target_name:
+        console.print("[red]--target is required when --link-units is given[/red]")
+        return
+    if target_name and not link_units_path:
+        console.print("[red]--link-units is required when --target is given[/red]")
+        return
 
     json_path = Path(json_path)
     db = SummaryDB(db_path)
@@ -1920,6 +1945,14 @@ def import_callgraph(json_path, db_path, clear_edges, verbose):
         console.print(f"Database: {db_path}")
         console.print(f"  Functions before: {before_stats['functions']}")
         console.print(f"  Call edges before: {before_stats['call_edges']}")
+
+        if link_units_path:
+            _import_link_unit_deps(
+                db,
+                Path(link_units_path),
+                target_name,
+                verbose=verbose,
+            )
 
         importer = CallGraphImporter(db, verbose=verbose)
         stats = importer.import_json(json_path, clear_existing=clear_edges)
@@ -1945,6 +1978,138 @@ def import_callgraph(json_path, db_path, clear_edges, verbose):
 
     finally:
         db.close()
+
+
+def _import_link_unit_deps(
+    db: "SummaryDB",
+    link_units_path: Path,
+    target_name: str,
+    *,
+    verbose: bool,
+) -> None:
+    """Copy dep functions/edges into ``db`` for the named target.
+
+    Reads ``link_units_path``, finds ``target_name``, and runs
+    ``db.import_unit_data`` once per dep:
+      - ``imported_from``: file scope = the target's ``imported_files``.
+      - ``link_deps`` ending in ``.a``: file scope = every distinct
+        ``file_path`` present in the dep DB (entire archive embedded by
+        the static link).
+    Deps already covered by ``imported_from`` are not re-imported.
+    """
+    import json as _json
+    import sqlite3
+
+    lu_data = _json.loads(link_units_path.read_text())
+    link_units_list = lu_data.get("link_units", [])
+    by_name = {u.get("name"): u for u in link_units_list}
+    by_output: dict[str, dict] = {}
+    for u in link_units_list:
+        # Aliases redirect to canonical so file resolution lines up.
+        canonical = by_name.get(u.get("alias_of") or u.get("name"))
+        if canonical is None:
+            continue
+        out = u.get("output")
+        if out:
+            by_output[out] = canonical
+            by_output[Path(out).name] = canonical
+
+    target_lu = by_name.get(target_name)
+    if target_lu is None:
+        console.print(
+            f"[red]Target '{target_name}' not found in {link_units_path}[/red]"
+        )
+        return
+
+    project_scan_dir = link_units_path.parent
+    seen: set[str] = set()
+
+    def _dep_db(dep: dict) -> str:
+        return dep.get("db_path") or str(
+            project_scan_dir / dep["name"] / "functions.db"
+        )
+
+    # 1) imported_from: use the unit's pre-computed imported_files.
+    imported_files = target_lu.get("imported_files") or []
+    for dep_name in target_lu.get("imported_from") or []:
+        dep_lu = by_name.get(dep_name)
+        if dep_lu is None:
+            console.print(
+                f"[yellow]  imported_from '{dep_name}' not in "
+                f"link_units.json — skipping[/yellow]"
+            )
+            continue
+        dep_db_str = _dep_db(dep_lu)
+        if not Path(dep_db_str).exists():
+            console.print(
+                f"[yellow]  dep DB {dep_db_str} missing — skipping[/yellow]"
+            )
+            continue
+        if not imported_files:
+            if verbose:
+                console.print(
+                    f"  imported_from '{dep_name}' has empty imported_files"
+                    " — skipping"
+                )
+            continue
+        stats_imp = db.import_unit_data(dep_db_str, imported_files)
+        seen.add(dep_name)
+        console.print(
+            f"  imported {stats_imp.functions} functions, "
+            f"{stats_imp.call_edges} call edges from {dep_name} "
+            f"(imported_from)"
+        )
+
+    # 2) .a link_deps: pull every file_path from the dep DB.
+    for dep_output in target_lu.get("link_deps") or []:
+        if not dep_output.endswith(".a"):
+            continue
+        dep_lu = by_output.get(dep_output) or by_output.get(
+            Path(dep_output).name
+        )
+        if dep_lu is None:
+            if verbose:
+                console.print(
+                    f"  .a link_dep '{dep_output}' has no matching unit"
+                    " — skipping"
+                )
+            continue
+        dep_name = dep_lu["name"]
+        if dep_name in seen or dep_name == target_name:
+            continue
+        dep_db_str = _dep_db(dep_lu)
+        if not Path(dep_db_str).exists():
+            console.print(
+                f"[yellow]  dep DB {dep_db_str} missing — skipping[/yellow]"
+            )
+            continue
+        try:
+            with sqlite3.connect(f"file:{dep_db_str}?mode=ro", uri=True) as c:
+                files = [
+                    r[0] for r in c.execute(
+                        "SELECT DISTINCT file_path FROM functions"
+                    )
+                ]
+        except sqlite3.Error as e:
+            console.print(
+                f"[yellow]  could not read file_paths from {dep_db_str}: "
+                f"{e} — skipping[/yellow]"
+            )
+            continue
+        if not files:
+            if verbose:
+                console.print(
+                    f"  .a link_dep '{dep_name}' DB has no functions"
+                    " — skipping"
+                )
+            continue
+        stats_imp = db.import_unit_data(dep_db_str, files)
+        seen.add(dep_name)
+        console.print(
+            f"  imported {stats_imp.functions} functions, "
+            f"{stats_imp.call_edges} call edges from {dep_name} "
+            f"(.a link_dep)"
+        )
 
 
 @main.command("discover-link-units")
