@@ -23,6 +23,24 @@ from ..models import Function
 from .inliner import inline_callee_contracts
 from .models import CodeContractSummary
 
+_DEFN_MAX_CHARS = 1000
+
+
+def _cap_definition(defn: str) -> str:
+    """Cap a typedef/static-var definition at ``_DEFN_MAX_CHARS`` so giant
+    array-literal initializers (e.g. precomputed lookup tables of 64 KB+)
+    don't blow the prompt. Keeps the head — usually enough to expose the
+    declaration and array bound — and replaces the tail with a marker.
+
+    Bytes-correctness doesn't matter (LLM is the only consumer); the LLM
+    just needs to know the symbol exists with the right type.
+    """
+    if len(defn) <= _DEFN_MAX_CHARS:
+        return defn
+    elided = len(defn) - _DEFN_MAX_CHARS
+    head = defn[:_DEFN_MAX_CHARS]
+    return f"{head}\n/* ... {elided} chars elided ... */"
+
 
 def build_type_defs_section(
     db: SummaryDB, source: str, file_path: str = "",
@@ -106,16 +124,17 @@ def build_type_defs_section(
             emitted.add(defn)
             kind = seen_kind.get(name, "")
             canonical = seen_canonical.get(name, "")
+            capped = _cap_definition(defn)
             if kind == "static_var":
-                lines.append(f"{defn}  // global")
+                lines.append(f"{capped}  // global")
             elif (
                 kind == "typedef"
                 and canonical
                 and canonical not in defn
             ):
-                lines.append(f"{defn}  // canonical: {canonical}")
+                lines.append(f"{capped}  // canonical: {canonical}")
             else:
-                lines.append(defn)
+                lines.append(capped)
             lines.append("")
     lines.append("```\n\n")
     return "\n".join(lines)
