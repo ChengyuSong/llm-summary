@@ -3371,6 +3371,118 @@ def triage(
         db.close()
 
 
+@main.command("contract-check")
+@click.option("--db", "db_path", required=True, help="Database file path")
+@click.option(
+    "--project-path", required=True,
+    help="Project source root (the library's git repo).",
+)
+@click.option(
+    "--library", default=None,
+    help="Library name (defaults to derived from --db parent directory).",
+)
+@click.option(
+    "--target", default=None,
+    help="Build target / link unit (defaults to derived from --db).",
+)
+@click.option(
+    "--max-turns", default=80, type=int,
+    help="Max ReAct turns for the agent (default 80).",
+)
+@click.option(
+    "--backend",
+    type=click.Choice(["claude", "openai", "ollama", "llamacpp", "gemini"]),
+    default="claude",
+)
+@click.option("--model", default=None, help="Model name to use")
+@click.option("--llm-host", default="localhost", help="Hostname for local LLM backends")
+@click.option("--llm-port", default=None, type=int, help="Port for local LLM backends")
+@click.option("--disable-thinking", is_flag=True, help="Disable extended thinking")
+@click.option(
+    "-o", "--output", default=None,
+    help="Write JSON gap catalog to file (default: print to stdout).",
+)
+@click.option("-v", "--verbose", is_flag=True)
+def contract_check(
+    db_path: str, project_path: str,
+    library: str | None, target: str | None,
+    max_turns: int,
+    backend: str, model: str | None,
+    llm_host: str, llm_port: int | None, disable_thinking: bool,
+    output: str | None, verbose: bool,
+) -> None:
+    """Audit a library's public-API code contracts vs its documented behavior.
+
+    Runs an LLM ReAct agent over a single library's git repo + contract DB to
+    find caveats the manual / headers / examples document but the contracts
+    miss. The agent discovers the header / manual / example via git_ls_tree.
+    Output is a JSON catalog of gaps with exact quotes and suggested contract
+    clauses.
+
+    \b
+    Example:
+        llm-summary contract-check \\
+            --db func-scans/libpng/png_static/functions.db \\
+            --project-path /data/csong/opensource/libpng \\
+            --backend claude -o gaps.json -v
+    """
+    from .contract_check import ContractCheckAgent
+
+    db_p = Path(db_path)
+    if library is None or target is None:
+        # Heuristic: .../<library>/<target>/functions.db
+        parts = db_p.resolve().parts
+        if len(parts) >= 3:
+            target = target or parts[-2]
+            library = library or parts[-3]
+        else:
+            library = library or db_p.stem
+            target = target or "default"
+
+    kwargs = _build_backend_kwargs(backend, llm_host, llm_port, disable_thinking)
+    llm = create_backend(backend, model=model, **kwargs)
+    db = SummaryDB(db_path)
+
+    try:
+        agent = ContractCheckAgent(
+            db, llm, verbose=verbose, project_path=Path(project_path),
+        )
+        result = agent.check_library(
+            library=library, target=target,
+            max_turns=max_turns,
+        )
+
+        result_json = result.to_dict()
+
+        if output:
+            with open(output, "w") as f:
+                json.dump(result_json, f, indent=2)
+                f.write("\n")
+            console.print(
+                f"[green]Wrote {len(result.gaps)} gaps to {output}[/green]",
+            )
+        else:
+            status = (
+                "[green]completed[/green]" if result.completed
+                else "[red]incomplete[/red]"
+            )
+            console.print(
+                f"\n[bold]Contract Check[/bold] "
+                f"{result.library}/{result.target}: {status} — "
+                f"{len(result.gaps)} gap(s)"
+            )
+            by_cat: dict[str, int] = {}
+            for g in result.gaps:
+                by_cat[g.category] = by_cat.get(g.category, 0) + 1
+            for cat, n in sorted(by_cat.items(), key=lambda kv: -kv[1]):
+                console.print(f"  {cat}: {n}")
+            if verbose:
+                console.print("\n[dim]Full JSON:[/dim]")
+                console.print(json.dumps(result_json, indent=2))
+    finally:
+        db.close()
+
+
 @main.command("gen-harness")
 @click.option("--db", "db_path", required=True, help="Database file path")
 @click.option(

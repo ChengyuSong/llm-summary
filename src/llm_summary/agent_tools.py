@@ -375,6 +375,159 @@ TRIAGE_ONLY_TOOL_DEFINITIONS: list[dict[str, Any]] = [
     },
 ]
 
+# Contract-check-specific: enumerate public APIs, find APIs without contracts,
+# submit the gap catalog. Used by `llm-summary contract-check`.
+CONTRACT_CHECK_ONLY_TOOL_DEFINITIONS: list[dict[str, Any]] = [
+    {
+        "name": "list_public_apis",
+        "description": (
+            "Parse a public C header file and return the list of exported "
+            "function names. Recognizes the libpng PNG_EXPORT/PNG_EXPORTA "
+            "macro pattern; for headers without that pattern, falls back to "
+            "naive function-declaration scanning. Use this in SEARCH phase "
+            "to bound the universe of APIs to audit."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "header_path": {
+                    "type": "string",
+                    "description": (
+                        "Path to the public header, relative to the project "
+                        "root (e.g. 'png.h')."
+                    ),
+                },
+            },
+            "required": ["header_path"],
+        },
+    },
+    {
+        "name": "list_apis_without_contracts",
+        "description": (
+            "Given a list of API names, return the subset that have no "
+            "code-contract row in the database. These are 'missing_contract' "
+            "gaps — the contract pipeline never produced a summary for them."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "api_names": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "Function names to check.",
+                },
+            },
+            "required": ["api_names"],
+        },
+    },
+    {
+        "name": "submit_gaps",
+        "description": (
+            "Submit the final catalog of contract gaps for this library. "
+            "Only callable in REPORT phase. Each gap must include an exact "
+            "quote from a doc/source location AND a suggested contract "
+            "clause. If you cannot quote it, do not include it."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "library": {
+                    "type": "string",
+                    "description": "Library name (e.g. 'libpng').",
+                },
+                "target": {
+                    "type": "string",
+                    "description": (
+                        "Build target / link unit (e.g. 'png_static')."
+                    ),
+                },
+                "summary": {
+                    "type": "string",
+                    "description": (
+                        "1-3 paragraph overview of what was audited and the "
+                        "main themes of the gaps found."
+                    ),
+                },
+                "gaps": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "function": {
+                                "type": "string",
+                                "description": (
+                                    "Public API function the gap concerns."
+                                ),
+                            },
+                            "category": {
+                                "type": "string",
+                                "enum": [
+                                    "missing_contract",
+                                    "missing_requires",
+                                    "missing_ensures",
+                                    "missing_modifies",
+                                    "ordering",
+                                    "lifecycle",
+                                    "error_path",
+                                    "inconsistency",
+                                ],
+                                "description": "Gap category.",
+                            },
+                            "property": {
+                                "type": "string",
+                                "enum": ["memsafe", "memleak", "overflow"],
+                                "description": (
+                                    "Safety property the missing clause "
+                                    "belongs to. Omit for missing_contract."
+                                ),
+                            },
+                            "evidence_source": {
+                                "type": "string",
+                                "description": (
+                                    "Where the evidence came from (e.g. "
+                                    "'libpng-manual.txt:1234', 'png.h:567', "
+                                    "'example.c:89')."
+                                ),
+                            },
+                            "evidence_quote": {
+                                "type": "string",
+                                "description": (
+                                    "Exact verbatim quote from the source "
+                                    "supporting this gap."
+                                ),
+                            },
+                            "suggested_clause": {
+                                "type": "string",
+                                "description": (
+                                    "Proposed contract clause in C-expression "
+                                    "form (e.g. 'png_ptr->io_ptr != NULL') or "
+                                    "english predicate. Should be directly "
+                                    "addable to requires/ensures/modifies."
+                                ),
+                            },
+                            "explanation": {
+                                "type": "string",
+                                "description": (
+                                    "Why the existing contract misses this. "
+                                    "For inconsistency, what the contract "
+                                    "says vs what the source/doc shows."
+                                ),
+                            },
+                        },
+                        "required": [
+                            "function", "category", "evidence_source",
+                            "evidence_quote", "suggested_clause",
+                        ],
+                    },
+                    "description": "List of contract gaps.",
+                },
+            },
+            "required": ["library", "target", "summary", "gaps"],
+        },
+    },
+]
+
+
 # Reflection-specific: submit the reflection verdict
 REFLECTION_VERDICT_TOOL_DEFINITIONS: list[dict[str, Any]] = [
     {
@@ -775,6 +928,71 @@ class ToolExecutor:
     # -- submit_verdict (triage) --
 
     def _tool_submit_verdict(self, inp: dict[str, Any]) -> dict[str, Any]:
+        return {"accepted": True, **inp}
+
+    # -- list_public_apis (contract-check) --
+
+    def _tool_list_public_apis(self, inp: dict[str, Any]) -> dict[str, Any]:
+        if self._project_path is None:
+            return {"error": "list_public_apis requires a project path"}
+        rel = inp["header_path"]
+        header = (self._project_path / rel).resolve()
+        try:
+            header.relative_to(self._project_path)
+        except ValueError:
+            return {"error": f"header path escapes project root: {rel}"}
+        if not header.is_file():
+            return {"error": f"header not found: {rel}"}
+
+        try:
+            text = header.read_text(errors="replace")
+        except OSError as e:
+            return {"error": f"failed to read header: {e}"}
+
+        from .contract_check import parse_public_apis
+        names = parse_public_apis(text)
+        return {
+            "header_path": rel,
+            "api_count": len(names),
+            "apis": names,
+        }
+
+    # -- list_apis_without_contracts (contract-check) --
+
+    def _tool_list_apis_without_contracts(
+        self, inp: dict[str, Any],
+    ) -> dict[str, Any]:
+        names = inp["api_names"]
+        if not isinstance(names, list):
+            return {"error": "api_names must be a list of strings"}
+
+        missing: list[str] = []
+        for name in names:
+            if not isinstance(name, str):
+                continue
+            funcs = self.db.get_function_by_name(name)
+            if not funcs:
+                missing.append(name)
+                continue
+            has_contract = False
+            for func in funcs:
+                if func.id is None:
+                    continue
+                if self.db.get_code_contract_summary(func.id) is not None:
+                    has_contract = True
+                    break
+            if not has_contract:
+                missing.append(name)
+
+        return {
+            "checked": len(names),
+            "missing_count": len(missing),
+            "missing": missing,
+        }
+
+    # -- submit_gaps (contract-check) --
+
+    def _tool_submit_gaps(self, inp: dict[str, Any]) -> dict[str, Any]:
         return {"accepted": True, **inp}
 
     # -- submit_reflection --
