@@ -98,7 +98,7 @@ class LlamaCppBackend(LLMBackend):
             "model": self.model if self.model != "llama.cpp" else "default",
             "messages": messages,
             "temperature": 0.5,
-            "max_tokens": 8192,
+            "max_tokens": 16384,
             "stream": False,
             "cache_prompt": True,
         }
@@ -289,7 +289,7 @@ class LlamaCppBackend(LLMBackend):
             "model": self.model if self.model != "llama.cpp" else "default",
             "messages": full_messages,
             "temperature": 0.6,
-            "max_tokens": 8192,
+            "max_tokens": 16384,
             "stream": False,
         }
 
@@ -345,6 +345,15 @@ class LlamaCppBackend(LLMBackend):
 
                     # Add tool calls if present
                     if "tool_calls" in message and message["tool_calls"]:
+                        finish_reason = choice.get("finish_reason")
+                        if finish_reason == "length":
+                            raise RuntimeError(
+                                "llama.cpp output truncated mid tool-call "
+                                "(finish_reason='length', max_tokens=16384). "
+                                "Tool arguments are incomplete and cannot be "
+                                "parsed. Raise max_tokens or shorten the "
+                                "expected output.",
+                            )
                         self.stop_reason = "tool_use"
                         from ..json_utils import repair_json
 
