@@ -1,8 +1,6 @@
 """Tests for JSON parsing utilities."""
 
-import pytest
-
-from llm_summary.builder.json_utils import parse_llm_json, strip_markdown_json
+from llm_summary.json_utils import parse_llm_json, strip_markdown_json
 
 
 class TestStripMarkdownJson:
@@ -99,7 +97,7 @@ class TestParseLLMJson:
     def test_verbose_mode_prints_error(self, capsys):
         """Test that verbose mode prints error message."""
         text = 'invalid json'
-        result = parse_llm_json(text, verbose=True)
+        parse_llm_json(text, verbose=True)
         captured = capsys.readouterr()
         assert "[ERROR]" in captured.out
         assert "Failed to parse" in captured.out
@@ -107,7 +105,7 @@ class TestParseLLMJson:
     def test_non_verbose_mode_silent(self, capsys):
         """Test that non-verbose mode doesn't print errors."""
         text = 'invalid json'
-        result = parse_llm_json(text, verbose=False)
+        parse_llm_json(text, verbose=False)
         captured = capsys.readouterr()
         assert captured.out == ""
 

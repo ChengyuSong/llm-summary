@@ -346,12 +346,25 @@ class LlamaCppBackend(LLMBackend):
                     # Add tool calls if present
                     if "tool_calls" in message and message["tool_calls"]:
                         self.stop_reason = "tool_use"
+                        from ..json_utils import repair_json
+
                         class ToolUseBlock:
                             def __init__(self, tool_call):
                                 self.type = "tool_use"
                                 self.id = tool_call["id"]
                                 self.name = tool_call["function"]["name"]
-                                self.input = json.loads(tool_call["function"]["arguments"])
+                                raw = tool_call["function"]["arguments"]
+                                try:
+                                    self.input = json.loads(raw)
+                                except json.JSONDecodeError:
+                                    try:
+                                        self.input = json.loads(repair_json(raw))
+                                    except json.JSONDecodeError as e:
+                                        raise RuntimeError(
+                                            f"llama.cpp returned invalid JSON for "
+                                            f"tool {self.name!r} arguments: {e}\n"
+                                            f"raw arguments: {raw[:1000]}",
+                                        ) from e
 
                         for tc in message["tool_calls"]:
                             self.content.append(ToolUseBlock(tc))

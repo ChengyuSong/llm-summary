@@ -5,6 +5,7 @@ import shutil
 from pathlib import Path
 from typing import Any
 
+from ..json_utils import parse_llm_json
 from ..llm.base import LLMBackend
 from .actions import (
     AutotoolsActions,
@@ -24,7 +25,6 @@ from .constants import (
     TURNS_LOW_WARNING,
 )
 from .error_analyzer import BuildError, ErrorAnalyzer
-from .json_utils import parse_llm_json
 from .llm_utils import (
     compress_stale_results,
     estimate_messages_tokens,

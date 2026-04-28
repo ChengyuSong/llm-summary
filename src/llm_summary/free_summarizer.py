@@ -361,8 +361,8 @@ class FreeSummarizer(BaseSummarizer):
                 self._stats["functions_processed"] += 1
 
             if previous_summary_json is not None:
-                from .builder.json_utils import extract_json as _ej
                 from .driver import extract_scc_changed
+                from .json_utils import extract_json as _ej
                 summary._scc_changed = extract_scc_changed(  # type: ignore[attr-defined]
                     _ej(llm_response.content),
                 )
@@ -598,7 +598,7 @@ class FreeSummarizer(BaseSummarizer):
 
     def _parse_response(self, response: str, func_name: str) -> FreeSummary:
         """Parse LLM response into FreeSummary."""
-        from .builder.json_utils import extract_json
+        from .json_utils import extract_json
 
         data = extract_json(response)
 

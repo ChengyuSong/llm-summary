@@ -456,7 +456,7 @@ class LeakSummarizer(BaseSummarizer):
         return "\n".join(lines)
 
     def _parse_response(self, response: str, func_name: str) -> LeakSummary:
-        from .builder.json_utils import extract_json
+        from .json_utils import extract_json
         data = extract_json(response)
 
         # Parse leaks -> issues

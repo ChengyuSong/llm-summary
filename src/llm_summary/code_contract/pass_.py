@@ -25,9 +25,9 @@ import json
 import logging
 from typing import Any
 
-from ..builder.json_utils import extract_json
 from ..db import SummaryDB
 from ..ir_sidecar import annotate_source_with_ir_facts
+from ..json_utils import extract_json
 from ..llm.base import LLMBackend, make_json_response_format
 from ..llm.pool import LLMPool
 from ..models import (

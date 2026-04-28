@@ -4,9 +4,9 @@ import json
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from ..json_utils import parse_llm_json
 from ..llm.base import LLMBackend
 from .constants import MAX_TURNS_ERROR_ANALYSIS
-from .json_utils import parse_llm_json
 
 if TYPE_CHECKING:
     from .tools import BuildTools

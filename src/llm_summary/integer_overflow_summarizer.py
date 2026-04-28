@@ -427,7 +427,7 @@ class IntegerOverflowSummarizer(BaseSummarizer):
     def _parse_response(
         self, response: str, func_name: str,
     ) -> IntegerOverflowSummary:
-        from .builder.json_utils import extract_json
+        from .json_utils import extract_json
         data = extract_json(response)
 
         # Parse constraints
