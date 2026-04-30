@@ -4033,7 +4033,7 @@ def gen_harness(
         else:
             rows = db.conn.execute(
                 "SELECT f.name FROM functions f "
-                "JOIN memsafe_summaries m ON m.function_id = f.id"
+                "JOIN code_contract_summaries c ON c.function_id = f.id"
             ).fetchall()
             targets = [r[0] for r in rows]
 

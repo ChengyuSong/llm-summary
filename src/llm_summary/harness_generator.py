@@ -146,6 +146,46 @@ Output ONLY the JSON block, no other text.
 """
 
 
+_CONTRACT_RULES = """\
+- Do NOT add new typedef or extern declarations
+- Do NOT rename or change function signatures
+- Do NOT add functions not in the template
+- Every `/* FILL */` must be replaced with valid C code or left empty
+- Keep the code minimal — only add what the contract clauses require
+- Do NOT add comments — the code should be self-explanatory
+- Skip deep field access through forward-declared (opaque) struct
+  pointers UNLESS that field appears in a `requires` clause
+- Use sizeof(*ptr) for allocation sizes, not hardcoded constants
+
+Contract clauses are free-form predicate strings (Hoare style). Map them to
+assert_*/assume_* primitives by reading the predicate. Polarity:
+
+- In test(): `assume_*` every `requires` clause for the target BEFORE calling
+  it; `assert_*` every `ensures` clause AFTER the call returns.
+- In a callee shim stub: `assert_*` every `requires` clause on entry;
+  `assume_*` every `ensures` clause before returning.
+
+Common predicate patterns:
+
+- `ptr != NULL`                       → assume/assert_cond(ptr != NULL, id),
+                                        or `assume_allocated(ptr, sizeof(*ptr), id)`
+                                        in test() to make ptr symbolic
+- `malloc_size(ptr) >= N`             → ptr = assume_allocated(ptr, N, id)
+                                        / assert_allocated(ptr, N, id)
+- `initialized(ptr, N)` / `init(ptr)` → assume_init(ptr, N, id) / assert_init(...)
+- `freed(ptr)` / `ptr is freed`       → ptr = assume_freed(ptr, id) / assert_freed(...)
+- `not_freed(ptr)` / `still allocated`→ assert_allocated(ptr, 0, id)
+- `<numeric predicate>` (e.g. `len <= INT_MAX`)
+                                       → assume_cond(len <= INT_MAX, id) in test()
+                                         / assert_cond(...) when verifying
+
+Qualifiers that may appear inside a clause (in brackets or prose):
+- `[may_be_null]` / `may be NULL`     → do NOT assert non-NULL on this value
+- `[when COND]` / `if COND`           → wrap the assert/assume in `if (COND) {{ ... }}`
+- absent qualifier                    → unconditional
+"""
+
+
 TRIAGE_VALIDATE_PROMPT = """\
 Fill in the `/* FILL */` sections in the C template below.
 The template is a shim for ucsan concolic execution that validates a triage
@@ -172,32 +212,7 @@ Output a single ```c fenced block with the complete filled-in C code.
 Copy the template exactly, replacing each `/* FILL: ... */` with C code.
 
 Rules:
-- Do NOT add new #include, typedef, or extern declarations
-- Do NOT rename or change function signatures
-- Do NOT add functions not in the template
-- Every `/* FILL */` must be replaced with valid C code or left empty
-- Keep the code minimal — only add what the contracts require
-- Do NOT add comments — the code should be self-explanatory
-- In stubs: use assert_* for pre-conditions, assume_* for post-conditions
-- Contract-to-assertion mapping:
-  - disallow_null → assert_cond(ptr != NULL, id)
-  - allow_null → no assertion needed (NULL is allowed)
-  - not_freed → assert_allocated(ptr, 0, id)  (still allocated)
-  - buffer_size(N) → assert_allocated(ptr, N, id)
-  - initialized(N) → assert_init(ptr, N, id)
-  - freed → assert_freed(ptr, id)
-- In test(): use assert_* to verify post-conditions after the call
-- Post-condition annotations use brackets for qualifiers:
-  - `[may_be_null]` means the pointer may be NULL — do NOT assert non-NULL
-  - `[when COND]` means the effect is conditional — wrap the assertion in
-    `if (COND) {{ ... }}` so it only checks on the relevant path
-  - If a post-condition has no brackets, it is unconditional
-- Skip deep field access through forward-declared (opaque) struct
-  pointers UNLESS that field appears in the requires section (e.g. do NOT
-  access s->l_desc.stat_desc->extra_bits if stat_desc's struct type is
-  opaque and it is not mentioned in requires)
-- Use sizeof(*ptr) for allocation sizes, not hardcoded constants
-"""
+""" + _CONTRACT_RULES
 
 FILL_PROMPT = """\
 Fill in the `/* FILL */` sections in the C template below.
@@ -208,21 +223,17 @@ The template is a shim for ucsan concolic execution testing `{name}`.
 Signature: `{signature}`
 Parameters: {params_json}
 
-## Contracts
-
-{contracts_section}
-
-## Callee Contracts
-
-{callee_section}
-
-## Post-conditions
-
-{postconds_section}
-
-## Preconditions (requires)
+## Target `requires` (preconditions — establish in test() before the call)
 
 {requires_section}
+
+## Target `ensures` (postconditions — verify in test() after the call)
+
+{ensures_section}
+
+## Callee Contracts (shim stubs assert their `requires`, assume their `ensures`)
+
+{callee_section}
 
 ## C Template
 
@@ -236,37 +247,7 @@ Output a single ```c fenced block with the complete filled-in C code.
 Copy the template exactly, replacing each `/* FILL: ... */` with C code.
 
 Rules:
-- Do NOT add new #include, typedef, or extern declarations
-- Do NOT rename or change function signatures
-- Do NOT add functions not in the template
-- Every `/* FILL */` must be replaced with valid C code or left empty
-- Keep the code minimal — only add what the contracts require
-- Do NOT add comments — the code should be self-explanatory
-- In stubs: use assert_* for pre-conditions, assume_* for post-conditions
-- Contract-to-assertion mapping:
-  - disallow_null → assert_cond(ptr != NULL, id)
-  - allow_null → no assertion needed (NULL is allowed)
-  - not_freed → assert_allocated(ptr, 0, id)  (still allocated)
-  - buffer_size(N) → assert_allocated(ptr, N, id)
-  - initialized(N) → assert_init(ptr, N, id)
-  - freed → assert_freed(ptr, id)
-- In test(): use assert_* to verify post-conditions after the call
-- In test(): establish ALL preconditions from the requires section:
-  - ptr != NULL → assume_allocated(ptr, sizeof(*ptr), 0)
-  - malloc_size(ptr) >= N → ptr = assume_allocated(ptr, N, 0)
-  - initialized(N) → assume_init(ptr, N, 0)
-  - Follow the allocation hints in the template comments
-- Post-condition annotations use brackets for qualifiers:
-  - `[may_be_null]` means the pointer may be NULL — do NOT assert non-NULL
-  - `[when COND]` means the effect is conditional — wrap the assertion in
-    `if (COND) {{ ... }}` so it only checks on the relevant path
-  - If a post-condition has no brackets, it is unconditional
-- Skip deep field access through forward-declared (opaque) struct
-  pointers UNLESS that field appears in the requires section (e.g. do NOT
-  access s->l_desc.stat_desc->extra_bits if stat_desc's struct type is
-  opaque and it is not mentioned in requires)
-- Use sizeof(*ptr) for allocation sizes, not hardcoded constants
-"""
+""" + _CONTRACT_RULES
 
 SCHEDULE_PROMPT = """\
 Generate a scheduling policy for the following shim.
@@ -276,9 +257,11 @@ Generate a scheduling policy for the following shim.
 {shim_code}
 ```
 
-## Contracts
+## Target `requires` / `ensures`
 
-{contracts_section}
+{requires_section}
+
+{ensures_section}
 
 ## Callee Contracts
 
@@ -309,7 +292,7 @@ Output a single ```json fenced block:
     {{{{
       "type": "assume|boundary_access|callee_contract",
       "description": "what this checks",
-      "contract_kind": "disallow_null|buffer_size|...",
+      "clause": "the requires/ensures predicate this targets",
       "target": "parameter name",
       "priority": "high|medium|low"
     }}}}
@@ -361,7 +344,6 @@ global. Use a literal value or forward-declare as needed.
 
 ## Rules
 
-- Do NOT add `#include` directives.
 - Do NOT copy function implementations from the project.
 - Minimise changes — fix only what the compiler error requires.
 - After patching, always call `compile_shim` to verify.
@@ -650,28 +632,16 @@ class HarnessGenerator:
                 and self.project_path):
             func.file_path = str(self.project_path / func.file_path)
 
-        # Get memsafe contracts
-        row = self.db.conn.execute(
-            "SELECT summary_json FROM memsafe_summaries WHERE function_id = ?",
-            (func.id,),
-        ).fetchone()
-        if not row:
+        # Load code-contract for the target function (requires/ensures).
+        target_cc = self._gather_function_contract(func.id)
+        if not target_cc["properties"]:
             if self.verbose:
-                print(f"  No memsafe summary for: {func_name}")
+                print(f"  No code-contract for: {func_name}")
             return None
 
-        memsafe_data = json.loads(row[0])
-        contracts = memsafe_data.get("contracts", [])
-
-        # Get code-contract requires (Hoare-style preconditions)
-        from .code_contract.models import is_nontrivial
-        code_contract = self.db.get_code_contract_summary(func.id)
-        requires_clauses: list[str] = []
-        if code_contract:
-            for prop in code_contract.properties:
-                for r in code_contract.requires.get(prop, []):
-                    if is_nontrivial(r) and r not in requires_clauses:
-                        requires_clauses.append(r)
+        target_properties: list[str] = target_cc["properties"]
+        target_requires: dict[str, list[str]] = target_cc["requires"]
+        target_ensures: dict[str, list[str]] = target_cc["ensures"]
 
         # Auto-compile bitcode if not provided
         if not bc_file and self.compile_commands and func.file_path:
@@ -681,17 +651,19 @@ class HarnessGenerator:
             if bc_file and self.verbose:
                 print(f"    Compiled bitcode: {bc_file}")
 
-        # Get callees and their contracts
+        # Get callees and their code-contracts
         callee_contracts = self._gather_callee_contracts(func.id)
 
-        # Gather post-conditions
-        postconds = self._gather_postconditions(func.id)
-
-        # Format contracts for prompt context
-        contracts_section = self._format_contracts(contracts)
+        # Format clauses for prompt context
+        requires_section = self._format_per_property_clauses(
+            target_requires, target_properties,
+            "No preconditions required.",
+        )
+        ensures_section = self._format_per_property_clauses(
+            target_ensures, target_properties,
+            "No postconditions to verify.",
+        )
         callee_section = self._format_callee_contracts(callee_contracts)
-        postconds_section = self._format_postconditions(postconds)
-        requires_section = self._format_requires(requires_clauses)
 
         # Determine which callees need shim stubs
         # Never shim functions in ucsan's abilist (they have custom handlers)
@@ -719,7 +691,7 @@ class HarnessGenerator:
                         continue
                     pf = pf_funcs[0]
                     assert pf.id is not None
-                    pf_postconds = self._gather_postconditions(pf.id)
+                    pf_cc = self._gather_function_contract(pf.id)
                     # Merge preceding callees into callee_contracts
                     pf_callees = self._gather_callee_contracts(pf.id)
                     for ck, cv in pf_callees.items():
@@ -729,16 +701,20 @@ class HarnessGenerator:
                         "name": pf.name,
                         "signature": pf.signature or "",
                         "params": pf.params or [],
-                        "postconds": pf_postconds,
+                        "properties": pf_cc["properties"],
+                        "ensures": pf_cc["ensures"],
                     })
 
         # Build fill-in template (used for both triage and normal paths)
         template = self._build_fill_template(
             func.name, func.signature or "", func.params or [],
-            callee_contracts, postconds, self._triage_context,
-            contracts=contracts, file_path=func.file_path,
+            callee_contracts,
+            target_properties=target_properties,
+            target_requires=target_requires,
+            target_ensures=target_ensures,
+            triage_context=self._triage_context,
+            file_path=func.file_path,
             preceding_functions=preceding,
-            requires_clauses=requires_clauses,
         )
 
         # Build prompt
@@ -777,10 +753,9 @@ class HarnessGenerator:
                 name=func.name,
                 signature=func.signature,
                 params_json=json.dumps(func.params),
-                contracts_section=contracts_section,
-                callee_section=callee_section,
-                postconds_section=postconds_section,
                 requires_section=requires_section,
+                ensures_section=ensures_section,
+                callee_section=callee_section,
                 template=template,
             )
 
@@ -942,7 +917,8 @@ class HarnessGenerator:
             schedule_response = self.llm.complete(SCHEDULE_PROMPT.format(
                 name=func_name,
                 shim_code=c_code,
-                contracts_section=contracts_section,
+                requires_section=requires_section,
+                ensures_section=ensures_section,
                 callee_section=callee_section,
             ))
             self._stats["llm_calls"] += 1
@@ -1411,28 +1387,29 @@ echo "Built: $OUT"
         if self.verbose:
             print(f"  Extracted {len(infos)} BB IDs")
 
-        # Get contracts
-        row = self.db.conn.execute(
-            "SELECT summary_json FROM memsafe_summaries WHERE function_id = ?",
-            (func.id,),
-        ).fetchone()
-        memsafe_data = json.loads(row[0]) if row else {}
-        contracts = memsafe_data.get("contracts", [])
-
+        # Code-contract for target + direct callees
+        target_cc = self._gather_function_contract(func.id)
         callee_contracts = self._gather_callee_contracts(func.id)
-        postconds = self._gather_postconditions(func.id)
 
-        # Build context (contracts) and goal (exercise memory ops)
+        properties = target_cc["properties"]
+        requires_text = self._format_per_property_clauses(
+            target_cc["requires"], properties, "No preconditions required.",
+        )
+        ensures_text = self._format_per_property_clauses(
+            target_cc["ensures"], properties, "No postconditions to verify.",
+        )
+
+        # Build context (requires/ensures) and goal (exercise memory ops)
         context = (
             f"### Target Function\n\n"
             f"Name: `{func.name}`\n"
             f"Signature: `{func.signature}`\n\n"
-            f"### Contracts\n\n"
-            f"{self._format_contracts(contracts)}\n\n"
+            f"### Target `requires`\n\n"
+            f"{requires_text}\n\n"
+            f"### Target `ensures`\n\n"
+            f"{ensures_text}\n\n"
             f"### Callee Contracts\n\n"
-            f"{self._format_callee_contracts(callee_contracts)}\n\n"
-            f"### Post-conditions\n\n"
-            f"{self._format_postconditions(postconds)}"
+            f"{self._format_callee_contracts(callee_contracts)}"
         )
 
         goal = (
@@ -2321,163 +2298,101 @@ echo "Built: $OUT"
         return None
 
     def _gather_callee_contracts(self, func_id: int) -> dict[str, dict]:
-        """Get memsafe contracts for all direct callees of func_id."""
+        """Code-contract requires/ensures for direct callees of `func_id`.
+
+        Returns `{callee_name: {signature, params, properties, requires,
+        ensures, modifies, noreturn, inline_body}}` for each direct callee
+        that has a code-contract summary. Trivial clauses are filtered.
+        """
+        from .code_contract.models import is_nontrivial
+
         edges = self.db.get_all_call_edges()
         callee_ids = {e.callee_id for e in edges if e.caller_id == func_id}
 
-        result = {}
+        result: dict[str, dict] = {}
         for cid in callee_ids:
-            rows = self.db.conn.execute(
-                "SELECT f.name, f.signature, f.params_json, m.summary_json "
-                "FROM functions f JOIN memsafe_summaries m ON m.function_id = f.id "
-                "WHERE f.id = ?",
-                (cid,),
-            ).fetchall()
-            for name, sig, params_json, summary_json in rows:
-                data = json.loads(summary_json)
-                if data.get("contracts"):
-                    params = json.loads(params_json) if params_json else []
-                    result[name] = {
-                        "signature": sig,
-                        "params": params,
-                        "contracts": data["contracts"],
-                    }
-        return result
-
-    def _gather_postconditions(self, func_id: int) -> dict:
-        """Gather post-conditions from allocation, init, and free summaries."""
-        result: dict = {"allocations": [], "inits": [], "frees": []}
-
-        for table, key in [
-            ("allocation_summaries", "allocations"),
-            ("init_summaries", "inits"),
-            ("free_summaries", "frees"),
-        ]:
             row = self.db.conn.execute(
-                f"SELECT summary_json FROM {table} WHERE function_id = ?",
-                (func_id,),
+                "SELECT name, signature, params_json FROM functions WHERE id = ?",
+                (cid,),
             ).fetchone()
-            if row:
-                data = json.loads(row[0])
-                result[key] = data.get(key, [])
-
-        # Replace local size_expr with persistent equivalents from
-        # buffer_size_pairs when available.
-        if result["allocations"]:
-            self._resolve_local_size_exprs(func_id, result["allocations"])
-
+            if not row:
+                continue
+            name, sig, params_json = row
+            cc = self.db.get_code_contract_summary(cid)
+            if cc is None:
+                continue
+            params = json.loads(params_json) if params_json else []
+            requires = {
+                p: [r for r in cc.requires.get(p, []) if is_nontrivial(r)]
+                for p in cc.properties
+            }
+            ensures = {
+                p: [e for e in cc.ensures.get(p, []) if is_nontrivial(e)]
+                for p in cc.properties
+            }
+            modifies = {p: list(cc.modifies.get(p, [])) for p in cc.properties}
+            result[name] = {
+                "signature": sig,
+                "params": params,
+                "properties": list(cc.properties),
+                "requires": requires,
+                "ensures": ensures,
+                "modifies": modifies,
+                "noreturn": cc.noreturn,
+                "inline_body": cc.inline_body,
+            }
         return result
 
-    def _resolve_local_size_exprs(
-        self, func_id: int, allocations: list[dict[str, Any]],
-    ) -> None:
-        """Replace local-variable size_expr with persistent struct fields.
+    def _gather_function_contract(
+        self, func_id: int,
+    ) -> dict[str, Any]:
+        """Code-contract requires/ensures for `func_id`.
 
-        Uses buffer_size_pairs from the allocation summary to find persistent
-        size expressions (struct fields, params, globals) for allocations whose
-        size_expr references a local variable.
+        Returns `{properties, requires, ensures, modifies, noreturn}` with
+        trivial clauses filtered. Empty dicts when no code-contract row.
         """
-        row = self.db.conn.execute(
-            "SELECT summary_json FROM allocation_summaries "
-            "WHERE function_id = ?",
-            (func_id,),
-        ).fetchone()
-        if not row:
-            return
-        data = json.loads(row[0])
-        pairs = data.get("buffer_size_pairs", [])
-        if not pairs:
-            return
+        from .code_contract.models import is_nontrivial
 
-        # Build mapping: buffer field -> persistent size expression
-        # Normalize keys by stripping array indexing (e.g. "[i]", "[]")
-        buf_to_size: dict[str, str] = {}
-        for bp in pairs:
-            buf_key = re.sub(r"\[.*?\]", "", bp.get("buffer", ""))
-            size_field = bp.get("size", "")
-            if buf_key and size_field:
-                buf_to_size[buf_key] = size_field
-
-        for alloc in allocations:
-            size_expr = alloc.get("size_expr")
-            if not size_expr:
-                continue
-            # Skip if already persistent (contains -> or is a known macro)
-            if "->" in size_expr or "." in size_expr or size_expr.isupper():
-                continue
-            # Strip local: prefix if present
-            if size_expr.startswith("local:"):
-                size_expr = size_expr[len("local:"):].strip()
-                alloc["size_expr"] = size_expr
-            # Look up stored_to in buffer_size_pairs
-            stored = alloc.get("stored_to", "")
-            stored_norm = re.sub(r"\[.*?\]", "", stored)
-            if stored_norm in buf_to_size:
-                alloc["size_expr"] = buf_to_size[stored_norm]
-
-    def _format_postconditions(self, postconds: dict) -> str:
-        """Format post-conditions for the prompt."""
-        lines = []
-
-        for alloc in postconds.get("allocations", []):
-            target = "return value" if alloc.get("returned") else alloc.get("stored_to", "?")
-            size = alloc.get("size_expr", "?")
-            cond = alloc.get("condition", "")
-            may_null = alloc.get("may_be_null", True)
-            line = f"- ALLOCATES: `{target}` (size: {size}, may_be_null: {may_null})"
-            if cond:
-                line += f" [when {cond}]"
-            lines.append(line)
-
-        for init in postconds.get("inits", []):
-            target = init.get("target", "?")
-            kind = init.get("target_kind", "?")
-            byte_count = init.get("byte_count", "?")
-            cond = init.get("condition", "")
-            line = f"- INITIALIZES: `{target}` ({kind}, {byte_count} bytes)"
-            if cond:
-                line += f" [when {cond}]"
-            lines.append(line)
-
-        for free in postconds.get("frees", []):
-            target = free.get("target", "?")
-            kind = free.get("target_kind", "?")
-            cond = free.get("condition", "")
-            line = f"- FREES: `{target}` ({kind})"
-            if cond:
-                line += f" [when {cond}]"
-            lines.append(line)
-
-        if not lines:
-            return "No post-conditions."
-        return "\n".join(lines)
-
-    def _format_contracts(self, contracts: list[dict]) -> str:
-        if not contracts:
-            return "No contracts (no pre-conditions required)."
-        lines = []
-        for c in contracts:
-            kind = c["contract_kind"]
-            target = c["target"]
-            desc = c.get("description", "")
-            if kind == "buffer_size":
-                size = c.get("size_expr", "?")
-                rel = c.get("relationship", "byte_count")
-                lines.append(f"- `{target}`: buffer_size({size}, {rel}) -- {desc}")
-            else:
-                lines.append(f"- `{target}`: {kind} -- {desc}")
-            if c.get("condition"):
-                lines[-1] += f" [when {c['condition']}]"
-        return "\n".join(lines)
+        cc = self.db.get_code_contract_summary(func_id)
+        if cc is None:
+            return {
+                "properties": [],
+                "requires": {},
+                "ensures": {},
+                "modifies": {},
+                "noreturn": False,
+            }
+        return {
+            "properties": list(cc.properties),
+            "requires": {
+                p: [r for r in cc.requires.get(p, []) if is_nontrivial(r)]
+                for p in cc.properties
+            },
+            "ensures": {
+                p: [e for e in cc.ensures.get(p, []) if is_nontrivial(e)]
+                for p in cc.properties
+            },
+            "modifies": {p: list(cc.modifies.get(p, [])) for p in cc.properties},
+            "noreturn": cc.noreturn,
+        }
 
     @staticmethod
-    def _format_requires(clauses: list[str]) -> str:
-        if not clauses:
-            return "No additional preconditions."
-        lines = ["test() must establish ALL of these before calling the target:"]
-        for c in clauses:
-            lines.append(f"- `{c}`")
-        return "\n".join(lines)
+    def _format_per_property_clauses(
+        clauses: dict[str, list[str]], properties: list[str], empty_msg: str,
+    ) -> str:
+        """Render per-property requires/ensures clauses for prompts."""
+        lines: list[str] = []
+        for p in properties:
+            entries = clauses.get(p, [])
+            if not entries:
+                continue
+            lines.append(f"### {p}")
+            for c in entries:
+                lines.append(f"  - {c}")
+            lines.append("")
+        if not lines:
+            return empty_msg
+        return "\n".join(lines).rstrip()
 
     _MALLOC_SIZE_RE = re.compile(
         r"malloc_size\(([^)]+)\)\s*(>=|==|<=)\s*(.+)")
@@ -2496,23 +2411,30 @@ echo "Built: $OUT"
     def _format_callee_contracts(self, callee_contracts: dict[str, dict]) -> str:
         if not callee_contracts:
             return "No callees with contracts."
-        lines = []
+        lines: list[str] = []
         for name, info in callee_contracts.items():
             sig = info["signature"]
             params = info["params"]
             lines.append(f"### `{name}` -- `{sig}`")
             lines.append(f"Parameters: {params}")
-            for c in info["contracts"]:
-                kind = c["contract_kind"]
-                target = c["target"]
-                if kind == "buffer_size":
-                    size = c.get("size_expr", "?")
-                    rel = c.get("relationship", "byte_count")
-                    lines.append(f"  - `{target}`: buffer_size({size}, {rel})")
-                else:
-                    lines.append(f"  - `{target}`: {kind}")
+            if info.get("noreturn"):
+                lines.append("  - noreturn: true")
+            properties: list[str] = info.get("properties", [])
+            for p in properties:
+                reqs = info["requires"].get(p, [])
+                ens = info["ensures"].get(p, [])
+                mods = info["modifies"].get(p, [])
+                if not (reqs or ens or mods):
+                    continue
+                lines.append(f"  [{p}]")
+                for r in reqs:
+                    lines.append(f"    requires: {r}")
+                for e in ens:
+                    lines.append(f"    ensures:  {e}")
+                if mods:
+                    lines.append(f"    modifies: {', '.join(mods)}")
             lines.append("")
-        return "\n".join(lines)
+        return "\n".join(lines).rstrip()
 
     def _build_fill_template(
         self,
@@ -2520,12 +2442,12 @@ echo "Built: $OUT"
         func_signature: str,
         func_params: list[str],
         callee_contracts: dict[str, dict],
-        postconds: dict,
+        target_properties: list[str],
+        target_requires: dict[str, list[str]],
+        target_ensures: dict[str, list[str]],
         triage_context: dict[str, Any] | None = None,
-        contracts: list[dict[str, Any]] | None = None,
         file_path: str | None = None,
         preceding_functions: list[dict[str, Any]] | None = None,
-        requires_clauses: list[str] | None = None,
     ) -> str:
         """Build a fill-in-the-blank C template for shim generation.
 
@@ -2533,9 +2455,13 @@ echo "Built: $OUT"
         where the LLM needs to add code. Everything else is fixed.
 
         Args:
-            preceding_functions: For sequential test cases, info dicts for
-                functions to call before the target. Each dict has keys:
-                name, signature, params, postconds.
+            callee_contracts: per-callee dict with `signature`, `params`,
+                `properties`, `requires`, `ensures`, `modifies`, `noreturn`.
+            target_properties / target_requires / target_ensures: code-contract
+                clauses for the target function (per-property maps).
+            preceding_functions: for sequential test cases, info dicts for
+                functions to call before the target. Keys: name, signature,
+                params, properties, ensures.
         """
         real_fns = set((triage_context or {}).get("real_functions", []))
         # Only generate stubs for callees NOT in real_functions or ucsan abilist
@@ -2652,9 +2578,9 @@ echo "Built: $OUT"
         lines.append("")
 
         # --- ID map + callee stubs ---
-        # Assign a unique ID per contract for diagnostics feedback
+        # Assign a unique ID per requires/ensures clause for diagnostics feedback
         id_counter = 1
-        id_map: list[str] = []  # "id: func:target:kind"
+        id_map: list[str] = []  # "id: <where> <kind> [prop] clause"
 
         if stub_callees:
             lines.append("/* ---- Callee stubs ---- */")
@@ -2662,33 +2588,41 @@ echo "Built: $OUT"
             for cname, cinfo in stub_callees.items():
                 sig = cinfo["signature"]
                 params = cinfo["params"]
-                ccontracts = cinfo["contracts"]
+                cprops = cinfo.get("properties", [])
+                creqs = cinfo.get("requires", {})
+                censs = cinfo.get("ensures", {})
 
                 shim_sig = self._build_shim_signature(
                     cname, sig, params,
                 )
 
-                # Format contracts as comments with assigned IDs
+                # Format contract clauses as comments with assigned IDs
                 lines.append(f"/* Stub for {cname}: {sig}")
-                lines.append(" * Contracts (use the given ID as last arg):")
-                for c in ccontracts:
-                    kind = c["contract_kind"]
-                    target = c["target"]
-                    cid = id_counter
-                    id_counter += 1
-                    id_map.append(f"{cid}: {cname}:{target}:{kind}")
-                    if kind == "buffer_size":
-                        size_expr = c.get("size_expr", "?")
+                lines.append(" * Clauses (use the given ID as last arg):")
+                any_clause = False
+                for p in cprops:
+                    for r in creqs.get(p, []):
+                        cid = id_counter
+                        id_counter += 1
+                        id_map.append(f"{cid}: {cname} requires [{p}] {r}")
                         lines.append(
-                            f" *   id={cid} {target}: "
-                            f"{kind}({size_expr})")
-                    else:
+                            f" *   id={cid} requires [{p}]: {r}")
+                        any_clause = True
+                    for e in censs.get(p, []):
+                        cid = id_counter
+                        id_counter += 1
+                        id_map.append(f"{cid}: {cname} ensures [{p}] {e}")
                         lines.append(
-                            f" *   id={cid} {target}: {kind}")
+                            f" *   id={cid} ensures  [{p}]: {e}")
+                        any_clause = True
+                if not any_clause:
+                    lines.append(" *   (no nontrivial clauses)")
+                if cinfo.get("noreturn"):
+                    lines.append(" *   noreturn: true")
                 lines.append(" */")
                 lines.append(shim_sig + " {")
-                lines.append("    /* FILL: check pre-conditions (assert_*) "
-                             "and establish post-conditions (assume_*) */")
+                lines.append("    /* FILL: assert_* every requires clause, "
+                             "assume_* every ensures clause */")
                 lines.append("}")
                 lines.append("")
         else:
@@ -2713,7 +2647,8 @@ echo "Built: $OUT"
             "name": func_name,
             "signature": func_signature,
             "params": func_params,
-            "postconds": postconds,
+            "properties": target_properties,
+            "ensures": target_ensures,
             "is_target": True,
         })
 
@@ -2729,35 +2664,42 @@ echo "Built: $OUT"
                 f" *   {si}. {cf_ret} {cf['name']}"
                 f"({cf_params_str})"
                 f"  — {role}")
-            cf_postconds = self._format_postcond_comments(
-                cf.get("postconds", {}))
-            for pc in cf_postconds:
-                lines.append(f" *      Post: {pc}")
+            cf_ens_lines = self._format_ensures_comments(
+                cf.get("ensures", {}), cf.get("properties", []))
+            for pc in cf_ens_lines:
+                lines.append(f" *      ensures: {pc}")
 
-        # Post-condition IDs for the target function
-        postcond_comments = self._format_postcond_comments(postconds)
-        if postcond_comments:
+        # `ensures` IDs for the target function — assert on these in test()
+        target_ens_lines = self._format_ensures_comments(
+            target_ensures, target_properties)
+        if target_ens_lines:
             lines.append(" *")
             lines.append(
-                " * Assert these post-conditions on the target function:")
-            for pc in postcond_comments:
+                " * Assert these `ensures` clauses on the target function:")
+            for pc in target_ens_lines:
                 cid = id_counter
                 id_counter += 1
-                id_map.append(f"{cid}: {func_name}:post:{pc}")
-                lines.append(f" *   id={cid} {pc}")
+                id_map.append(f"{cid}: {func_name} ensures {pc}")
+                lines.append(f" *   id={cid} ensures {pc}")
 
-        # Requires section in test() comment
-        if requires_clauses:
+        # `requires` clauses for the target function — assume_* in test()
+        # before the call
+        flat_requires: list[tuple[str, str]] = []
+        for p in target_properties:
+            for r in target_requires.get(p, []):
+                flat_requires.append((p, r))
+        if flat_requires:
             lines.append(" *")
             lines.append(
                 " * Preconditions — test() MUST establish ALL of these"
-                " via assume_* calls:")
-            for rc in requires_clauses:
+                " via assume_* calls before the target call:")
+            for p, rc in flat_requires:
+                cid = id_counter
+                id_counter += 1
+                id_map.append(f"{cid}: {func_name} requires [{p}] {rc}")
                 hint = self._malloc_size_hint(rc)
-                if hint:
-                    lines.append(f" *   - {rc}  →  {hint}")
-                else:
-                    lines.append(f" *   - {rc}")
+                suffix = f"  →  {hint}" if hint else ""
+                lines.append(f" *   id={cid} requires [{p}]: {rc}{suffix}")
 
         lines.append(" *")
         lines.append(" * Rules:")
@@ -2774,8 +2716,7 @@ echo "Built: $OUT"
             " * - Return values: wire them if the next function needs"
             " the result")
         lines.append(
-            " * - Post-conditions: assert on the target function only,"
-            " using the IDs above")
+            " * - Use the IDs above when calling assert_*/assume_*")
         lines.append(" */")
         lines.append("")
 
@@ -2960,36 +2901,14 @@ echo "Built: $OUT"
         return "\n".join(collected) if collected else None
 
     @staticmethod
-    def _format_postcond_comments(postconds: dict) -> list[str]:
-        """Format post-conditions as comment lines for the template."""
+    def _format_ensures_comments(
+        ensures: dict[str, list[str]], properties: list[str],
+    ) -> list[str]:
+        """Format `ensures` clauses as `[prop] clause` lines for the template."""
         comments: list[str] = []
-        for alloc in postconds.get("allocations", []):
-            target = ("return value" if alloc.get("returned")
-                      else alloc.get("stored_to", "?"))
-            size = alloc.get("size_expr", "?")
-            may_null = alloc.get("may_be_null", True)
-            line = f"ALLOCATES {target} (size: {size})"
-            if may_null:
-                line += " [may_be_null]"
-            cond = alloc.get("condition", "")
-            if cond:
-                line += f" [when {cond}]"
-            comments.append(line)
-        for init in postconds.get("inits", []):
-            target = init.get("target", "?")
-            byte_count = init.get("byte_count", "?")
-            line = f"INITIALIZES {target} ({byte_count} bytes)"
-            cond = init.get("condition", "")
-            if cond:
-                line += f" [when {cond}]"
-            comments.append(line)
-        for free in postconds.get("frees", []):
-            target = free.get("target", "?")
-            line = f"FREES {target}"
-            cond = free.get("condition", "")
-            if cond:
-                line += f" [when {cond}]"
-            comments.append(line)
+        for p in properties:
+            for clause in ensures.get(p, []):
+                comments.append(f"[{p}] {clause}")
         return comments
 
     @staticmethod
