@@ -812,5 +812,12 @@
     "area": "Other essential libraries",
     "project_dir": "musl",
     "language": "C"
+  },
+  {
+    "name": "freetype",
+    "url": "https://gitlab.freedesktop.org/freetype/freetype.git",
+    "tier" : 1,
+    "area": "Other essential libraries",
+    "project_dir": "freetype"
   }
 ]
